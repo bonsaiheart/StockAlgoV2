@@ -1,0 +1,1796 @@
+Ran at 2023-04-20 15:31:57.056048. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+AttributeError: module 'yfinance_operations' has no attribute 'get_options_data'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:31:57.056048. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+AttributeError: module 'yfinance_operations' has no attribute 'get_options_data'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:32:19.100595. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 107, in perform_operations
+    data = pd.read_csv(f'dataOutput/{ticker}/rawdata/{YYMMDD}/{ticker}_{last_trade_time}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 331, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 950, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 605, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 1442, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 1735, in _make_engine
+    self.handles = get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 856, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: 'dataOutput/SPY/rawdata/230420/SPY_15_32.csv'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:33:18.179728. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:33:18.179728. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:33:18.179728. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:33:18.179728. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:33:18.179728. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-20 15:34:51.747699. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'all_OI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['all_OI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'all_OI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:34:51.747699. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'all_OI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['all_OI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'all_OI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:34:51.747699. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'all_OI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['all_OI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'all_OI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:34:51.747699. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'all_OI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['all_OI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'all_OI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:34:51.747699. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-20 15:36:32.785142. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'all_OI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['all_OI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'all_OI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:36:32.785142. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'all_OI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['all_OI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'all_OI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:41:27.399986. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:41:27.399986. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:41:27.399986. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:41:27.399986. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'TotalOI'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 227, in perform_operations
+    highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'TotalOI'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:41:50.249355. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 314, in perform_operations
+    'IV 30': iv30,
+NameError: name 'iv30' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:42:14.023007. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'dataOutput/{ticker}/dailydata/{YYMMDD}/{ticker}_{last_trade_time}.csv', index=False)
+NameError: name 'last_trade_time' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:42:14.023007. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'dataOutput/{ticker}/dailydata/{YYMMDD}/{ticker}_{last_trade_time}.csv', index=False)
+NameError: name 'last_trade_time' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:42:14.023007. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'dataOutput/{ticker}/dailydata/{YYMMDD}/{ticker}_{last_trade_time}.csv', index=False)
+NameError: name 'last_trade_time' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:44:53.181855. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv', index=False)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\ProcessedData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:44:53.181855. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv', index=False)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\ProcessedData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:44:53.181855. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv', index=False)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\ProcessedData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:44:53.181855. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 419, in perform_operations
+    df.to_csv(f'data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv', index=False)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\ProcessedData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:44:53.181855. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-20 15:46:34.349073. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 98, in get_options_data
+    combined.to_csv(f'data/RawData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\RawData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:46:34.349073. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 98, in get_options_data
+    combined.to_csv(f'data/RawData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\RawData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:46:34.349073. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 98, in get_options_data
+    combined.to_csv(f'data/RawData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\RawData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:46:34.349073. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 98, in get_options_data
+    combined.to_csv(f'data/RawData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 734, in get_handle
+    check_parent_directory(str(handle))
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 597, in check_parent_directory
+    raise OSError(rf"Cannot save file into a non-existent directory: '{parent}'")
+OSError: Cannot save file into a non-existent directory: 'data\RawData\SPY\230420'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:46:34.349073. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-20 15:47:51.443076. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 108, in perform_operations
+    data = pd.read_csv(f'data/optionsdata/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 331, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 950, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 605, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 1442, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 1735, in _make_engine
+    self.handles = get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 856, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: 'data/optionsdata/SPY/230420/SPY_15_47.csv'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 15:47:51.443076. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 108, in perform_operations
+    data = pd.read_csv(f'data/optionsdata/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 331, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 950, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 605, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 1442, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\parsers\readers.py", line 1735, in _make_engine
+    self.handles = get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 856, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: 'data/optionsdata/SPY/230420/SPY_15_47.csv'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:39:39.002626. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 205, in perform_operations
+    call_DFSxOI_list.append((strikeprice, call_DFSxOI))
+NameError: name 'call_DFSxOI' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:39:39.002626. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 205, in perform_operations
+    call_DFSxOI_list.append((strikeprice, call_DFSxOI))
+NameError: name 'call_DFSxOI' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:39:39.002626. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 205, in perform_operations
+    call_DFSxOI_list.append((strikeprice, call_DFSxOI))
+NameError: name 'call_DFSxOI' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:39:39.002626. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 205, in perform_operations
+    call_DFSxOI_list.append((strikeprice, call_DFSxOI))
+NameError: name 'call_DFSxOI' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:39:39.002626. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-20 16:40:16.100339. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 215, in perform_operations
+    max_DFSxOI = max(strike_DFSxOI_list, key=lambda x: x[1])[0]
+ValueError: max() arg is an empty sequence
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:40:16.100339. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 215, in perform_operations
+    max_DFSxOI = max(strike_DFSxOI_list, key=lambda x: x[1])[0]
+ValueError: max() arg is an empty sequence
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:40:16.100339. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 215, in perform_operations
+    max_DFSxOI = max(strike_DFSxOI_list, key=lambda x: x[1])[0]
+ValueError: max() arg is an empty sequence
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:40:16.100339. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 38, in <module>
+    yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 215, in perform_operations
+    max_DFSxOI = max(strike_DFSxOI_list, key=lambda x: x[1])[0]
+ValueError: max() arg is an empty sequence
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 16:40:16.100339. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-20 17:14:13.855062. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 27, in get_options_data
+    ticker.options
+AttributeError: 'str' object has no attribute 'options'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 17:20:31.182137. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 31, in get_options_data
+    chain = yf.Ticker(ticker).option_chain(expiration=exp_date)
+TypeError: Ticker.option_chain() got an unexpected keyword argument 'expiration'
+. Retrying in 5 seconds... 
+Ran at 2023-04-20 17:21:40.538090. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 36, in get_options_data
+    option_chain_df = option_chain_df.append(calls)
+UnboundLocalError: local variable 'option_chain_df' referenced before assignment
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:50:33.470372. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 37, in get_options_data
+    chain = opt(exp_date)
+TypeError: 'Options' object is not callable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:50:33.470372. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 37, in get_options_data
+    chain = opt(exp_date)
+TypeError: 'Options' object is not callable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:50:33.470372. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 37, in get_options_data
+    chain = opt(exp_date)
+TypeError: 'Options' object is not callable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:50:33.470372. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 37, in get_options_data
+    chain = opt(exp_date)
+TypeError: 'Options' object is not callable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:50:33.470372. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 08:53:35.934536. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 39, in get_options_data
+    chain = opt(exp_date)
+TypeError: 'Options' object is not callable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:58:41.934489. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 39, in get_options_data
+    chain = yf.Ticker(ticker).optionchain(exp_date)
+AttributeError: 'Ticker' object has no attribute 'optionchain'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 08:59:15.375991. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 39, in get_options_data
+    chain = yf.Ticker(ticker).option_chain(exp_dates)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 86, in option_chain
+    raise ValueError(
+ValueError: Expiration `('2023-04-21', '2023-04-24', '2023-04-25', '2023-04-26', '2023-04-27', '2023-04-28', '2023-05-05', '2023-05-12', '2023-05-19', '2023-05-26', '2023-06-02', '2023-06-16', '2023-06-30', '2023-07-21', '2023-08-18', '2023-09-15', '2023-09-29', '2023-10-20', '2023-12-15', '2023-12-29', '2024-01-19', '2024-03-15', '2024-03-28', '2024-06-21', '2024-12-20', '2025-01-17', '2025-03-21', '2025-12-19')` cannot be found. Available expiration are: [2023-04-21, 2023-04-24, 2023-04-25, 2023-04-26, 2023-04-27, 2023-04-28, 2023-05-05, 2023-05-12, 2023-05-19, 2023-05-26, 2023-06-02, 2023-06-16, 2023-06-30, 2023-07-21, 2023-08-18, 2023-09-15, 2023-09-29, 2023-10-20, 2023-12-15, 2023-12-29, 2024-01-19, 2024-03-15, 2024-03-28, 2024-06-21, 2024-12-20, 2025-01-17, 2025-03-21, 2025-12-19]
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:03:04.313060. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 50, in get_options_data
+    calls_df = pd.DataFrame(calls)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 762, in __init__
+    mgr = ndarray_to_mgr(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 329, in ndarray_to_mgr
+    values = _prep_ndarraylike(values, copy=copy_on_sanitize)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 568, in _prep_ndarraylike
+    values = np.array([convert(v) for v in values])
+ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (28,) + inhomogeneous part.
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:03:04.313060. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 50, in get_options_data
+    calls_df = pd.DataFrame(calls)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 762, in __init__
+    mgr = ndarray_to_mgr(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 329, in ndarray_to_mgr
+    values = _prep_ndarraylike(values, copy=copy_on_sanitize)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 568, in _prep_ndarraylike
+    values = np.array([convert(v) for v in values])
+ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (28,) + inhomogeneous part.
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:03:04.313060. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 50, in get_options_data
+    calls_df = pd.DataFrame(calls)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 762, in __init__
+    mgr = ndarray_to_mgr(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 329, in ndarray_to_mgr
+    values = _prep_ndarraylike(values, copy=copy_on_sanitize)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 568, in _prep_ndarraylike
+    values = np.array([convert(v) for v in values])
+ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (28,) + inhomogeneous part.
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:03:04.313060. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 50, in get_options_data
+    calls_df = pd.DataFrame(calls)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 762, in __init__
+    mgr = ndarray_to_mgr(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 329, in ndarray_to_mgr
+    values = _prep_ndarraylike(values, copy=copy_on_sanitize)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 568, in _prep_ndarraylike
+    values = np.array([convert(v) for v in values])
+ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (28,) + inhomogeneous part.
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:03:04.313060. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 09:21:03.936617. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 34, in get_options_data
+    puts_df = pd.DataFrame(puts)
+NameError: name 'puts' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:21:59.440603. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 34, in get_options_data
+    puts_df = pd.DataFrame(puts)
+NameError: name 'puts' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:21:59.440603. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 34, in get_options_data
+    puts_df = pd.DataFrame(puts)
+NameError: name 'puts' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:24:31.732960. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 31, in get_options_data
+    calls_df = yf.Ticker(ticker).option_chain('2023-04-21').calls.to_dataframe()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 5902, in __getattr__
+    return object.__getattribute__(self, name)
+AttributeError: 'DataFrame' object has no attribute 'to_dataframe'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:25:17.763615. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 31, in get_options_data
+    calls_df = yf.Ticker(ticker).option_chain('2023-04-21').calls.to_dataframe()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 5902, in __getattr__
+    return object.__getattribute__(self, name)
+AttributeError: 'DataFrame' object has no attribute 'to_dataframe'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:25:26.531265. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 34, in get_options_data
+    puts_df = pd.DataFrame(puts)
+NameError: name 'puts' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:26:13.086427. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 34, in get_options_data
+    puts_df = pd.DataFrame(puts)
+NameError: name 'puts' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:28:21.393756. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 64, in get_options_data
+    puts_df['lastTrade'] = pd.to_datetime(puts_df['lastTradeDate'])
+NameError: name 'puts_df' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:30:25.936689. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 49, in get_options_data
+    calls_df = pd.DataFrame(callsChain)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 762, in __init__
+    mgr = ndarray_to_mgr(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 329, in ndarray_to_mgr
+    values = _prep_ndarraylike(values, copy=copy_on_sanitize)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\internals\construction.py", line 568, in _prep_ndarraylike
+    values = np.array([convert(v) for v in values])
+ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (28,) + inhomogeneous part.
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:32:22.113346. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 65, in get_options_data
+    puts_df['lastTrade'] = pd.to_datetime(puts_df['lastTradeDate'])
+NameError: name 'puts_df' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:32:22.113346. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 65, in get_options_data
+    puts_df['lastTrade'] = pd.to_datetime(puts_df['lastTradeDate'])
+NameError: name 'puts_df' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:32:22.113346. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 65, in get_options_data
+    puts_df['lastTrade'] = pd.to_datetime(puts_df['lastTradeDate'])
+NameError: name 'puts_df' is not defined
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:33:56.823089. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 550, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\packages\six.py", line 769, in reraise
+    raise value.with_traceback(tb)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 38, in get_options_data
+    chain = yf.Ticker(ticker).option_chain(exp_date)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 84, in option_chain
+    self._download_options()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 48, in _download_options
+    r = self._data.get(url=url, proxy=proxy).json()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\data.py", line 186, in get
+    response = self._session.get(
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 547, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:33:56.823089. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 550, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\packages\six.py", line 769, in reraise
+    raise value.with_traceback(tb)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 248, in _fetch
+    result = self._data.get_raw_json(
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\data.py", line 208, in get_raw_json
+    response = self.get(url, user_agent_headers=user_agent_headers, params=params, proxy=proxy, timeout=timeout)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\data.py", line 186, in get
+    response = self._session.get(
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 547, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:33:56.823089. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 550, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\packages\six.py", line 769, in reraise
+    raise value.with_traceback(tb)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 37, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 248, in _fetch
+    result = self._data.get_raw_json(
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\data.py", line 208, in get_raw_json
+    response = self.get(url, user_agent_headers=user_agent_headers, params=params, proxy=proxy, timeout=timeout)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\data.py", line 186, in get
+    response = self._session.get(
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 547, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:47:15.770922. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 36, in get_options_data
+    chain = yf.Ticker(ticker).option_chain(exp_date)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 94, in option_chain
+    "calls": self._options2df(options['calls'], tz=tz),
+TypeError: 'NoneType' object is not subscriptable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:49:31.254175. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:49:31.254175. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:49:31.254175. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:49:31.254175. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 09:49:31.254175. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 10:06:30.168729. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:06:30.168729. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:08:40.418731. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:08:40.418731. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:08:40.418731. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:08:40.418731. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:08:40.418731. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 10:12:43.348289. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:12:43.348289. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:14:37.651460. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:14:37.651460. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:15:21.645945. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:15:21.645945. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:15:21.645945. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:15:21.645945. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:15:21.645945. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 10:20:20.860817. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:23:48.925099. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:28:13.948583. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:29:49.022842. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 14, in get_options_data
+    tickerinfo = yf.Ticker(ticker).info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\ticker.py", line 138, in info
+    return self.get_info()
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\base.py", line 1475, in get_info
+    data = self._quote.info
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 98, in info
+    self._fetch(self.proxy)
+  File "C:\Users\natha\venv\lib\site-packages\yfinance\scrapers\quote.py", line 255, in _fetch
+    for k, v in query1_info.items():
+AttributeError: 'NoneType' object has no attribute 'items'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:31:11.288550. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 18, in get_options_data
+    CurrentPrice = tickerinfo['regularMarketPrice']
+KeyError: 'regularMarketPrice'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:31:11.288550. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 18, in get_options_data
+    CurrentPrice = tickerinfo['regularMarketPrice']
+KeyError: 'regularMarketPrice'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:31:11.288550. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 18, in get_options_data
+    CurrentPrice = tickerinfo['regularMarketPrice']
+KeyError: 'regularMarketPrice'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:31:11.288550. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 18, in get_options_data
+    CurrentPrice = tickerinfo['regularMarketPrice']
+KeyError: 'regularMarketPrice'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:31:11.288550. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 10:40:13.949534. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 20, in get_options_data
+    price_change_percent=tickerinfo['regularMarketChangePercent']
+KeyError: 'regularMarketChangePercent'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:40:13.949534. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 20, in get_options_data
+    price_change_percent=tickerinfo['regularMarketChangePercent']
+KeyError: 'regularMarketChangePercent'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:40:13.949534. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 20, in get_options_data
+    price_change_percent=tickerinfo['regularMarketChangePercent']
+KeyError: 'regularMarketChangePercent'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:40:13.949534. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 20, in get_options_data
+    price_change_percent=tickerinfo['regularMarketChangePercent']
+KeyError: 'regularMarketChangePercent'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:40:13.949534. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 10:42:16.955860. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+KeyError: 'regularMarketTime'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:42:16.955860. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+KeyError: 'regularMarketTime'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:42:16.955860. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+KeyError: 'regularMarketTime'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:42:16.955860. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+KeyError: 'regularMarketTime'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:42:16.955860. Max Retries exceeded.  Exiting... 
+Ran at 2023-04-21 10:48:11.743674. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['currentPrice']
+KeyError: 'currentPrice'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:48:27.708482. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+KeyError: 'regularMarketTime'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:49:20.242120. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:49:38.511702. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:50:18.098596. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 17, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:51:54.364929. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 17, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:52:30.719809. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 17, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:52:30.719809. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 17, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:52:30.719809. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 17, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:52:44.910411. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+  File "pandas\_libs\index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\_libs\hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'regularMarketPreviousClose'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 17, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\indexes\base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:54:56.254366. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['regularMarketPreviousClose']
+KeyError: 'regularMarketPreviousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 10:59:48.246167. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+TypeError: 'Timestamp' object is not subscriptable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:01:00.666672. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 21, in get_options_data
+    StockLastTradeTime = tickerinfo['regularMarketTime'][:-4]
+TypeError: 'Timestamp' object is not subscriptable
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:02:06.972197. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 25, in get_options_data
+    StockLastTradeTime = dt.datetime.strptime(StockLastTradeTime, '%I:%M%p').strftime('%H_%M')
+TypeError: strptime() argument 1 must be str, not Timestamp
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:02:59.775234. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 25, in get_options_data
+    StockLastTradeTime = dt.datetime.strptime(StockLastTradeTime, '%I:%M%p')
+TypeError: strptime() argument 1 must be str, not Timestamp
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:03:13.713939. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 102, in get_options_data
+    combined.to_csv(f'data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\core\generic.py", line 3720, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\util\_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\format.py", line 1189, in to_csv
+    csv_formatter.save()
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\formats\csvs.py", line 241, in save
+    with get_handle(
+  File "C:\Users\natha\venv\lib\site-packages\pandas\io\common.py", line 856, in get_handle
+    handle = open(
+OSError: [Errno 22] Invalid argument: 'data/optionchain/SPY/230421/SPY_2023-04-21 11:03:11-04:00.csv'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:04:02.071816. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['previousClose']
+KeyError: 'previousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:06:03.942021. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['previousClose']
+KeyError: 'previousClose'
+. Retrying in 5 seconds... 
+Ran at 2023-04-21 11:06:59.736111. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 51, in <module>
+    LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\yfinance_operations.py", line 16, in get_options_data
+    LAC = tickerinfo['previousClose']
+KeyError: 'previousClose'
+. Retrying in 5 seconds... 
