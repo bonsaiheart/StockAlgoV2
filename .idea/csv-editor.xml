@@ -94,6 +94,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\data\ProcessedData\SPY\230421\SPY_11_08.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230421\SPY_11_13.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\data\ProcessedData\SPY\230421\SPY_12_57.csv">
           <value>
             <Attribute>
@@ -123,6 +137,13 @@
           </value>
         </entry>
         <entry key="\data\ProcessedData\SPY\230421\SPY_230421_1516.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230421\SPY_230421_1550.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -333,6 +354,27 @@
           </value>
         </entry>
         <entry key="\data\optionchain\SPY\230420\SPY_16_00.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\optionchain\SPY\230421\SPY_11_08.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\optionchain\SPY\230421\SPY_11_10.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\optionchain\SPY\230421\SPY_11_16.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

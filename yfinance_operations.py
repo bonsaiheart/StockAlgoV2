@@ -12,15 +12,15 @@ def get_options_data(ticker):
 # get last adjusted close
 
     tickerinfo = yf.Ticker(ticker).history_metadata
-    print(tickerinfo)
+
     LAC = tickerinfo['previousClose']
-    print(LAC)
+    print(f"LAC: ${LAC}")
     CurrentPrice = tickerinfo['regularMarketPrice']
-    print(CurrentPrice)
+    print(f'Current Price: ${CurrentPrice}')
     price_change_percent= (CurrentPrice - LAC) / LAC *100
     StockLastTradeTime = tickerinfo['regularMarketTime']
-    StockLastTradeTime = tickerinfo['regularMarketTime'].time().strftime('%H_%M')
-    print(StockLastTradeTime)
+    StockLastTradeTime = tickerinfo['regularMarketTime'].time().strftime('%H%M')
+    print(f"Last Trade Time: {StockLastTradeTime}")
     # convert the string to a datetime object
     # StockLastTradeTime = dt.datetime.strptime(StockLastTradeTime, '%I:%M%p')
 
@@ -98,8 +98,8 @@ def get_options_data(ticker):
 
     output_dir = Path(f'data/optionchain/{ticker}/{YYMMDD}')
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    print(StockLastTradeTime)
-    combined.to_csv(f'data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+
+    combined.to_csv(f'data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD}_{StockLastTradeTime}.csv')
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
     return (LAC, CurrentPrice,price_change_percent, StockLastTradeTime)
 
@@ -108,7 +108,7 @@ def get_options_data(ticker):
 def perform_operations(ticker,last_adj_close, current_price, price_change_percent,StockLastTradeTime):
     results = []
 
-    data = pd.read_csv(f'data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv')
+    data = pd.read_csv(f'data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD}_{StockLastTradeTime}.csv')
 
     groups = data.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
@@ -420,7 +420,7 @@ def perform_operations(ticker,last_adj_close, current_price, price_change_percen
 
     output_dir = Path(f'data/ProcessedData/{ticker}/{YYMMDD}/')
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    df.to_csv(f'data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv', index=False)
+    df.to_csv(f'data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{YYMMDD}_{StockLastTradeTime}.csv', index=False)
 
     # print("process finished")
 #
