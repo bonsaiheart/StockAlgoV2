@@ -1,10 +1,14 @@
 import yfinance_operations as yfi_ops
 import logging
 import sys
+import pandas as pd
 import traceback
 import checkConditions
 import os, time
 import datetime
+import email_me
+import webullAPI
+
 #import webullapi
 
 datetime = datetime.datetime.today()
@@ -48,9 +52,19 @@ for i in range(max_retries):
         if checkConditions.is_market_open_today() == True:
             for ticker in tickerlist:
 
-                LAC, current_price, price_change_percent, StockLastTradeTime = yfi_ops.get_options_data(ticker)
-                yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime)
+                LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame = yfi_ops.get_options_data(ticker)
+                df = yfi_ops.perform_operations(ticker, LAC, current_price, price_change_percent, StockLastTradeTime,this_minute_ta_frame)
 
+
+                result = yfi_ops.actions(df)
+                if result != "No Order":
+
+                    action1, price, quantity = result
+                    webullAPI.login()
+                    webullAPI.buy(f"{ticker}", price, quantity)
+                    email_me.email_me(df)
+                else:
+                    email_me.email_me(df)
             break
         else:
             with open(log_path, 'a') as f:
