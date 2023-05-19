@@ -1,83 +1,154 @@
-from datetime import datetime
-from pathlib import Path
-import ta
-import numpy as np
-import yfinance as yf
+import requests
+from datetime import datetime,timedelta
 import pandas as pd
-import datetime as dt
+import ta
+from pathlib import Path
+import numpy as np
 import TradierAPI
+import PrivateData.tradier_info
 
-YYMMDD = dt.datetime.today().strftime("%y%m%d")
+paper_acc = PrivateData.tradier_info.paper_acc
+paper_auth =PrivateData.tradier_info.paper_auth
+real_acc = PrivateData.tradier_info.real_acc
+real_auth = PrivateData.tradier_info.real_auth
 
-
+###TODO time and sales (will be used for awesome ind. and ta.
+YYMMDD = datetime.today().strftime("%y%m%d")
 def get_options_data(ticker):
-    ###THIS PART CALCULATES TA INDICATORS#################################################################
-    tickerhistory = yf.Ticker(ticker).history(period="5d", interval="1m")
-
-    Close = tickerhistory["Close"]
-    tickerhistory.to_csv('tickerhistory.csv')
-    tickerhistory["AwesomeOsc"] = ta.momentum.awesome_oscillator(
-        high=tickerhistory["High"], low=tickerhistory["Low"], window1=1, window2=5, fillna=False
+    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
+    end = datetime.today().strftime("%Y-%m-%d %H:%M")
+    response = requests.get('https://api.tradier.com/v1/markets/timesales',
+        params={'symbol': ticker, 'interval': '1min','start': start,'end':end,'session_filter': 'all'},
+        headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
     )
-    tickerhistory["RSI"] = ta.momentum.rsi(close=Close, window=5, fillna=False)
-    groups = tickerhistory.groupby(tickerhistory.index.date)
+    json_response = response.json()
+    # print(response.status_code)
+    # print(json_response)
+    df= pd.DataFrame(json_response['series']['data']).set_index('time')
+    # df.set_index('time', inplace=True)
+    ##change index to datetimeindex
+    df.index = pd.to_datetime(df.index)
+
+
+    close = df["close"]
+    df["AwesomeOsc"] = ta.momentum.awesome_oscillator(
+        high=df["high"], low=df["low"], window1=1, window2=5, fillna=False
+    )
+    df["RSI"] = ta.momentum.rsi(close=close, window=5, fillna=False)
+    groups = df.groupby(df.index.date)
     group_dates = list(groups.groups.keys())
     lastgroup = group_dates[-1]
     ta_data = groups.get_group(lastgroup)
     this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
+    # print(this_minute_ta_frame)
+    # df.to_csv('df.csv')
 
-    ###############################################################################################
-    tickerinfo = yf.Ticker(ticker).history_metadata
-    print("tickerinfo")
-    print(tickerinfo)
-    print(tickerinfo["symbol"])
-    LAC = tickerinfo["previousClose"]
+
+#quote
+    response = requests.get('https://api.tradier.com/v1/markets/quotes',
+        params={'symbols': ticker, 'greeks': 'false'},
+        headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+    )
+    json_response = response.json()
+    # print(response.status_code)
+    # print(json_response)
+    # print(json_response)
+    quote_df = pd.DataFrame.from_dict(json_response['quotes']['quote'], orient='index').T
+    LAC = quote_df.at[0,'prevclose']
+
+    CurrentPrice = quote_df.at[0,'last']
+    price_change_percent = quote_df['change_percentage'][0]
+    StockLastTradeTime = quote_df['trade_date'][0]
+    StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
+    StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
+    print(f"${ticker} last Trade Time: {StockLastTradeTime}")
     print(f"LAC: ${LAC}")
-    CurrentPrice = tickerinfo["regularMarketPrice"]
     print(f"Current Price: ${CurrentPrice}")
-    price_change_percent = (CurrentPrice - LAC) / LAC * 100
 
-    StockLastTradeTime = tickerinfo["regularMarketTime"]
-    print(StockLastTradeTime)
+    # quote_df.to_csv('tradierquote.csv')
 
-    StockLastTradeTime = dt.datetime.fromtimestamp(StockLastTradeTime.timestamp()).strftime("%y%m%d_%H%M")
-    print(f"Last Trade Time: {StockLastTradeTime}")
+    ###TODO finish making this df look just like yfinance df.
+    response = requests.get('https://api.tradier.com/v1/markets/options/expirations',
+        params={'symbol': ticker, 'includeAllRoots': 'true', 'strikes': 'true'},
+        headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+    )
+    json_response = response.json()
+    print(json_response)
 
-    exp_dates = yf.Ticker(ticker).options
-    closest_exp_date = exp_dates[0]
+
+    expirations = json_response['expirations']['expiration']
+    expiration_dates = [expiration['date'] for expiration in expirations]
+
+    closest_exp_date = expiration_dates[0]
+
     callsChain = []
     putsChain = []
-    print(type(exp_dates), exp_dates)
-    for exp_date in exp_dates:
-        chain = yf.Ticker(ticker).option_chain(exp_date)
-        newcall = chain.calls
-        newput = chain.puts
-        callsChain.append(newcall)
-        putsChain.append(newput)
+
+    for exp_date in expiration_dates:
+
+
+        response = requests.get('https://api.tradier.com/v1/markets/options/chains',
+            params={'symbol': ticker, 'expiration': exp_date, 'greeks': 'true'},
+            headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+        )
+        json_response = response.json()
+        # print(response.status_code)
+        # print("Option Chain: ",json_response)
+        optionchain_df = pd.DataFrame(json_response['options']['option'])
+        grouped = optionchain_df.groupby('option_type')
+        call_group = grouped.get_group('call').copy()
+        put_group = grouped.get_group('put').copy()
+
+    # print(call_group.columns)
+    # print(put_group.columns)
+        callsChain.append(call_group)
+        putsChain.append(put_group)
+
+    # combined_call_put_optionchain_df = pd.concat([call_group.set_index('strike'), put_group.set_index('strike')], axis=1, keys=['call', 'put'])
+
 
     ###CALLS OPS
-    calls_df = pd.concat(callsChain, ignore_index=True)
-    calls_df["lastTrade"] = pd.to_datetime(calls_df["lastTradeDate"])
-    calls_df["lastTrade"] = calls_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
-    calls_df["expDate"] = calls_df["contractSymbol"].str[-15:-9]
 
+
+
+
+
+
+
+
+
+
+
+
+    # calls_df["lastTrade"] = pd.to_datetime(calls_df["lastTradeDate"])
+    # calls_df["lastTrade"] = calls_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
+
+    calls_df = pd.concat(callsChain, ignore_index=True)
+    # for greek in calls_df['greeks']:
+    #     print(greek.get('mid_iv'))
+    calls_df["expDate"] = calls_df["symbol"].str[-15:-9]
     calls_df["dollarsFromStrike"] = abs(calls_df["strike"] - LAC)
-    calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["openInterest"]
-    calls_df["lastContractPricexOI"] = calls_df["lastPrice"] * calls_df["openInterest"]
+    calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["open_interest"]
+    calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
+    calls_df["impliedVolatility"] = calls_df['greeks'].str.get('mid_iv')
+    # print("callsiv",calls_df['impliedVolatility'])
+
+
     calls_df.rename(
         columns={
-            "contractSymbol": "c_contractSymbol",
-            "lastTradeDate": "c_lastTrade",
-            "lastPrice": "c_lastPrice",
+            "symbol": "c_contractSymbol",
+            "trade_date": "c_lastTrade",
+            "last": "c_lastPrice",
             "bid": "c_bid",
             "ask": "c_ask",
             "change": "c_change",
-            "percentChange": "c_percentChange",
+            "change_percentage": "c_percentChange",
             "volume": "c_volume",
-            "openInterest": "c_openInterest",
+            "open_interest": "c_openInterest",
+            "greeks": "c_greeks",
             "impliedVolatility": "c_impliedVolatility",
-            "inTheMoney": "c_inTheMoney",
-            "lastTrade": "c_lastTrade",
+            # "inTheMoney": "c_inTheMoney",
+            # "lastTrade": "c_lastTrade",
             "dollarsFromStrike": "c_dollarsFromStrike",
             "dollarsFromStrikexOI": "c_dollarsFromStrikexOI",
             "lastContractPricexOI": "c_lastContractPricexOI",
@@ -87,28 +158,30 @@ def get_options_data(ticker):
     ###PUTS OPS
 
     puts_df = pd.concat(putsChain, ignore_index=True)
-    puts_df["lastTrade"] = pd.to_datetime(puts_df["lastTradeDate"])
-    puts_df["lastTrade"] = puts_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
-    puts_df["expDate"] = puts_df["contractSymbol"].str[-15:-9]
+    # puts_df["lastTrade"] = pd.to_datetime(puts_df["lastTradeDate"])
+    # puts_df["lastTrade"] = puts_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
+    puts_df["expDate"] = puts_df["symbol"].str[-15:-9]
     ###TODO for puts, use current price - strike i think.
     puts_df["dollarsFromStrike"] = abs(puts_df["strike"] - LAC)
-    puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["openInterest"]
-    puts_df["lastContractPricexOI"] = puts_df["lastPrice"] * puts_df["openInterest"]
-
+    puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["open_interest"]
+    puts_df["lastContractPricexOI"] = puts_df["last"] * puts_df["open_interest"]
+    puts_df["impliedVolatility"] = puts_df['greeks'].str.get('mid_iv')
+    # print("PUTSsiv", puts_df['impliedVolatility'])
     puts_df.rename(
         columns={
-            "contractSymbol": "p_contractSymbol",
-            "lastTradeDate": "p_lastTrade",
-            "lastPrice": "p_lastPrice",
+            "symbol": "p_contractSymbol",
+            "trade_date": "p_lastTrade",
+            "last": "p_lastPrice",
             "bid": "p_bid",
             "ask": "p_ask",
             "change": "p_change",
-            "percentChange": "p_percentChange",
+            "change_percentage": "p_percentChange",
             "volume": "p_volume",
-            "openInterest": "p_openInterest",
+            "open_interest": "p_openInterest",
             "impliedVolatility": "p_impliedVolatility",
-            "inTheMoney": "p_inTheMoney",
-            "lastTrade": "p_lastTrade",
+            "greeks": "p_greeks",
+            # "inTheMoney": "p_inTheMoney",
+            # "lastTrade": "p_lastTrade",
             "dollarsFromStrike": "p_dollarsFromStrike",
             "dollarsFromStrikexOI": "p_dollarsFromStrikexOI",
             "lastContractPricexOI": "p_lastContractPricexOI",
@@ -132,7 +205,8 @@ def get_options_data(ticker):
             "c_volume",
             "c_openInterest",
             "c_impliedVolatility",
-            "c_inTheMoney",
+            "c_greeks",
+            # "c_inTheMoney",
             "c_lastTrade",
             "c_dollarsFromStrike",
             "c_dollarsFromStrikexOI",
@@ -147,7 +221,8 @@ def get_options_data(ticker):
             "p_volume",
             "p_openInterest",
             "p_impliedVolatility",
-            "p_inTheMoney",
+            "c_greeks",
+            # "p_inTheMoney",
             "p_lastTrade",
             "p_dollarsFromStrike",
             "p_dollarsFromStrikexOI",
@@ -177,6 +252,14 @@ def get_options_data(ticker):
         inplace=True,
     )
 
+
+    # for option in json_response["options"]["option"]:
+    #     print(option["symbol"], option["open_interest"])
+
+    ##weighted total iv for contract
+    # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
+    # vega measures response to IV change.
+
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
@@ -189,11 +272,16 @@ def get_options_data(ticker):
         else:
             print(f"An error occurred while writing the CSV file,: {e}")
             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
-    print(type(LAC), type(CurrentPrice), type(price_change_percent), type(StockLastTradeTime), type(this_minute_ta_frame), type(closest_exp_date))
+    # combined.to_csv(f"combined_tradier.csv")
+    # print(type(LAC), type(CurrentPrice), type(price_change_percent), type(StockLastTradeTime),
+    #       type(this_minute_ta_frame), type(closest_exp_date))
+    # print(LAC, CurrentPrice,"fffff", price_change_percent,"asdfdasf", StockLastTradeTime, this_minute_ta_frame, closest_exp_date)
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
     return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
 
 
+
+#
 def perform_operations(
     ticker,
     last_adj_close,
@@ -203,6 +291,7 @@ def perform_operations(
     this_minute_ta_frame,
     closest_exp_date,
 ):
+    # print(current_price)
     results = []
 
     # if len(results) > 0:
@@ -217,6 +306,7 @@ def perform_operations(
     groups = data.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
     for exp_date, group in groups:
+
         pain_list = []
         strike_LASTPRICExOI_list = []
         call_LASTPRICExOI_list = []
@@ -276,9 +366,11 @@ def perform_operations(
         Put_IV = group["Put_IV"].sum()
         ITM_Avg_Net_IV = ITM_Call_IV - ITM_Put_IV
         Net_IV = Call_IV - Put_IV
+        # print("hihihi213234",Net_IV)
 
         if all_CallsVol != 0 and not np.isnan(all_CallsVol):
             PC_Ratio_Vol = all_PutsVol / all_CallsVol
+            # print("1")
         else:
             PC_Ratio_Vol = np.nan
             continue
@@ -310,7 +402,7 @@ def perform_operations(
         ###TODO add highest premium puts/calls, greeks corelation?
 
         ###TODO correlate volume and IV, high volume high iv = contracts being bought, high volume, low vol. = contracts being sold.
-
+        # print("wassup123",strike)
         for strikeprice in strike:
             itmCalls_dollarsFromStrikeXoiSum = group.loc[
                 (group["Strike"] < strikeprice), "Calls_dollarsFromStrikeXoi"
@@ -360,7 +452,7 @@ def perform_operations(
         # calculate difference between target and each value in column B
         data["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
         # find index of row with smallest difference
-
+        # print("wassup bitch",group)
         if not group.empty:
             smallest_change_from_lac = data["strike_lac_diff"].abs().idxmin()
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
@@ -385,7 +477,7 @@ def perform_operations(
                 closest_strike_currentprice = group.loc[current_price_index, "Strike"]
             except KeyError:
                 closest_strike_currentprice = None  # or whatever default value you want to use
-
+            # print("whatupsdoe",closest_strike_currentprice)
             try:
                 closest_higher_strike1 = group.loc[higher_strike_index1, "Strike"]
             except KeyError:
@@ -438,6 +530,7 @@ def perform_operations(
             closest_lower_strike2 = None
             closest_lower_strike3 = None
             closest_lower_strike4 = None
+        print(closest_strike_currentprice)
 
         # closest_strike_currentprice_dict[exp_date] = closest_strike_currentprice
 
@@ -525,8 +618,8 @@ def perform_operations(
             if strikeabovebelow == None:
                 strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
             else:
-                strike_ITMPCRoiput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_Volume"].sum()
-                strike_ITMPCRoicall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_Volume"].sum()
+                strike_ITMPCRoiput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_OI"].sum()
+                strike_ITMPCRoicall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_OI"].sum()
                 if strike_ITMPCRoicall_volume == 0:
                     strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
                 else:
@@ -715,46 +808,7 @@ def perform_operations(
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
                 "Closest Strike to CP": closest_strike_currentprice,
-                # 'Novel ITM_CallsOI/CallsOI': round(
-                #     ITM_CallsOI / all_CallsOI, 3),
-                # 'Novel ITM_CallsVol/CallsVol': round(
-                #     ITM_CallsVol / all_CallsVol, 3),
-                # 'Novel ITM_PutsOI/PutsOI': round(
-                #     ITM_PutsOI / all_PutsOI, 3),
-                # 'Novel ITM_PutsVol/PutsVol': round(
-                #     ITM_PutsVol / all_PutsVol, 3),
-                # 'Novel (ITM_CallsVol/CallsVol)/(ITM_CallsOI/CallsOI)': round(
-                #     (ITM_CallsVol / all_CallsVol) / (ITM_CallsOI / all_CallsOI), 3),
-                # 'Novel (ITM_PutsVol/PutsVol)/(ITM_PutsOI/PutsOI)': round(
-                #     (ITM_PutsVol / all_PutsVol) / (ITM_PutsOI / all_PutsOI), 3),
-                # 'Novel (ITM_PutsOI/PutsOI)/(ITM_CallsOI/CallsOI)': round((ITM_PutsOI/all_PutsOI)/(ITM_CallsOI/all_CallsOI),3),
-                # 'Novel (ITM_PutsVol/PutsVol)/(ITM_CallsVol/CallsVol)': round((ITM_PutsVol/all_PutsVol)/(ITM_CallsVol/all_CallsVol),3),
-                ###SEE BELOW FOR  implied move -last mp
-                # 'Highest DFSxOI Call % from SP': round((current_price - max_call_DFSxOI)/max_call_DFSxOI,3),
-                # 'Highest DFSxOI Put% from SP': round((current_price - max_put_DFSxOI)/max_put_DFSxOI,3),
-                # 'Highest DFSxOI Strike% from SP': round((current_price - max_DFSxOI) / max_DFSxOI, 3),            ###SEE BELOW FOR  implied move -last mp
-                # 'Highest Premium Call% from SP': round((current_price - highest_premium_call) / highest_premium_call, 3),
-                # 'Highest Premium Put% from SP': round((current_price - highest_premium_put) / highest_premium_put, 3),
-                # 'Highest Premium Strike% from SP': round((current_price - highest_premium_strike) / highest_premium_strike, 3),
-                # 'Highest DFSxOI Call % from MP': round((max_pain - max_call_DFSxOI)/max_call_DFSxOI,3),
-                # 'Highest DFSxOI Put% from MP': round((max_pain - max_put_DFSxOI)/max_put_DFSxOI,3),
-                # 'Highest DFSxOI Strike% from MP': round((max_pain - max_DFSxOI) / max_DFSxOI, 3),
-                #
-                # 'Highest Premium Call% from MP': round((max_pain - highest_premium_call)/highest_premium_call,3),
-                # 'Highest Premium Put% from MP': round((max_pain -  highest_premium_put)/highest_premium_put,3),
-                # 'Highest Premium Strike% from MP': round((max_pain - highest_premium_strike) / highest_premium_strike, 3),
-                # 'Highest DFSxOI Call': max_call_DFSxOI,
-                # 'Highest DFSxOI Put': max_put_DFSxOI,
-                #
-                # 'Highest Premium Strike': highest_premium_strike,
-                # 'Highest Premium Call': highest_premium_call,
-                # 'Highest Premium Put': highest_premium_put,
-                # 'Highest DFSxOI Strike': max_DFSxOI,
-                # 'Top 2 OI Strikes': highestTotalOI_dict,
-                # 'Top 5 ITM OI Calls': sorted(itm_calls_OI_dict["Call_OI"].items(), key=lambda item: item[1], reverse=True)[:5],
-                # 'Top 5 ITM OI Puts': sorted(itm_puts_OI_dict["Put_OI"].items(), key=lambda item: item[1], reverse=True)[:5],
-                # 'Top 5 OI Calls': top_five_calls_dict,
-                # 'Top 5 OI Puts': top_five_puts_dict,
+
             }
         )
 
@@ -780,7 +834,7 @@ def perform_operations(
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    print(closest_strike_currentprice_dict)
+
     try:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
     except FileExistsError:
@@ -803,37 +857,45 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
     new_date_string = date_object.strftime("%y%m%d")
 
     int_num = int(processeddata["Closest Strike to CP"][0] * 1000)  # Convert decimal to integer
-
+    print(processeddata["Closest Strike to CP"][0])
     contract_strike = "{:08d}".format(int_num)
     call_contract = f"{ticker}{new_date_string}C{contract_strike}"
 
     put_contract = f"{ticker}{new_date_string}P{contract_strike}"
     ###TODO for puts, use a higher strike, for calls use a lower strike.  ATM strikes get down to pennies EOD.
 
+    if processeddata["NIV 1-2 % from mean"][0] < -100 and processeddata["NIV 1-4 % from mean"][0] <-200:
+        x = ("NIV 1-2 % from mean< -100 & NIV 1-4 % from mean<-200",
+            f"{optionchain.loc[optionchain['p_contractSymbol'] == call_contract]['Put_LastPrice'].values[0]  }",
+            "8",
+            call_contract, .6,1.6
+        )
+
+        TradierAPI.buy(x)
+    if processeddata["NIV 1-2 % from mean"][0] > 100 and processeddata["NIV 1-4 % from mean"][0] > 200:
+        x = ('NIV 1-2 % from mean> 100 & NIV 1-4 % from mean > 200',
+            f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
+            "7",
+            call_contract, .6, 1.6
+        )
+
+        TradierAPI.buy(x)
     if processeddata["NIV highers(-)lowers1-4"][0] < -20:
-        x = (
+        x = ("NIV highers(-)lowers1-4 < -20",
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]  }",
-            "150",
+            "6",
             call_contract, .6,1.6
         )
 
         TradierAPI.buy(x)
     if processeddata["NIV highers(-)lowers1-4"][0] > 20:
-        x = (
+        x = ('NIV highers(-)lowers1-4> 20'
             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-            "140",
+            "5",
             put_contract, .6, 1.6
         )
 
-        TradierAPI.buy(x)
-    if processeddata["ITM PCR-Vol"][0] < 0.7 and processeddata["RSI"][0] < 30:
-        x = (
-            f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]  }",
-            "100",
-            call_contract,.9,1.05
-        )
 
-        TradierAPI.buy(x)
 
 
     # if processeddata["ITM PCR-Vol"][0] > 1.3 and processeddata["RSI"][0] > 70:
@@ -846,20 +908,20 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         TradierAPI.buy(x)
 
         ###MADE 100% on this near close 5/12
-    if processeddata["Bonsai Ratio"][0] < .8 and processeddata["ITM PCR-Vol"][0] < 0.8:
-        x = (
+    if processeddata["Bonsai Ratio"][0] < .8 and processeddata["ITM PCR-Vol"][0] < 0.8 and processeddata["RSI"][0] < 30:
+        x = ('Bonsai Ratio < .8 and ITM PCR-Vol < 0.8',
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-            "98",
+            "3",
             call_contract,.8,1.2
         )
         print(x)
         TradierAPI.buy(x)
 
 
-    if processeddata["Bonsai Ratio"][0] > 1.5  and processeddata["ITM PCR-Vol"][0] > 1.2:
-        x = (
+    if processeddata["Bonsai Ratio"][0] > 1.5  and processeddata["ITM PCR-Vol"][0] > 1.2 and processeddata["RSI"][0] > 70:
+        x = ('Bonsai Ratio > 1.5  andITM PCR-Vol > 1.2',
             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
-            "97",
+            "2",
             put_contract,.9,1.05
         )
 
@@ -869,14 +931,12 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         and processeddata["Net_IV"][0] < -50
         and processeddata["Net ITM IV"][0] > -41
     ):
-        x = (
+        x = ('Bonsai Ratio < 0.7 and Net_IV < -50 and Net ITM IV> -41',
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-            "96",
+            "1",
             call_contract,.9,1.05
         )
 
         TradierAPI.buy(x)
-    else:
-        print("No Order")
 
-# get_options_data('spy')
+

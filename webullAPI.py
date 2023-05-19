@@ -1,7 +1,9 @@
 
-from webull import webull, paper_webull
 import json
+
 import pandas as pd
+from webull import paper_webull, webull
+
 import PrivateData.webull_info
 
 email = PrivateData.webull_info.email
@@ -16,24 +18,22 @@ webull._did = deviceID
 def login():
     print(webull.get_mfa(email))
     print("logging in")
-    webull.login(email, password , 'AnythingYouWant', 'mfa code', 'Security Question ID', 'Security Question Answer')
+    webull.login(email, password, "AnythingYouWant", "mfa code", "Security Question ID", "Security Question Answer")
     webull.get_account_id()
     webull.get_trade_token(trade_token)
     print(webull.refresh_login())
     print(webull.get_account())
+
+
 def buy(tickerid, price, quantity):
     # stoplmt = float(price) * .97
     sellprice = float(price) * 1.0001
 
+    webull.refresh_login()
+    print(webull.place_order(tickerid, None, f"{price}", "BUY", "MKT", "DAY", quantity))
 
     webull.refresh_login()
-    print(webull.place_order(tickerid, None, f'{price}', "BUY", "MKT", "DAY", quantity))
-
-
-    webull.refresh_login()
-    print(webull.place_order(tickerid, None, f'{sellprice}', "SELL", "LMT", "DAY", quantity))
-
-
+    print(webull.place_order(tickerid, None, f"{sellprice}", "SELL", "LMT", "DAY", quantity))
 
 
 # print(webull.get_options(stock="SPY",))

@@ -1,15 +1,19 @@
+import datetime as dt
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import ta as ta
+
 # from ta.momentum import RSIIndicator, AwesomeOscillatorIndicator
 import yfinance as yf
-import matplotlib.pyplot as plt
-import datetime as dt
 
 # Get historical data for SPY
 ticker = yf.Ticker("SPY").history(period="5d", interval="1m")
 Close = ticker["Close"]
-ticker['AwesomeOsc'] = ta.momentum.awesome_oscillator(high=ticker["High"], low=ticker["Low"], window1 = 1, window2 = 5, fillna= False)
-ticker['RSI'] = ta.momentum.rsi(close=Close, window= 5, fillna= False)
+ticker["AwesomeOsc"] = ta.momentum.awesome_oscillator(
+    high=ticker["High"], low=ticker["Low"], window1=1, window2=5, fillna=False
+)
+ticker["RSI"] = ta.momentum.rsi(close=Close, window=5, fillna=False)
 groups = ticker.groupby(ticker.index.date)
 group_dates = list(groups.groups.keys())
 second_to_last_date = group_dates[-1]
