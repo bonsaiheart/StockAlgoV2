@@ -66,7 +66,7 @@ for i in range(max_retries):
                 (
                     optionchain,
                     processeddata,
-                    closest_strike_currentprice,
+                    x,
                     closest_exp_date,
                     ticker,
                 ) = tradierAPI_marketdata.perform_operations(
@@ -79,7 +79,7 @@ for i in range(max_retries):
                     closest_exp_date,
                 )
 
-                tradierAPI_marketdata.actions(optionchain, processeddata, closest_strike_currentprice, closest_exp_date, ticker)
+                tradierAPI_marketdata.actions(optionchain, processeddata, x, closest_exp_date, ticker)
 
                 # email_me.email_me(processeddata)
             break
