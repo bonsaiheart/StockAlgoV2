@@ -78,7 +78,8 @@ for chunk in data:
 
 # Concatenate the processed chunks into a single DataFrame
 combined = pd.concat(combined_chunks, ignore_index=True)
-combined['Strike'] = combined['Strike'].apply(lambda x: '{:.3f}'.format(x))
+combined['Strike'] = combined['Strike'] / 1000
+
 
 
 
