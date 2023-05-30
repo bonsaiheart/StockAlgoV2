@@ -14,7 +14,7 @@ expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefi
 processed_dir = "..\data\ProcessedData"
 
 ###TODO manually change tickero
-ticker = "TSLA"
+ticker = "SPY"
 list_of_df = []
 ticker_dir = os.path.join(processed_dir, ticker)
 

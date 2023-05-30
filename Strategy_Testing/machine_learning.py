@@ -16,7 +16,7 @@ from sklearn.ensemble import RandomForestClassifier
 # ml_dataframe.index = pd.to_datetime(ml_dataframe.index)
 
 ###TODO ENTER TICKER HERE
-ml_dataframe = pd.read_csv('dailyDF/TSLA.csv')
+ml_dataframe = pd.read_csv('Strategy_Testing/Combined_days_1-5_min_data/SPY.csv')
 
 
 ml_dataframe = ml_dataframe[['ExpDate', 'date', 'time', 'Current Stock Price',
@@ -51,7 +51,7 @@ print("hello mante",train.columns)
 test = ml_dataframe.iloc[-100:]
 print(ml_dataframe.iloc[-100:])
 print("hello mante",test.columns)
-predictors = ["b1/b2"]
+predictors = ["b1/b2","RSI"]
 model.fit(train[predictors], train["Target"])
 from sklearn.metrics import precision_score
 

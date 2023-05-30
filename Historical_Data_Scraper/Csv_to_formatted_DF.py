@@ -11,7 +11,8 @@ batch_size = 100000
 
 data = pd.read_csv(f"spy_historical_chains.csv", chunksize=batch_size)
 combined_chunks = []
-yf_ticker_obj = yf.Ticker("SPY")
+
+
 
 # Iterate over the data in chunks
 for chunk in data:
