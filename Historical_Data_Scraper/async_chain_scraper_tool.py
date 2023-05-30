@@ -21,30 +21,32 @@ from requests import RequestException
 async def process_subdirectory(session, subdir, writer):
     url = f'https://chartexchange.com/symbol/opra-{subdir}'
     with open(filename, 'a', newline='') as file:
-        writer = csv.writer(file)
+        writer = writer
 
         try:
+
+            #TODO this is returning the subdir.  does it have to do with decimal?.  ALSO data is fuced up b/c all 0 OI.
             async with session.get(url) as response:
                 response.raise_for_status()
                 content = await response.text()
-
-                pattern = r'\["(\d+)","([\d.]+)","([\d.]+)","([\d.]+)","([\d.]+)","(\d+)"(?:,"(\d+)")?\]'
+                pattern = r'\["(\d{8})","([\d.]+)","([\d.]+)","([\d.]+)","([\d.]+)","([\d.]+)"(?:,"?([\d.]+)"?)?\]'
                 matches = re.findall(pattern, content)
-
                 symbol_pattern = r"([a-zA-Z]+)(\d{8})([a-zA-Z])(\d+\.?\d*)"
                 match_symbol = re.match(symbol_pattern, subdir)
                 if match_symbol:
                     symbol = match_symbol.group(1).upper()
                     expiration_date = match_symbol.group(2)
                     option_type = match_symbol.group(3).upper()
-                    price = float(match_symbol.group(4))
-                    formatted_strike_price = f"{price:.2f}".replace(".", "").zfill(8)
-                    option_contract = f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
+                    strike_price = float(match_symbol.group(4))
+                    formatted_exp_date = expiration_date[2:]
+                    formatted_strike_price = f"{int(strike_price * 10000):08d}"
+                    option_contract = f"{symbol}{formatted_exp_date}{option_type}{formatted_strike_price}"
 
+   ###TODO still debugging why 1st page resutls arent writing properly.  Match wont print, but the subdirs will.?
                     for match in matches:
-                        data_row = [option_contract, symbol, expiration_date, option_type, formatted_strike_price, *match]
+                        data_row = [option_contract, symbol, formatted_exp_date, option_type, formatted_strike_price, *match]
                         writer.writerow(data_row)
-
+                    file.close()
         except ClientError as e:
             error_log_file.write(f"Error occurred while retrieving subdirectory {subdir}: {e}\n")
             error_log_file.write(f"max retries {subdir}: {e}\n")
@@ -77,12 +79,13 @@ async def foo(session, url, writer):
 
         # Create a queue and populate it with subdirectories
         queue = asyncio.Queue()
+
         for subdir in subdirectories:
             queue.put_nowait(subdir)
 
         # Configure the maximum concurrency level
-        max_concurrency = 10
-        print(max_concurrency)
+        max_concurrency = 75
+
         sem = asyncio.Semaphore(max_concurrency)
 
         # Process the subdirectories concurrently
@@ -101,21 +104,20 @@ async def get_and_write_data(firstpage,lastpage):
 
         try:
             with open('last_processed.txt', 'r') as f:
+
                 firstpage = int(f.readline())
         except FileNotFoundError:
             firstpage = firstpage
-        print(firstpage,lastpage)
-        for page in range(firstpage, lastpage, 50):
-            print("page",page)
+        print("First Page: ",firstpage,"   Last Page: ",lastpage)
+        for page in range(firstpage, lastpage, 100):
+            print("Page:", page)
             try:
                 async with aiohttp.ClientSession() as session:
                     page_tasks = []
-                    for page_n in range(page, page + 50):
-                        print(page_n)
+                    for page_n in range(page, page + 100):
                         url = f'https://chartexchange.com/list/optionequity/?page={page_n}'
                         subpages_task = asyncio.create_task(foo(session, url, writer))
                         page_tasks.append(subpages_task)
-                        print(page_tasks,"pagetaskssssssssssssss")
                     await asyncio.gather(*page_tasks)
 
             except ClientError as e:
@@ -188,15 +190,16 @@ def process_missed_subdirs():
                     option_type = match_symbol.group(3).upper()
                     strike_price = float(match_symbol.group(4))
                     formatted_exp_date = expiration_date[2:]
-                    formatted_strike_price = "dfdfdfdf"
+                    formatted_strike_price = f"{int(strike_price * 1000):08d}".replace(".", "").zfill(8)
+
+
                     option_contract = f"{symbol}{formatted_exp_date}{option_type}{formatted_strike_price}"
 
                     for match in matches:
-                        data_row = ["safasfdasf", symbol, formatted_exp_date, option_type, formatted_strike_price, *match]
+                        data_row = [option_contract, symbol, formatted_exp_date, option_type, formatted_strike_price, *match]
                         writer.writerow(data_row)
 
                 print(f"Processing missed subdir: {subdir}, missed page: {page}")
-                time.sleep(1)
 
             # Rewrite the remaining lines to the file
                 write_missed_subdir.writelines(lines[i+2:])
@@ -206,10 +209,12 @@ def process_missed_subdirs():
 
 
 missed_subdirs = []
-firstpage = 187134
-lastpage =  187136
+firstpage = 187584
+lastpage =  189600
 
-while lastpage <= 187136:
+
+
+while lastpage <= 189600:
     column_titles = ["Contract", "Ticker", "ExpDate", "Put_Call", "Strike", "Date", "Open", "High", "Low", "Close",
                      "Volume",
                      "Open Interest"]
@@ -228,7 +233,6 @@ while lastpage <= 187136:
                 writer = csv.writer(file)
                 writer.writerow(column_titles)
         asyncio.run(get_and_write_data(firstpage, lastpage))
-        print(firstpage,time)
         process_missed_subdirs()
         firstpage += 2000
         lastpage += 2000

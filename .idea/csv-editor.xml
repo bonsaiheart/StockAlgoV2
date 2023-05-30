@@ -87,6 +87,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\Strategy_Testing\corr\SPY\SPY_230522_1610.csv.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\Strategy_Testing\dailyDF\SPY\230505.csv">
           <value>
             <Attribute>
@@ -108,13 +115,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230518_1128.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230518_1130.csv.csv">
           <value>
             <Attribute>
@@ -129,31 +129,52 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\Strategy_Testing\test1.csv">
+        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230519_1519.csv.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
-        <entry key="\calls.csv">
+        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230522_1304.csv.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
-        <entry key="\callsdftradier.csv">
+        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230522_1610.csv.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
-        <entry key="\combinedtradier.csv">
+        <entry key="\Strategy_Testing\dailyDF\TSLA\TSLA_230519_1600.csv.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Strategy_Testing\dailyDF\TSLA\TSLA_230522_1600.csv.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Strategy_Testing\ml_dataframe.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\Strategy_Testing\predictions.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
             </Attribute>
           </value>
         </entry>
@@ -179,20 +200,6 @@
           </value>
         </entry>
         <entry key="\data\ProcessedData\ROKU\230428\ROKU_230428_0958.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\data\ProcessedData\SPY\230420\SPY_15_49.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\data\ProcessedData\SPY\230420\SPY_16_00.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -4287,27 +4294,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\data\ProcessedData\SPY\230518\SPY_230517_1600.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\data\ProcessedData\SPY\230518\SPY_230517_2000.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\data\ProcessedData\SPY\230518\SPY_230518_0932.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="\data\ProcessedData\SPY\230518\SPY_230518_0934.csv">
           <value>
             <Attribute>
@@ -4889,6 +4875,125 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\data\ProcessedData\SPY\230519\SPY_230519_1200.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230519\SPY_230519_1205.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230519_2000.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_0934.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_0936.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_0937.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_0939.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1050.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1051.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1053.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1054.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1055.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1056.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1058.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1059.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1100.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\SPY\230522\SPY_230522_1121.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\data\ProcessedData\TSLA\230428\TSLA_230428_0948.csv">
           <value>
             <Attribute>
@@ -4939,6 +5044,13 @@
           </value>
         </entry>
         <entry key="\data\ProcessedData\TSLA\230517\TSLA_230517_1600.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\ProcessedData\TSLA\230522\TSLA_230522_0957.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -6086,6 +6198,34 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\data\optionchain\SPY\230519\SPY_230519_0958.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\optionchain\SPY\230519\SPY_230519_1610.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\optionchain\SPY\230522\SPY_230519_2000.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\data\optionchain\SPY\230522\SPY_230522_1122.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\data\optionchain\TSLA\230420\TSLA_15_49.csv">
           <value>
             <Attribute>
@@ -6359,63 +6499,7 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\history.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\okay.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\ta.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\taframe.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\tickerhistory.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\tradieroptionschain.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="\tradierquote.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\tradierquotes.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\webulldf.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

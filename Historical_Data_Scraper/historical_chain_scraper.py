@@ -23,16 +23,16 @@ if not os.path.isfile(filename) or os.path.getsize(filename) == 0:
         writer = csv.writer(file)
         writer.writerow(column_titles)
 
-def get_and_write_data():
+def get_and_write_data(firstpage,lastpage):
     try:
         with open('last_processed.txt', 'r') as f:
-            last_processed = int(f.readline())
+            firstpage = int(f.readline())
             subdir_index = int(f.readline())
     except FileNotFoundError:
-        last_processed = 0
+        last_processed = firstpage
         subdir_index = 0
 
-    for page in range(0, 2):
+    for page in range(firstpage, lastpage):
         url = f'https://chartexchange.com/list/optionequity/?page={page}'
         print(url)
         try:
@@ -200,5 +200,5 @@ def process_missed_subdirs(writer):
 # Call the function within the with block
 with open(filename, 'a', newline='') as file:
     writer = csv.writer(file)
-    get_and_write_data()
+    get_and_write_data(firstpage,lastpage)
     process_missed_subdirs(writer)
