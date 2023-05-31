@@ -1,7 +1,6 @@
 import pandas as pd
 from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_score
-predictions = pd.read_csv(''
-                          'predictions.csv')
+predictions = pd.read_csv(r'C:\Users\natha\PycharmProjects\StockAlgoV2\Strategy_Testing\predictions_SPY_2 hour later change %_Bonsai Ratio.csv')
 target = predictions["Target"]
 predicted = predictions["Predictions"]
 

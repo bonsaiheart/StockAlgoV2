@@ -820,7 +820,6 @@ def perform_operations(
             ticker,
         )
 
-
 ###TODO add a way to track what contracts are open, so to have diff sell conditions.
 def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp_date, ticker):
     optionchain = pd.read_csv(optionchain)
@@ -856,6 +855,35 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
 
         TradierAPI.buy(x)
 
+
+    from Strategy_Testing import machine_learning
+    import pandas as pd
+    # predictor_values = {'Bonsai Ratio': .0007, 'ITM PCR-Vol': 20}
+    # predictor_df = pd.DataFrame(predictor_values, index=[0])
+    buy_signal = machine_learning.get_buy_signal(processeddata.head(1))
+    if buy_signal:
+        x = (f'ML_ALGO  {ticker}',
+             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
+             "10",
+             call_contract, .8, 1.2
+             )
+
+        TradierAPI.buy(x)
+        print('Buy signal!')
+    else:
+        print('No buy signal.')
+    sell_signal = machine_learning.get_sell_signal(processeddata.head(1))
+    if sell_signal:
+        x = (f'ML_ALGO  {ticker}',
+             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
+             "10",
+             put_contract, .8, 1.2
+             )
+
+        TradierAPI.buy(x)
+        print('Sell signal!')
+    else:
+        print('No sell signal.')
     # if processeddata["B1/B2"][0] > 1.15 :
     #     x = (f'b1/b2>1.15  {ticker}',
     #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",

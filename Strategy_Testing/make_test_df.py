@@ -14,46 +14,47 @@ expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefi
 processed_dir = "..\data\ProcessedData"
 
 ###TODO manually change tickero
-ticker = "SPY"
+ticker = "OSTK"
 list_of_df = []
 ticker_dir = os.path.join(processed_dir, ticker)
 
 for directory in os.listdir(ticker_dir):
 
     dir_path = os.path.join(ticker_dir, directory)
-    for filename in os.listdir(dir_path):
-        if filename.endswith(".csv"):
-            parts = filename.split("_")
-            # print(parts)
-            if len(parts) == 3  and len(parts[1]) == 6 and len(
-                    parts[2]) == 8:
+    if directory != "Before TA Or Tradier":
+        for filename in os.listdir(dir_path):
+            if filename.endswith(".csv"):
+                parts = filename.split("_")
+                # print(parts)
+                if len(parts) == 3  and len(parts[1]) == 6 and len(
+                        parts[2]) == 8:
 
 
-                filepath = os.path.join(dir_path, filename)
-                dataframe_slice = pd.read_csv(filepath)
-                dataframe_slice = dataframe_slice.iloc[:1]
-                dataframe_slice["date"] = filename[-15:-9]
-                dataframe_slice["time"] = filename[-8:-4]
-                if len(list_of_df) > 2:
-                    try:
-                        if dataframe_slice.loc[0]["Current Stock Price"] < list_of_df[-1].loc[0]["Current Stock Price"]:
-                            dataframe_slice["Up or down"] = "0"
-                        elif dataframe_slice.loc[0]["Current Stock Price"] > list_of_df[-1].loc[0][
-                            "Current Stock Price"]:
-                            dataframe_slice["Up or down"] = "1"
+                    filepath = os.path.join(dir_path, filename)
+                    dataframe_slice = pd.read_csv(filepath)
+                    dataframe_slice = dataframe_slice.iloc[:1]
+                    dataframe_slice["date"] = filename[-15:-9]
+                    dataframe_slice["time"] = filename[-8:-4]
+                    if len(list_of_df) > 2:
+                        try:
+                            if dataframe_slice.loc[0]["Current Stock Price"] < list_of_df[-1].loc[0]["Current Stock Price"]:
+                                dataframe_slice["Up or down"] = "0"
+                            elif dataframe_slice.loc[0]["Current Stock Price"] > list_of_df[-1].loc[0][
+                                "Current Stock Price"]:
+                                dataframe_slice["Up or down"] = "1"
 
-                    except KeyError:
-                        pass
+                        except KeyError:
+                            pass
 
-                list_of_df.append(dataframe_slice)
-                # move "time" column to the first position
-                cols = list(dataframe_slice.columns)
-                cols = [cols[-2]] + cols[:-2]
-                dataframe_slice = dataframe_slice[cols]
-            # do something with the modified dataframe_slice
-            else:
-                print(f"{filename}: Format is incorrect.")
-
+                    list_of_df.append(dataframe_slice)
+                    # move "time" column to the first position
+                    cols = list(dataframe_slice.columns)
+                    cols = [cols[-2]] + cols[:-2]
+                    dataframe_slice = dataframe_slice[cols]
+                # do something with the modified dataframe_slice
+                else:
+                    print(f"{filename}: Format is incorrect.")
+        else:print("dir is Before TA Or Tradier")
 
 
 

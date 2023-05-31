@@ -1,125 +1,130 @@
-
 import PrivateData.tradier_info as private
 from pytradier.tradier import Tradier
 from datetime import datetime, timedelta
 import yfinance as yf
+import joblib
 import pandas as pd
-import os
-import matplotlib.pyplot as plt
-# if os.path.exists("ML_DF.csv"):
-#     ml_dataframe = pd.read_csv("ML_DF.csv", index_col=0)
+from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_score
 from sklearn.ensemble import RandomForestClassifier
-# else:
-#     ml_dataframe = yf.Ticker("^GSPC")
-#     ml_dataframe = ml_dataframe.history(start="2023-05-16", end="2023-05-23", interval="1m")
-#     ml_dataframe.to_csv("ML_DF.csv")
-# ml_dataframe.index = pd.to_datetime(ml_dataframe.index)
+from sklearn.model_selection import GridSearchCV, cross_val_score
+import os
+#
+# processed_dir = "dailyDF"
+# ticker = "SPY"
+# print(ticker)
+# list_of_df = []
+# ticker_dir = os.path.join(processed_dir, ticker)
+# ml_dataframe = pd.read_csv(f'{ticker_dir}.csv')
+#
+# Chosen_Timeframe = "30 min later change %"
+# Chosen_Predictor = ["Bonsai Ratio","ITM PCR-Vol"]
+# num_rows = len(ml_dataframe[Chosen_Timeframe].dropna())
+#
+# ml_dataframe.dropna(thresh=num_rows, axis=1, inplace=True)
+# ml_dataframe.dropna(inplace=True)
+# Chosen_Predictor_nobrackets = ",".join([x.replace('/', '_') for x in Chosen_Predictor])
+#
+# required_columns = ['ExpDate', 'date', 'time', 'Current Stock Price', 'Current SP % Change(LAC)', 'Bonsai Ratio', 'Bonsai Ratio 2', 'PCR-Vol', 'PCR-OI', 'ITM PCR-Vol', 'Up or down', 'b1/b2', 'RSI', 'AwesomeOsc', '6 hour later change %', '5 hour later change %', '4 hour later change %', '3 hour later change %', '2 hour later change %', '1 hour later change %', '45 min later change %', '30 min later change %', '20 min later change %', '15 min later change %', '10 min later change %', '5 min later change %']
+# existing_columns = [col for col in required_columns if col in ml_dataframe.columns]
+# ml_dataframe = ml_dataframe[existing_columns]
+#
+# ml_dataframe["Target_Up"] = (ml_dataframe[Chosen_Timeframe] > 0.1).astype(int)
+# ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < -0.1).astype(int)
+#
+# ml_dataframe.to_csv('tempMLDF.csv')
+#
+# model = RandomForestClassifier(random_state=1)
+#
+# parameters = {
+#     'n_estimators': [80, 100, 120],
+#     'min_samples_split': [40, 80, 100]
+# }
+#
+# grid_search = GridSearchCV(estimator=model, param_grid=parameters, cv=5, scoring='accuracy')
+#
+# ###CONTROLS DATA SPLIT HERE
+# train = ml_dataframe.sample(frac=0.8, random_state=1)
+# test = ml_dataframe.drop(train.index)
+#
+# predictors = Chosen_Predictor
+#
+# grid_search.fit(train[predictors], train["Target_Up"])
+#
+# print("Best parameters for Target_Up:", grid_search.best_params_)
+# print("Best score for Target_Up:", grid_search.best_score_)
+#
+# model = grid_search.best_estimator_
+# model_filename_up = 'trained_model_target_up.joblib'
+# joblib.dump(model, model_filename_up)
+# predicted_up = model.predict(test[predictors])
+#
+# grid_search.fit(train[predictors], train["Target_Down"])
+#
+# print("Best parameters for Target_Down:", grid_search.best_params_)
+# print("Best score for Target_Down:", grid_search.best_score_)
+#
+# model = grid_search.best_estimator_
+# model_filename_down = 'trained_model_target_down.joblib'
+# joblib.dump(model, model_filename_down)
+# predicted_down = model.predict(test[predictors])
+#
+# precision_up = precision_score(test["Target_Up"], predicted_up)
+# accuracy_up = accuracy_score(test["Target_Up"], predicted_up)
+# recall_up = recall_score(test["Target_Up"], predicted_up)
+# f1_up = f1_score(test["Target_Up"], predicted_up)
+#
+# print("Metrics for Target_Up:")
+# print("Precision:", precision_up)
+# print("Accuracy:", accuracy_up)
+# print("Recall:", recall_up)
+# print("F1-Score:", f1_up)
+#
+# precision_down = precision_score(test["Target_Down"], predicted_down)
+# accuracy_down = accuracy_score(test["Target_Down"], predicted_down)
+# recall_down = recall_score(test["Target_Down"], predicted_down)
+# f1_down = f1_score(test["Target_Down"], predicted_down)
+#
+# print("Metrics for Target_Down:")
+# print("Precision:", precision_down)
+# print("Accuracy:", accuracy_down)
+# print("Recall:", recall_down)
+# print("F1-Score:", f1_down)
 
-###TODO ENTER TICKER HERE
-ml_dataframe = pd.read_csv('Strategy_Testing/Combined_days_1-5_min_data/SPY.csv')
 
 
-ml_dataframe = ml_dataframe[['ExpDate', 'date', 'time', 'Current Stock Price',
-       'Current SP % Change(LAC)',  'Bonsai Ratio',
-       'Bonsai Ratio 2',
-        'PCR-Vol', 'PCR-OI',  'ITM PCR-Vol',
-       'Up or down', 'b1/b2',
-       '6 hour later change %', '5 hour later change %',
-       '4 hour later change %', '3 hour later change %',
-       '2 hour later change %', '1 hour later change %',
-       '45 min later change %', '30 min later change %',
-       '20 min later change %', '15 min later change %',
-       '10 min later change %', '5 min later change %']]
-# ml_dataframe.plot.line(y="Close", use_index=True)
-# plt.show()
-# del ml_dataframe["Dividends"]
-# del ml_dataframe["Stock Splits"]
-# ml_dataframe["Tomorrow"] = ml_dataframe["Close"].shift(-1)
 
-ml_dataframe.dropna(subset=["30 min later change %"], inplace=True)
-ml_dataframe["Target"] = (ml_dataframe["30 min later change %"] > 0).astype(int)
-# start_date = pd.to_datetime('2020-06-02 00:00:00-05:00')
-print(ml_dataframe.columns)
-ml_dataframe = ml_dataframe.loc[0:].copy()
-print(ml_dataframe.columns)
-
-ml_dataframe.to_csv('wheresthefnblanks.csv')
-model = RandomForestClassifier(n_estimators=100, min_samples_split=100, random_state=1)
-print(ml_dataframe.columns)
-train = ml_dataframe.iloc[:-100]
-print("hello mante",train.columns)
-test = ml_dataframe.iloc[-100:]
-print(ml_dataframe.iloc[-100:])
-print("hello mante",test.columns)
-predictors = ["b1/b2","RSI"]
-model.fit(train[predictors], train["Target"])
-from sklearn.metrics import precision_score
-
-preds = model.predict(test[predictors])
-preds = pd.Series(preds, index=test.index)
-precision_score(test["Target"], preds)
-combined = pd.concat([test["Target"], preds], axis=1)
-combined.plot()
-# plt.show()
+# Assuming the model is already trained and stored in the 'model' variable
 
 
-def predict(train, test, predictors, model):
-    model.fit(train[predictors], train["Target"])
-    preds = model.predict(test[predictors])
-    preds = pd.Series(preds, index=test.index, name="Predictions")
-    combined = pd.concat([test["Target"], preds], axis=1)
-    return combined
+
+def get_buy_signal(new_data_df):
+
+    model_filename = 'trained_model_target_up.joblib'
+    loaded_model = joblib.load(model_filename)
 
 
-# def backtest(data, model, predictors, start=2500, step=250):
-def backtest(data, model, predictors, start=100, step=10
-             ):
-    all_predictions = []
+    predictions = loaded_model.predict(new_data_df)
 
-    for i in range(start, data.shape[0], step):
-        train = data.iloc[0:i].copy()
-        test = data.iloc[i:(i + step)].copy()
-        predictions = predict(train, test, predictors, model)
-        all_predictions.append(predictions)
-
-    return pd.concat(all_predictions)
+    return predictions
 
 
-predictions = backtest(ml_dataframe, model, predictors)
-predictions["Predictions"].value_counts()
-precision_score(predictions["Target"], predictions["Predictions"])
-predictions["Target"].value_counts() / predictions.shape[0]
-horizons = [2, 5, 60, 250, 1000]
-new_predictors = []
 
-for horizon in horizons:
-    rolling_averages = ml_dataframe.rolling(horizon).mean()
+def get_sell_signal(new_data_df):
+    model_filename = 'trained_model_target_down.joblib'
+    loaded_model = joblib.load(model_filename)
 
-    ratio_column = f"Close_Ratio_{horizon}"
-    ml_dataframe[ratio_column] = ml_dataframe["b1/b2"] / rolling_averages["b1/b2"]
 
-    trend_column = f"Trend_{horizon}"
-    ml_dataframe[trend_column] = ml_dataframe.shift(1).rolling(horizon).sum()["Target"]
+    predictions = loaded_model.predict(new_data_df)
 
-    new_predictors += [ratio_column, trend_column]
-ml_dataframe = ml_dataframe.dropna(subset=ml_dataframe.columns[ml_dataframe.columns != "30 min later change %"])
-print("sp", ml_dataframe)
-ml_dataframe.to_csv("ml_dataframe.csv")
-model = RandomForestClassifier(n_estimators=100, min_samples_split=50, random_state=1)
-def predict(train, test, predictors, model):
-    model.fit(train[predictors], train["Target"])
-    preds = model.predict_proba(test[predictors])[:,1]
-    preds[preds >=.6] = 1
-    preds[preds <.6] = 0
-    preds = pd.Series(preds, index=test.index, name="Predictions")
-    combined = pd.concat([test["Target"], preds], axis=1)
-    return combined
-predictions = backtest(ml_dataframe, model, new_predictors)
-predictions["Predictions"].value_counts()
-print('predictions["Predictions"].value_counts()',predictions["Predictions"].value_counts())
-precision_score(predictions["Target"], predictions["Predictions"])
-print('prec_score',precision_score(predictions["Target"], predictions["Predictions"]))
-predictions["Target"].value_counts() / predictions.shape[0]
-print(f'predictions["Target"].value_counts() / predictions.shape[0]',predictions["Target"].value_counts() / predictions.shape[0])
-predictions.to_csv("predictions.csv")
-print("himnom",predictions)
+    return predictions
+# In the get_buy_signal() function, it loads the model (trained_model_target_up.joblib) specifically trained for the "buy" signal (target_up). It accepts predictor inputs as a list (predictors) and assumes you will provide the corresponding values for the predictors. It then creates a DataFrame (new_data_df) with the new data and makes predictions using the loaded model. The predictions are returned as the buy signal.
+#
+# Similarly, the get_sell_signal() function loads the model (trained_model_target_down.joblib) specifically trained for the "sell" signal (target_down). It follows the same process as the get_buy_signal() function to make predictions based on the provided predictor inputs and returns the sell signal.
+#
+# Note: Make sure you have trained and saved the models separately for each target before using these functions, and replace <value> with the actual values for the predictors you want to use.
+#
+
+
+
+
+
