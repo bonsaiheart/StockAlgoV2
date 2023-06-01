@@ -66,6 +66,7 @@ def get_and_write_data(firstpage,lastpage):
 
         for i in range(subdir_index, len(subdirectories)):
             subdir = subdirectories[i]
+
             retry_count = 0  # Counter for retry attempts
 
             while retry_count < max_retries:

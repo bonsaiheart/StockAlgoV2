@@ -6,28 +6,37 @@ from sklearn.model_selection import GridSearchCV, cross_val_score
 import os
 
 processed_dir = "dailyDF"
-ticker = "SPY"
+ticker = "TSLA"
 print(ticker)
 list_of_df = []
 ticker_dir = os.path.join(processed_dir, ticker)
 ml_dataframe = pd.read_csv(f'{ticker_dir}.csv')
 
-Chosen_Timeframe = "1 hour later change %"
-Chosen_Predictor = ["b1/b2","RSI"]
+Chosen_Timeframe = "30 min later change %"
+Chosen_Predictor = ["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']
+threshold_up = .8
+threshold_down = .8
+percent_up=.1
+percent_down=-.1
 num_rows = len(ml_dataframe[Chosen_Timeframe].dropna())
-
+threshold_up_formatted = int(threshold_up*10)
+threshold_down_formatted = int(threshold_down*10)
+print(threshold_down_formatted)
 ml_dataframe.dropna(thresh=num_rows, axis=1, inplace=True)
 ml_dataframe.dropna(inplace=True)
-Chosen_Predictor_nobrackets = ",".join([x.replace('/', '_').replace(',','_') for x in Chosen_Predictor])
-Chosen_Timeframe_formatted =  Chosen_Timeframe.replace(' ', '_').strip('%')
+Chosen_Predictor_nobrackets = [x.replace('/', '').replace(',', '_').replace(' ', '_').replace('-', '') for x in Chosen_Predictor]
+Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 
+Chosen_Timeframe_formatted = Chosen_Timeframe.replace(' ', '_').strip('%').replace(' ', '_').replace('%', '')
 
-required_columns = ['ExpDate', 'date', 'time', 'Current Stock Price', 'Current SP % Change(LAC)', 'Bonsai Ratio', 'Bonsai Ratio 2', 'PCR-Vol', 'PCR-OI', 'ITM PCR-Vol', 'Up or down', 'b1/b2', 'RSI', 'AwesomeOsc', '6 hour later change %', '5 hour later change %', '4 hour later change %', '3 hour later change %', '2 hour later change %', '1 hour later change %', '45 min later change %', '30 min later change %', '20 min later change %', '15 min later change %', '10 min later change %', '5 min later change %']
+print(f'{Chosen_Timeframe_formatted}{Chosen_Predictor_formatted}')
+
+required_columns = ['ExpDate', 'date', 'time', 'Current Stock Price', 'Current SP % Change(LAC)', 'Bonsai Ratio', 'Bonsai Ratio 2', 'PCR-Vol', 'PCR-OI', 'ITM PCR-Vol', 'Up or down', 'B1/B2','B2/B1', 'RSI', 'AwesomeOsc', '6 hour later change %', '5 hour later change %', '4 hour later change %', '3 hour later change %', '2 hour later change %', '1 hour later change %', '45 min later change %', '30 min later change %', '20 min later change %', '15 min later change %', '10 min later change %', '5 min later change %']
 existing_columns = [col for col in required_columns if col in ml_dataframe.columns]
 ml_dataframe = ml_dataframe[existing_columns]
 
-ml_dataframe["Target_Up"] = (ml_dataframe[Chosen_Timeframe] > 0.1).astype(int)
-ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < -0.1).astype(int)
+ml_dataframe["Target_Up"] = (ml_dataframe[Chosen_Timeframe] > percent_up).astype(int)
+ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < percent_down).astype(int)
 
 ml_dataframe.to_csv('tempMLDF.csv')
 
@@ -52,11 +61,19 @@ print("Best parameters for Target_Up:", grid_search.best_params_)
 print("Best score for Target_Up:", grid_search.best_score_)
 
 model = grid_search.best_estimator_
-if not os.path.exists("Trained_Models"):
-    os.makedirs(f"Trained_Models/{Chosen_Timeframe_formatted}_{Chosen_Predictor_nobrackets}")
-model_filename_up = os.path.join("Trained_Models", f"{Chosen_Timeframe_formatted}_{Chosen_Predictor_nobrackets}/target_up.joblib")
+model_directory = os.path.join("Trained_Models", f"{Chosen_Predictor_formatted}_threshUp{threshold_up_formatted}_threshDown{threshold_down_formatted}_{Chosen_Timeframe_formatted}{ticker}")
+if not os.path.exists(model_directory):
+    os.makedirs(model_directory)
+
+model_filename_up = os.path.join(model_directory, "target_up.joblib")
 joblib.dump(model, model_filename_up)
-predicted_up = model.predict(test[predictors])
+
+###ADDING probablities by replacing this line with the following 3 lines.
+# predicted_up = model.predict(test[predictors])
+  # Adjust the threshold as desired
+predicted_probabilities_up = model.predict_proba(test[predictors])
+predicted_up = (predicted_probabilities_up[:, 1] > threshold_up).astype(int)
+
 
 grid_search.fit(train[predictors], train["Target_Down"])
 
@@ -64,10 +81,14 @@ print("Best parameters for Target_Down:", grid_search.best_params_)
 print("Best score for Target_Down:", grid_search.best_score_)
 
 model = grid_search.best_estimator_
-model_filename_down = os.path.join("Trained_Models", f"{Chosen_Timeframe_formatted}_{Chosen_Predictor_nobrackets}/target_down.joblib")
+model_filename_down = os.path.join(model_directory, "target_down.joblib")
 joblib.dump(model, model_filename_down)
-predicted_down = model.predict(test[predictors])
 
+###SAME HERE
+predicted_down = model.predict(test[predictors])
+ # Adjust the threshold as desired
+predicted_probabilities_down = model.predict_proba(test[predictors])
+predicted_down = (predicted_probabilities_down[:, 1] > threshold_down).astype(int)
 precision_up = precision_score(test["Target_Up"], predicted_up)
 accuracy_up = accuracy_score(test["Target_Up"], predicted_up)
 recall_up = recall_score(test["Target_Up"], predicted_up)

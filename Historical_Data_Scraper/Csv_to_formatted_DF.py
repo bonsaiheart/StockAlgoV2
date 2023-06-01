@@ -5,107 +5,135 @@ import ta
 import numpy as np
 from pathlib import Path
 import yfinance as yf
+#
+# # Set the batch size
+# batch_size = 100000
+#
+# data = pd.read_csv(f"spy_historical_chains.csv", chunksize=batch_size)
+# combined_chunks = []
+ticker = "SPY"
+yf_ticker_obj = yf.Ticker(ticker)
+#
+# # Iterate over the data in chunks
+# for chunk in data:
+#     print(chunk)
+#     close = chunk["Close"]
+#     ticker = "spy"
+#     current_price = chunk['Close']
+#     print(chunk.columns)
+#     grouped = chunk.groupby('Put_Call')
+#     try:
+#         call_group = grouped.get_group('C').copy()
+#     except KeyError:
+#         pass  # Handle the case when 'C' group does not exist
+#
+#     try:
+#         put_group = grouped.get_group('P').copy()
+#     except KeyError:
+#         pass
+#
+#
+#     callsChain = [call_group]
+#     putsChain = [put_group]
+#
+#     calls_df = pd.concat(callsChain, ignore_index=True).sort_values("Date")
+#     calls_df["expDate"] = calls_df["ExpDate"]
+#
+#     ##CHANGED LAC TO CLOSE
+#     calls_df["dollarsFromStrike"] = abs(calls_df["Strike"] - close)
+#     calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["Open Interest"]
+#     calls_df.rename(
+#         columns={
+#             "symbol": "c_contractSymbol",
+#             "last": "c_lastPrice",
+#             "dollarsFromStrike": "c_dollarsFromStrike",
+#             "dollarsFromStrikexOI": "c_dollarsFromStrikexOI",
+#             "volume": "c_volume",
+#             "open_interest": "c_openInterest",
+#         },
+#         inplace=True,
+#     )
+#
+#     puts_df = pd.concat(putsChain, ignore_index=True).sort_values("Date")
+#
+#     puts_df["expDate"] = puts_df["ExpDate"]
+#
+#     ###CHANGED LAC TO CLOSE
+#     puts_df["dollarsFromStrike"] = abs(puts_df["Strike"] - close)
+#     puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["Open Interest"]
+#     puts_df.rename(
+#         columns={
+#             "symbol": "p_contractSymbol",
+#             "last": "p_lastPrice",
+#             "volume": "p_volume",
+#             "open_interest": "p_openInterest",
+#
+#             "dollarsFromStrike": "p_dollarsFromStrike",
+#             "dollarsFromStrikexOI": "p_dollarsFromStrikexOI",
+#         },
+#         inplace=True,
+#     )
+#
+#     combined_chunk = pd.merge(puts_df, calls_df, on=["Date", "ExpDate", "Strike"])
+#     combined_chunks.append(combined_chunk)
+# print(combined_chunks)
+# # Concatenate the processed chunks into a single DataFrame
+# combined = pd.concat(combined_chunks, ignore_index=True)
+# combined['Strike'] = combined['Strike'] / 1000
+#
+#
+#
+#
+#
+# # ...
+#
+# # Save the combined DataFrame to a CSV file
+# combined.to_csv("teste.csv")
+# print(combined.columns)
+# combined = combined[combined['Ticker_x']=="SPY"]
+# combined = combined.sort_values('Date')
+# combined.to_csv("teste2.csv")
+#
 
-# Set the batch size
-batch_size = 100000
+# # Convert date column to datetime if needed
+# print(combined['Date'])
+# combined['Date'] = pd.to_datetime(combined['Date'], format="%Y%m%d")
+# combined.to_csv("combined_data.csv", index=False)
+# # Prepare start and end date arrays for bulk price data fetching
+# start_date = combined['Date'].min().strftime("%Y-%m-%d")
+# print(start_date)
+# end_date = (combined['Date'].max() + pd.DateOffset(days=1)).strftime("%Y-%m-%d")
+# print(end_date)
 
-data = pd.read_csv(f"spy_historical_chains.csv", chunksize=batch_size)
-combined_chunks = []
+# Fetch price data in bulk
 
-
-
-# Iterate over the data in chunks
-for chunk in data:
-    print(chunk)
-    close = chunk["Close"]
-    ticker = "spy"
-    current_price = chunk['Close']
-    print(chunk.columns)
-    grouped = chunk.groupby('Put_Call')
-    try:
-        call_group = grouped.get_group('C').copy()
-    except KeyError:
-        pass  # Handle the case when 'C' group does not exist
-
-    try:
-        put_group = grouped.get_group('P').copy()
-    except KeyError:
-        pass
+combined = pd.read_csv('combined_data.csv')
+start_date = combined['Date'].min()
+print(start_date)
+end_date = combined['Date'].max()
+price_data = yf_ticker_obj.history(start=start_date, end=end_date)
 
 
-    callsChain = [call_group]
-    putsChain = [put_group]
+price_data.to_csv("pricedataaa.csv")
+# Map price data to the corresponding rows in the combined DataFrame
+price_data['Date'] = pd.to_datetime(price_data.index).strftime("%Y-%m-%d")
 
-    calls_df = pd.concat(callsChain, ignore_index=True).sort_values("Date")
-    calls_df["expDate"] = calls_df["ExpDate"]
+print(price_data['Date'])
+price_data.to_csv(f'{ticker}_historical_prices.csv')
 
-    ##CHANGED LAC TO CLOSE
-    calls_df["dollarsFromStrike"] = abs(calls_df["Strike"] - close)
-    calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["Open Interest"]
-    calls_df.rename(
-        columns={
-            "symbol": "c_contractSymbol",
-            "last": "c_lastPrice",
-            "dollarsFromStrike": "c_dollarsFromStrike",
-            "dollarsFromStrikexOI": "c_dollarsFromStrikexOI",
-            "volume": "c_volume",
-            "open_interest": "c_openInterest",
-        },
-        inplace=True,
-    )
+price_data = price_data[price_data['Date'].isin(combined['Date'])].reset_index(drop=True)
+combined.reset_index(drop=True, inplace=True)
 
-    puts_df = pd.concat(putsChain, ignore_index=True).sort_values("Date")
+combined = combined.merge(price_data[['Date', 'Close']], how='left', left_on='Date', right_on='Date')
 
-    puts_df["expDate"] = puts_df["ExpDate"]
-
-    ###CHANGED LAC TO CLOSE
-    puts_df["dollarsFromStrike"] = abs(puts_df["Strike"] - close)
-    puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["Open Interest"]
-    puts_df.rename(
-        columns={
-            "symbol": "p_contractSymbol",
-            "last": "p_lastPrice",
-            "volume": "p_volume",
-            "open_interest": "p_openInterest",
-
-            "dollarsFromStrike": "p_dollarsFromStrike",
-            "dollarsFromStrikexOI": "p_dollarsFromStrikexOI",
-        },
-        inplace=True,
-    )
-
-    combined_chunk = pd.merge(puts_df, calls_df, on=["Date", "ExpDate", "Strike"])
-    combined_chunks.append(combined_chunk)
-
-# Concatenate the processed chunks into a single DataFrame
-combined = pd.concat(combined_chunks, ignore_index=True)
-combined['Strike'] = combined['Strike'] / 1000
+combined['Current Price'] = combined['Close']
+combined.to_csv("teste3.csv")
 
 
 
 
-
-# ...
-
-# Save the combined DataFrame to a CSV file
-combined.to_csv("combined_data.csv", index=False)
-
-##TODO abot to add current price(close) for each date in df uphere.
-for x in combined.iterrows():
-
-    date_str = str(combined['Date'][x[0]])
-    date_obj = datetime.strptime(date_str, "%Y%m%d")
-    formatted_date = date_obj.strftime("%Y-%m-%d")
-    next_day_obj = date_obj + timedelta(days=1)
-    formatted_date_plusoneday = next_day_obj.strftime("%Y-%m-%d")
-
-
-    price_data = yf_ticker_obj.history(start=formatted_date, end=formatted_date_plusoneday
-                                       )
-    if not price_data.empty:
-        current_price = price_data["Close"][0]
-        combined.at[x[0], "Current Price"] = current_price
 print(combined.columns)
+###NOTE, ["Current Price"] is actually Closing Price for that date.
 combined = combined[
     ["Date","ExpDate","Strike","Current Price","Contract_x","Ticker_x","Open_x","High_x","Low_x","Close_x","Volume_x","Open Interest_x","Contract_y","Ticker_y","Open_y","High_y","Low_y","Close_y","Volume_y","Open Interest_y",'p_dollarsFromStrike','p_dollarsFromStrikexOI','c_dollarsFromStrike','c_dollarsFromStrikexOI'
 
@@ -113,6 +141,7 @@ combined = combined[
 
     ]
 ]
+print(combined['Current Price'])
 combined.rename(
     columns={
         # "expDate": "ExpDate",
@@ -161,9 +190,10 @@ groups = combined.groupby("Date")
 # divide into groups by exp date, call info from group.
 for Date,  group,in groups:
 
-    date_str = str(Date)
-    date_obj = datetime.strptime(date_str, "%Y%m%d")
-    formatted_date = date_obj.strftime("%Y-%m-%d")
+    # date_str = str(Date)
+    # date_obj = datetime.strptime(date_str, "%Y%m%d")
+    # formatted_date = date_obj.strftime("%Y-%m-%d")
+    formatted_date = str(Date)
 
     print(Date,"DATEEE")
     pain_list = []

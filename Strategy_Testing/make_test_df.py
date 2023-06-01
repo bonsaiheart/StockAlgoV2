@@ -14,7 +14,7 @@ expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefi
 processed_dir = "..\data\ProcessedData"
 
 ###TODO manually change tickero
-ticker = "OSTK"
+ticker = "TSLA"
 list_of_df = []
 ticker_dir = os.path.join(processed_dir, ticker)
 
@@ -67,7 +67,7 @@ for line in df:
         (df["Bonsai Ratio 2"] - df["Bonsai Ratio 2"].shift(1)) / df["Bonsai Ratio 2"].shift(1)
     ) * 100
     # ###     # add 1 hour later price data to check for corr.
-    df["b1/b2"] = df["Bonsai Ratio"] / df["Bonsai Ratio 2"]
+    # df["B1/B2"] = df["Bonsai Ratio"] / df["Bonsai Ratio 2"]
     df["6 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-360)
     df["5 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-300)
     df["4 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-240)
