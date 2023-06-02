@@ -846,7 +846,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         )
 
         TradierAPI.buy(x)
-
+####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
     if processeddata["B1/B2"][0] < 0.01 and processeddata["RSI"][0]>70:
         x = (f'b1/b2<.01 && RSI > 70 {ticker}',
             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
