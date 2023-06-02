@@ -861,54 +861,54 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
     from Strategy_Testing import trained_models
     # predictor_values = {'Bonsai Ratio': .0007, 'ITM PCR-Vol': 20}
     # predictor_df = pd.DataFrame(predictor_values, index=[0])
-    buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-    if buy_signal1:
-        x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
-             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-             "1",
-             call_contract, .8, 1.2
-             )
-
-        TradierAPI.buy(x)
-        print('Buy signal!')
-    else:
-        print('No buy signal.')
-    sell_signal1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-    if sell_signal1:
-        x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
-             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-             "1",
-             put_contract, .8, 1.2
-             )
-
-        TradierAPI.buy(x)
-        print('Sell signal!')
-    else:
-        print('No sell signal.')
-    buy_signal2 = trained_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(processeddata[["B1/B2", "RSI"]].head(1))
-    if buy_signal2:
-        x = (f'get_buy_signal_b1b2_RSI_1hr_thresh7  {ticker}',
-             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-             "1",
-             call_contract, .8, 1.2
-             )
-
-        TradierAPI.buy(x)
-        print('Buy signal!')
-    else:
-        print('No buy signal.')
-    sell_signal2 = trained_models.get_sell_signal_B1B2_RSI_1hr_threshDown7(processeddata[["B1/B2", "RSI"]].head(1))
-    if sell_signal2:
-        x = (f'get_sell_signal_b1b2_RSI_1hr_thresh7 {ticker}',
-             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-             "1",
-             put_contract, .8, 1.2
-             )
-
-        TradierAPI.buy(x)
-        print('Sell signal!')
-    else:
-        print('No sell signal.')
+    # buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
+    # if buy_signal1:
+    #     x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
+    #          f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
+    #          "1",
+    #          call_contract, .8, 1.2
+    #          )
+    #
+    #     TradierAPI.buy(x)
+    #     print('Buy signal!')
+    # else:
+    #     print('No buy signal.')
+    # sell_signal1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
+    # if sell_signal1:
+    #     x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
+    #          f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
+    #          "1",
+    #          put_contract, .8, 1.2
+    #          )
+    #
+    #     TradierAPI.buy(x)
+    #     print('Sell signal!')
+    # else:
+    #     print('No sell signal.')
+    # buy_signal2 = trained_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(processeddata[["B1/B2", "RSI"]].head(1))
+    # if buy_signal2:
+    #     x = (f'get_buy_signal_b1b2_RSI_1hr_thresh7  {ticker}',
+    #          f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
+    #          "1",
+    #          call_contract, .8, 1.25
+    #          )
+    #
+    #     TradierAPI.buy(x)
+    #     print('Buy signal!')
+    # else:
+    #     print('No buy signal.')
+    # sell_signal2 = trained_models.get_sell_signal_B1B2_RSI_1hr_threshDown7(processeddata[["B1/B2", "RSI"]].head(1))
+    # if sell_signal2:
+    #     x = (f'get_sell_signal_b1b2_RSI_1hr_thresh7 {ticker}',
+    #          f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
+    #          "1",
+    #          put_contract, .8, 1.25
+    #          )
+    #
+    #     TradierAPI.buy(x)
+    #     print('Sell signal!')
+    # else:
+    #     print('No sell signal.')
     buy_signal3 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
 
     if buy_signal3:
