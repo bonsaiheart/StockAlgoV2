@@ -19,10 +19,11 @@ Chosen_Timeframe = "2 hour later change %"
 Chosen_Predictor = ["Bonsai Ratio","Bonsai Ratio 2", "B1/B2","RSI"]
 threshold_up = .6
 threshold_down = .6
-percent_up = .15
-percent_down = -.15
+percent_up = .1
+percent_down = -.1
 
-ml_dataframe.dropna(subset=[Chosen_Timeframe] + Chosen_Predictor, inplace=True)
+ml_dataframe.dropna(subset=[Chosen_Tim
+                            eframe] + Chosen_Predictor, inplace=True)
 
 num_rows = len(ml_dataframe[Chosen_Timeframe].dropna())
 ml_dataframe.dropna(thresh=num_rows, axis=1, inplace=True)
