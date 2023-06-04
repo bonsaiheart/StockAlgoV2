@@ -18,10 +18,10 @@ ml_dataframe = pd.read_csv(DF_filename)
 
 Chosen_Timeframe = "30 min later change %"
 Chosen_Predictor = ['time','Current Stock Price','Current SP % Change(LAC)','Maximum Pain','Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCR-Vol','PCR-OI','PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1','PCRv Up2','PCRv Up3','PCRv Up4','PCRv Down1','PCRv Down2','PCRv Down3','PCRv Down4','PCRoi Up1','PCRoi Up2','PCRoi Up3','PCRoi Up4','PCRoi Down1','PCRoi Down2','PCRoi Down3','PCRoi Down4','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up1','ITM PCRv Up2','ITM PCRv Up3','ITM PCRv Up4','ITM PCRv Down1','ITM PCRv Down2','ITM PCRv Down3','ITM PCRv Down4','ITM PCRoi Up1','ITM PCRoi Up2','ITM PCRoi Up3','ITM PCRoi Up4','ITM PCRoi Down1','ITM PCRoi Down2','ITM PCRoi Down3','ITM PCRoi Down4','ITM OI','Total OI','ITM Contracts %','Net_IV','Net ITM IV','Net IV MP','Net IV LAC','NIV Current Strike','NIV 1Higher Strike','NIV 1Lower Strike','NIV 2Higher Strike','NIV 2Lower Strike','NIV 3Higher Strike','NIV 3Lower Strike','NIV 4Higher Strike','NIV 4Lower Strike','NIV highers(-)lowers1-2','NIV highers(-)lowers1-4','NIV 1-2 % from mean','NIV 1-4 % from mean','Net_IV/OI','Net ITM_IV/ITM_OI','Closest Strike to CP','RSI','AwesomeOsc','Up or down','B1% Change','B2% Change']
-threshold_up = 0.9
-threshold_down = 0.9
-percent_up = 0.2
-percent_down = -0.2
+threshold_up = 0.5
+threshold_down = 0.5
+percent_up = 0.15
+percent_down = -0.15
 num_best_features = 4
 ml_dataframe.dropna(subset=[Chosen_Timeframe] + Chosen_Predictor, inplace=True)
 
@@ -181,61 +181,49 @@ if input_val == "Y":
             f"Predictors: {Chosen_Predictor}\n\nBest_Predictors_Selected Up: {best_features_up}\nBest_Predictors_Selected Down: {best_features_down}\n\nThreshold Up(sensitivity): {threshold_up}\nThreshold Down(sensitivity): {threshold_down}\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n")
 else:
     exit()
+# Load the new data
+new_data_filename = "<path_to_new_data_file>"
+new_data = pd.read_csv(new_data_filename)
 
-# To modify your code to perform regression instead of classification, you need to make a few changes:
-#
-# Update the target variables: Instead of creating binary target variables (Target_Up and Target_Down) based on whether the value exceeds a certain threshold, you need to use the actual numerical values of the target variable (Chosen_Timeframe) as your regression target.
-#
-# Change the model: Replace RandomForestClassifier with RandomForestRegressor to use a regression model instead of a classification model.
-#
-# Update evaluation metrics: Since you are performing regression, you'll need to use different evaluation metrics suited for regression tasks. Some commonly used metrics for regression include mean squared error (MSE), mean absolute error (MAE), and R-squared. You can import these metrics from sklearn.metrics and use them to evaluate your regression model.
-#
-# Here's an updated version of your code with the necessary modifications:
-#
-# python
-# Copy code
-# import joblib
-# import pandas as pd
-# from sklearn.exceptions import UndefinedMetricWarning
-# from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-# from sklearn.ensemble import RandomForestRegressor
-# from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSplit, cross_val_score
-# import os
-#
-# # Your existing code...
-#
-# # Update target variables
-# y = ml_dataframe[Chosen_Timeframe]
-#
-# # Change the model
-# model = RandomForestRegressor(random_state=1)
-#
-# # Update evaluation metrics
-# def evaluate_regression(y_true, y_pred):
-#     mse = mean_squared_error(y_true, y_pred)
-#     mae = mean_absolute_error(y_true, y_pred)
-#     r2 = r2_score(y_true, y_pred)
-#     return mse, mae, r2
-#
-# # Rest of your code...
-#
-# # Fit the model
-# model.fit(X_train, y_train)
-#
-# # Make predictions
-# y_pred = model.predict(X_test)
-#
-# # Evaluate the model
-# mse, mae, r2 = evaluate_regression(y_test, y_pred)
-#
-# # Print evaluation metrics
-# print("Mean Squared Error:", mse)
-# print("Mean Absolute Error:", mae)
-# print("R-squared:", r2)
-#
-# # Cross-validation
-# cv_scores = cross_val_score(model, X, y, cv=tscv, scoring='neg_mean_squared_error')
-# cv_scores = -cv_scores  # Multiply by -1 to get positive MSE values
-#
-# print("Cross-validation scores:", cv_scores)
-# print("Mean cross-validation score:", cv_scores.mean())
+# Preprocess the new data (apply the same preprocessing steps as on training data)
+# ...
+
+# Select the relevant features for the new data
+X_new = new_data[Chosen_Predictor]
+X_new_selected_up = selector_up.transform(X_new)
+X_new_selected_down = selector_down.transform(X_new)
+
+# Make predictions on the new data
+predicted_probabilities_up_new = model_up.predict_proba(X_new_selected_up)
+predicted_probabilities_down_new = model_down.predict_proba(X_new_selected_down)
+
+# Apply the threshold to obtain binary predictions
+predicted_up_new = (predicted_probabilities_up_new[:, 1] > threshold_up).astype(int)
+predicted_down_new = (predicted_probabilities_down_new[:, 1] > threshold_down).astype(int)
+
+# Evaluate the predictions if actual target labels are available
+if "Target_Up" in new_data.columns and "Target_Down" in new_data.columns:
+    y_up_new = new_data["Target_Up"]
+    y_down_new = new_data["Target_Down"]
+
+    precision_up_new = precision_score(y_up_new, predicted_up_new)
+    accuracy_up_new = accuracy_score(y_up_new, predicted_up_new)
+    recall_up_new = recall_score(y_up_new, predicted_up_new)
+    f1_up_new = f1_score(y_up_new, predicted_up_new)
+
+    precision_down_new = precision_score(y_down_new, predicted_down_new)
+    accuracy_down_new = accuracy_score(y_down_new, predicted_down_new)
+    recall_down_new = recall_score(y_down_new, predicted_down_new)
+    f1_down_new = f1_score(y_down_new, predicted_down_new)
+
+    print("Metrics for Target_Up (New Data):")
+    print("Precision:", precision_up_new)
+    print("Accuracy:", accuracy_up_new)
+    print("Recall:", recall_up_new)
+    print("F1-Score:", f1_up_new)
+
+    print("Metrics for Target_Down (New Data):")
+    print("Precision:", precision_down_new)
+    print("Accuracy:", accuracy_down_new)
+    print("Recall:", recall_down_new)
+    print("F1-Score:", f1_down_new)
