@@ -8,17 +8,19 @@ YYMMDD = dt.datetime.today().strftime("%y%m%d")
 
 # with open("../Input/tickerlist.txt", "r") as f:
 #     tickerlist = [line.strip().upper() for line in f.readlines()]
-def collect_1st_frames_to_make_daily_TS(ticker):
+def get_1st_frames_make_single_multiday_df(ticker):
     expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefix
 
     processed_dir = "..\data\ProcessedData"
 
     ###TODO manually change tickero
     ticker = ticker.upper()
-    list_of_df = []
-    ticker_dir = os.path.join(processed_dir, ticker)
 
+    ticker_dir = os.path.join(processed_dir, ticker)
+    list_of_df = []
     for directory in os.listdir(ticker_dir):
+        print(os.listdir(ticker_dir))
+        print(directory)
 
         dir_path = os.path.join(ticker_dir, directory)
         if directory != "Before TA Or Tradier":
@@ -59,8 +61,79 @@ def collect_1st_frames_to_make_daily_TS(ticker):
 
 
     df = pd.concat(list_of_df, ignore_index=True)
+
     print(df)
+    output_dir = Path(f"corr/{ticker}/")
+    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir2 = Path(f"dailyDF/{ticker}")
+    output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
+
+    df.corr().to_csv(f"corr/{ticker}.csv")
+    df.to_csv(f"dailyDF/{ticker}.csv")
     return (ticker, df)
+def get_1st_frames_to_make_daily_df(ticker):
+    expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefix
+
+    processed_dir = "..\data\ProcessedData"
+
+    ###TODO manually change tickero
+    ticker = ticker.upper()
+
+    ticker_dir = os.path.join(processed_dir, ticker)
+
+    for directory in os.listdir(ticker_dir):
+        print(os.listdir(ticker_dir))
+        print(directory)
+        list_of_df = []
+        dir_path = os.path.join(ticker_dir, directory)
+        if directory != "Before TA Or Tradier":
+            for filename in os.listdir(dir_path):
+                if filename.endswith(".csv"):
+                    parts = filename.split("_")
+                    # print(parts)
+                    if len(parts) == 3  and len(parts[1]) == 6 and len(
+                            parts[2]) == 8:
+
+
+                        filepath = os.path.join(dir_path, filename)
+                        dataframe_slice = pd.read_csv(filepath)
+                        dataframe_slice = dataframe_slice.iloc[:1]
+                        dataframe_slice["date"] = filename[-15:-9]
+                        dataframe_slice["time"] = filename[-8:-4]
+                        if len(list_of_df) > 2:
+                            try:
+                                if dataframe_slice.loc[0]["Current Stock Price"] < list_of_df[-1].loc[0]["Current Stock Price"]:
+                                    dataframe_slice["Up or down"] = "0"
+                                elif dataframe_slice.loc[0]["Current Stock Price"] > list_of_df[-1].loc[0][
+                                    "Current Stock Price"]:
+                                    dataframe_slice["Up or down"] = "1"
+
+                            except KeyError:
+                                pass
+
+                        list_of_df.append(dataframe_slice)
+                        # move "time" column to the first position
+                        cols = list(dataframe_slice.columns)
+                        cols = [cols[-2]] + cols[:-2]
+                        dataframe_slice = dataframe_slice[cols]
+                    # do something with the modified dataframe_slice
+                    else:
+                        print(f"{filename}: Format is incorrect.")
+            else:print("dir is Before TA Or Tradier")
+
+
+
+        df = pd.concat(list_of_df, ignore_index=True)
+
+        print(df)
+        output_dir = Path(f"corr/{ticker}/")
+        output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+        output_dir2 = Path(f"dailyDF/{ticker}")
+        output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
+
+        df.corr().to_csv(f"corr/{ticker}/{directory}.csv")
+        df.to_csv(f"dailyDF/{ticker}/{directory}.csv")
+        return (ticker, df)
 
 def minute_series_prep_for_backtest(ticker,df):
     for line in df:
@@ -140,5 +213,5 @@ def daily_series_prep_for_backtest(ticker,df):
     # #combine bonsai # and itmpcrv,  then bonsai and niv?  hwat else
 # df = pd.read_csv(r"C:\Users\natha\PycharmProjects\StockAlgoV2\Historical_Data_Scraper\data\Historical_Processed_ChainData\SPY.csv")
 # daily_series_prep_for_backtest("SPY",df)
-ticker,df = collect_1st_frames_to_make_daily_TS("spy")
+ticker,df = get_1st_frames_make_single_multiday_df("tsla")
 minute_series_prep_for_backtest(ticker,df)

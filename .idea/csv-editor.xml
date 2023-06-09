@@ -24,13 +24,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/Strategy_Testing/yup.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="\Strategy_Testing\corr\SPY\230501.csv">
           <value>
             <Attribute>

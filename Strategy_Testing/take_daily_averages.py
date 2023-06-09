@@ -1,7 +1,7 @@
-import pandas as pd
+# import pandas as pd
+#
+# spy = '../data/ProcessedData/SPY'
 
-spy = '../data/ProcessedData/SPY'
-
-for date in spy:
-    df = pd.DataFrame
-    for csv in date:
+# for date in spy:
+#     df = pd.DataFrame
+#     for csv in date:

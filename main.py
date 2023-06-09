@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 import time
 import traceback
-
+import trade_algos
 import check_Market_Conditions
 import tradierAPI_marketdata
 
@@ -44,8 +44,9 @@ success = False
 
 for i in range(max_retries):
     try:
-        if checkConditions.is_market_open_today() == True:
+        if check_Market_Conditions.is_market_open_today() == True:
             for ticker in tickerlist:
+                ticker=ticker.upper()
                 print(ticker)
                 (
                     LAC,
@@ -58,7 +59,7 @@ for i in range(max_retries):
                 (
                     optionchain,
                     processeddata,
-                    x,
+                    closest_strike_currentprice,strikeindex_abovebelow,
                     closest_exp_date,
                     ticker,
                 ) = tradierAPI_marketdata.perform_operations(
@@ -70,9 +71,13 @@ for i in range(max_retries):
                     this_minute_ta_frame,
                     closest_exp_date,
                 )
-
-                tradierAPI_marketdata.actions(optionchain, processeddata, x, closest_exp_date, ticker)
-
+                print(current_price)
+                if ticker == "SPY":
+                    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+                elif ticker == "TSLA":
+                    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
+                else:
+                    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
                 # email_me.email_me(processeddata)
             break
         else:
