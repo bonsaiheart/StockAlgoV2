@@ -1,6 +1,7 @@
 
 from datetime import datetime,timedelta
 
+import IB.ibAPI
 import TradierAPI
 import send_notifications as send_notifications
 import webullAPI
@@ -48,7 +49,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
             "1",
             CCP_call_contract, .5, 1.05
         )
-
+        IB.ibAPI.place_long_bracket_order(ticker)
         TradierAPI.buy(x)
         webullAPI.buy(ticker, current_price, "10")
         if ticker=="SPY":
@@ -72,6 +73,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
              "1",
              CCP_call_contract, .5, 1.05
              )
+        IB.ibAPI.place_long_bracket_order(ticker)
 
         TradierAPI.buy(x)
         webullAPI.buy(ticker, current_price, "10")
@@ -120,6 +122,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
              "1",
              CCP_call_contract, .9, 1.1
              )
+        IB.ibAPI.place_long_bracket_order(ticker)
 
         TradierAPI.buy(x)
 
@@ -133,6 +136,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
         x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
              f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]}", "1",
              CCP_downone_put_contract, .9, 1.1 )
+
         TradierAPI.buy(x)
         print('Sell signal!')
 
@@ -149,6 +153,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
              "1",
              CCP_upone_call_contract, .9, 1.1
              )
+        IB.ibAPI.place_long_bracket_order(ticker)
 
         TradierAPI.buy(x)
 
@@ -184,6 +189,7 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
 
             TradierAPI.buy(x)
             webullAPI.buy(ticker, current_price, "1")
+            IB.ibAPI.place_long_bracket_order(ticker)
 
             print('Buy signal!')
         else:
