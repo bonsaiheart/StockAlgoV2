@@ -1,10 +1,14 @@
+import time
+
 from ib_insync import *
 # util.startLoop()  # uncomment this line when in a notebook
 
 ib = IB()
+###PAPER THRU TWS
 ib.connect('127.0.0.1', 7497, clientId=1)
 
-# contract = Stock('AAPL', 'SMART', 'USD')  # Replace with the appropriate contract details for your instrument
+###REAL ACCOUNT THRU TWS
+z# contract = Stock('AAPL', 'SMART', 'USD')  # Replace with the appropriate contract details for your instrument
 #
 # limitBuyOrder = LimitOrder('BUY', quantity, limitPrice)
 # limitSellOrder = LimitOrder('SELL', quantity, limitPrice)
@@ -26,7 +30,27 @@ ib.connect('127.0.0.1', 7497, clientId=1)
 # ib.sleep(1)  # Wait briefly to allow orders to be processed
 # print(parentOrder, ocoOrders)
 # ib.disconnect()
+def buy(ticker,cont):
 
+ticker_symbol = "AAPL"
+
+ticker_contract = Stock(ticker_symbol,'SMART','USD')
+
+# print(ib.qualifyContracts(ticker_contract))
+# data = ib.reqMktData(ticker_contract)
+# print(data.marketPrice())
+
+# contract = Stock('SPY', 'SMART', 'USD')
+# contract1 = ib.qualifyContracts(contract)
+# a = ib.reqMktData(*contract1)
+# print(contract1,*contract1)
+# while a.last != a.last:
+#
+#     ib.sleep(0.01)
+# ib.cancelMktData(*contract1)
+# print(a.last)
+
+    #place bracket order
 
 
 def BracketOrder(parentOrderId, childOrderId, action, quantity, limitPrice, trailAmount):
@@ -43,8 +67,8 @@ def BracketOrder(parentOrderId, childOrderId, action, quantity, limitPrice, trai
     takeProfit = Order()
     takeProfit.orderId = childOrderId
     takeProfit.action = "SELL" if action == "BUY" else "BUY"
-    takeProfit.orderType = "TRAIL"
-    takeProfit.auxPrice = trailAmount
+    takeProfit.orderType = "LMT"
+    takeProfit.lmtPrice = limitPrice
     takeProfit.trailStopPrice = limitPrice - trailAmount
     takeProfit.totalQuantity = quantity
     takeProfit.parentId = parentOrderId
@@ -64,6 +88,6 @@ def BracketOrder(parentOrderId, childOrderId, action, quantity, limitPrice, trai
     return bracketOrder
 
 # bracket = BracketOrder(ib.client.getReqId(), ib.client.getReqId(), "BUY", quantity, limitPrice, trailAmount)
-bracket = BracketOrder(ib.client.getReqId(), ib.client.getReqId(), "BUY", '1', 5, .11)
-for o in bracket:
-    ib.placeOrder(contract, o)
+# bracket = BracketOrder(ib.client.getReqId(), ib.client.getReqId(), "BUY", '1', 181.5, .11)
+# for o in bracket:
+#     ib.placeOrder(ticker_contract, o)
