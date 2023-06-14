@@ -1940,3 +1940,2027 @@ Ran at 2023-06-14 13:35:06.020593. Occurred on attempt #1: Traceback (most recen
     IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
 TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
 . Retrying in 5 seconds... 
+Ran at 2023-06-14 13:35:06.020593. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 13:35:06.020593. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 13:35:06.020593. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 13:56:38.062556. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 174, in _new_conn
+    conn = connection.create_connection(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\connection.py", line 95, in create_connection
+    raise err
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\connection.py", line 85, in create_connection
+    sock.connect(sa)
+TimeoutError: [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 363, in connect
+    self.sock = conn = self._new_conn()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 179, in _new_conn
+    raise ConnectTimeoutError(
+urllib3.exceptions.ConnectTimeoutError: (<urllib3.connection.HTTPSConnection object at 0x00000239644BE3B0>, 'Connection to api.tradier.com timed out. (connect timeout=None)')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 592, in increment
+    raise MaxRetryError(_pool, url, error or ResponseError(cause))
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.tradier.com', port=443): Max retries exceeded with url: /v1/markets/options/chains?symbol=TSLA&expiration=2023-12-15&greeks=true (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000239644BE3B0>, 'Connection to api.tradier.com timed out. (connect timeout=None)'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 61, in <module>
+    ) = tradierAPI_marketdata.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\tradierAPI_marketdata.py", line 92, in get_options_data
+    response = requests.get('https://api.tradier.com/v1/markets/options/chains',
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 553, in send
+    raise ConnectTimeout(e, request=request)
+requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='api.tradier.com', port=443): Max retries exceeded with url: /v1/markets/options/chains?symbol=TSLA&expiration=2023-12-15&greeks=true (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000239644BE3B0>, 'Connection to api.tradier.com timed out. (connect timeout=None)'))
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:09:06.651942. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+TimeoutError: [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 550, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\packages\six.py", line 770, in reraise
+    raise value
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 389, in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 340, in _raise_timeout
+    raise ReadTimeoutError(
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.tradier.com', port=443): Read timed out. (read timeout=None)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 61, in <module>
+    ) = tradierAPI_marketdata.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\tradierAPI_marketdata.py", line 92, in get_options_data
+    response = requests.get('https://api.tradier.com/v1/markets/options/chains',
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 578, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.tradier.com', port=443): Read timed out. (read timeout=None)
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:09:06.651942. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 419, in connect
+    self.sock = ssl_wrap_socket(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 449, in ssl_wrap_socket
+    ssl_sock = _ssl_wrap_socket_impl(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\ssl_.py", line 493, in _ssl_wrap_socket_impl
+    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 513, in wrap_socket
+    return self.sslsocket_class._create(
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1071, in _create
+    self.do_handshake()
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\ssl.py", line 1342, in do_handshake
+    self._sslobj.do_handshake()
+TimeoutError: [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 550, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\packages\six.py", line 770, in reraise
+    raise value
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 389, in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 340, in _raise_timeout
+    raise ReadTimeoutError(
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.tradier.com', port=443): Read timed out. (read timeout=None)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 61, in <module>
+    ) = tradierAPI_marketdata.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\tradierAPI_marketdata.py", line 22, in get_options_data
+    response = requests.get('https://api.tradier.com/v1/markets/timesales',
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 578, in send
+    raise ReadTimeout(e, request=request)
+requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.tradier.com', port=443): Read timed out. (read timeout=None)
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:13:03.677444. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:18:50.149979. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:18:50.149979. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:18:50.149979. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:03.733020. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:03.733020. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:25.053441. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:03.733020. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:25.053441. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:03.733020. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:25.053441. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:21:22.818984. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:20:25.053441. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:21:22.818984. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:21:48.104893. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:21:48.104893. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:21:48.104893. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:21:48.104893. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:23:09.059529. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:23:13.053150. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:23:13.053150. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:23:13.053150. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:23:13.053150. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:24:37.544452. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:24:37.544452. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:24:37.544452. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:24:37.544452. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:26:58.155722. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:26:58.155722. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:26:58.155722. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:26:58.155722. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:32:08.796702. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:32:08.796702. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:32:08.796702. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:32:08.796702. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:36:34.695860. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:35:48.354651. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:36:34.695860. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:36:34.695860. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:35:48.354651. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:38:53.883633. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:38:53.883633. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:35:48.354651. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:50.661892. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:50.661892. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:54.263273. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:50.661892. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:54.263273. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:50.661892. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:54.263273. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:40:54.263273. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:43:59.407143. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:47:20.694433. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:43:59.407143. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:47:20.694433. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:47:20.694433. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:47:20.694433. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 75, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:49:31.187952. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:51:03.934898. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 19, in actions
+    print(ticker, IB_option_date, "hello", ib_one_strike_below, DownOne_Call_Price, 331)
+UnboundLocalError: local variable 'IB_option_date' referenced before assignment
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:49:31.187952. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    print(ticker, IB_option_date,ib_one_strike_above, "hello",ib_one_strike_below, DownOne_Call_Price, 331)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:51:03.934898. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 19, in actions
+    print(ticker, IB_option_date, "hello", ib_one_strike_below, DownOne_Call_Price, 331)
+UnboundLocalError: local variable 'IB_option_date' referenced before assignment
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:49:31.187952. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    TradierAPI.buy(x)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:52:31.306083. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 78, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:52:31.306083. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 78, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:52:31.306083. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 78, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:52:31.306083. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 78, in actions
+    IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\IB\ibAPI.py", line 228, in placePutBracketOrder
+    parent.orderId = ib.client.getReqId()
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\ib_insync\client.py", line 160, in getReqId
+    raise ConnectionError('Not connected')
+ConnectionError: Not connected
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:55:24.628616. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 83, in actions
+    if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:55:24.628616. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 83, in actions
+    if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:55:24.628616. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 83, in actions
+    if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:55:24.628616. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 83, in actions
+    if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:58:30.362937. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:58:30.362937. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:58:30.362937. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 14:58:30.362937. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:02:08.856943. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:02:08.856943. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\StockAlgoV2\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:04:35.983975. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:04:35.983975. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:04:35.983975. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    if ticker == "SPY":
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:04:35.983975. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 80, in actions
+    if ticker == "SPY":
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:07:38.102918. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:07:38.102918. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:07:38.102918. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:07:38.102918. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:10:43.504731. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:10:43.504731. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:10:43.504731. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:10:43.504731. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 81, in actions
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:22:26.441339. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:22:26.441339. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:24:05.776922. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:24:05.776922. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:25:56.239898. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 15:28:25.939074. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 81, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 235, in actions
+    TradierAPI.buy(x)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\TradierAPI.py", line 56, in buy
+    send_notifications.email_me_string(order,response.status_code,json_response)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 87, in email_me_string
+    server = smtplib.SMTP(smtp_host, smtp_port)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\smtplib.py", line 255, in __init__
+    (code, msg) = self.connect(host, port)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\smtplib.py", line 341, in connect
+    self.sock = self._get_socket(host, port, self.timeout)
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\smtplib.py", line 312, in _get_socket
+    return socket.create_connection((host, port), timeout,
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\socket.py", line 845, in create_connection
+    raise err
+  File "C:\Users\natha\AppData\Local\Programs\Python\Python310\Lib\socket.py", line 833, in create_connection
+    sock.connect(sa)
+TimeoutError: [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:00:36.133505. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:00:36.133505. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:00:36.133505. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:00:36.133505. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:01:59.396046. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:01:59.396046. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:01:59.396046. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:01:59.396046. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:03:21.382560. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:03:21.382560. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:03:21.382560. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:03:21.382560. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:04:49.005746. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:04:49.005746. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:04:49.005746. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:04:49.005746. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:06:17.817096. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:06:17.817096. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:06:17.817096. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:06:17.817096. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:07:55.209752. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:07:55.209752. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:07:55.209752. Occurred on attempt #3: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:07:55.209752. Occurred on attempt #4: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:09:23.050044. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\trade_algos.py", line 107, in actions
+    send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\send_notifications.py", line 55, in send_tweet
+    response = client.create_tweet(text=message)
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 835, in create_tweet
+    return self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 129, in _make_request
+    response = self.request(method, route, params=request_params,
+  File "C:\Users\natha\venv\lib\site-packages\tweepy\client.py", line 115, in request
+    raise TooManyRequests(response)
+tweepy.errors.TooManyRequests: 429 Too Many Requests
+Too Many Requests
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:09:23.050044. Occurred on attempt #2: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 174, in _new_conn
+    conn = connection.create_connection(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\connection.py", line 95, in create_connection
+    raise err
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\connection.py", line 85, in create_connection
+    sock.connect(sa)
+TimeoutError: [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 363, in connect
+    self.sock = conn = self._new_conn()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 179, in _new_conn
+    raise ConnectTimeoutError(
+urllib3.exceptions.ConnectTimeoutError: (<urllib3.connection.HTTPSConnection object at 0x0000022C87DDD6C0>, 'Connection to api.tradier.com timed out. (connect timeout=None)')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 592, in increment
+    raise MaxRetryError(_pool, url, error or ResponseError(cause))
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.tradier.com', port=443): Max retries exceeded with url: /v1/markets/options/chains?symbol=SPY&expiration=2023-06-14&greeks=true (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x0000022C87DDD6C0>, 'Connection to api.tradier.com timed out. (connect timeout=None)'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 61, in <module>
+    ) = tradierAPI_marketdata.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\tradierAPI_marketdata.py", line 92, in get_options_data
+    response = requests.get('https://api.tradier.com/v1/markets/options/chains',
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 553, in send
+    raise ConnectTimeout(e, request=request)
+requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='api.tradier.com', port=443): Max retries exceeded with url: /v1/markets/options/chains?symbol=SPY&expiration=2023-06-14&greeks=true (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x0000022C87DDD6C0>, 'Connection to api.tradier.com timed out. (connect timeout=None)'))
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 16:16:29.907802. Occurred on attempt #1: Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 174, in _new_conn
+    conn = connection.create_connection(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\connection.py", line 95, in create_connection
+    raise err
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\connection.py", line 85, in create_connection
+    sock.connect(sa)
+TimeoutError: [WinError 10060] A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 703, in urlopen
+    httplib_response = self._make_request(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 386, in _make_request
+    self._validate_conn(conn)
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 1042, in _validate_conn
+    conn.connect()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 363, in connect
+    self.sock = conn = self._new_conn()
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connection.py", line 179, in _new_conn
+    raise ConnectTimeoutError(
+urllib3.exceptions.ConnectTimeoutError: (<urllib3.connection.HTTPSConnection object at 0x00000135450915D0>, 'Connection to api.tradier.com timed out. (connect timeout=None)')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 489, in send
+    resp = conn.urlopen(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    retries = retries.increment(
+  File "C:\Users\natha\venv\lib\site-packages\urllib3\util\retry.py", line 592, in increment
+    raise MaxRetryError(_pool, url, error or ResponseError(cause))
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.tradier.com', port=443): Max retries exceeded with url: /v1/markets/options/chains?symbol=SPY&expiration=2023-11-17&greeks=true (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000135450915D0>, 'Connection to api.tradier.com timed out. (connect timeout=None)'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 61, in <module>
+    ) = tradierAPI_marketdata.get_options_data(ticker)
+  File "C:\Users\natha\PycharmProjects\StockAlgoV2\tradierAPI_marketdata.py", line 92, in get_options_data
+    response = requests.get('https://api.tradier.com/v1/markets/options/chains',
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 587, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\sessions.py", line 701, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\natha\venv\lib\site-packages\requests\adapters.py", line 553, in send
+    raise ConnectTimeout(e, request=request)
+requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='api.tradier.com', port=443): Max retries exceeded with url: /v1/markets/options/chains?symbol=SPY&expiration=2023-11-17&greeks=true (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x00000135450915D0>, 'Connection to api.tradier.com timed out. (connect timeout=None)'))
+. Retrying in 5 seconds... 

@@ -148,7 +148,7 @@ def placeCallBracketOrder(ticker,exp,strike, current_price,quantity):
     ticker_contract = Option(ticker,exp,strike,"C",'SMART')
     ib.qualifyContracts(ticker_contract)
     current_price = round(current_price*1.001,2)
-    quantity = 1  # Replace with the desired order quantity
+    quantity = quantity  # Replace with the desired order quantity
     limit_price = current_price  # Replace with your desired limit price
     take_profit_price = round(current_price * 1.1,2) # Replace with your desired take profit price
 
