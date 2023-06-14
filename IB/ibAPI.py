@@ -18,7 +18,7 @@ if ib.isConnected()==False:
 # limitBuyOrder = LimitOrder('BUY', quantity, limit_price)
 # limitSellOrder = LimitOrder('SELL', quantity, limit_price)
 # trailStopOrder = ('SELL', stop_loss_price, trailing_percent)
-gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=45)).strftime("%Y%m%d %H:%M:%S")
+gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
 ##removed quantity
 def placeBuyBracketOrder(ticker, current_price,action):
@@ -147,7 +147,7 @@ def placeCallBracketOrder(ticker,exp,strike, current_price):
     ## needed to remove 'USD' for option
     ticker_contract = Option(ticker,exp,strike,"C",'SMART')
     ib.qualifyContracts(ticker_contract)
-    current_price = current_price
+    current_price = round(current_price*1.001,2)
     quantity = 1  # Replace with the desired order quantity
     limit_price = current_price  # Replace with your desired limit price
     take_profit_price = round(current_price * 1.1,2) # Replace with your desired take profit price
@@ -203,7 +203,7 @@ def placeCallBracketOrder(ticker,exp,strike, current_price):
 # outsideRth=True
 
 
-def placePutBracketOrder(ticker,exp,strike, current_price):
+def placePutBracketOrder(ticker,exp,strike, current_price,quantity):
     ticker_symbol = ticker
     print(ticker,exp,strike,current_price)
     print(type(ticker))
@@ -213,8 +213,8 @@ def placePutBracketOrder(ticker,exp,strike, current_price):
     ###needed to remove 'USD' from end.
     ticker_contract = Option(ticker_symbol,exp,strike,"P",'SMART')
 
-    current_price = current_price
-    quantity = 1  # Replace with the desired order quantity
+    current_price =round(current_price*1.001,2)
+    quantity = quantity  # Replace with the desired order quantity
     limit_price = current_price  # Replace with your desired limit price
     take_profit_price = round(current_price * 1.1,2) # Replace with your desired take profit price
 
