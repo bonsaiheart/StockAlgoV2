@@ -137,7 +137,7 @@ def placeSellBracketOrder(ticker, current_price):
     for o in bracketOrder:
         print(ib.placeOrder(ticker_contract,o))
 
-def placeCallBracketOrder(ticker,exp,strike, current_price):
+def placeCallBracketOrder(ticker,exp,strike, current_price,quantity):
     ticker_symbol = ticker
     print(ticker, exp, strike, current_price)
     print(type(ticker))
