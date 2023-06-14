@@ -139,7 +139,14 @@ def placeSellBracketOrder(ticker, current_price):
 
 def placeCallBracketOrder(ticker,exp,strike, current_price):
     ticker_symbol = ticker
-    ticker_contract = Option("spy","2023",430,"C",'SMART', 'USD')
+    print(ticker, exp, strike, current_price)
+    print(type(ticker))
+    print(type(exp))
+    print(type(strike))
+    print(type(current_price))
+    ## needed to remove 'USD' for option
+    ticker_contract = Option(ticker,exp,strike,"C",'SMART')
+    ib.qualifyContracts(ticker_contract)
     current_price = current_price
     quantity = 1  # Replace with the desired order quantity
     limit_price = current_price  # Replace with your desired limit price
@@ -191,11 +198,20 @@ def placeCallBracketOrder(ticker,exp,strike, current_price):
     bracketOrder = [parent, takeProfit,stopLoss]
     # return bracketOrder
     for o in bracketOrder:
+
         print(ib.placeOrder(ticker_contract,o))
 # outsideRth=True
+
+
 def placePutBracketOrder(ticker,exp,strike, current_price):
     ticker_symbol = ticker
-    ticker_contract = Option(ticker_symbol,exp,strike,"P",'SMART', 'USD')
+    print(ticker,exp,strike,current_price)
+    print(type(ticker))
+    print(type(exp))
+    print(type(strike))
+    print(type(current_price))
+    ###needed to remove 'USD' from end.
+    ticker_contract = Option(ticker_symbol,exp,strike,"P",'SMART')
 
     current_price = current_price
     quantity = 1  # Replace with the desired order quantity
