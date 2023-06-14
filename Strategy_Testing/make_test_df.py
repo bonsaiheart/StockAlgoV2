@@ -67,7 +67,7 @@ def get_1st_frames_make_single_multiday_df(ticker):
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir2 = Path(f"dailyDF/{ticker}")
     output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
-
+    df.drop("Closest Strike Above/Below(below to above,4 each) list",axis=1,inplace=True)
     df.corr().to_csv(f"corr/{ticker}.csv")
     df.to_csv(f"dailyDF/{ticker}.csv")
     return (ticker, df)
@@ -205,6 +205,7 @@ def daily_series_prep_for_backtest(ticker,df):
     output_dir2 = Path(f"historical_daily_DF/{ticker}")
     output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
 
+
     df.corr().to_csv(f"historical_daily_corr/historical_daily_{ticker}.csv")
     df.to_csv(f"historical_daily_DF/historical_daily_{ticker}.csv")
     #
@@ -213,5 +214,5 @@ def daily_series_prep_for_backtest(ticker,df):
     # #combine bonsai # and itmpcrv,  then bonsai and niv?  hwat else
 # df = pd.read_csv(r"C:\Users\natha\PycharmProjects\StockAlgoV2\Historical_Data_Scraper\data\Historical_Processed_ChainData\SPY.csv")
 # daily_series_prep_for_backtest("SPY",df)
-ticker,df = get_1st_frames_make_single_multiday_df("tsla")
+ticker,df = get_1st_frames_make_single_multiday_df("spy")
 minute_series_prep_for_backtest(ticker,df)

@@ -7,7 +7,7 @@ from email import encoders
 import tweepy
 import PrivateData.twitter_info
 from Task_Queue import celery_client
-import PrivateData.twitter_info
+
 
 from celery import Celery
 

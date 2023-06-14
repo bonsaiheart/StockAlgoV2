@@ -5,7 +5,7 @@ import pandas as pd
 from webull import paper_webull, webull
 
 import PrivateData.webull_info
-import requests
+
 email = PrivateData.webull_info.email
 deviceID = PrivateData.webull_info.did
 trade_token = PrivateData.webull_info.trade_token
@@ -13,30 +13,6 @@ password = PrivateData.webull_info.password
 
 webull = paper_webull()
 webull._did = deviceID
-
-
-# def get_tickerid(ticker):
-#     # API endpoint URL
-#     url = f"https://api.webull.com/quote/ticker/{ticker}"
-#
-#     # Replace {symbol} with the ticker symbol you want to retrieve the ID for
-#
-#     endpoint = url.format(symbol=symbol)
-#
-#     # Send GET request to the API endpoint
-#     response = requests.get(endpoint)
-#
-#     # Check if the request was successful (status code 200)
-#     if response.status_code == 200:
-#         # Parse the JSON response
-#         data = response.json()
-#
-#         # Extract the ticker ID from the response
-#         ticker_id = data["symbolId"]
-#
-#         print(f"The ticker ID for {symbol} is: {ticker_id}")
-#     else:
-#         print("Failed to retrieve ticker ID.")
 
 
 def login():
@@ -50,10 +26,8 @@ def login():
 
 
 def buy(tickerid, price, quantity):
-    login()
     # stoplmt = float(price) * .97
-    sellprice = float(price) * 1.0005
-
+    sellprice = float(price) * 1.01
 
     webull.refresh_login()
     print(webull.place_order(tickerid, None, f"{price}", "BUY", "LMT", "DAY", quantity))

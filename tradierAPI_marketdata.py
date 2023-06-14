@@ -7,7 +7,7 @@ import numpy as np
 import TradierAPI
 import PrivateData.tradier_info
 import send_notifications as send_notifications
-import webullAPI
+# import webullAPI
 
 paper_acc = PrivateData.tradier_info.paper_acc
 paper_auth =PrivateData.tradier_info.paper_auth
@@ -76,7 +76,6 @@ def get_options_data(ticker):
         headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
     )
     json_response = response.json()
-    print(json_response)
 
 
     expirations = json_response['expirations']['expiration']
@@ -670,9 +669,10 @@ def perform_operations(
             (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
         )
         Bonsai2_Ratio = (
-            (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
-            and float("inf")
-            or ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
+            # (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
+            # and float("inf")
+            # or
+            ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
             * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
         )
 
@@ -687,7 +687,6 @@ def perform_operations(
         #     bonsai2_percent_change = 0.0
 
         round(strike_PCRv_dict[closest_higher_strike1], 3),
-        print(type(strikeindex_abovebelow))
         results.append(
             {
                 ###TODO change all price data to percentage change?

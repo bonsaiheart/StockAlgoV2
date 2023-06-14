@@ -8,7 +8,8 @@ from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSp
 import os
 import numpy as np
 import sys
-from skopt import BayesSearchCV
+from skopt import BayesSearchCV, Optimizer
+
 # Replace positive infinity with a large finite value
 
 processed_dir = "../dailyDF"
@@ -18,7 +19,7 @@ list_of_df = []
 ticker_dir = os.path.join(processed_dir, ticker)
 
 
-DF_filename = ("../historical_minute_DF/SPY/230608_SPY.csv")
+DF_filename = ("../historical_minute_DF/SPY/230612_SPY.csv")
 ml_dataframe = pd.read_csv(DF_filename)
 
 Chosen_Timeframe = "1 hour later change %"
@@ -33,6 +34,7 @@ ml_dataframe.dropna(subset=[Chosen_Timeframe] + Chosen_Predictor, inplace=True)
 
 num_rows = len(ml_dataframe[Chosen_Timeframe].dropna())
 ml_dataframe.dropna(thresh=num_rows, axis=1, inplace=True)
+ml_dataframe = ml_dataframe.astype(int)
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 
@@ -47,28 +49,33 @@ ml_dataframe["Target_Up"] = (ml_dataframe[Chosen_Timeframe] > percent_up).astype
 ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < percent_down).astype(int)
 
 
-model = RandomForestClassifier(random_state=1)
+model = RandomForestClassifier(random_state=None)
 
 parameters = {
-    'n_estimators': (200, 300),
-    'min_samples_split': (100, 150),
-    'max_depth': (float('inf'), 10),
+    'n_estimators': (40,80,100,200, 300,500,1000
+                     ),
+    'min_samples_split': (20,50,100, 150,200,500),
+    'max_depth': ( 5,10,20,50,100,150,200,250,500),
 }
 
 X = ml_dataframe[Chosen_Predictor]
 # Reset the index of your DataFrame
 print(X.head())
 X.reset_index(drop=True, inplace=True)
-
+print(type(ml_dataframe.columns))
 # Replace positive infinity with a large finite value
-X = X.mask(np.isinf(X), sys.float_info.max)
-X = X.mask(np.isneginf(X), -sys.float_info.max)
+# X = X.mask(np.isinf(X), sys.float_info.max)
+# X = X.mask(np.isneginf(X), -sys.float_info.max)
 y_up = ml_dataframe["Target_Up"]
 y_down = ml_dataframe["Target_Down"]
+print(type(ml_dataframe.Target_Down))
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.25,    random_state=1)
 # Feature selection for Target_Up
 feature_selector_up = RFECV(estimator=model, scoring='precision', step=1)
+
 X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
+
+
 X_test_selected_up = feature_selector_up.transform(X_test)
 
 
@@ -81,7 +88,7 @@ X_test_selected_down = feature_selector_down.transform(X_test)
 ...
 
 tscv = TimeSeriesSplit(n_splits=3)
-#
+
 bayes_search_up = BayesSearchCV(
     estimator=model,
     search_spaces=parameters,
@@ -101,6 +108,10 @@ bayes_search_up = BayesSearchCV(
 # best_param_up = f"Best parameters for Target_Up: {grid_search_up.best_params_}. Best precision: {grid_search_up.best_score_}"
 # model_up = grid_search_up.best_estimator_
 print("Performing BayesSearchCV UP...")
+# X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up > 0)] = sys.float_info.max
+# X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up < 0)] = -sys.float_info.max
+X_train_selected_up = X_train_selected_up.astype(int)
+
 bayes_search_up.fit(X_train_selected_up, y_up_train)
 best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
 print("Best features for Target_Up:", best_features_up)

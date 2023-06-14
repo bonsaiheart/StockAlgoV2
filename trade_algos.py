@@ -1,10 +1,18 @@
+import logging
 
+# Configure the logging settings
+logging.basicConfig(filename='error.log', level=logging.ERROR)
 from datetime import datetime,timedelta
+
+import numpy as np
+from Strategy_Testing import trained_models
 
 import IB.ibAPI
 import TradierAPI
 import send_notifications as send_notifications
-import webullAPI
+logging.basicConfig(filename='trade_algos_error.log', level=logging.ERROR,    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S')
+
 
 def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price):
 
@@ -19,13 +27,21 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
     date_string = closest_exp_date
     date_object = datetime.strptime(date_string, "%Y-%m-%d")
     new_date_string = date_object.strftime("%y%m%d")
+    IB_option_date = date_object.strftime("%Y%m%d")
 
 ####Different strikes converted to contract form.
     ##This one is the strike one above Closest to Current price strike
 
+    print(strikeindex_abovebelow)
+    if strikeindex_abovebelow[4] != np.nan:
+        ib_one_strike_above = strikeindex_abovebelow[4]
+        print("one above", ib_one_strike_above)
+        one_strike_above_closest_cp_strike_int_num = int(strikeindex_abovebelow[4] * 1000)
 
-    one_strike_above_closest_cp_strike_int_num = int(strikeindex_abovebelow[4] * 1000)
-    one_strike_below_closest_cp_strike_int_num = int(strikeindex_abovebelow[3] * 1000)
+    if strikeindex_abovebelow[3] != np.nan:
+        ib_one_strike_below = strikeindex_abovebelow[3]
+        print("one below",ib_one_strike_below)
+        one_strike_below_closest_cp_strike_int_num = int(strikeindex_abovebelow[3] * 1000)
     closest_strike_int_num = int(processeddata["Closest Strike to CP"][0] * 1000)  # Convert decimal to integer
     ###TODO add different exp date options in addition to diff strike optoins.
 
@@ -41,144 +57,190 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
     CCP_put_contract = f"{ticker}{new_date_string}P{closest_contract_strike}"
     ###TODO for puts, use a higher strike, for calls use a lower strike.  ATM strikes get down to pennies EOD.
 
+    CCP_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]
+    CCP_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Put_LastPrice'].values[0]
+    #             # IB.ibAPI.placeSellBracketOrder(ticker, current_price, "SELL")
+    #         IB.ibAPI.placeBuyBracketOrder(ticker,current_price,"BUY")
+    try:
+        if processeddata["B2/B1"][0] >500 and processeddata['Bonsai Ratio'][0]<.0001 and processeddata['ITM PCRv Up2'][0]<.01 and processeddata['ITM PCRv Down2'][0]<5 and processeddata["NIV 1-2 % from mean"][0]>processeddata["NIV 1-4 % from mean"][0]>0:
+            x = (f'ST down formula 1 {ticker}',
+                f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
+                "1",
+                CCP_put_contract, .5, 1.05
+            )
 
-# 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
-    if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
-        x = (f'b1/b2>1.15 && RSI<25  {ticker}',
-            f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
-            "1",
-            CCP_call_contract, .5, 1.05
-        )
-        IB.ibAPI.place_long_bracket_order(ticker)
-        TradierAPI.buy(x)
-        webullAPI.buy(ticker, current_price, "10")
-        if ticker=="SPY":
-            send_notifications.send_tweet(ticker,current_price,'up',f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
-####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-    if processeddata["B1/B2"][0] < 0.25 and processeddata["RSI"][0]>70:
-        x = (f'b1/b2<.01 && RSI > 75 {ticker}',
-            f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
-            "1",
-            CCP_put_contract, .5, 1.05
-        )
+            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, CCP_Put_Price)
 
-        TradierAPI.buy(x)
+            TradierAPI.buy(x)
 
-        if ticker == "SPY":
-            send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
-#### TESTING JUST RSI
-    if processeddata['RSI'][0] < 30:
-        x = (f' RSI<25  {ticker}',
-             f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
-             "1",
-             CCP_call_contract, .5, 1.05
-             )
-        IB.ibAPI.place_long_bracket_order(ticker)
+            if ticker == "SPY":
+                send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+    # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
 
-        TradierAPI.buy(x)
-        webullAPI.buy(ticker, current_price, "10")
-        # if ticker == "SPY":
-        #     send_notifications.send_tweet(ticker, current_price, 'up',
-        #                                   f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
-        ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-    if processeddata["RSI"][0] > 70:
-        x = (f'RSI > 75 {ticker}',
-             f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
-             "1",
-             CCP_put_contract, .5, 1.05
-             )
-
-        TradierAPI.buy(x)
-
-###JUST b1/b2
-    if processeddata["B1/B2"][0] > 1.15 :
-        x = (f'b1/b2>1.15  {ticker}',
-             f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
-             "1",
-             CCP_call_contract, .5, 1.05
-             )
-
-        TradierAPI.buy(x)
-        webullAPI.buy(ticker, current_price, "10")
-
+        if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
+            x = (f'b1/b2>1.15 && RSI<25  {ticker}',
+                f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
+                "1",
+                CCP_call_contract, .5, 1.05
+            )
+            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, CCP_Call_Price)
+            TradierAPI.buy(x)
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price, "BUY")
+            # API.buy(ticker, current_price, "10")
+            if ticker=="SPY":
+                send_notifications.send_tweet(ticker,current_price,'up',f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
     ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-    if processeddata["B1/B2"][0] < 0.25 :
-        x = (f'b1/b2<.01  {ticker}',
-             f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
-             "1",
-             CCP_put_contract, .5, 1.05
-             )
+        if processeddata["B1/B2"][0] < 0.25 and processeddata["RSI"][0]>70:
+            x = (f'b1/b2<.01 && RSI > 75 {ticker}',
+                f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
+                "1",
+                CCP_put_contract, .5, 1.05
+            )
 
-        TradierAPI.buy(x)
-    processeddata2 = processeddata[["Bonsai Ratio", "ITM PCR-Vol"]].head(1)
-    processeddata2.to_csv("proceseddata2.csv")
-    from Strategy_Testing import trained_models
+            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, CCP_Put_Price)
+
+            TradierAPI.buy(x)
+
+            if ticker == "SPY":
+                send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+    #### TESTING JUST RSI
+        if processeddata['RSI'][0] < 30:
+            x = (f' RSI<25  {ticker}',
+                 f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
+                 "1",
+                 CCP_call_contract, .5, 1.05
+                 )
+            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, CCP_Call_Price)
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price, "BUY")
+            TradierAPI.buy(x)
+            # webullAPI.buy(ticker, current_price, "10")
+            # if ticker == "SPY":
+            #     send_notifications.send_tweet(ticker, current_price, 'up',
+            #                                   f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
+            ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
+        if processeddata["RSI"][0] > 70:
+            x = (f'RSI > 75 {ticker}',
+                 f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
+                 "1",
+                 CCP_put_contract, .5, 1.05
+                 )
+            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, CCP_Put_Price)
+
+            TradierAPI.buy(x)
+
+    ###JUST b1/b2
+        if processeddata["B1/B2"][0] > 1.15 :
+            x = (f'b1/b2>1.15  {ticker}',
+                 f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
+                 "1",
+                 CCP_call_contract, .5, 1.05
+                     )
+            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, CCP_Call_Price)
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price, "BUY")
+            TradierAPI.buy(x)
+            # webullAPI.buy(ticker, current_price, "10")
+
+        ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
+        if processeddata["B1/B2"][0] < 0.25 :
+            x = (f'b1/b2<.01  {ticker}',
+                 f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]}",
+                 "1",
+                 CCP_put_contract, .5, 1.05
+                 )
+            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, CCP_Put_Price)
+
+            TradierAPI.buy(x)
+    except (ValueError, ConnectionError) as e:
+        logging.error('Error: %s', e)
+
+        pass
     # predictor_values = {'Bonsai Ratio': .0007, 'ITM PCR-Vol': 20}
     # predictor_df = pd.DataFrame(predictor_values, index=[0])
-    buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-    if buy_signal1:
-        x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
+    try:
+        buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
+        if buy_signal1:
+
+            x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
              f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]}",
              "1",
              CCP_call_contract, .9, 1.1
              )
-        IB.ibAPI.place_long_bracket_order(ticker)
+            IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, CCP_Call_Price)
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price, "BUY")
+            TradierAPI.buy(x)
 
-        TradierAPI.buy(x)
+            print('Buy signal!')
 
+        else:
+            print('No buy signal.')
+    except (ValueError,ConnectionError) as e:
+        logging.error('Error: %s', e)
 
-        print('Buy signal!')
-    else:
-        print('No buy signal.')
+        pass
+    try:
+        sell_signal1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
+        if sell_signal1:
+            x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
+                 f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]}", "1",
+                 CCP_downone_put_contract, .9, 1.1 )
 
-    sell_signal1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-    if sell_signal1:
-        x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
-             f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]}", "1",
-             CCP_downone_put_contract, .9, 1.1 )
+            IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, CCP_Put_Price)
 
-        TradierAPI.buy(x)
-        print('Sell signal!')
+            TradierAPI.buy(x)
+            print('Sell signal!')
 
-    else:
-        print('No sell signal.')
-    processeddata.to_csv("testPreocssdfklsdfa.csv")
+        else:
+            print('No sell signal.')
+    except (ValueError, ConnectionError) as e:
+        logging.error('Error: %s', e)
+
+        pass
     try:
         buy_signal2 = trained_models.get_buy_signal_NEWONE_PRECISE(processeddata[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up2', 'ITM OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-4', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']].head(1))
-    except ValueError:
+
+        if buy_signal2:
+            x = (f'get_buy_signal_NEWONE_PRECISE  {ticker}',
+                 f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_upone_call_contract]['Call_LastPrice'].values[0]}",
+                 "1",
+                 CCP_upone_call_contract, .9, 1.1
+                 )
+
+            IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, CCP_Call_Price)
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price, "BUY")
+            TradierAPI.buy(x)
+
+            print('Buy signal!')
+        else:
+            print('No buy signal.')
+    except (ValueError, ConnectionError) as e:
+        logging.error('Error: %s', e)
+
         pass
-    if buy_signal2:
-        x = (f'get_buy_signal_NEWONE_PRECISE  {ticker}',
-             f"{optionchain.loc[optionchain['c_contractSymbol'] == CCP_upone_call_contract]['Call_LastPrice'].values[0]}",
-             "1",
-             CCP_upone_call_contract, .9, 1.1
-             )
-        IB.ibAPI.place_long_bracket_order(ticker)
-
-        TradierAPI.buy(x)
-
-        print('Buy signal!')
-    else:
-        print('No buy signal.')
     try:
         sell_signal2 = trained_models.get_sell_signal_NEWONE_PRECISE(processeddata[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up3', 'ITM PCRoi Down4', 'ITM OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']
 ].head(1))
-    except ValueError:
-        pass
-    if sell_signal2:
-        x = (f'get_sell_signal_NEWONE_PRECISE  {ticker}',
-             f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]}",
-             "1",
-             CCP_downone_put_contract, .9, 1.1
-             )
 
-        TradierAPI.buy(x)
-        print('Sell signal!')
-    else:
-        print('No sell signal.')
-        buy_signal3 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(processeddata[
-                                                                       ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCR-Vol', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Down3', 'Net_IV', 'NIV 2Lower Strike', 'NIV 4Higher Strike', 'NIV highers(-)lowers1-4']
+        if sell_signal2:
+            x = (f'get_sell_signal_NEWONE_PRECISE  {ticker}',
+                 f"{optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]}",
+                 "1",
+                 CCP_downone_put_contract, .9, 1.1
+                 )
+
+            IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, CCP_Put_Price)
+
+            TradierAPI.buy(x)
+            print('Sell signal!')
+        else:
+            print('No sell signal.')
+    except (ValueError, ConnectionError) as e:
+        logging.error('Error: %s', e)
+
+        pass
+    try:
+        buy_signal3 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(processeddata[ ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCR-Vol', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Down3', 'Net_IV', 'NIV 2Lower Strike', 'NIV 4Higher Strike', 'NIV highers(-)lowers1-4']
                                                                    ].head(1))
+
 
         if buy_signal3:
             x = (f'get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP  {ticker}',
@@ -188,14 +250,19 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
                  )
 
             TradierAPI.buy(x)
-            webullAPI.buy(ticker, current_price, "1")
-            IB.ibAPI.place_long_bracket_order(ticker)
-
+            # webullAPI.buy(ticker, current_price, "1")
+            IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, CCP_Call_Price)
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price, "BUY")
             print('Buy signal!')
         else:
+
             print('No buy signal.')
-        sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(processeddata[
-                                                                         ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2', 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down4', 'ITM OI', 'Total OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI']
+    except (ValueError, ConnectionError) as e:
+        logging.error('Error: %s', e)
+
+        pass
+    try:
+        sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(processeddata[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2', 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down4', 'ITM OI', 'Total OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI']
 ].head(1))
         if sell_signal3:
             x = (f'get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP  {ticker}',
@@ -203,11 +270,16 @@ def actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_
                  "1",
                  CCP_downone_put_contract, .9, 1.1
                  )
+            IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, CCP_Put_Price)
 
             TradierAPI.buy(x)
             print('Sell signal!')
         else:
             print('No sell signal.')
+    except (ValueError, ConnectionError) as e:
+        logging.error('Error: %s', e)
+
+        pass
     # buy_signal2 = trained_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(processeddata[["B1/B2", "RSI"]].head(1))
     # if buy_signal2:
     #     x = (f'get_buy_signal_b1b2_RSI_1hr_thresh7  {ticker}',

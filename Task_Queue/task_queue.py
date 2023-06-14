@@ -68,7 +68,7 @@ def wait_60_minutes_and_send_tweet(ticker,current_price,tweet_id,upordown):
         high = item['high']
         low = item['low']
         time = item['time']
-        time_high_lodw_dict[time] = {'high': high, 'low': low}
+        time_high_low_dict[time] = {'high': high, 'low': low}
 
     # Calculate the highest and lowest prices
     highs = [values['high'] for values in time_high_low_dict.values()]

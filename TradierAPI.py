@@ -56,6 +56,7 @@ def buy(order):
     send_notifications.email_me_string(order,response.status_code,json_response)
 
 def get_cost_basis():
+    print("getting cost basis...")
     response = requests.get(f'https://sandbox.tradier.com/v1/accounts/{paper_acc}/gainloss',
                             params={'page': '1', 'limit': '100', 'sortBy': 'closeDate', 'sort': 'desc',
                                     'start': '2023-05-19', 'end': '2023-05-19', 'symbol': 'SPY'},
@@ -72,9 +73,9 @@ def get_cost_basis():
     print("Sum of cost:", cost_sum)
     print("Sum of gain_loss:", gain_loss_sum)
     print("Average gain_loss_percent:", gain_loss_percent_avg)
-get_cost_basis()
 
 def get_acc_hist():
+    print("Getting acc. history...")
     response = requests.get(f'https://api.tradier.com/v1/accounts/{paper_acc}/history',
         params={'page': '3', 'limit': '100', 'type': 'trade, option, ach, wire, dividend, fee, tax, journal, check, transfer, adjustment, interest', 'start': 'yyyy-mm-dd', 'end': 'yyyy-mm-dd', 'symbol': 'SPY', 'exactMatch': 'true'},
         headers={'Authorization': f'Bearer {paper_auth}', 'Accept': 'application/json'}                                                                                                                                                                                                                     )
@@ -82,10 +83,10 @@ def get_acc_hist():
     print(response.status_code)
     print(json_response)
 # get_acc_hist()
-response = requests.get('https://api.tradier.com/v1/user/history',
-    params={},
-    headers={'Authorization': 'Bearer <TOKEN>', 'Accept': 'application/json'}
-)
-json_response = response.json()
-print(response.status_code)
-print(json_response)
+# response = requests.get('https://api.tradier.com/v1/user/history',
+#     params={},
+#     headers={'Authorization': 'Bearer <TOKEN>', 'Accept': 'application/json'}
+# )
+# json_response = response.json()
+# print(response.status_code)
+# print(json_response)

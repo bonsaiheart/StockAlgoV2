@@ -5,6 +5,9 @@ import traceback
 import trade_algos
 import check_Market_Conditions
 import tradierAPI_marketdata
+from ib_insync import IB
+ib = IB()
+
 
 # import webullapi
 
@@ -84,7 +87,7 @@ for i in range(max_retries):
             with open(log_path, "a") as f:
                 f.write(f"Ran at {datetime}. Market was closed today.\n")
             break
-
+#
     except Exception as e:
         with open(log_path, "a") as f:
             print(traceback.format_exc())
@@ -93,12 +96,5 @@ for i in range(max_retries):
                 f"Ran at {datetime}. Occurred on attempt #{i +1}: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
             )
 
-    time.sleep(retry_delay)
+ib.disconnect()
 
-if i == max_retries - 1:
-    print(f"Maximum retries exceeded. Exiting...")
-    with open(log_path, "a") as f:
-        f.write(f"Ran at {datetime}. Max Retries exceeded.  Exiting... \n")
-else:
-    if success:
-        print(f"Success!")
