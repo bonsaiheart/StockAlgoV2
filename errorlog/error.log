@@ -1289,6 +1289,34 @@ Ran at 2023-06-14 12:21:14.011800. Occurred on attempt #1: Traceback (most recen
 tweepy.errors.Forbidden: 403 Forbidden
 You are not allowed to create a Tweet with duplicate content.
 . Retrying in 5 seconds... 
+Ran at 2023-06-14 13:34:09.911630. Occurred on attempt #1: Traceback (most recent call last):
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 13:34:09.911630. Occurred on attempt #2: Traceback (most recent call last):
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 13:34:09.911630. Occurred on attempt #3: Traceback (most recent call last):
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
+Ran at 2023-06-14 13:34:09.911630. Occurred on attempt #4: Traceback (most recent call last):
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/main.py", line 79, in <module>
+    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
+  File "/Users/bonsai/PycharmProjects/StockAlgoV2/trade_algos.py", line 171, in actions
+    IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+TypeError: placeCallBracketOrder() takes 4 positional arguments but 5 were given
+. Retrying in 5 seconds... 
 Ran at 2023-06-14 13:04:02.469572. Occurred on attempt #1: Traceback (most recent call last):
   File "C:\Users\natha\PycharmProjects\StockAlgoV2\main.py", line 79, in <module>
     trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)

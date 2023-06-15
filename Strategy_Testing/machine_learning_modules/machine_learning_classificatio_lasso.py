@@ -19,16 +19,20 @@ list_of_df = []
 ticker_dir = os.path.join(processed_dir, ticker)
 
 
-DF_filename = ("../historical_minute_DF/SPY/230612_SPY.csv")
+DF_filename = "../historical_minute_DF/SPY/230614_SPY.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
-Chosen_Timeframe = "1 hour later change %"
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
+Chosen_Timeframe = "15 min later change %"
+# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 # Chosen_Predictor = ['Bonsai Ratio']
-threshold_up = 0.6
-threshold_down = 0.6
-percent_up = 0.2
-percent_down = -0.2
+Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1']
+
+num_features_up = 1
+num_features_down = 1
+threshold_up = 0.5
+threshold_down = 0.5
+percent_up = 0.08
+percent_down = -0.08
 # num_best_features = 1
 ml_dataframe.dropna(subset=[Chosen_Timeframe] + Chosen_Predictor, inplace=True)
 
@@ -50,12 +54,13 @@ ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < percent_down).as
 
 
 model = RandomForestClassifier(random_state=None)
-
+###25/50      ###2/20   ###100/40
 parameters = {
-    'n_estimators': (40,80,100,200, 300,500,1000
+    'max_depth': (5,10,20, 40, 45, 50),
+    'min_samples_split': (3,5,10,20,25,40),
+
+    'n_estimators': (15,20,30,40,80
                      ),
-    'min_samples_split': (20,50,100, 150,200,500),
-    'max_depth': ( 5,10,20,50,100,150,200,250,500),
 }
 
 X = ml_dataframe[Chosen_Predictor]
@@ -69,9 +74,9 @@ print(type(ml_dataframe.columns))
 y_up = ml_dataframe["Target_Up"]
 y_down = ml_dataframe["Target_Down"]
 print(type(ml_dataframe.Target_Down))
-X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.25,    random_state=1)
+X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.2,    random_state=None)
 # Feature selection for Target_Up
-feature_selector_up = RFECV(estimator=model, scoring='precision', step=1)
+feature_selector_up = RFECV(estimator=model, scoring='accuracy', step=1,min_features_to_select=num_features_up,)
 
 X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
 
@@ -81,21 +86,22 @@ X_test_selected_up = feature_selector_up.transform(X_test)
 
 
 # Feature selection for Target_Down
-feature_selector_down = RFECV(estimator=model, scoring='precision', step=1)
+feature_selector_down = RFECV(estimator=model, scoring='precision', step=1,min_features_to_select=num_features_down)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
 
 ...
 
-tscv = TimeSeriesSplit(n_splits=3)
+tscv = TimeSeriesSplit(n_splits=2)
 
 bayes_search_up = BayesSearchCV(
     estimator=model,
     search_spaces=parameters,
     scoring='precision',
     cv=tscv,
-    n_iter=50,  # Number of iterations for the Bayesian optimization
-    random_state=1
+    n_iter=40,
+    n_points=10,# Number of iterations for the Bayesian optimization
+    random_state=None
 )
 # grid_search_up = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
 # print("Performing GridSearchCV UP...")
@@ -111,6 +117,13 @@ print("Performing BayesSearchCV UP...")
 # X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up > 0)] = sys.float_info.max
 # X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up < 0)] = -sys.float_info.max
 X_train_selected_up = X_train_selected_up.astype(int)
+
+
+selected_features_up = feature_selector_up.get_support(indices=True)
+feature_names_up = X_train.columns[selected_features_up]
+print("Selected Features:", feature_names_up)
+
+
 
 bayes_search_up.fit(X_train_selected_up, y_up_train)
 best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
@@ -142,8 +155,10 @@ bayes_search_down = BayesSearchCV(
     search_spaces=parameters,
     scoring='precision',
     cv=tscv,
-    n_iter=50,  # Number of iterations for the Bayesian optimization
-    random_state=1
+    n_iter=40,
+    n_points=10,
+# Number of iterations for the Bayesian optimization
+    random_state=None
 )
 
 print("Performing BayesSearchCV DOWN...")
@@ -221,10 +236,10 @@ def save_file_with_shorter_name(data, file_path):
             print("Error occurred while saving the file:", e)
 
 
-
+#######Round 2############  FIGHT!
 
 # Load the new data
-new_data_filename = "../historical_minute_DF/TSLA/230608_TSLA.csv"
+new_data_filename = ("../historical_minute_DF/TSLA/230612_TSLA.csv")
 new_data = pd.read_csv(new_data_filename)
 
 # Preprocess the new data (apply the same preprocessing steps as on training data)

@@ -17,6 +17,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Strategy_Testing/historical_minute_DF/SPY/230614_SPY.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/Strategy_Testing/historical_minute_DF/TSLA/230612_TSLA.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Strategy_Testing/mldataframetest.csv">
           <value>
             <Attribute>
