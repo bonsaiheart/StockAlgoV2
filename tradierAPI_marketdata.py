@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 import pandas as pd
 import ta
 from pathlib import Path
@@ -7,30 +7,33 @@ import numpy as np
 import TradierAPI
 import PrivateData.tradier_info
 import send_notifications as send_notifications
+
 # import webullAPI
 
 paper_acc = PrivateData.tradier_info.paper_acc
-paper_auth =PrivateData.tradier_info.paper_auth
+paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
 
 ###TODO time and sales (will be used for awesome ind. and ta.
 YYMMDD = datetime.today().strftime("%y%m%d")
+
+
 def get_options_data(ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
     response = requests.get('https://api.tradier.com/v1/markets/timesales',
-        params={'symbol': ticker, 'interval': '1min','start': start,'end':end,'session_filter': 'all'},
-        headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-    )
+                            params={'symbol': ticker, 'interval': '1min', 'start': start, 'end': end,
+                                    'session_filter': 'all'},
+                            headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+                            )
     json_response = response.json()
     # print(response.status_code)
     # print(json_response)
-    df= pd.DataFrame(json_response['series']['data']).set_index('time')
+    df = pd.DataFrame(json_response['series']['data']).set_index('time')
     # df.set_index('time', inplace=True)
     ##change index to datetimeindex
     df.index = pd.to_datetime(df.index)
-
 
     close = df["close"]
     df["AwesomeOsc"] = ta.momentum.awesome_oscillator(
@@ -46,20 +49,19 @@ def get_options_data(ticker):
     # print(this_minute_ta_frame)
     # df.to_csv('df.csv')
 
-
-#quote
+    # quote
     response = requests.get('https://api.tradier.com/v1/markets/quotes',
-        params={'symbols': ticker, 'greeks': 'false'},
-        headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-    )
+                            params={'symbols': ticker, 'greeks': 'false'},
+                            headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+                            )
     json_response = response.json()
     # print(response.status_code)
     # print(json_response)
     # print(json_response)
     quote_df = pd.DataFrame.from_dict(json_response['quotes']['quote'], orient='index').T
-    LAC = quote_df.at[0,'prevclose']
+    LAC = quote_df.at[0, 'prevclose']
 
-    CurrentPrice = quote_df.at[0,'last']
+    CurrentPrice = quote_df.at[0, 'last']
     price_change_percent = quote_df['change_percentage'][0]
     StockLastTradeTime = quote_df['trade_date'][0]
     StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
@@ -72,11 +74,10 @@ def get_options_data(ticker):
 
     ###TODO finish making this df look just like yfinance df.
     response = requests.get('https://api.tradier.com/v1/markets/options/expirations',
-        params={'symbol': ticker, 'includeAllRoots': 'true', 'strikes': 'true'},
-        headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-    )
+                            params={'symbol': ticker, 'includeAllRoots': 'true', 'strikes': 'true'},
+                            headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+                            )
     json_response = response.json()
-
 
     expirations = json_response['expirations']['expiration']
     expiration_dates = [expiration['date'] for expiration in expirations]
@@ -87,12 +88,10 @@ def get_options_data(ticker):
     putsChain = []
 
     for exp_date in expiration_dates:
-
-
         response = requests.get('https://api.tradier.com/v1/markets/options/chains',
-            params={'symbol': ticker, 'expiration': exp_date, 'greeks': 'true'},
-            headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-        )
+                                params={'symbol': ticker, 'expiration': exp_date, 'greeks': 'true'},
+                                headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
+                                )
         json_response = response.json()
         # print(response.status_code)
         # print("Option Chain: ",json_response)
@@ -101,26 +100,14 @@ def get_options_data(ticker):
         call_group = grouped.get_group('call').copy()
         put_group = grouped.get_group('put').copy()
 
-    # print(call_group.columns)
-    # print(put_group.columns)
+        # print(call_group.columns)
+        # print(put_group.columns)
         callsChain.append(call_group)
         putsChain.append(put_group)
 
     # combined_call_put_optionchain_df = pd.concat([call_group.set_index('strike'), put_group.set_index('strike')], axis=1, keys=['call', 'put'])
 
-
     ###CALLS OPS
-
-
-
-
-
-
-
-
-
-
-
 
     # calls_df["lastTrade"] = pd.to_datetime(calls_df["lastTradeDate"])
     # calls_df["lastTrade"] = calls_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
@@ -134,7 +121,6 @@ def get_options_data(ticker):
     calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     calls_df["impliedVolatility"] = calls_df['greeks'].str.get('mid_iv')
     # print("callsiv",calls_df['impliedVolatility'])
-
 
     calls_df.rename(
         columns={
@@ -254,7 +240,6 @@ def get_options_data(ticker):
         inplace=True,
     )
 
-
     # for option in json_response["options"]["option"]:
     #     print(option["symbol"], option["open_interest"])
 
@@ -283,21 +268,17 @@ def get_options_data(ticker):
     return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
 
 
-
 #
 def perform_operations(
-    ticker,
-    last_adj_close,
-    current_price,
-    price_change_percent,
-    StockLastTradeTime,
-    this_minute_ta_frame,
-    closest_exp_date,
+        ticker,
+        last_adj_close,
+        current_price,
+        price_change_percent,
+        StockLastTradeTime,
+        this_minute_ta_frame,
+        closest_exp_date,
 ):
-
     results = []
-
-
 
     data = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
 
@@ -351,7 +332,6 @@ def perform_operations(
         ITM_Avg_Net_IV = ITM_Call_IV - ITM_Put_IV
         Net_IV = Call_IV - Put_IV
 
-
         if all_CallsVol != 0 and not np.isnan(all_CallsVol):
             PC_Ratio_Vol = all_PutsVol / all_CallsVol
         else:
@@ -361,7 +341,6 @@ def perform_operations(
             ITM_PC_Ratio_Vol = ITM_PutsVol / ITM_CallsVol
         else:
             ITM_PC_Ratio_Vol = np.nan
-
 
         if all_CallsOI != 0 and not np.isnan(all_CallsOI):
             PC_Ratio_OI = all_PutsOI / all_CallsOI
@@ -405,8 +384,6 @@ def perform_operations(
             call_LASTPRICExOI_list.append((strikeprice, call_LASTPRICExOI))
             put_LASTPRICExOI_list.append((strikeprice, put_LASTPRICExOI))
 
-
-
         highest_premium_strike = max(strike_LASTPRICExOI_list, key=lambda x: x[1])[0]
         highest_premium_call = max(call_LASTPRICExOI_list, key=lambda x: x[1])[0]
         highest_premium_put = max(put_LASTPRICExOI_list, key=lambda x: x[1])[0]
@@ -417,7 +394,6 @@ def perform_operations(
 
         top_five_puts = group.loc[group["Put_OI"] > 0].sort_values(by="Put_OI", ascending=False).head(5)
         top_five_puts_dict = top_five_puts[["Strike", "Put_OI"]].set_index("Strike").to_dict()["Put_OI"]
-
 
         ### FINDING CLOSEST STRIKE TO LAC
         # target number from column A
@@ -621,9 +597,9 @@ def perform_operations(
             PCR_vol_OI_at_MP = round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3)
 
         if (
-            np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
-            or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
-            or PC_Ratio_OI_Closest_Strike_LAC == 0
+                np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
+                or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
+                or PC_Ratio_OI_Closest_Strike_LAC == 0
         ):
             PCR_vol_OI_at_LAC = np.nan
         else:
@@ -666,14 +642,14 @@ def perform_operations(
         ###TODO error handling for scalar divide of zero denominator
 
         Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
-            (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
+                (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
         )
         Bonsai2_Ratio = (
             # (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
             # and float("inf")
             # or
-            ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
-            * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
+                ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
+                * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
         )
 
         # Calculate the percentage change###TODO figure out how to look at bonsai %change, will need to transform to timesheet.
@@ -692,6 +668,7 @@ def perform_operations(
                 ###TODO change all price data to percentage change?
                 ###TODO change closest strike to average of closest above/closest below
                 "ExpDate": exp_date,
+                "LastTradeTime": StockLastTradeTime,
                 "Current Stock Price": float(current_price),
                 "Current SP % Change(LAC)": round(float(price_change_percent), 2),
                 # 'IV 30': iv30,
@@ -700,8 +677,8 @@ def perform_operations(
                 "Bonsai Ratio": round(Bonsai_Ratio, 5),
                 # 'Bonsai %change': bonsai_percent_change,
                 "Bonsai Ratio 2": round(Bonsai2_Ratio, 5),
-                "B1/B2":round((Bonsai_Ratio/Bonsai2_Ratio),4),
-                "B2/B1":round((Bonsai2_Ratio/Bonsai_Ratio),4),
+                "B1/B2": round((Bonsai_Ratio / Bonsai2_Ratio), 4),
+                "B2/B1": round((Bonsai2_Ratio / Bonsai_Ratio), 4),
                 # 'Bonsai_2 %change': bonsai2_percent_change,
                 # 'Maximum Pain % -LAC': round((last_adj_close-max_pain)/max_pain,2),
                 # 'Implied % Move -previousMP': 0,
@@ -767,20 +744,26 @@ def perform_operations(
                 "NIV 4Higher Strike": round(NIV_4HigherStrike, 3),
                 "NIV 4Lower Strike": round(NIV_4LowerStrike, 3),
                 ###Positive number means NIV highers are higher, and price will drop.
-                #TODO should do as percentage change from total niv numbers to see if its big diff.
+                # TODO should do as percentage change from total niv numbers to see if its big diff.
                 "NIV highers(-)lowers1-2": (
-                                                       NIV_1HigherStrike + NIV_2HigherStrike ) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike ),
+                                                   NIV_1HigherStrike + NIV_2HigherStrike) - (
+                                                   NIV_1LowerStrike + NIV_2LowerStrike),
 
-                "NIV highers(-)lowers1-4": (NIV_1HigherStrike+NIV_2HigherStrike+NIV_3HigherStrike+NIV_4HigherStrike)-(NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike+NIV_4LowerStrike),
+                "NIV highers(-)lowers1-4": (
+                                                       NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
+                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
                 "NIV 1-2 % from mean": (
-                        ((NIV_1HigherStrike + NIV_2HigherStrike) - (
-                                                   NIV_1LowerStrike + NIV_2LowerStrike))/((NIV_1HigherStrike+NIV_2HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike)/4))*100,
+                                               ((NIV_1HigherStrike + NIV_2HigherStrike) - (
+                                                       NIV_1LowerStrike + NIV_2LowerStrike)) / ((
+                                                                                                            NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)) * 100,
 
                 "NIV 1-4 % from mean": (
-                    (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)/((NIV_1HigherStrike+NIV_2HigherStrike+ NIV_3HigherStrike + NIV_4HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike + NIV_4LowerStrike)/8))*100,
-##TODO swap (/) with result = np.divide(x, y)
+                                               (
+                                                           NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
+                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike) / (
+                                                           (
+                                                                       NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike) / 8)) * 100,
+                ##TODO swap (/) with result = np.divide(x, y)
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
                 "Closest Strike to CP": closest_strike_currentprice,
@@ -811,297 +794,35 @@ def perform_operations(
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
 
+    output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")
+    output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
+    if output_file_dailyminutes.exists():
+        # Load the existing DataFrame from the file
+        dailyminutes = pd.read_csv(output_file_dailyminutes)
+
+        dailyminutes = pd.concat([dailyminutes,df.head(1)], ignore_index=True)
+        print(dailyminutes)
+        dailyminutes.to_csv(output_file_dailyminutes, index=False)
+
+    else:
+
+        # dailyminutes = df.head(1)
+        dailyminutes = pd.concat([df.head(1)], ignore_index=True)
+        # Append the new row to the existing DataFrame
+
+        # Save the updated DataFrame back to the file
+
+        dailyminutes.to_csv(output_file_dailyminutes, index=False)
     try:
-            df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
+        df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
     except FileExistsError:
-            df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
+        df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
     return (
-            f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
-            f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
-            closest_strike_currentprice,strikeindex_abovebelow,
-            closest_exp_date,
-            ticker,
-        )
-
-###TODO add a way to track what contracts are open, so to have diff sell conditions.
-# def actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow, closest_exp_date, ticker,current_price):
-#     import pandas as pd
-#     optionchain = pd.read_csv(optionchain)
-#     processeddata = pd.read_csv(processeddata)
-#     processeddata["B1% Change"] = ((processeddata["Bonsai Ratio"].astype(float) - processeddata["Bonsai Ratio"].astype(float).shift(1)) / processeddata["Bonsai Ratio"].astype(float).shift(1)) * 100
-#     processeddata["B2% Change"] = ((processeddata["Bonsai Ratio 2"].astype(float) - processeddata["Bonsai Ratio 2"].astype(float).shift(1)) / processeddata["Bonsai Ratio 2"].astype(float).shift(1)) * 100
-#     print(webullAPI.buy('SPY', '420.00', '1'))
-#     print(ticker, current_price)
-#     date_string = closest_exp_date
-#     date_object = datetime.strptime(date_string, "%Y-%m-%d")
-#     new_date_string = date_object.strftime("%y%m%d")
-#
-#     int_num = int(processeddata["Closest Strike to CP"][0] * 1000)  # Convert decimal to integer
-#     contract_strike = "{:08d}".format(int_num)
-#     call_contract = f"{ticker}{new_date_string}C{contract_strike}"
-#
-#     put_contract = f"{ticker}{new_date_string}P{contract_strike}"
-#     ###TODO for puts, use a higher strike, for calls use a lower strike.  ATM strikes get down to pennies EOD.
-#
-#
-# # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
-#     if processeddata["B1/B2"][0] > 1.15 and processeddata['RSI'][0]<30:
-#         x = (f'b1/b2>1.15 && RSI<25  {ticker}',
-#             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#             "1",
-#             call_contract, .5, 1.05
-#         )
-#
-#         TradierAPI.buy(x)
-#         webullAPI.buy(ticker, current_price, "10")
-#         if ticker=="SPY":
-#             send_notifications.send_tweet(ticker,current_price,'up',f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
-# ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-#     if processeddata["B1/B2"][0] < 0.25 and processeddata["RSI"][0]>70:
-#         x = (f'b1/b2<.01 && RSI > 75 {ticker}',
-#             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#             "1",
-#             put_contract, .5, 1.05
-#         )
-#
-#         TradierAPI.buy(x)
-#         if ticker == "SPY":
-#             send_notifications.send_tweet(ticker,current_price,'down',f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
-#     processeddata2 = processeddata[["Bonsai Ratio", "ITM PCR-Vol"]].head(1)
-#     processeddata2.to_csv("proceseddata2.csv")
-#     from Strategy_Testing import trained_models
-#     # predictor_values = {'Bonsai Ratio': .0007, 'ITM PCR-Vol': 20}
-#     # predictor_df = pd.DataFrame(predictor_values, index=[0])
-#     buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-#     if buy_signal1:
-#         x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
-#              f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#              "1",
-#              call_contract, .9, 1.1
-#              )
-#
-#         TradierAPI.buy(x)
-#
-#
-#         print('Buy signal!')
-#     else:
-#         print('No buy signal.')
-#
-#     sell_signal1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-#     if sell_signal1:
-#         x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY  {ticker}',
-#              f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}", "1",
-#              put_contract, .9, 1.1 )
-#         TradierAPI.buy(x)
-#         print('Sell signal!')
-#
-#     else:
-#         print('No sell signal.')
-#     processeddata.to_csv("testPreocssdfklsdfa.csv")
-#     try:
-#         buy_signal2 = trained_models.get_buy_signal_NEWONE_PRECISE(processeddata[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up2', 'ITM OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-4', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']].head(1))
-#     except ValueError:
-#         pass
-#     if buy_signal2:
-#         x = (f'get_buy_signal_NEWONE_PRECISE  {ticker}',
-#              f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#              "1",
-#              call_contract, .9, 1.1
-#              )
-#
-#         TradierAPI.buy(x)
-#
-#         print('Buy signal!')
-#     else:
-#         print('No buy signal.')
-#     try:
-#         sell_signal2 = trained_models.get_sell_signal_NEWONE_PRECISE(processeddata[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up3', 'ITM PCRoi Down4', 'ITM OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']
-# ].head(1))
-#     except ValueError:
-#         pass
-#     if sell_signal2:
-#         x = (f'get_sell_signal_NEWONE_PRECISE  {ticker}',
-#              f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#              "1",
-#              put_contract, .9, 1.1
-#              )
-#
-#         TradierAPI.buy(x)
-#         print('Sell signal!')
-#     else:
-#         print('No sell signal.')
-#         buy_signal3 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(processeddata[
-#                                                                        ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCR-Vol', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Down3', 'Net_IV', 'NIV 2Lower Strike', 'NIV 4Higher Strike', 'NIV highers(-)lowers1-4']
-#                                                                    ].head(1))
-#
-#         if buy_signal3:
-#             x = (f'get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP  {ticker}',
-#                  f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#                  "1",
-#                  call_contract, .9, 1.1
-#                  )
-#
-#             TradierAPI.buy(x)
-#             webullAPI.buy(ticker, current_price, "1")
-#
-#             print('Buy signal!')
-#         else:
-#             print('No buy signal.')
-#         sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(processeddata[
-#                                                                          ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2', 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down4', 'ITM OI', 'Total OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI']
-# ].head(1))
-#         if sell_signal3:
-#             x = (f'get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP  {ticker}',
-#                  f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#                  "1",
-#                  put_contract, .9, 1.1
-#                  )
-#
-#             TradierAPI.buy(x)
-#             print('Sell signal!')
-#         else:
-#             print('No sell signal.')
-#     # buy_signal2 = trained_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(processeddata[["B1/B2", "RSI"]].head(1))
-#     # if buy_signal2:
-#     #     x = (f'get_buy_signal_b1b2_RSI_1hr_thresh7  {ticker}',
-#     #          f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#     #          "1",
-#     #          call_contract, .8, 1.25
-#     #          )
-#     #
-#     #     TradierAPI.buy(x)
-#     #     print('Buy signal!')
-#     # else:
-#     #     print('No buy signal.')
-#     # sell_signal2 = trained_models.get_sell_signal_B1B2_RSI_1hr_threshDown7(processeddata[["B1/B2", "RSI"]].head(1))
-#     # if sell_signal2:
-#     #     x = (f'get_sell_signal_b1b2_RSI_1hr_thresh7 {ticker}',
-#     #          f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#     #          "1",
-#     #          put_contract, .8, 1.25
-#     #          )
-#     #
-#     #     TradierAPI.buy(x)
-#     #     print('Sell signal!')
-#     # else:
-#     #     print('No sell signal.')
-#     # buy_signal3 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-#     #
-#     # if buy_signal3:
-#     #     x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA  {ticker}',
-#     #          f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#     #          "1",
-#     #          call_contract, .8, 1.2
-#     #          )
-#     #
-#     #     TradierAPI.buy(x)
-#     #     print('Buy signal!')
-#     # else:
-#     #     print('No buy signal.')
-#     # sell_signal3 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(processeddata[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-#     # if sell_signal3:
-#     #     x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA {ticker}',
-#     #          f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#     #          "1",
-#     #          put_contract, .8, 1.2
-#     #          )
-#     #
-#     #     TradierAPI.buy(x)
-#     #     print('Sell signal!')
-#     # else:
-#     #     print('No sell signal.')
-#     # if processeddata["B1/B2"][0] > 1.15 :
-#     #     x = (f'b1/b2>1.15  {ticker}',
-#     #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#     #         "10",
-#     #         call_contract, .6, 1.6
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#     #
-#     # if processeddata["B1/B2"][0] < 0.01:
-#     #     x = (f'b1/b2<.01  {ticker}',
-#     #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#     #         "10",
-#     #         put_contract, .6, 1.6
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#
-#     # if processeddata["NIV 1-2 % from mean"][0] < -100 and processeddata["NIV 1-4 % from mean"][0] <-200:
-#     #     x = ("NIV 1-2 % from mean< -100 & NIV 1-4 % from mean<-200",
-#     #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]  }",
-#     #         "8",
-#     #         put_contract, .6,1.6
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#     # if processeddata["NIV 1-2 % from mean"][0] > 100 and processeddata["NIV 1-4 % from mean"][0] > 200:
-#     #     x = ('NIV 1-2 % from mean> 100 & NIV 1-4 % from mean > 200',
-#     #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#     #         "7",
-#     #         call_contract, .6, 1.6
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#     # if processeddata["NIV highers(-)lowers1-4"][0] < -20:
-#     #     x = ("NIV highers(-)lowers1-4 < -20",
-#     #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]  }",
-#     #         "6",
-#     #         call_contract, .6,1.6
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#     # if processeddata["NIV highers(-)lowers1-4"][0] > 20:
-#     #     x = ('NIV highers(-)lowers1-4> 20'
-#     #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-#     #         "5",
-#     #         put_contract, .6, 1.6
-#     #     )
-#
-#         # TradierAPI.buy(x)
-#
-#
-#     # if processeddata["ITM PCR-Vol"][0] > 1.3 and processeddata["RSI"][0] > 70:
-#     #     x = (
-#     #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
-#     #         "99",
-#     #         put_contract,.9,1.05
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#
-#     #     ###MADE 100% on this near close 5/12
-#     # if processeddata["Bonsai Ratio"][0] < .8 and processeddata["ITM PCR-Vol"][0] < 0.8 and processeddata["RSI"][0] < 30:
-#     #     x = ('Bonsai Ratio < .8 and ITM PCR-Vol < 0.8',
-#     #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#     #         "3",
-#     #         call_contract,.8,1.2
-#     #     )
-#     #     print(x)
-#     #     TradierAPI.buy(x)
-#     #
-#     #
-#     # if processeddata["Bonsai Ratio"][0] > 1.5  and processeddata["ITM PCR-Vol"][0] > 1.2 and processeddata["RSI"][0] > 70:
-#     #     x = ('Bonsai Ratio > 1.5  andITM PCR-Vol > 1.2',
-#     #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
-#     #         "2",
-#     #         put_contract,.9,1.05
-#     #     )
-#     #
-#     #     TradierAPI.buy(x)
-#     # if (
-#     #     processeddata["Bonsai Ratio"][0] < 0.7
-#     #     and processeddata["Net_IV"][0] < -50
-#     #     and processeddata["Net ITM IV"][0] > -41
-#     # ):
-#     #     x = ('Bonsai Ratio < 0.7 and Net_IV < -50 and Net ITM IV> -41',
-#     #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-#     #         "1",
-#     #         call_contract,.9,1.05
-#     #     )
-#
-#         # TradierAPI.buy(x)
-
-
+        f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
+        f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
+        closest_strike_currentprice, strikeindex_abovebelow,
+        closest_exp_date,
+        ticker,
+    )

@@ -61,17 +61,16 @@ def send_tweet(ticker,current_price,upordown,message):
 
     celery_client.send_to_celery(ticker, current_price, tweet_id, upordown)
 
-def email_me_string(order,statuscode,response):
-    note, price, quantity, contract, stopcoefficient, sellcoefficient = order
+def email_me_string(strat,callorput,ticker):
     # Email configuration
-    message = note
+    message = strat
     smtp_host = "bonsaiheart.com"
     smtp_port = 587
     smtp_user = "bot@bonsaiheart.com"
     smtp_password = "P3ruv!4nT0rch"
     from_email = "bot@bonsaiheart.com"
     to_email = "bot@bonsaiheart.com"
-    subject =f"{str(contract)} Price:{str(price)} {str(response)}"
+    subject =f"{str(callorput)} Ticker:{str(ticker)}"
 
     # Create the email message
     msg = MIMEMultipart()

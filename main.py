@@ -75,12 +75,8 @@ for i in range(max_retries):
                     closest_exp_date,
                 )
                 print(current_price)
-                if ticker == "SPY":
-                    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice, strikeindex_abovebelow,closest_exp_date, ticker,current_price)
-                elif ticker == "TSLA":
-                    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
-                else:
-                    trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
+
+                trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
                 # email_me.email_me(processeddata)
             break
         else:
@@ -95,6 +91,8 @@ for i in range(max_retries):
             f.write(
                 f"Ran at {datetime}. Occurred on attempt #{i +1}: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
             )
+    finally:
+        pass
 
 ib.disconnect()
 
