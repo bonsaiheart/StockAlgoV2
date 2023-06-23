@@ -5,6 +5,7 @@ import traceback
 import trade_algos
 import check_Market_Conditions
 import tradierAPI_marketdata
+from IB import ibAPI
 from ib_insync import IB
 ib = IB()
 
@@ -48,6 +49,7 @@ success = False
 for i in range(max_retries):
     try:
         if check_Market_Conditions.is_market_open_today() == True:
+            ibAPI.ib_connect()
             for ticker in tickerlist:
                 ticker=ticker.upper()
                 print(ticker)
@@ -61,7 +63,7 @@ for i in range(max_retries):
                 ) = tradierAPI_marketdata.get_options_data(ticker)
                 (
                     optionchain,
-                    processeddata,
+                    processeddata,processeddataWithALGOresults,
                     closest_strike_currentprice,strikeindex_abovebelow,
                     closest_exp_date,
                     ticker,
@@ -75,9 +77,10 @@ for i in range(max_retries):
                     closest_exp_date,
                 )
                 print(current_price)
-
-                trade_algos.actions(optionchain, processeddata, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
+                if ticker =="SPY":
+                    trade_algos.actions(optionchain, processeddata,processeddataWithALGOresults, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
                 # email_me.email_me(processeddata)
+            ibAPI.ib_disconnect()
             break
         else:
             with open(log_path, "a") as f:
@@ -85,6 +88,7 @@ for i in range(max_retries):
             break
 #
     except Exception as e:
+        ibAPI.ib_disconnect()
         with open(log_path, "a") as f:
             print(traceback.format_exc())
             print(f"Error occurred: {traceback.format_exc()}.  Retrying in {retry_delay} seconds...")
@@ -92,7 +96,7 @@ for i in range(max_retries):
                 f"Ran at {datetime}. Occurred on attempt #{i +1}: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
             )
     finally:
+        ibAPI.ib_disconnect()
         pass
 
-ib.disconnect()
 

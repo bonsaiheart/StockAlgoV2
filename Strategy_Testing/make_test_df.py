@@ -63,13 +63,16 @@ def get_1st_frames_make_single_multiday_df(ticker):
     df = pd.concat(list_of_df, ignore_index=True)
 
     print(df)
-    output_dir = Path(f"corr/{ticker}/")
+    output_dir = Path(f"historical_minute_corr/{ticker}/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    output_dir2 = Path(f"dailyDF/{ticker}")
+    output_dir2 = Path(f"historical_minute_DF/{ticker}")
     output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
-    df.drop("Closest Strike Above/Below(below to above,4 each) list",axis=1,inplace=True)
-    df.corr().to_csv(f"corr/{ticker}.csv")
-    df.to_csv(f"dailyDF/{ticker}.csv")
+    try:
+        df.drop("Closest Strike Above/Below(below to above,4 each) list",axis=1,inplace=True)
+    except Exception as e:
+        pass
+    df.corr().to_csv(f"historical_minute_corr/{ticker}.csv")
+    df.to_csv(f"historical_minute_DF/{ticker}.csv")
     return (ticker, df)
 def get_1st_frames_to_make_daily_df(ticker):
     expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefix
@@ -134,7 +137,40 @@ def get_1st_frames_to_make_daily_df(ticker):
         df.corr().to_csv(f"corr/{ticker}/{directory}.csv")
         df.to_csv(f"dailyDF/{ticker}/{directory}.csv")
         return (ticker, df)
+def multiday_minute_series_prep_for_backtest(ticker,df):
+    for line in df:
+        df["B1% Change"] = ((df["Bonsai Ratio"] - df["Bonsai Ratio"].shift(1)) / df["Bonsai Ratio"].shift(1)) * 100
+        df["B2% Change"] = (
+            (df["Bonsai Ratio 2"] - df["Bonsai Ratio 2"].shift(1)) / df["Bonsai Ratio 2"].shift(1)
+        ) * 100
+        # ###     # add 1 hour later price data to check for corr.
+        df["B1/B2"] = df["Bonsai Ratio"] / df["Bonsai Ratio 2"]
+        df["6 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-360)
+        df["5 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-300)
+        df["4 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-240)
+        df["3 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-180)
+        df["2 hour later change %"] = df["Current SP % Change" "(LAC)"] - df["Current SP % Change(LAC)"].shift(-120)
+        df["1 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-60)
+        df["45 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-45)
+        df["30 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-30)
+        df["20 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-20)
+        df["15 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-15)
+        df["10 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-10)
+        df["5 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-5)
 
+    cols = list(df.columns)
+    cols.insert(1, cols.pop(cols.index("time")))
+    cols.insert(1, cols.pop(cols.index("date")))
+    df = df[cols]
+    # df = df.loc[:, cols]
+    print(df.columns)
+    output_dir = Path(f"historical_multiday_minute_corr/{ticker}/")
+    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir2 = Path(f"historical_multiday_minute_DF/{ticker}")
+    output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
+
+    df.corr().to_csv(f"historical_multiday_minute_corr/{YYMMDD}_{ticker}.csv")
+    df.to_csv(f"historical_multiday_minute_DF/{ticker}/{YYMMDD}_{ticker}.csv")
 def minute_series_prep_for_backtest(ticker,df):
     for line in df:
         df["B1% Change"] = ((df["Bonsai Ratio"] - df["Bonsai Ratio"].shift(1)) / df["Bonsai Ratio"].shift(1)) * 100
@@ -199,6 +235,7 @@ def daily_series_prep_for_backtest(ticker,df):
     cols.insert(1, cols.pop(cols.index("date")))
     df = df[cols]
     # df = df.loc[:, cols]
+
     print(df.columns)
     output_dir = Path(f"historical_daily_corr/{ticker}/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -214,5 +251,8 @@ def daily_series_prep_for_backtest(ticker,df):
     # #combine bonsai # and itmpcrv,  then bonsai and niv?  hwat else
 # df = pd.read_csv(r"C:\Users\natha\PycharmProjects\StockAlgoV2\Historical_Data_Scraper\data\Historical_Processed_ChainData\SPY.csv")
 # daily_series_prep_for_backtest("SPY",df)
-ticker,df = get_1st_frames_make_single_multiday_df("spy")
-minute_series_prep_for_backtest(ticker,df)
+tickers=['spy']
+for x in tickers:
+    ticker,df = get_1st_frames_make_single_multiday_df(x)
+    print(ticker)
+    multiday_minute_series_prep_for_backtest(ticker,df)

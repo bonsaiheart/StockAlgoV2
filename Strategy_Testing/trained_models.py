@@ -5,6 +5,87 @@ import joblib
 # percent_up=.1
 # percent_down=-.1
 
+
+def Trythisone2_4Buy(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/trythismodelfor2_4hours/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def Trythisone2_4Sell(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/trythismodelfor2_4hours/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def A1_Buy(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A1_3_5hour_b1_b2_pcroiup1_itmpcroiup1_nivlac/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+
+def A1_Sell(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A1_3_5hour_b1_b2_pcroiup1_itmpcroiup1_nivlac/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+###3-5 hours, was good on spy
+def A2_Buy(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/SPY3_5_RSI14_Awesome5_34etc/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+###3-5 hours, was good on spy
+def A2_Sell(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/SPY3_5_RSI14_Awesome5_34etc/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def get_buy_signal_NewPerhapsExcellentTargetDown5to15minSPY(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/NewGreatPrecNumbersBonsai1NETitmIV/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+
+def get_sell_signal_NewPerhapsExcellentTargetDown5to15minSPY(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/NewPerhapsExcellentTargetDown5to15minSPY/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def get_buy_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/NewPerhapsExcellentTargetDown5to15minSPY/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def get_sell_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/NewGreatPrecNumbersBonsai1NETitmIV/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
 def get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(new_data_df):
     model_filename = 'Strategy_Testing/Trained_Models/B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA/target_up.joblib'
     loaded_model = joblib.load(model_filename)

@@ -39,7 +39,11 @@ def get_options_data(ticker):
     df["AwesomeOsc"] = ta.momentum.awesome_oscillator(
         high=df["high"], low=df["low"], window1=1, window2=5, fillna=False
     )
+    df["AwesomeOsc5_34"] = ta.momentum.awesome_oscillator(
+        high=df["high"], low=df["low"], window1=5, window2=34, fillna=False
+    )
     df["RSI"] = ta.momentum.rsi(close=close, window=5, fillna=False)
+    df["RSI2"] = ta.momentum.rsi(close=close, window=2, fillna=False)
     df["RSI14"] = ta.momentum.rsi(close=close, window=14, fillna=False)
     groups = df.groupby(df.index.date)
     group_dates = list(groups.groups.keys())
@@ -787,25 +791,30 @@ def perform_operations(
     df = pd.DataFrame(results)
     # print("hello",type(df["Closest Strike Above/Below(below to above,4 each) list"][0]))
     df["RSI"] = this_minute_ta_frame["RSI"]
+    df["RSI2"] = this_minute_ta_frame["RSI2"]
+    df["RSI14"] = this_minute_ta_frame["RSI14"]
     df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
-    # this_minute_ta_frame['exp_date'] = '230427.0'
+
+    df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]# this_minute_ta_frame['exp_date'] = '230427.0'
     # df = pd.concat([this_minute_ta_frame,df])
     # df['']
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
-
+    output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")
+    output_file_dailyminutes_w_algo_results =Path(f"data/DailyMinutes_w_algo_results/{ticker}/{ticker}_{YYMMDD}.csv")
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
     if output_file_dailyminutes.exists():
         # Load the existing DataFrame from the file
         dailyminutes = pd.read_csv(output_file_dailyminutes)
-
+        dailyminutes= dailyminutes.dropna().drop_duplicates(subset='LastTradeTime')
         dailyminutes = pd.concat([dailyminutes,df.head(1)], ignore_index=True)
         print(dailyminutes)
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
-
+        dailyminutes.to_csv(output_file_dailyminutes_w_algo_results, index=False)
     else:
 
         # dailyminutes = df.head(1)
@@ -815,13 +824,16 @@ def perform_operations(
         # Save the updated DataFrame back to the file
 
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
+        dailyminutes.to_csv(output_dir_dailyminutes_w_algo_results, index=False)
+
     try:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
+
     except FileExistsError:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
-        f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
+        f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv", output_file_dailyminutes_w_algo_results,
         closest_strike_currentprice, strikeindex_abovebelow,
         closest_exp_date,
         ticker,

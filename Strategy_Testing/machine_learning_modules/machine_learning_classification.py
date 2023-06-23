@@ -8,30 +8,42 @@ from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSp
 import os
 import numpy as np
 import sys
+from skopt import BayesSearchCV, Optimizer
 
 # Replace positive infinity with a large finite value
 
-processed_dir = "../dailyDF"
-ticker = "SPY"
-print(ticker)
-list_of_df = []
-ticker_dir = os.path.join(processed_dir, ticker)
+# processed_dir = "../dailyDF"
+# ticker = "SPY"
+# print(ticker)
+# list_of_df = []
+# ticker_dir = os.path.join(processed_dir, ticker)
 
-DF_filename = ("../historical_minute_DF/SPY/230603_SPY.csv")
+
+DF_filename = "../historical_multiday_minute_DF/SPY/230616_SPY.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
-Chosen_Timeframe = "45 min later change %"
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','PCR-Vol','PCRv Up1','PCRv Up2','PCRv Up3','PCRv Up4','PCRv Down1','PCRv Down2','PCRv Down3','PCRv Down4','PCRoi Up1','PCRoi Up2','PCRoi Up3','PCRoi Up4','PCRoi Down1','PCRoi Down2','PCRoi Down3','PCRoi Down4','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up1','ITM PCRv Up2','ITM PCRv Up3','ITM PCRv Up4','ITM PCRv Down1','ITM PCRv Down2','ITM PCRv Down3','ITM PCRv Down4','ITM PCRoi Up1','ITM PCRoi Up2','ITM PCRoi Up3','ITM PCRoi Up4','ITM PCRoi Down1','ITM PCRoi Down2','ITM PCRoi Down3','ITM PCRoi Down4','ITM OI','Total OI','ITM Contracts %','Net_IV','Net ITM IV','NIV 1Higher Strike','NIV 1Lower Strike','NIV 2Higher Strike','NIV 2Lower Strike','NIV 3Higher Strike','NIV 3Lower Strike','NIV 4Higher Strike','NIV 4Lower Strike','NIV highers(-)lowers1-2','NIV highers(-)lowers1-4','NIV 1-2 % from mean','NIV 1-4 % from mean','RSI','AwesomeOsc']
+Chosen_Timeframe = "15 min later change %"
+Chosen_Timeframe2 = "10 min later change %"
+Chosen_Timeframe3 = "5 min later change %"
+Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 # Chosen_Predictor = ['Bonsai Ratio']
-threshold_up = 0.5
+# Chosen_Predictor = ['Bonsai Ratio','Net ITM IV','RSI']
+
+num_features_up = 1
+num_features_down = 1
+threshold_up = 0.6
 threshold_down = 0.6
-percent_up = 0.15
-percent_down = -0.15
+percent_up = 0.1
+percent_down = -0.1
 # num_best_features = 1
 ml_dataframe.dropna(subset=[Chosen_Timeframe] + Chosen_Predictor, inplace=True)
 
 num_rows = len(ml_dataframe[Chosen_Timeframe].dropna())
 ml_dataframe.dropna(thresh=num_rows, axis=1, inplace=True)
+ml_dataframe.replace([np.inf], sys.float_info.max, inplace=True)
+ml_dataframe.replace([-np.inf], -sys.float_info.max, inplace=True)
+# ml_dataframe[X == np.inf] = sys.float_info.max
+ml_dataframe = ml_dataframe.astype('float64')
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 
@@ -42,75 +54,131 @@ Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 Chosen_Timeframe_formatted = Chosen_Timeframe.replace(' ', '_').strip('%').replace(' ', '_').replace('%', '')
 
 
-ml_dataframe["Target_Up"] = (ml_dataframe[Chosen_Timeframe] > percent_up).astype(int)
-ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < percent_down).astype(int)
+ml_dataframe["Target_Up"] = ((ml_dataframe[Chosen_Timeframe] > percent_up) | (ml_dataframe[Chosen_Timeframe2] > percent_up)).astype(int)
+ml_dataframe["Target_Down"] = ((ml_dataframe[Chosen_Timeframe] < percent_down) | (ml_dataframe[Chosen_Timeframe2] < percent_down)).astype(int)
 
 
-model = RandomForestClassifier(random_state=1)
-
+model = RandomForestClassifier(random_state=None)
+###25/50      ###2/20   ###100/40
 parameters = {
-    'n_estimators': [250],
-    'min_samples_split': [60,80],
-    'max_depth': [None],
-}
+    'max_depth': (5,10,20, 40, 45),
+    'min_samples_split': (3,5,10,20,25,40),
 
+    'n_estimators': (15,20,30,40,80
+                     ),
+}
 X = ml_dataframe[Chosen_Predictor]
+X = X.mask(np.isinf(X), 100000)
+X = X.mask(np.isneginf(X), -100000)
+
+X = X.astype('float64')
 # Reset the index of your DataFrame
 print(X.head())
 X.reset_index(drop=True, inplace=True)
-
 # Replace positive infinity with a large finite value
-X.loc[np.isinf(X).any(axis=1)] = sys.float_info.max
 
-
-# Replace negative infinity with a small finite value
-X.loc[np.isneginf(X).any(axis=1)] = -sys.float_info.max
 y_up = ml_dataframe["Target_Up"]
 y_down = ml_dataframe["Target_Down"]
-X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.1,    random_state=1)
+X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.2,    random_state=None)
+
+
 # Feature selection for Target_Up
-selector_up = RFECV(estimator=model, scoring='precision', step=1 )
-X_train_selected_up = selector_up.fit_transform(X_train, y_up_train)
-X_test_selected_up = selector_up.transform(X_test)
-
-
+feature_selector_up = RFECV(estimator=model, scoring='precision', step=1,min_features_to_select=num_features_up,)
+X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
+X_test_selected_up = feature_selector_up.transform(X_test)
 
 # Feature selection for Target_Down
-selector_down = RFECV(estimator=model, scoring='precision', step=1 )
-X_train_selected_down = selector_down.fit_transform(X_train, y_down_train)
-X_test_selected_down = selector_down.transform(X_test)
-
-...
+feature_selector_down = RFECV(estimator=model, scoring='precision', step=1,min_features_to_select=num_features_down)
+X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
+X_test_selected_down = feature_selector_down.transform(X_test)
 
 tscv = TimeSeriesSplit(n_splits=3)
+#
+# bayes_search_up = BayesSearchCV(
+#     estimator=model,
+#     search_spaces=parameters,
+#     scoring='precision',
+#     cv=tscv,
+#     n_iter=40,# Number of iterations for the Bayesian optimization
+#     # n_points=10,
+#     random_state=None
+# )
+# bayes_search_down = BayesSearchCV(
+#     estimator=model,
+#     search_spaces=parameters,
+#     scoring='precision',
+#     cv=tscv,
+#     n_iter=40,
+#     # n_points=10,
+# # Number of iterations for the Bayesian optimization
+#     random_state=None
+# )
+selected_features_up = feature_selector_up.get_support(indices=True)
+feature_names_up = X_train.columns[selected_features_up]
+
 grid_search_up = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
 print("Performing GridSearchCV UP...")
 grid_search_up.fit(X_train_selected_up, y_up_train)
-best_features_up = [Chosen_Predictor[i] for i in selector_up.get_support(indices=True)]
+print("feature selector up",feature_selector_up.get_support(indices=True))
+best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
+print("Selected Features Up:", feature_names_up)
 print("Best features for Target_Up:", best_features_up)
 
 print("Best parameters for Target_Up:", grid_search_up.best_params_)
 print("Best score for Target_Up:", grid_search_up.best_score_)
 best_param_up = f"Best parameters for Target_Up: {grid_search_up.best_params_}. Best precision: {grid_search_up.best_score_}"
 model_up = grid_search_up.best_estimator_
-importance_tuples = [(feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)]
-importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 
-for feature, importance in importance_tuples:
-    print(f"{feature}: {importance}")
+# X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up > 0)] = sys.float_info.max
+# X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up < 0)] = -sys.float_info.max
+
+
+
+
+
+
+
+# bayes_search_up.fit(X_train_selected_up, y_up_train)
+# best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
+# print("Best features for Target_Up:", best_features_up)
+# print("Best parameters for Target_Up:", bayes_search_up.best_params_)
+# print("Best score for Target_Up:", bayes_search_up.best_score_)
+# best_param_up = f"Best parameters for Target_Up: {bayes_search_up.best_params_}. Best precision: {bayes_search_up.best_score_}"
+# model_up = bayes_search_up.best_estimator_
+# importance_tuples = [(feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)]
+# importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
+# print(importance_tuples)
+# for feature, importance in importance_tuples:
+#     print(f"{feature}: {importance}")
 
 ...
 
 grid_search_down = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
 print("Performing GridSearchCV DOWN...")
 grid_search_down.fit(X_train_selected_down, y_down_train)
-best_features_down = [Chosen_Predictor[i] for i in selector_down.get_support(indices=True)]
+best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
 print("Best features for Target_Down:", best_features_down)
 
 print("Best parameters for Target_Down:", grid_search_down.best_params_)
 print("Best score for Target_Down:", grid_search_down.best_score_)
 best_param_down = f"Best parameters for Target_Down: {grid_search_down.best_params_}. Best precision: {grid_search_down.best_score_}"
 model_down = grid_search_down.best_estimator_
+
+selected_features_down = feature_selector_down.get_support(indices=True)
+feature_names_down = X_train.columns[selected_features_down]
+
+
+
+grid_search_down.fit(X_train_selected_down, y_down_train)
+best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
+print("Selected Features Down:", feature_names_down)
+print("Best features for Target_Down:", best_features_down)
+
+print("Best parameters for Target_Down:", grid_search_down.best_params_)
+print("Best score for Target_Down:", grid_search_down.best_score_)
+best_param_down = f"Best parameters for Target_Down: {grid_search_down.best_params_}. Best precision: {grid_search_down.best_score_}"
+model_down = grid_search_down.best_estimator_
+
 importance_tuples = [(feature, importance) for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 
@@ -118,16 +186,19 @@ for feature, importance in importance_tuples:
     print(f"{feature}: {importance}")
 
 ...
-
+X_test_selected_up = X_test_selected_up.astype('float64')
+X_test_selected_down = X_test_selected_down.astype('float64')
 # Use the selected features for prediction
+
+
 predicted_probabilities_up = model_up.predict_proba(X_test_selected_up)
 predicted_probabilities_down = model_down.predict_proba(X_test_selected_down)
 ...
 
 
 ###predict
-predicted_up = (predicted_probabilities_up[:, 1] > threshold_up).astype(int)
-predicted_down = (predicted_probabilities_down[:, 1] > threshold_down).astype(int)
+predicted_up = (predicted_probabilities_up[:, 1] > threshold_up).astype('float64')
+predicted_down = (predicted_probabilities_down[:, 1] > threshold_down).astype('float64')
 
 precision_up = precision_score(y_up_test, predicted_up)
 accuracy_up = accuracy_score(y_up_test, predicted_up)
@@ -177,10 +248,10 @@ def save_file_with_shorter_name(data, file_path):
             print("Error occurred while saving the file:", e)
 
 
-input_val = input("Would you like to save these models? y/n: ").upper()
+#######Round 2############  FIGHT!
 
 # Load the new data
-new_data_filename = "../historical_minute_DF/TSLA/230604_TSLA.csv"
+new_data_filename = ("../historical_multiday_minute_DF/TSLA/230616_TSLA.csv")
 new_data = pd.read_csv(new_data_filename)
 
 # Preprocess the new data (apply the same preprocessing steps as on training data)
@@ -192,8 +263,8 @@ new_data.dropna(thresh=num_rows, axis=1, inplace=True)
 # Select the relevant features for the new datan
 X_new = new_data[Chosen_Predictor]
 
-X_new_selected_up = selector_up.transform(X_new)
-X_new_selected_down = selector_down.transform(X_new)
+X_new_selected_up = feature_selector_up.transform(X_new)
+X_new_selected_down = feature_selector_down.transform(X_new)
 
 # Make predictions on the new data
 predicted_probabilities_up_new = model_up.predict_proba(X_new_selected_up)
@@ -231,6 +302,8 @@ if "Target_Up" in new_data.columns and "Target_Down" in new_data.columns:
     print("Accuracy:", accuracy_down_new)
     print("Recall:", recall_down_new)
     print("F1-Score:", f1_down_new)
+
+input_val = input("Would you like to save these models? y/n: ").upper()
 if input_val == "Y":
     model_summary = input("Save this set of models as: ")
     model_directory = os.path.join("../Trained_Models",
@@ -248,11 +321,11 @@ if input_val == "Y":
 
 
     with open(
-            f"Trained_Models/{model_summary}/info.txt","w") as info_txt:
+            f"../Trained_Models/{model_summary}/info.txt","w") as info_txt:
         info_txt.write("This file contains information about the model.\n\n")
         info_txt.write(
             f"File analyzed: {DF_filename}\nLookahead Target: {Chosen_Timeframe}\n\nBest parameters for Target_Up: {grid_search_up.best_params_}. \nBest precision: {grid_search_up.best_score_}\nBest parameters for Target_Down: {grid_search_down.best_params_}. \nBest precision: {grid_search_down.best_score_}\n\nMetrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\nCross-validation scores for Target_Up: {cv_scores_up}\nMean cross-validation score for Target_Up: {cv_scores_up.mean()}\n\nMetrics for Target_Down:\nPrecision: {precision_down}\nAccuracy: {accuracy_down}\nRecall: {recall_down}\nF1-Score: {f1_down}\nCross-validation scores for Target_Down: {cv_scores_down}\nMean cross-validation score for Target_Down: {cv_scores_down.mean()}\n\n")
         info_txt.write(
-            f"Predictors: {Chosen_Predictor}\n\nBest_Predictors_Selected Up: {best_features_up}\nBest_Predictors_Selected Down: {best_features_down}\n\nThreshold Up(sensitivity): {threshold_up}\nThreshold Down(sensitivity): {threshold_down}\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n")
+            f"Predictors: {Chosen_Predictor}\n\nSelected_Features Up:{selected_features_up}.\nSelected_Features Down:{selected_features_down}.\n\nBest_Predictors_Selected Up: {best_features_up}\nBest_Predictors_Selected Down: {best_features_down}\n\nThreshold Up(sensitivity): {threshold_up}\nThreshold Down(sensitivity): {threshold_down}\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n")
 else:
     exit()
