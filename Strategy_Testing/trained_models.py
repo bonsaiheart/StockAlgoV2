@@ -4,8 +4,51 @@ import joblib
 #
 # percent_up=.1
 # percent_down=-.1
+def Buy_A4(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A4_20min_02percent/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
 
+    predictions = loaded_model.predict(new_data_df)
 
+    return predictions
+
+def Sell_A4(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A4_20min_02percent/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def Buy_A3(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A3_Looks_Best_45min/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_A3(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A3_Looks_Best_45min/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def Buy_30min_9sallaround(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/30MIN9sallAround/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_30min_9sallaround(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/30MIN9sallAround/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
 def Trythisone2_4Buy(new_data_df):
     model_filename = 'Strategy_Testing/Trained_Models/trythismodelfor2_4hours/target_up.joblib'
     loaded_model = joblib.load(model_filename)

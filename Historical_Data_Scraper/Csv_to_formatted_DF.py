@@ -14,6 +14,7 @@ data = pd.read_csv(f"spy_historical_chains.csv", chunksize=batch_size)
 combined_chunks = []
 ticker = "SPY"
 yf_ticker_obj = yf.Ticker(ticker)
+
 #
 # # Iterate over the data in chunks
 # for chunk in data:
@@ -113,7 +114,7 @@ yf_ticker_obj = yf.Ticker(ticker)
 # end_date = combined['Date'].max()
 # price_data = yf_ticker_obj.history(start=start_date, end=end_date)
 #
-#
+#TODO add OPEN HIGH LOW
 # # Map price data to the corresponding rows in the combined DataFrame
 # price_data['Date'] = pd.to_datetime(price_data.index).strftime("%Y-%m-%d")
 #

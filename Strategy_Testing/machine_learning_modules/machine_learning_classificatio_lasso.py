@@ -29,18 +29,18 @@ ml_dataframe = pd.read_csv(DF_filename)
 Chosen_Predictor = [ 'Bonsai Ratio','Bonsai Ratio 2', 'B1/B2', 'PCRv Up4',
        'PCRv Down4',   'ITM PCRv Up4',
         'ITM PCRv Down4',
-        'ITM PCRoi Up4', 'ITM PCRoi Down4', 'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34',
+        'ITM PCRoi Up4', 'ITM PCRoi Down4'
       ]
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'Net IV LAC']
 
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV LAC']
 # print(ml_dataframe.columns)
-cells_forward_to_check = 30
-num_features_up = 2
-num_features_down = 2
-threshold_up = 0.5
-threshold_down = 0.5
+cells_forward_to_check = 20
+num_features_up = 4
+num_features_down = 4
+threshold_up = 0.7
+threshold_down = 0.7
 percent_up = 0.2
 percent_down = -0.2
 
@@ -64,8 +64,8 @@ Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 ml_dataframe["Target_Up"] = 0
 for i in range(1, cells_forward_to_check+1):
-    ml_dataframe["Target_Down"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) < percent_down)
-    ml_dataframe["Target_Up"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) > percent_up)
+    ml_dataframe["Target_Down"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) < percent_down).astype(int)
+    ml_dataframe["Target_Up"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) > percent_up).astype(int)
 # ml_dataframe["Target_Down"] = ml_dataframe["Target_Down"].astype(int)
 # ml_dataframe["Target_Up"] = ((ml_dataframe[Chosen_Timeframe] > percent_up) | (ml_dataframe[Chosen_Timeframe2] > percent_up)| (ml_dataframe[Chosen_Timeframe3] > percent_up)).astype(int)
 # ml_dataframe["Target_Down"] = ((ml_dataframe[Chosen_Timeframe] < percent_down) | (ml_dataframe[Chosen_Timeframe2] < percent_down)| (ml_dataframe[Chosen_Timeframe3] < percent_down)).astype(int)
@@ -74,10 +74,10 @@ ml_dataframe.to_csv("Current_ML_DF_FOR_TRAINING.csv")
 model = RandomForestClassifier(random_state=None)
 ###25/50      ###2/20   ###100/40
 parameters = {
-    'max_depth': (  50,100),
-    'min_samples_split': (20,25,40,60),
+    'max_depth': (  2,3,4,5),
+    'min_samples_split': (2,3,4,5),
 
-    'n_estimators': (80,100,120,160
+    'n_estimators': (10,20,30,40,50,60,70,80,100
                      ),
 }
 
@@ -110,7 +110,7 @@ X_test_selected_down = feature_selector_down.transform(X_test)
 
 ...
 
-tscv = TimeSeriesSplit(n_splits=3)
+tscv = TimeSeriesSplit(n_splits=5)
 
 bayes_search_up = BayesSearchCV(
     estimator=model,
@@ -289,8 +289,8 @@ predicted_down_new = (predicted_probabilities_down_new[:, 1] > threshold_down).a
 new_data["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 new_data["Target_Up"] = 0
 for i in range(1, cells_forward_to_check+1):
-    new_data["Target_Down"] |= (new_data["Current SP % Change(LAC)"].shift(-i) < percent_down)
-    new_data["Target_Up"] |= (new_data["Current SP % Change(LAC)"].shift(-i) > percent_up)
+    new_data["Target_Down"] |= (new_data["Current SP % Change(LAC)"].shift(-i) < percent_down).astype(int)
+    new_data["Target_Up"] |= (new_data["Current SP % Change(LAC)"].shift(-i) > percent_up).astype(int)
 # new_data["Target_Up"] = ((new_data[Chosen_Timeframe] > percent_up) | (new_data[Chosen_Timeframe2] > percent_up)| (new_data[Chosen_Timeframe3] > percent_up)).astype(int)
 # new_data["Target_Down"] = ((new_data[Chosen_Timeframe] < percent_down) | (new_data[Chosen_Timeframe2] < percent_down)| (new_data[Chosen_Timeframe3] < percent_down)).astype(int).astype(int)
 
