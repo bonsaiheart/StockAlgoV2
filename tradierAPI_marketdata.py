@@ -269,7 +269,7 @@ def get_options_data(ticker):
     # print(LAC, CurrentPrice,"fffff", price_change_percent,"asdfdasf", StockLastTradeTime, this_minute_ta_frame, closest_exp_date)
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
 
-    return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
+    return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, expiration_dates
 
 
 #
@@ -280,8 +280,9 @@ def perform_operations(
         price_change_percent,
         StockLastTradeTime,
         this_minute_ta_frame,
-        closest_exp_date,
+        expiration_dates,
 ):
+    closest_exp_date = expiration_dates[0]
     results = []
 
     data = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
@@ -299,6 +300,7 @@ def perform_operations(
         )
 
         strike = group["Strike"]
+        # print("strike column for group",strike)
         # pain is ITM puts/calls
         calls_LASTPRICExOI_dict = (
             group.loc[group["Calls_lastPriceXoi"] >= 0, ["Strike", "Calls_lastPriceXoi"]].set_index("Strike").to_dict()
@@ -410,7 +412,7 @@ def perform_operations(
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
 
             current_price_index = group["Strike"].sub(current_price).abs().idxmin()
-
+            # print("currentprice index", current_price_index)
             ###RETURNS index of strike closest to CP
 
             higher_strike_index1 = current_price_index + 1
@@ -431,9 +433,11 @@ def perform_operations(
 
             except KeyError as e:
                 closest_strike_currentprice = None
-                print("KeyError:", e)
+
+                ("KeyError:", e)
             try:
                 closest_higher_strike1 = group.loc[higher_strike_index1, "Strike"]
+                # print(closest_higher_strike1)
             except KeyError:
                 closest_higher_strike1 = None
 
@@ -444,6 +448,7 @@ def perform_operations(
 
             try:
                 closest_higher_strike3 = group.loc[higher_strike_index3, "Strike"]
+                # print('closesthigherstrike3',closest_higher_strike3)
             except KeyError:
                 closest_higher_strike3 = None
 
@@ -469,6 +474,7 @@ def perform_operations(
 
             try:
                 closest_lower_strike4 = group.loc[lower_strike_index4, "Strike"]
+                # print("closest_lowerstrike4",closest_lower_strike4)
             except KeyError:
                 closest_lower_strike4 = None
 
@@ -492,6 +498,7 @@ def perform_operations(
             closest_lower_strike3,
             closest_lower_strike2,
             closest_lower_strike1,
+            closest_strike_currentprice,
             closest_higher_strike1,
             closest_higher_strike2,
             closest_higher_strike3,
@@ -771,7 +778,7 @@ def perform_operations(
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
                 "Closest Strike to CP": closest_strike_currentprice,
-                # "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow
+                "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow
             }
         )
 
@@ -812,7 +819,7 @@ def perform_operations(
         dailyminutes = pd.read_csv(output_file_dailyminutes)
         dailyminutes= dailyminutes.dropna().drop_duplicates(subset='LastTradeTime')
         dailyminutes = pd.concat([dailyminutes,df.head(1)], ignore_index=True)
-        print(dailyminutes)
+        # print(dailyminutes)
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
         dailyminutes.to_csv(output_file_dailyminutes_w_algo_results, index=False)
     else:
@@ -834,7 +841,7 @@ def perform_operations(
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
         f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv", output_file_dailyminutes_w_algo_results,
-        closest_strike_currentprice, strikeindex_abovebelow,
-        closest_exp_date,
+         df,
+        ##df is processeddata
         ticker,
     )

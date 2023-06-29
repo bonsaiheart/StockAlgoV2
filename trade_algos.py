@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 # Configure the logging settings
 logging.basicConfig(filename='error.log', level=logging.ERROR)
@@ -14,51 +15,64 @@ logging.basicConfig(filename='trade_algos_error.log', level=logging.ERROR,    fo
 # dailyminutes_df= pd.read_csv('data/DailyMinutes/SPY/SPY_230616.csv')
 # print(trained_models.get_sell_signal_NewPerhapsExcellentTargetDown5to15minSPY(
 #             dailyminutes_df[["Bonsai Ratio", "Net ITM IV",'RSI']]))
+now = datetime.now()
+formatted_time = now.strftime("%y%m%d %H:%M EST")
 
-def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strike_currentprice, strikeindex_abovebelow, closest_exp_date, ticker, current_price):
+def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
     import pandas as pd
+    expdates_strikes_dict = {}
+    for index, row in processeddata.iterrows():
+        key = row['ExpDate']
+        value = row['Closest Strike Above/Below(below to above,4 each) list']
+        expdates_strikes_dict[key] = value
+    # expiration_dates = processeddata['ExpDate'].astype(str)
+    # strikeindex_abovebelow = processeddata['Closest Strike Above/Below(below to above,4 each) list']
 
+
+    closest_exp_date =  list(expdates_strikes_dict.keys())[0]
+    closest_strike_expdate_currentprice = expdates_strikes_dict[closest_exp_date][4]
+    strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
     optionchain = pd.read_csv(optionchain)
     dailyminutes_df = pd.read_csv(dailyminutes)
     dailyminuteswithALGOresults_df = pd.read_csv(dailyminuteswithALGOresults)
     print(ticker, current_price)
-    date_string = closest_exp_date
-    date_object = datetime.strptime(date_string, "%Y-%m-%d")
+    date_string = str(closest_exp_date)
+    date_object = datetime.strptime(date_string, "%y%m%d")
     new_date_string = date_object.strftime("%y%m%d")
     IB_option_date = date_object.strftime("%Y%m%d")
 
 ####Different strikes converted to contract form.
     ##This one is the strike one above Closest to Current price strike
 
-    print(strikeindex_abovebelow)
-    if strikeindex_abovebelow[0] != np.nan:
-        ib_four_strike_below = strikeindex_abovebelow[4]
-        four_strike_below_closest_cp_strike_int_num = int(strikeindex_abovebelow[0] * 1000)
 
-    if strikeindex_abovebelow[1] != np.nan:
-        ib_three_strike_below = strikeindex_abovebelow[1]
-        three_strike_below_closest_cp_strike_int_num = int(strikeindex_abovebelow[1] * 1000)
-    if strikeindex_abovebelow[2] != np.nan:
-        ib_two_strike_below = strikeindex_abovebelow[2]
-        two_strike_below_closest_cp_strike_int_num = int(strikeindex_abovebelow[2] * 1000)
-    if strikeindex_abovebelow[3] != np.nan:
-        ib_one_strike_below = strikeindex_abovebelow[3]
-        one_strike_below_closest_cp_strike_int_num = int(strikeindex_abovebelow[3] * 1000)
-    if strikeindex_abovebelow[4] != np.nan:
-        ib_one_strike_above = strikeindex_abovebelow[4]
-        one_strike_above_closest_cp_strike_int_num = int(strikeindex_abovebelow[4] * 1000)
-    if strikeindex_abovebelow[5] != np.nan:
-        ib_two_strike_above = strikeindex_abovebelow[5]
-        two_strike_above_closest_cp_strike_int_num = int(strikeindex_abovebelow[5] * 1000)
-    if strikeindex_abovebelow[6] != np.nan:
-        ib_three_strike_above = strikeindex_abovebelow[6]
-        three_strike_above_closest_cp_strike_int_num = int(strikeindex_abovebelow[6] * 1000)
-    if strikeindex_abovebelow[7] != np.nan:
-        ib_four_strike_above = strikeindex_abovebelow[7]
-        four_strike_above_closest_cp_strike_int_num = int(strikeindex_abovebelow[7] * 1000)
-    print(dailyminutes_df["Closest Strike to CP"])
-    closest_strike_int_num = int(dailyminutes_df["Closest Strike to CP"].iloc[-1] * 1000)  # Convert decimal to integer
+    if strikeindex_closest_expdate[0] != np.nan:
+        ib_four_strike_below = strikeindex_closest_expdate[0]
+        four_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[0] * 1000)
+
+    if strikeindex_closest_expdate[1] != np.nan:
+        ib_three_strike_below = strikeindex_closest_expdate[1]
+        three_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[1] * 1000)
+    if strikeindex_closest_expdate[2] != np.nan:
+        ib_two_strike_below = strikeindex_closest_expdate[2]
+        two_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[2] * 1000)
+    if strikeindex_closest_expdate[3] != np.nan:
+        ib_one_strike_below = strikeindex_closest_expdate[3]
+        one_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[3] * 1000)
+    if strikeindex_closest_expdate[4] != np.nan:
+        ib_one_strike_above = strikeindex_closest_expdate[5]
+        one_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[4] * 1000)
+    if strikeindex_closest_expdate[5] != np.nan:
+        ib_two_strike_above = strikeindex_closest_expdate[6]
+        two_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[5] * 1000)
+    if strikeindex_closest_expdate[6] != np.nan:
+        ib_three_strike_above = strikeindex_closest_expdate[7]
+        three_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[6] * 1000)
+    if strikeindex_closest_expdate[7] != np.nan:
+        ib_four_strike_above = strikeindex_closest_expdate[8]
+        four_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[7] * 1000)
+    # print(dailyminutes_df["Closest Strike to CP"])
+    closest_strike_exp_int_num = int(strikeindex_closest_expdate[5] * 1000)  # Convert decimal to integer
     ###TODO add different exp date options in addition to diff strike optoins.
 
     one_strike_above_CCPS ="{:08d}".format(one_strike_above_closest_cp_strike_int_num)
@@ -69,7 +83,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
     three_strike_below_CCPS ="{:08d}".format(three_strike_below_closest_cp_strike_int_num)
     four_strike_above_CCPS ="{:08d}".format(four_strike_above_closest_cp_strike_int_num)
     four_strike_below_CCPS ="{:08d}".format(four_strike_below_closest_cp_strike_int_num)
-    closest_contract_strike = "{:08d}".format(closest_strike_int_num)
+    closest_contract_strike = "{:08d}".format(closest_strike_exp_int_num)
 
     CCP_upone_call_contract = f"{ticker}{new_date_string}C{one_strike_above_CCPS}"
     CCP_upone_put_contract = f"{ticker}{new_date_string}P{one_strike_above_CCPS}"
@@ -89,29 +103,32 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
     CCP_downfour_put_contract = f"{ticker}{new_date_string}P{four_strike_below_CCPS}"
     CCP_call_contract = f"{ticker}{new_date_string}C{closest_contract_strike}"
     CCP_put_contract = f"{ticker}{new_date_string}P{closest_contract_strike}"
-    ###TODO for puts, use a higher strike, for calls use a lower strike.  ATM strikes get down to pennies EOD.
+
 
     CCP_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_put_contract]['Put_LastPrice'].values[0]
     CCP_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_call_contract]['Call_LastPrice'].values[0]
+    try:
+        DownOne_Call_Price =optionchain.loc[optionchain['c_contractSymbol'] == CCP_downone_call_contract]['Call_LastPrice'].values[0]
+        UpOne_Put_Price=optionchain.loc[optionchain['p_contractSymbol'] == CCP_upone_put_contract]['Put_LastPrice'].values[0]
+        DownOne_Put_Price =optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]
+        UpOne_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_upone_call_contract]['Call_LastPrice'].values[0]
+        UpTwo_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_uptwo_call_contract]['Call_LastPrice'].values[0]
+        DownTwo_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_downtwo_put_contract]['Put_LastPrice'].values[0]
+        DownTwo_Call_Price =optionchain.loc[optionchain['c_contractSymbol'] == CCP_downtwo_call_contract]['Call_LastPrice'].values[0]
+        UpTwo_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_uptwo_put_contract]['Put_LastPrice'].values[0]
+        DownThree_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_downthree_put_contract]['Put_LastPrice'].values[0]
+        DownThree_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_downthree_call_contract]['Call_LastPrice'].values[0]
+        DownFour_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_downfour_call_contract]['Call_LastPrice'].values[0]
+        UpThree_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_upthree_call_contract]['Call_LastPrice'].values[0]
+        Upfour_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_upfour_call_contract]['Call_LastPrice'].values[0]
 
-    DownOne_Call_Price =optionchain.loc[optionchain['c_contractSymbol'] == CCP_downone_call_contract]['Call_LastPrice'].values[0]
-    DownTwo_Call_Price =optionchain.loc[optionchain['c_contractSymbol'] == CCP_downtwo_call_contract]['Call_LastPrice'].values[0]
-    DownThree_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_downthree_call_contract]['Call_LastPrice'].values[0]
-    DownFour_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_downfour_call_contract]['Call_LastPrice'].values[0]
-    UpOne_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_upone_call_contract]['Call_LastPrice'].values[0]
-    UpTwo_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_uptwo_call_contract]['Call_LastPrice'].values[0]
-    UpThree_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_upthree_call_contract]['Call_LastPrice'].values[0]
-    Upfour_Call_Price = optionchain.loc[optionchain['c_contractSymbol'] == CCP_upfour_call_contract]['Call_LastPrice'].values[0]
-
-    DownOne_Put_Price =optionchain.loc[optionchain['p_contractSymbol'] == CCP_downone_put_contract]['Put_LastPrice'].values[0]
-    DownTwo_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_downtwo_put_contract]['Put_LastPrice'].values[0]
-    DownThree_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_downthree_put_contract]['Put_LastPrice'].values[0]
-    DownFour_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_downfour_put_contract]['Put_LastPrice'].values[0]
-    UpOne_Put_Price=optionchain.loc[optionchain['p_contractSymbol'] == CCP_upone_put_contract]['Put_LastPrice'].values[0]
-    UpTwo_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_uptwo_put_contract]['Put_LastPrice'].values[0]
-    UpThree_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_upthree_put_contract]['Put_LastPrice'].values[0]
-    Upfour_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_upfour_put_contract]['Put_LastPrice'].values[0]
-
+        DownFour_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_downfour_put_contract]['Put_LastPrice'].values[0]
+        UpThree_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_upthree_put_contract]['Put_LastPrice'].values[0]
+        Upfour_Put_Price = optionchain.loc[optionchain['p_contractSymbol'] == CCP_upfour_put_contract]['Put_LastPrice'].values[0]
+    except Exception as e:
+        print(e)
+        traceback.print_exc()
+        pass
     #             # IB.ibAPI.placeSellBracketOrder(ticker, current_price, "SELL")
     #         IB.ibAPI.placeBuyBracketOrder(ticker,current_price,"BUY")
 
@@ -120,6 +137,248 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
     Algo Rules go here:
     """
     # dailyminutes_df_w_ALGO_results=dailyminutes_df
+
+    try:
+        Buy_5C = trained_models.Buy_5C(
+            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4',
+       'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+        dailyminuteswithALGOresults_df['Buy_5C'] = Buy_5C
+        print(Buy_5C)
+        if Buy_5C[-1]:
+            print("Buy_5C Signal")
+            send_notifications.email_me_string("Buy_5C:", "Call",
+                                               ticker)
+            try:
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5)
+                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+
+
+                print("sending tweet")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5C {formatted_time}",300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+        else:
+            print('No Buy_5C Signal')
+
+    except KeyError as e1:
+        print(Exception)
+    try:
+        Sell_5C = trained_models.Sell_5C(
+            dailyminutes_df[['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4']])
+
+        dailyminuteswithALGOresults_df['Sell_5C'] = Sell_5C
+        if Sell_5C[-1]:
+            print('Sell_5C  Signal.')
+            send_notifications.email_me_string("Sell_5C", "Put",
+                                               ticker)
+
+            try:
+                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
+
+                print("sending tweet")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5C {formatted_time}", 300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+
+        else:
+            print('No Sell_5C Signal.')
+
+    except Exception as e1:
+        print(Exception)
+    try:
+        Buy_5B = trained_models.Buy_5B(
+            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+        dailyminuteswithALGOresults_df['Buy_5B'] = Buy_5B
+        print(Buy_5B)
+        if Buy_5B[-1]:
+            print("Buy_5B Signal")
+            send_notifications.email_me_string("Buy_5B:", "Call",
+                                               ticker)
+            try:
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5)
+                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+
+                if ticker == "SPY":
+                    print("sending tweet")
+                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+                                                                   f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5B {formatted_time}", 300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+        else:
+            print('No Buy_5B Signal')
+
+    except KeyError as e1:
+        print(Exception)
+    try:
+        Sell_5B = trained_models.Sell_5B(
+            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRoi Up4',
+       'ITM PCRoi Down4']])
+
+        dailyminuteswithALGOresults_df['Sell_5B'] = Sell_5B
+        if Sell_5B[-1]:
+            print('Sell_5B  Signal.')
+            send_notifications.email_me_string("Sell_5B", "Put",
+                                               ticker)
+            send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+                                                              f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5B {formatted_time}",
+                                                              300)
+            try:
+                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
+
+                print("sending tweet")
+
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+
+        else:
+            print('No Sell_5B Signal.')
+
+    except Exception as e1:
+        print(Exception)
+    try:
+        Buy_5A = trained_models.Buy_5A(
+            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+        dailyminuteswithALGOresults_df['Buy_5A'] = Buy_5A
+        print(Buy_5A)
+        if Buy_5A[-1]:
+            print("5A_Buy Signal")
+            send_notifications.email_me_string("Buy_5A:", "Call",
+                                               ticker)
+            try:
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+
+                if ticker == "SPY":
+                    print("sending tweet")
+                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+                                                                   f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5A {formatted_time}", 300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+        else:
+            print('No Buy_5A Signal')
+
+    except KeyError as e1:
+        print(Exception)
+    try:
+        Sell_5A = trained_models.Sell_5A(
+            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4',
+       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+
+        dailyminuteswithALGOresults_df['Sell_5A'] = Sell_5A
+        if Sell_5A[-1]:
+            print('Sell_5A  Signal.')
+            send_notifications.email_me_string("Sell_5A", "Put",
+                                               ticker)
+
+            try:
+                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+
+                print("sending tweet")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5A {formatted_time}", 300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+
+        else:
+            print('No 5A_Sell Signal.')
+
+    except Exception as e1:
+        print(Exception)
+    try:
+        Buy_A5 = trained_models.Buy_A5(
+            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4',
+       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+        dailyminuteswithALGOresults_df['Buy_A5'] = Buy_A5
+        print(Buy_A5)
+        if Buy_A5[-1]:
+            print("A5_Buy Signal")
+            send_notifications.email_me_string("Buy_A5:", "Call",
+                                               ticker)
+            try:
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+
+                if ticker == "SPY":
+                    print("sending tweet")
+                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+                                                                   f"${ticker} ${current_price}. 30 minutes to profit on a Call. #A5 {formatted_time}", 1800)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+        else:
+            print('No Buy_A5 Signal')
+
+    except KeyError as e1:
+        print(Exception)
+    try:
+        Sell_A5 = trained_models.Sell_A5(
+            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4',
+       'ITM PCRoi Down4']])
+
+        dailyminuteswithALGOresults_df['Sell_A5'] = Sell_A5
+        if Sell_A5[-1]:
+            print('Sell_A5  Signal.')
+            send_notifications.email_me_string("Sell_A5", "Put",
+                                               ticker)
+
+            try:
+                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+
+                print("sending tweet")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+                                                               f"${ticker}  ${current_price}. 30 min till profit on a PUT. #A5 {formatted_time}", 1800)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+
+        else:
+            print('No A5_Sell Signal.')
+
+    except Exception as e1:
+        print(Exception)
     try:
         Buy_A4 = trained_models.Buy_A4(
             dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCRv Down4',
@@ -131,13 +390,13 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
             send_notifications.email_me_string("Buy_A4:", "Call",
                                                ticker)
             try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+                # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
 
                 if ticker == "SPY":
                     print("sending tweet")
-                    send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up',
-                                                                   f"${ticker} has hit a temporal LOW at ${current_price}. 20 minutes to profit on a Call. #A4")
+                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+                                                                   f"${ticker} has hit a temporal LOW at ${current_price}. 20 minutes to profit on a Call. #A4 {formatted_time}", 1200)
 
             except Exception as e:
                 print(e)
@@ -166,8 +425,8 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
 
                 print("sending tweet")
-                send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down',
-                                                               f"${ticker} has hit ${current_price}. 20 min and you'll make profit on a PUT. #A4")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+                                                               f"${ticker} has hit ${current_price}. 20 min and you'll make profit on a PUT. #A4 {formatted_time}", 1200)
 
             except Exception as e:
                 print(e)
@@ -187,27 +446,27 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
        'ITM PCRoi Up4', 'ITM PCRoi Down4']])
         dailyminuteswithALGOresults_df['Buy_A3'] = Buy_A3
         print(Buy_A3)
-        if Buy_A3[-1]:
-            print("A3_Buy Signal")
-            send_notifications.email_me_string("Buy_A3:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up',
-                                                                   f"${ticker} has hit a temporal LOW at ${current_price}. 45 minutes to profit on a Call. #A3")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_A3 Signal')
+        # if Buy_A3[-1]:
+        #     print("A3_Buy Signal")
+        #     send_notifications.email_me_string("Buy_A3:", "Call",
+        #                                        ticker)
+        #     try:
+        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #
+        #         if ticker == "SPY":
+        #             print("sending tweet")
+        #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+        #                                                            f"${ticker} has hit a temporal LOW at ${current_price}. 45 minutes to profit on a Call. #A3")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        # else:
+        #     print('No Buy_A3 Signal')
 
     except KeyError as e1:
         print(Exception)
@@ -217,28 +476,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
        'ITM PCRoi Up4', 'ITM PCRoi Down4']])
 
         dailyminuteswithALGOresults_df['Sell_A3'] = Sell_A3
-        if Sell_A3[-1]:
-            print('A3 Sell Signal.')
-            send_notifications.email_me_string("Sell_A3", "Put",
-                                               ticker)
+        # if Sell_A3[-1]:
+        #     print('A3 Sell Signal.')
+        #     send_notifications.email_me_string("Sell_A3", "Put",
+        #                                        ticker)
+        #
+        #     try:
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+        #
+        #         print("sending tweet")
+        #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+        #                                                        f"${ticker} has hit ${current_price}. 45 min and you'll make profit on a PUT. #A3")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
 
-            try:
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down',
-                                                               f"${ticker} has hit ${current_price}. 45 min and you'll make profit on a PUT. #A3")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
 
 
-
-        else:
-            print('No A3_Sell Signal.')
+        # else:
+        #     print('No A3_Sell Signal.')
 
     except Exception as e1:
         print(Exception)
@@ -249,28 +508,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
        'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34']]   )
         dailyminuteswithALGOresults_df['Buy_30min_9sallaround'] = Buy_30min_9sallaround
         print(Buy_30min_9sallaround)
-        if Buy_30min_9sallaround[-1]:
-            print("A1_Buy Signal")
-            send_notifications.email_me_string("Buy_30min_9sallaround:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up',
-                                                               f"${ticker} has hit a temporal LOW at ${current_price}.You got 30 minutes or so to get some profit on a Call.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_30min_9sallaround Signal')
+        # if Buy_30min_9sallaround[-1]:
+        #     print("A1_Buy Signal")
+        #     send_notifications.email_me_string("Buy_30min_9sallaround:", "Call",
+        #                                        ticker)
+        #     try:
+        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #
+        #
+        #         if ticker == "SPY":
+        #             print("sending tweet")
+        #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+        #                                                        f"${ticker} has hit a temporal LOW at ${current_price}.You got 30 minutes or so to get some profit on a Call.")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        # else:
+        #     print('No Buy_30min_9sallaround Signal')
 
     except KeyError as e1:
         print(Exception)
@@ -280,28 +539,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
        'ITM PCRoi Down4']])
 
         dailyminuteswithALGOresults_df['Sell_30min_9sallaround'] = Sell_30min_9sallaround
-        if Sell_30min_9sallaround[-1]:
-            print('Sell_30min_9sallaround signal')
-            send_notifications.email_me_string("Sell_30min_9sallaround", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down',
-                                                           f"${ticker} has hit a temporal HIGH at ${current_price}.You PROBS have like 30 min and you'll make profit on a PUT.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No A1_Sell Signal.')
+        # if Sell_30min_9sallaround[-1]:
+        #     print('Sell_30min_9sallaround signal')
+        #     send_notifications.email_me_string("Sell_30min_9sallaround", "Put",
+        #                                        ticker)
+        #
+        #     try:
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+        #
+        #         print("sending tweet")
+        #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+        #                                                    f"${ticker} has hit a temporal HIGH at ${current_price}.You PROBS have like 30 min and you'll make profit on a PUT.")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        #
+        # else:
+        #     print('No A1_Sell Signal.')
 
     except Exception as e1:
         print(Exception)
@@ -321,28 +580,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
         dailyminuteswithALGOresults_df['Trythisone2_4Buy'] = Trythisone2_4Buy
 
         print(Trythisone2_4Buy)
-        if Trythisone2_4Buy[-1]:
-            print("Trythisone2_4Buy Signal")
-            send_notifications.email_me_string("Trythisone2_4Buy:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-
-                # if ticker == "SPY":
-                #     print("sending tweet")
-                #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
-                #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Trythisone2_4Buy Signal')
+        # if Trythisone2_4Buy[-1]:
+        #     print("Trythisone2_4Buy Signal")
+        #     send_notifications.email_me_string("Trythisone2_4Buy:", "Call",
+        #                                        ticker)
+        #     try:
+        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #
+        #
+        #         # if ticker == "SPY":
+        #         #     print("sending tweet")
+        #         #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
+        #         #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        # else:
+        #     print('No Trythisone2_4Buy Signal')
 
     except KeyError as e1:
         print(Exception)
@@ -358,28 +617,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
        'ITM PCRoi Down4', 'RSI', 'AwesomeOsc', 'RSI14', 'RSI2']])
 
         dailyminuteswithALGOresults_df['Trythisone2_4Sell'] = Trythisone2_4Sell
-        if Trythisone2_4Sell[-1]:
-            print('Trythisone2_Sell signal')
-            send_notifications.email_me_string("Trythisone2_4Sell", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                # print("sending tweet")
-                # send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
-                #                                            f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No Trythisone2_4Sell Signal.')
+        # if Trythisone2_4Sell[-1]:
+        #     print('Trythisone2_Sell signal')
+        #     send_notifications.email_me_string("Trythisone2_4Sell", "Put",
+        #                                        ticker)
+        #
+        #     try:
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+        #
+        #         # print("sending tweet")
+        #         # send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
+        #         #                                            f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        #
+        # else:
+        #     print('No Trythisone2_4Sell Signal.')
     finally:
         pass
 
@@ -389,28 +648,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
         dailyminutes_df['A1_Buy'] = A1_Buy
         dailyminuteswithALGOresults_df['A1_Buy'] = A1_Buy
         print(A1_Buy)
-        if A1_Buy[-1]:
-            print("A1_Buy Signal")
-            send_notifications.email_me_string("A1_Buy:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
-                                                               f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No A1_Buy Signal')
+        # if A1_Buy[-1]:
+        #     print("A1_Buy Signal")
+        #     send_notifications.email_me_string("A1_Buy:", "Call",
+        #                                        ticker)
+        #     try:
+        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #
+        #
+        #         if ticker == "SPY":
+        #             print("sending tweet")
+        #             send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
+        #                                                        f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        # else:
+        #     print('No A1_Buy Signal')
 
     except KeyError as e1:
         print(Exception)
@@ -420,28 +679,28 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
 
         dailyminutes_df['A1_Sell'] = A1_Sell
         dailyminuteswithALGOresults_df['A1_Sell'] = A1_Sell
-        if A1_Sell[-1]:
-            print('A1_Sell signal')
-            send_notifications.email_me_string("A1_Sell", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
-                                                           f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No A1_Sell Signal.')
+        # if A1_Sell[-1]:
+        #     print('A1_Sell signal')
+        #     send_notifications.email_me_string("A1_Sell", "Put",
+        #                                        ticker)
+        #
+        #     try:
+        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+        #
+        #         print("sending tweet")
+        #         send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
+        #                                                    f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
+        #
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #
+        #
+        #
+        # else:
+        #     print('No A1_Sell Signal.')
 
     except Exception as e1:
         print(Exception)
@@ -817,7 +1076,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
 #         # finally:
 #         #     pass
 #         if ticker == "SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down', f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
 # # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
 #
 #     if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 and dailyminutes_df['RSI'].iloc[-1]<30:
@@ -835,7 +1094,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
 #         #         IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1), response.status_code, json_response)
 #
 #         if ticker=="SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up', f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up', f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
 # ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
 #     if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1]>70:
 #         send_notifications.email_me_string("dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put",
@@ -848,7 +1107,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
 #         # finally:
 #         #     pass
 #         if ticker == "SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
 #
 # #### TESTING JUST RSI
 #     if dailyminutes_df['RSI'].iloc[-1] < 22:
@@ -861,7 +1120,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
 #         # finally:
 #         #     pass
 #         if ticker == "SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up',
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
 #                                           f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
 #         ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
 #     if dailyminutes_df['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14'].iloc[-1]>75:
@@ -1074,3 +1333,71 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, closest_strik
         # TradierAPI.buy(x)
     dailyminutes_df.to_csv(dailyminutes,index=False)
     dailyminuteswithALGOresults_df.to_csv(dailyminuteswithALGOresults,index=False)
+# Define functions for each prediction model
+# def make_sell_5C_predictions(data):
+#     return trained_models.Sell_5C(data)
+#
+# def make_buy_5B_predictions(data):
+#     return trained_models.Buy_5B(data)
+#
+# def make_sell_5B_predictions(data):
+#     return trained_models.Sell_5B(data)
+#
+# # Define a function for sending email notification
+# def send_email_notification(signal_type, option_type, ticker):
+#     send_notifications.email_me_string(signal_type, option_type, ticker)
+#
+# # Define a function for placing bracket orders
+# def place_bracket_order(ticker, option_date, strike_price, price, quantity):
+#     try:
+#         if option_type == 'put':
+#             IB.ibAPI.placePutBracketOrder(ticker, option_date, strike_price, price, quantity)
+#         else:
+#             IB.ibAPI.placeCallBracketOrder(ticker, option_date, strike_price, price, quantity)
+#     except Exception as e:
+#         print(e)
+#
+# # Define a function for sending tweets
+# def send_tweet_with_countdown(ticker, current_price, direction, message, countdown):
+#     try:
+#         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, direction, message, countdown)
+#     except Exception as e:
+#         print(e)
+#
+# # Process each prediction model
+# def process_prediction_model(model_name, column_names, option_date, strike_price_above, strike_price_below, option_type):
+#     try:
+#         predictions = model_name(dailyminutes_df[column_names])
+#         dailyminuteswithALGOresults_df[model_name.__name__] = predictions
+#         if predictions[-1]:
+#             print(f'{model_name.__name__} Signal')
+#             send_email_notification(model_name.__name__, option_type, ticker)
+#             place_bracket_order(ticker, option_date, strike_price_above, UpOne_Put_Price, 5)
+#             if ticker == "SPY":
+#                 formatted_time = datetime.now().strftime("%y%m%d %H:%M")
+#                 print("sending tweet")
+#                 send_tweet_with_countdown(ticker, current_price, 'up',
+#                                           f"${ticker} ${current_price}. 5 minutes to profit on a Call. #{model_name.__name__} {formatted_time}", 300)
+#         else:
+#             print(f'No {model_name.__name__} Signal')
+#     except Exception as e:
+#         print(e)
+#
+# # Main code
+# try:
+#     process_prediction_model(make_sell_5C_predictions, ['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4'],
+#                              IB_option_date, ib_one_strike_above, None, 'put')
+#
+#     process_prediction_model(make_buy_5B_predictions,
+#                              ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4',
+#                               'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4'],
+#                              IB_option_date, None, ib_one_strike_below, 'call')
+#
+#     process_prediction_model(make_sell_5B_predictions, ['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRoi Up4',
+#                                                        'ITM PCRoi Down4'],
+#                              IB_option_date, ib_one_strike_above, None, 'put')
+#
+# except KeyError as e:
+#     print(e)
+# except Exception as e:
+#     print(e)

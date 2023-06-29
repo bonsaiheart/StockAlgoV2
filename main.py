@@ -63,10 +63,8 @@ for i in range(max_retries):
                 ) = tradierAPI_marketdata.get_options_data(ticker)
                 (
                     optionchain,
-                    processeddata,processeddataWithALGOresults,
-                    closest_strike_currentprice,strikeindex_abovebelow,
-                    closest_exp_date,
-                    ticker,
+                    dailyminutes,processeddataWithALGOresults,processeddata,
+                                        ticker,
                 ) = tradierAPI_marketdata.perform_operations(
                     ticker,
                     LAC,
@@ -78,7 +76,7 @@ for i in range(max_retries):
                 )
                 print(current_price)
                 if ticker =="SPY":
-                    trade_algos.actions(optionchain, processeddata,processeddataWithALGOresults, closest_strike_currentprice,strikeindex_abovebelow, closest_exp_date, ticker,current_price)
+                    trade_algos.actions(optionchain, dailyminutes,processeddataWithALGOresults, processeddata, ticker,current_price)
                 # email_me.email_me(processeddata)
             ibAPI.ib_disconnect()
             break

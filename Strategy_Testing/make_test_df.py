@@ -251,7 +251,7 @@ def daily_series_prep_for_backtest(ticker,df):
     # #combine bonsai # and itmpcrv,  then bonsai and niv?  hwat else
 # df = pd.read_csv(r"C:\Users\natha\PycharmProjects\StockAlgoV2\Historical_Data_Scraper\data\Historical_Processed_ChainData\SPY.csv")
 # daily_series_prep_for_backtest("SPY",df)
-tickers=['spy']
+tickers=['spy','tsla','roku','chwy']
 for x in tickers:
     ticker,df = get_1st_frames_make_single_multiday_df(x)
     print(ticker)

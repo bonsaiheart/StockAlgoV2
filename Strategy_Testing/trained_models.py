@@ -1,11 +1,78 @@
+import os
 
 import joblib
+from pathlib import Path
+base_dir = os.path.dirname(__file__)
+# base_dir = Path(__file__)
 
-#
 # percent_up=.1
+
 # percent_down=-.1
+
+###supposed to be for 30 min .3 spy tsla
+
+def Buy_5C(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/5C_5min_spy/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_5C(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/5C_5min_spy/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def Buy_5B(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/5B_5min_spy/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_5B(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/5B_5min_spy/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def Buy_5A(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/5A_5min_spy/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_5A(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/5A_5min_spy/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+def Buy_A5(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/A5_30_min_spy_tsla/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_A5(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/A5_30_min_spy_tsla/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
 def Buy_A4(new_data_df):
-    model_filename = 'Strategy_Testing/Trained_Models/A4_20min_02percent/target_up.joblib'
+    model_filename = f'{base_dir}/Trained_Models/A4_20min_02percent/target_up.joblib'
     loaded_model = joblib.load(model_filename)
 
     predictions = loaded_model.predict(new_data_df)
@@ -144,9 +211,20 @@ def get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later
     predictions = loaded_model.predict(new_data_df)
 
     return predictions
+def A1_Sell_historical_prediction(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/DAILYHISTORICALOVERNIGHTPREDICTION/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
 
+    predictions = loaded_model.predict(new_data_df)
 
+    return predictions
+def A1_Buy_historical_prediction(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/DAILYHISTORICALOVERNIGHTPREDICTION/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
 
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
 # percent_up=.05
 # percent_down=-.05
 def get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(new_data_df):

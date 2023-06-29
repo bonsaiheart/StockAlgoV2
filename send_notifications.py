@@ -37,10 +37,13 @@ from celery import Celery
 
 
 last_tweet_time = None
-min_tweet_interval = datetime.timedelta(minutes=15)  # Minimum interval between tweets (5 minutes)
+min_tweet_interval = datetime.timedelta(minutes=10)  # Minimum interval between tweets (5 minutes)
 timestamp_file_path = "last_tweet_timestamp.txt"  # Path to the file storing the last tweet timestamp
 
-def send_tweet_w_5hour_followup(ticker,current_price,upordown,message):
+
+
+
+def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds):
     global last_tweet_time
     current_time = datetime.datetime.now()
     bearer_token = PrivateData.twitter_info.bearer_token
@@ -82,53 +85,7 @@ def send_tweet_w_5hour_followup(ticker,current_price,upordown,message):
             print('Tweet ID:', tweet_id)
          # wait_60_minutes_and_send_tweet("test3")
 
-            celery_client.send_to_celery_5_hour(ticker, current_price, tweet_id, upordown)
-        except Exception as e:
-            print(e)
-
-def send_tweet_w_1hour_followup(ticker, current_price, upordown, message):
-    global last_tweet_time
-    current_time = datetime.datetime.now()
-    bearer_token = PrivateData.twitter_info.bearer_token
-    consumer_key = PrivateData.twitter_info.consumer_key
-    consumer_secret = PrivateData.twitter_info.consumer_secret
-    access_token = PrivateData.twitter_info.access_token
-    access_token_secret = PrivateData.twitter_info.access_token_secret
-    api_key = PrivateData.twitter_info.api_key
-    api_key_secret = PrivateData.twitter_info.api_key_secret
-
-    client = tweepy.Client(bearer_token=bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret,
-                           access_token=access_token, access_token_secret=access_token_secret)
-
-
-
-
-    try:
-        with open(timestamp_file_path, "r") as file:
-            timestamp_str = file.read().strip()
-            if timestamp_str:
-                last_tweet_time = datetime.datetime.fromisoformat(timestamp_str)
-    except FileNotFoundError:
-        pass
-    print(last_tweet_time,"last tweet time")
-
-
-
-    if last_tweet_time is None or (current_time - last_tweet_time) >= min_tweet_interval:
-        # Send the tweet
-
-        last_tweet_time = current_time
-        with open(timestamp_file_path, "w") as file:
-            file.write(last_tweet_time.isoformat())
-        try:
-            response = client.create_tweet(text=message)
-
-            tweet_id = response.data['id']
-
-            print('Tweet ID:', tweet_id)
-         # wait_60_minutes_and_send_tweet("test3")
-
-            celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown)
+            celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             print(e)
 
@@ -195,3 +152,6 @@ def email_me(filepath):
     server.quit()
 
     print("Email sent!")
+
+# celery_client.send_to_celery_1_hour('spy', '100', '1000', 'up', 20)
+# print(send_tweet_w_countdown_followup('tsla', 100, 'Up', " test_response6", 30))

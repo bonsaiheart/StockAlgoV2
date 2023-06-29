@@ -2,10 +2,52 @@ import pandas as pd
 from Strategy_Testing.trained_models  import *
 
 
-dailyminutes_df = pd.read_csv("Strategy_Testing/historical_daily_DF/historical_daily_SPY.csv")
+dailyminutes_df = pd.read_csv(r"Strategy_Testing/historical_multiday_minute_DF/SPY/230627_SPY.csv")
 dailyminutes_df.dropna(inplace=True)
+###TODO adding new
+# BuyHistA1 = A1_Buy_historical_prediction(dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol',
+#        'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRoi Up2']])
+# dailyminutes_df['BuyHistA1'] = BuyHistA1
+# SellHistA1 = A1_Sell_historical_prediction(dailyminutes_df[['B1/B2', 'ITM PCRoi Down2']])
+# dailyminutes_df['SellHistA1'] = SellHistA1
+Buy_5A = Buy_5A(
+            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+dailyminutes_df['Buy_5A'] = Buy_5A
+Sell_5A = Sell_5A(
+    dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4',
+                     'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+dailyminutes_df['Sell_5A'] = Sell_5A
+
+Buy_5B = Buy_5B(
+    dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+                     'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+dailyminutes_df['Buy_5B'] = Buy_5B
+
+Sell_5B = Sell_5B(
+    dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRoi Up4',
+                     'ITM PCRoi Down4']])
+dailyminutes_df['Sell_5B'] = Sell_5B
+
+Buy_5C = Buy_5C(
+    dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4',
+                     'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+dailyminutes_df['Buy_5C'] = Buy_5C
+
+Sell_5C = Sell_5C(
+            dailyminutes_df[['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4']])
+dailyminutes_df['Sell_5C'] = Sell_5C
 
 
+
+Buy_A5 = Buy_A5(
+            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4',
+       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+dailyminutes_df['Buy_A5'] = Buy_A5
+Sell_A5 = Sell_A5(dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4',
+                     'ITM PCRoi Down4']])
+
+dailyminutes_df['Sell_A5'] = Sell_A5
 Buy_A4 = Buy_A4(
     dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCRv Down4',
 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
@@ -45,7 +87,7 @@ dailyminutes_df['Sell_A3'] = Sell_A3
 
 Sell_30min_9sallaround = Sell_30min_9sallaround(
     dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4',
-'ITM PCRoi Down4']])
+'ITM PCRoi Down4']]).astype(int)
 
 dailyminutes_df['Sell_30min_9sallaround'] = Sell_30min_9sallaround
 
@@ -327,7 +369,7 @@ dailyminutes_df['sell_signal1']= sell_signal1
 #         # finally:
 #         #     pass
 #         if ticker == "SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down', f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
 # # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
 #
 #     if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 and dailyminutes_df['RSI'].iloc[-1]<30:
@@ -345,7 +387,7 @@ dailyminutes_df['sell_signal1']= sell_signal1
 #         #         IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1), response.status_code, json_response)
 #
 #         if ticker=="SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up', f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up', f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
 # ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
 #     if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1]>70:
 #         send_notifications.email_me_string("dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put",
@@ -358,7 +400,7 @@ dailyminutes_df['sell_signal1']= sell_signal1
 #         # finally:
 #         #     pass
 #         if ticker == "SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
 #
 # #### TESTING JUST RSI
 #     if dailyminutes_df['RSI'].iloc[-1] < 22:
@@ -371,7 +413,7 @@ dailyminutes_df['sell_signal1']= sell_signal1
 #         # finally:
 #         #     pass
 #         if ticker == "SPY":
-#             send_notifications.send_tweet_w_1hour_followup(ticker, current_price, 'up',
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
 #                                           f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
 #         ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
 #     if dailyminutes_df['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14'].iloc[-1]>75:
@@ -582,4 +624,4 @@ dailyminutes_df['sell_signal1']= sell_signal1
     #     )
 
         # TradierAPI.buy(x)
-dailyminutes_df.to_csv("Algo_backtest_historicaldaily.csv")
+dailyminutes_df.to_csv("spy_230627_am.csv")
