@@ -54,25 +54,19 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
     }
 
     response = requests.get('https://api.tradier.com/v1/markets/timesales', params=params, headers=headers)
-    time_high_low_dict = {}
 
     json_response = response.json()
 
-    highs = []
-    lows = []
-    print(json_response)
-    print(type(json_response['series']['data']['high']))
-    high = json_response['series']['data']['high']
-    low = json_response['series']['data']['low']
-    time = json_response['series']['data']['time']
-    time = parser.parse(time)
-    time = time.strftime("%y%m%d %H:%M")
-    # print(time)
-    time_high_low_dict[time] = {'high': high, 'low': low}
-    print(time_high_low_dict)
-    for time, values in time_high_low_dict.items():
-        high = values['high']
-        low = values['low']
+    time_high_low_dict = {}
+
+    series_data = json_response['series']['data']
+
+    for data_point in series_data:
+        high = data_point['high']
+        low = data_point['low']
+        time = parser.parse(data_point['time']).strftime("%y%m%d %H:%M")
+        time_high_low_dict[time] = {'high': high, 'low': low}
+
     # Calculate the highest and lowest prices
     highs = [values['high'] for values in time_high_low_dict.values()]
     lows = [values['low'] for values in time_high_low_dict.values()]
@@ -147,4 +141,4 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
 #             f"As of {lowest_price_time} EST, ${ticker} was ${lowest_price}. Down ${round(old_price - lowest_price, 3)}, or %{round(((old_price - lowest_price) / lowest_price) * 100, 3)} from entry.",
 #             tweet_id)
 # # Original code
-# result = wait_60_minutes_and_send_tweet('AAPL', '100', '123456789', 'up',10)
+# result = wait_60_minutes_and_send_tweet('AAPL', '100', '123456789', 'up',1000)

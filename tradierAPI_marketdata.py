@@ -831,11 +831,11 @@ def perform_operations(
         # Save the updated DataFrame back to the file
 
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
-        dailyminutes.to_csv(output_dir_dailyminutes_w_algo_results, index=False)
+        dailyminutes.to_csv(output_file_dailyminutes_w_algo_results, index=False)
 
     try:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
-
+###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
     return (

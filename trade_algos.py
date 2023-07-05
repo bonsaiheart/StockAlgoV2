@@ -149,7 +149,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             send_notifications.email_me_string("Buy_5C:", "Call",
                                                ticker)
             try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5)
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5,'buy_5c')
                 # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
 
 

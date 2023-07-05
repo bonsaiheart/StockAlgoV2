@@ -153,5 +153,5 @@ def email_me(filepath):
 
     print("Email sent!")
 
-# celery_client.send_to_celery_1_hour('spy', '100', '1000', 'up', 20)
-# print(send_tweet_w_countdown_followup('tsla', 100, 'Up', " test_response6", 30))
+
+# print(send_tweet_w_countdown_followup('tsla', 100, 'up', "06test_response", 12))

@@ -48,7 +48,7 @@ success = False
 
 for i in range(max_retries):
     try:
-        if check_Market_Conditions.is_market_open_today() == True:
+        if check_Market_Conditions.is_market_open_now() == True:
             ibAPI.ib_connect()
             for ticker in tickerlist:
                 ticker=ticker.upper()
