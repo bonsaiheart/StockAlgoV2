@@ -1086,7 +1086,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
         try:
             IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1)
+            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,19,'b1/b2 + rsi')
 
             print("sending tweet")
             # send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
@@ -1105,7 +1105,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         send_notifications.email_me_string("dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put",
                                            ticker)
         try:
-            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,1)
+            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,19,"b1/b2+rsi")
 
         except Exception as e:
             print(e)
