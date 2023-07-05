@@ -11,6 +11,22 @@ base_dir = os.path.dirname(__file__)
 
 ###supposed to be for 30 min .3 spy tsla
 
+def Buy_5D(new_data_df):
+    model_filename = f'{base_dir}/Trained_Models/5D/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
+def Sell_5D(new_data_df):
+    model_filename = 'Strategy_Testing/Trained_Models/5D/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+
+    predictions = loaded_model.predict(new_data_df)
+
+    return predictions
+
 def Buy_5C(new_data_df):
     model_filename = f'{base_dir}/Trained_Models/5C_5min_spy/target_up.joblib'
     loaded_model = joblib.load(model_filename)

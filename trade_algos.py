@@ -137,7 +137,64 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     Algo Rules go here:
     """
     # dailyminutes_df_w_ALGO_results=dailyminutes_df
+    try:
+        Buy_5D = trained_models.Buy_5D(
+            dailyminutes_df[['ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Down4', 'RSI14']])
+        dailyminuteswithALGOresults_df['Buy_5D'] = Buy_5D
+        print(Buy_5D)
+        if Buy_5D[-1]:
+            print("Buy_5D Signal")
+            send_notifications.email_me_string("Buy_5D:", "Call",
+                                               ticker)
+            try:
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5,'buy_5D')
+                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
 
+
+                print("sending tweet")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5D {formatted_time}",300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+        else:
+            print('No Buy_5D Signal')
+
+    except KeyError as e1:
+        print(Exception)
+    try:
+        Sell_5D = trained_models.Sell_5D(
+            dailyminutes_df[['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4']])
+
+        dailyminuteswithALGOresults_df['Sell_5D'] = Sell_5D
+        if Sell_5D[-1]:
+            print('Sell_5D  Signal.')
+            send_notifications.email_me_string("Sell_5D", "Put",
+                                               ticker)
+
+            try:
+                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5,'5D')
+
+                print("sending tweet")
+                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5D {formatted_time}", 300)
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+
+        else:
+            print('No Sell_5D Signal.')
+
+    except Exception as e1:
+        print(Exception)
     try:
         Buy_5C = trained_models.Buy_5C(
             dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4',

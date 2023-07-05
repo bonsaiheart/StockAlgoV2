@@ -1,29 +1,23 @@
 import asyncio
 import datetime
 import logging
-import random
+
 from ib_insync import *
 
-#
-ib = IB()
+# util.startLoop()  # uncomment this line when in a notebook
 
-logging.basicConfig(
-    filename='error_ib.log',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M'
-)
+ib = IB()
+logging.basicConfig(filename='error_ib.log', level=logging.ERROR)
+
 
 def ib_connect():
     if not ib.isConnected():
         print('Connecting')
-        randomclientID = random.randint(0,9999)
         try:
-            ib.connect('192.168.1.119', 7497, clientId=randomclientID, timeout=10)
-            ###use 127.0.0.1 for local
-        except (Exception, asyncio.exceptions.TimeoutError) as e:
-            logging.getLogger().error('Connection error: %s', e)
-            print('Connection error:', e)
+            ib.connect('192.168.1.119', 7497, clientId=1, timeout=10)
+        except (ConnectionRefusedError, asyncio.exceptions.TimeoutError) as e:
+            logging.error('Connection error: %s', e)
+            print('Connection error: %s', e)
             pass
         finally:
             print('hmm')
@@ -38,208 +32,199 @@ gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime(
 
 
 def ib_disconnect():
-    try:
-        ib.disconnect()
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('Connection error: %s', e)
+    ib.disconnect()
 
 
 ##removed quantity
 def placeBuyBracketOrder(ticker, current_price):
-    try:
-        ticker_symbol = ticker
-        ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
-        ib.qualifyContracts(ticker_contract)
+    ticker_symbol = ticker
+    ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
+    ib.qualifyContracts(ticker_contract)
 
-        current_price = current_price
-        quantity = 3  # Replace with the desired order quantity
-        limit_price = current_price  # Replace with your desired limit price
-        take_profit_price = round(current_price * 1.003, 2)  # Replace with your desired take profit price
+    current_price = current_price
+    quantity = 3  # Replace with the desired order quantity
+    limit_price = current_price  # Replace with your desired limit price
+    take_profit_price = round(current_price * 1.003, 2)  # Replace with your desired take profit price
 
-        print(take_profit_price)
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        trailAmount = round(current_price * .003, 2)  # Replace with your desired trailing stop percentage
-        triggerPrice = limit_price
+    print(take_profit_price)
+    stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+    trailAmount = round(current_price * .003, 2)  # Replace with your desired trailing stop percentage
+    triggerPrice = limit_price
 
-        # This will be our main or "parent" order
-        parent = Order()
-        parent.orderId = ib.client.getReqId()
-        parent.action = "BUY"
-        parent.orderType = "LMT"
-        parent.totalQuantity = quantity
-        parent.lmtPrice = limit_price
-        parent.transmit = False
-        parent.outsideRth = True
-        parent.goodTillDate = gtddelta
-        ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
+    # This will be our main or "parent" order
+    parent = Order()
+    parent.orderId = ib.client.getReqId()
+    parent.action = "BUY"
+    parent.orderType = "LMT"
+    parent.totalQuantity = quantity
+    parent.lmtPrice = limit_price
+    parent.transmit = False
+    parent.outsideRth = True
+    parent.goodTillDate = gtddelta
+    ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
+    parent.tif = 'GTD'
 
-        takeProfit = Order()
-        takeProfit.orderId = ib.client.getReqId()
-        takeProfit.action = "SELL" if parent.action \
-                                      == "BUY" else "BUY"
-        takeProfit.outsideRth = True
-        takeProfit.orderType = "LMT"
-        takeProfit.totalQuantity = quantity
-        takeProfit.lmtPrice = take_profit_price
-        takeProfit.parentId = parent.orderId
+    takeProfit = Order()
+    takeProfit.orderId = ib.client.getReqId()
+    takeProfit.action = "SELL" if parent.action \
+                                  == "BUY" else "BUY"
+    takeProfit.outsideRth = True
+    takeProfit.orderType = "LMT"
+    takeProfit.totalQuantity = quantity
+    takeProfit.lmtPrice = take_profit_price
+    takeProfit.parentId = parent.orderId
 
-        takeProfit.transmit = False
+    takeProfit.transmit = False
 
-        stopLoss = Order()
-        stopLoss.orderId = ib.client.getReqId()
-        stopLoss.action = "SELL" if parent.action == "BUY" else "BUY"
-        stopLoss.orderType = "TRAIL"
-        stopLoss.TrailingUnit = 1
-        stopLoss.outsideRth = True
-        stopLoss.auxPrice = trailAmount
-        stopLoss.trailStopPrice = limit_price - trailAmount
-        stopLoss.totalQuantity = quantity
-        stopLoss.parentId = parent.orderId
-        stopLoss.transmit = True
+    stopLoss = Order()
+    stopLoss.orderId = ib.client.getReqId()
+    stopLoss.action = "SELL" if parent.action == "BUY" else "BUY"
+    stopLoss.orderType = "TRAIL"
+    stopLoss.TrailingUnit = 1
+    stopLoss.outsideRth = True
+    stopLoss.auxPrice = trailAmount
+    stopLoss.trailStopPrice = limit_price - trailAmount
+    stopLoss.totalQuantity = quantity
+    stopLoss.parentId = parent.orderId
+    stopLoss.transmit = True
 
-        bracketOrder = [parent, takeProfit, stopLoss]
-        # return bracketOrder
-        for o in bracketOrder:
-            print(ib.placeOrder(ticker_contract, o))
-            ib.sleep(1)
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('BuyBracketOrder error: %s', e)
+    bracketOrder = [parent, takeProfit, stopLoss]
+    # return bracketOrder
+    for o in bracketOrder:
+        print(ib.placeOrder(ticker_contract, o))
+        ib.sleep(1)
+
 
 def placeSellBracketOrder(ticker, current_price):
-    try:
-        ticker_symbol = ticker
-        ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
-        ib.qualifyContracts(ticker_contract)
+    ticker_symbol = ticker
+    ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
+    ib.qualifyContracts(ticker_contract)
 
-        current_price = current_price
-        quantity = 5  # Replace with the desired order quantity
-        limit_price = current_price  # Replace with your desired limit price
-        take_profit_price = round(current_price * .997, 2)  # Replace with your desired take profit price
+    current_price = current_price
+    quantity = 5  # Replace with the desired order quantity
+    limit_price = current_price  # Replace with your desired limit price
+    take_profit_price = round(current_price * .997, 2)  # Replace with your desired take profit price
 
-        print(take_profit_price)
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        trailAmount = round(current_price * .01, 2)  # Replace with your desired trailing stop percentage
-        triggerPrice = limit_price
+    print(take_profit_price)
+    stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+    trailAmount = round(current_price * .01, 2)  # Replace with your desired trailing stop percentage
+    triggerPrice = limit_price
 
-        # This will be our main or "parent" order
-        parent = Order()
-        parent.orderId = ib.client.getReqId()
-        parent.action = "SELL"
-        parent.orderType = "LMT"
-        parent.totalQuantity = quantity
-        parent.outsideRth = True
-        ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
-        parent.goodTillDate = gtddelta
+    # This will be our main or "parent" order
+    parent = Order()
+    parent.orderId = ib.client.getReqId()
+    parent.action = "SELL"
+    parent.orderType = "LMT"
+    parent.totalQuantity = quantity
+    parent.outsideRth = True
+    ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
+    parent.tif = 'GTD'
+    parent.goodTillDate = gtddelta
 
-        parent.lmtPrice = limit_price
-        parent.transmit = False
+    parent.lmtPrice = limit_price
+    parent.transmit = False
 
-        takeProfit = Order()
-        takeProfit.orderId = ib.client.getReqId()
-        takeProfit.outsideRth = True
-        takeProfit.action = "BUY"
-        takeProfit.orderType = "LMT"
-        takeProfit.totalQuantity = quantity
-        takeProfit.lmtPrice = take_profit_price
-        takeProfit.parentId = parent.orderId
+    takeProfit = Order()
+    takeProfit.orderId = ib.client.getReqId()
+    takeProfit.outsideRth = True
+    takeProfit.action = "BUY"
+    takeProfit.orderType = "LMT"
+    takeProfit.totalQuantity = quantity
+    takeProfit.lmtPrice = take_profit_price
+    takeProfit.parentId = parent.orderId
 
-        takeProfit.transmit = False
+    takeProfit.transmit = False
 
-        stopLoss = Order()
-        stopLoss.orderId = ib.client.getReqId()
-        stopLoss.action = "BUY"
-        stopLoss.orderType = "TRAIL"
-        stopLoss.outsideRth = True
-        stopLoss.TrailingUnit = 1
-        stopLoss.auxPrice = trailAmount
-        stopLoss.trailStopPrice = limit_price - trailAmount
-        stopLoss.totalQuantity = quantity
-        stopLoss.parentId = parent.orderId
-        stopLoss.transmit = True
+    stopLoss = Order()
+    stopLoss.orderId = ib.client.getReqId()
+    stopLoss.action = "BUY"
+    stopLoss.orderType = "TRAIL"
+    stopLoss.outsideRth = True
+    stopLoss.TrailingUnit = 1
+    stopLoss.auxPrice = trailAmount
+    stopLoss.trailStopPrice = limit_price - trailAmount
+    stopLoss.totalQuantity = quantity
+    stopLoss.parentId = parent.orderId
+    stopLoss.transmit = True
 
-        bracketOrder = [parent, takeProfit, stopLoss]
-        # return bracketOrder
-        for o in bracketOrder:
-            print(ib.placeOrder(ticker_contract, o))
-            ib.sleep(1)
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('SellBracketOrder error: %s', e)
+    bracketOrder = [parent, takeProfit, stopLoss]
+    # return bracketOrder
+    for o in bracketOrder:
+        print(ib.placeOrder(ticker_contract, o))
+        ib.sleep(1)
+
 
 def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
                           custom_trailamount=None):
-    try:
-        ticker_symbol = ticker
-        print(ticker, exp, strike, current_price)
-        print(type(ticker))
-        print(type(exp))
-        print(type(strike))
-        print(type(current_price))
-        ## needed to remove 'USD' for option
-        ticker_contract = Option(ticker, exp, strike, "C", 'SMART')
-        ib.qualifyContracts(ticker_contract)
-        current_price = round(current_price, 2)
-        quantity = quantity  # Replace with the desired order quantity
-        limit_price = current_price  # Replace with your desired limit price
-        if custom_takeprofit is not None:
-            take_profit_price = round(current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
+    ticker_symbol = ticker
+    print(ticker, exp, strike, current_price)
+    print(type(ticker))
+    print(type(exp))
+    print(type(strike))
+    print(type(current_price))
+    ## needed to remove 'USD' for option
+    ticker_contract = Option(ticker, exp, strike, "C", 'SMART')
+    ib.qualifyContracts(ticker_contract)
+    current_price = round(current_price, 2)
+    quantity = quantity  # Replace with the desired order quantity
+    limit_price = current_price  # Replace with your desired limit price
+    if custom_takeprofit is not None:
+        take_profit_price = round(current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
 
-        else:
-            take_profit_price = round(current_price * 1.15, 2)  # Replace with your desired take profit price
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        if custom_trailamount is not None:
-            trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
+    else:
+        take_profit_price = round(current_price * 1.15, 2)  # Replace with your desired take profit price
+    stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+    if custom_trailamount is not None:
+        trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
 
-        else:
-            trailAmount = round(current_price * .1, 2)  # Replace with your desired trailing stop percentage
+    else:
+        trailAmount = round(current_price * .1, 2)  # Replace with your desired trailing stop percentage
 
-        triggerPrice = limit_price
+    triggerPrice = limit_price
 
-        # This will be our main or "parent" order
-        parent = Order()
-        parent.orderId = ib.client.getReqId()
-        parent.action = "BUY"
-        parent.orderType = "LMT"
-        parent.totalQuantity = quantity
-        parent.lmtPrice = limit_price
-        parent.transmit = False
-        parent.outsideRth = True
-        ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
-        parent.goodTillDate = gtddelta
+    # This will be our main or "parent" order
+    parent = Order()
+    parent.orderId = ib.client.getReqId()
+    parent.action = "BUY"
+    parent.orderType = "LMT"
+    parent.totalQuantity = quantity
+    parent.lmtPrice = limit_price
+    parent.transmit = False
+    parent.outsideRth = True
+    ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
+    parent.tif = 'GTD'
+    parent.goodTillDate = gtddelta
 
-        takeProfit = Order()
-        takeProfit.orderId = ib.client.getReqId()
-        takeProfit.action = "SELL"
-        takeProfit.orderType = "LMT"
-        takeProfit.totalQuantity = quantity
-        takeProfit.lmtPrice = take_profit_price
-        takeProfit.parentId = parent.orderId
-        takeProfit.outsideRth = True
-        takeProfit.transmit = False
+    takeProfit = Order()
+    takeProfit.orderId = ib.client.getReqId()
+    takeProfit.action = "SELL"
+    takeProfit.orderType = "LMT"
+    takeProfit.totalQuantity = quantity
+    takeProfit.lmtPrice = take_profit_price
+    takeProfit.parentId = parent.orderId
+    takeProfit.outsideRth = True
+    takeProfit.transmit = False
 
-        stopLoss = Order()
-        stopLoss.orderId = ib.client.getReqId()
-        stopLoss.action = "SELL"
-        stopLoss.orderType = "TRAIL"
-        stopLoss.TrailingUnit = 1
-        stopLoss.auxPrice = trailAmount
-        stopLoss.trailStopPrice = limit_price - trailAmount
-        stopLoss.totalQuantity = quantity
-        stopLoss.parentId = parent.orderId
-        stopLoss.outsideRth = True
-        stopLoss.transmit = True
+    stopLoss = Order()
+    stopLoss.orderId = ib.client.getReqId()
+    stopLoss.action = "SELL"
+    stopLoss.orderType = "TRAIL"
+    stopLoss.TrailingUnit = 1
+    stopLoss.auxPrice = trailAmount
+    stopLoss.trailStopPrice = limit_price - trailAmount
+    stopLoss.totalQuantity = quantity
+    stopLoss.parentId = parent.orderId
+    stopLoss.outsideRth = True
+    stopLoss.transmit = True
 
-        bracketOrder = [parent, takeProfit, stopLoss]
-        # return bracketOrder
-        for o in bracketOrder:
-            if orderRef != None:
-                o.orderRef = orderRef
-            print(ib.placeOrder(ticker_contract, o))
-            ib.sleep(1)
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlaceCallBracketOrder error: %s', e)
+    bracketOrder = [parent, takeProfit, stopLoss]
+    # return bracketOrder
+    for o in bracketOrder:
+        if orderRef != None:
+            o.orderRef = orderRef
+        print(ib.placeOrder(ticker_contract, o))
+        ib.sleep(1)
+
 
 # outsideRth=True
 ###TODO add this for tracking diff algoes. can have 30 cid.
@@ -285,76 +270,74 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
 
 def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
                          custom_trailamount=None):
-    try:
-        ticker_symbol = ticker
-        print(ticker, exp, strike, current_price)
-        print(type(ticker))
-        print(type(exp))
-        print(type(strike))
-        print(type(current_price))
-        ###needed to remove 'USD' from end.
-        ticker_contract = Option(ticker_symbol, exp, strike, "P", 'SMART')
+    ticker_symbol = ticker
+    print(ticker, exp, strike, current_price)
+    print(type(ticker))
+    print(type(exp))
+    print(type(strike))
+    print(type(current_price))
+    ###needed to remove 'USD' from end.
+    ticker_contract = Option(ticker_symbol, exp, strike, "P", 'SMART')
 
-        current_price = round(current_price, 2)
-        quantity = quantity  # Replace with the desired order quantity
-        limit_price = current_price  # Replace with your desired limit price
-        if custom_takeprofit is not None:
-            take_profit_price = round(current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
+    current_price = round(current_price, 2)
+    quantity = quantity  # Replace with the desired order quantity
+    limit_price = current_price  # Replace with your desired limit price
+    if custom_takeprofit is not None:
+        take_profit_price = round(current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
 
-        else:
-            take_profit_price = round(current_price * 1.15, 2)  # Replace with your desired take profit price
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        if custom_trailamount is not None:
-            trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
+    else:
+        take_profit_price = round(current_price * 1.15, 2)  # Replace with your desired take profit price
+    stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+    if custom_trailamount is not None:
+        trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
 
-        else:
-            trailAmount = round(current_price * .1, 2)  # Replace with your desired trailing stop percentage
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        triggerPrice = limit_price
+    else:
+        trailAmount = round(current_price * .1, 2)  # Replace with your desired trailing stop percentage
+    stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+    triggerPrice = limit_price
 
-        # This will be our main or "parent" order
-        parent = Order()
-        parent.orderId = ib.client.getReqId()
-        parent.action = "BUY"
-        parent.orderType = "LMT"
-        parent.totalQuantity = quantity
-        parent.lmtPrice = limit_price
-        parent.transmit = False
-        parent.outsideRth = True
-        ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
-        parent.goodTillDate = gtddelta
+    # This will be our main or "parent" order
+    parent = Order()
+    parent.orderId = ib.client.getReqId()
+    parent.action = "BUY"
+    parent.orderType = "LMT"
+    parent.totalQuantity = quantity
+    parent.lmtPrice = limit_price
+    parent.transmit = False
+    parent.outsideRth = True
+    ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
+    parent.tif = 'GTD'
+    parent.goodTillDate = gtddelta
 
-        takeProfit = Order()
-        takeProfit.orderId = ib.client.getReqId()
-        takeProfit.action = "SELL"
-        takeProfit.orderType = "LMT"
-        takeProfit.totalQuantity = quantity
-        takeProfit.lmtPrice = take_profit_price
-        takeProfit.parentId = parent.orderId
-        takeProfit.outsideRth = True
-        takeProfit.transmit = False
+    takeProfit = Order()
+    takeProfit.orderId = ib.client.getReqId()
+    takeProfit.action = "SELL"
+    takeProfit.orderType = "LMT"
+    takeProfit.totalQuantity = quantity
+    takeProfit.lmtPrice = take_profit_price
+    takeProfit.parentId = parent.orderId
+    takeProfit.outsideRth = True
+    takeProfit.transmit = False
 
-        stopLoss = Order()
-        stopLoss.orderId = ib.client.getReqId()
-        stopLoss.action = "SELL"
-        stopLoss.orderType = "TRAIL"
-        stopLoss.TrailingUnit = 1
-        stopLoss.auxPrice = trailAmount
-        stopLoss.trailStopPrice = limit_price - trailAmount
-        stopLoss.totalQuantity = quantity
-        stopLoss.parentId = parent.orderId
-        stopLoss.transmit = True
-        stopLoss.outsideRth = True
-        bracketOrder = [parent, takeProfit, stopLoss]
-        # return bracketOrder
-        for o in bracketOrder:
-            if orderRef != None:
-                o.orderRef = orderRef
-            print(ib.placeOrder(ticker_contract, o))
-            ib.sleep(1)
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlacePutBracketOrder error: %s', e)
+    stopLoss = Order()
+    stopLoss.orderId = ib.client.getReqId()
+    stopLoss.action = "SELL"
+    stopLoss.orderType = "TRAIL"
+    stopLoss.TrailingUnit = 1
+    stopLoss.auxPrice = trailAmount
+    stopLoss.trailStopPrice = limit_price - trailAmount
+    stopLoss.totalQuantity = quantity
+    stopLoss.parentId = parent.orderId
+    stopLoss.transmit = True
+    stopLoss.outsideRth = True
+    bracketOrder = [parent, takeProfit, stopLoss]
+    # return bracketOrder
+    for o in bracketOrder:
+        if orderRef != None:
+            o.orderRef = orderRef
+        print(ib.placeOrder(ticker_contract, o))
+        ib.sleep(1)
+
 
 ###TODO diff client id for diff stat. and add options.
 """

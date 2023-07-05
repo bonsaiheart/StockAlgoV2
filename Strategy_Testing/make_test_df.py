@@ -37,16 +37,16 @@ def get_1st_frames_make_single_multiday_df(ticker):
                         dataframe_slice = dataframe_slice.iloc[:1]
                         dataframe_slice["date"] = filename[-15:-9]
                         dataframe_slice["time"] = filename[-8:-4]
-                        if len(list_of_df) > 2:
-                            try:
-                                if dataframe_slice.loc[0]["Current Stock Price"] < list_of_df[-1].loc[0]["Current Stock Price"]:
-                                    dataframe_slice["Up or down"] = "0"
-                                elif dataframe_slice.loc[0]["Current Stock Price"] > list_of_df[-1].loc[0][
-                                    "Current Stock Price"]:
-                                    dataframe_slice["Up or down"] = "1"
+                        # if len(list_of_df) > 2:
+                        #     try:
+                        #         if dataframe_slice.loc[0]["Current Stock Price"] < list_of_df[-1].loc[0]["Current Stock Price"]:
+                        #             dataframe_slice["Up or down"] = "0"
+                        #         elif dataframe_slice.loc[0]["Current Stock Price"] > list_of_df[-1].loc[0][
+                        #             "Current Stock Price"]:
+                        #             dataframe_slice["Up or down"] = "1"
 
-                            except KeyError:
-                                pass
+                            # except KeyError:
+                            #     pass
 
                         list_of_df.append(dataframe_slice)
                         # move "time" column to the first position
@@ -251,7 +251,7 @@ def daily_series_prep_for_backtest(ticker,df):
     # #combine bonsai # and itmpcrv,  then bonsai and niv?  hwat else
 # df = pd.read_csv(r"C:\Users\natha\PycharmProjects\StockAlgoV2\Historical_Data_Scraper\data\Historical_Processed_ChainData\SPY.csv")
 # daily_series_prep_for_backtest("SPY",df)
-tickers=['spy','tsla','roku','chwy']
+tickers=['spy']
 for x in tickers:
     ticker,df = get_1st_frames_make_single_multiday_df(x)
     print(ticker)
