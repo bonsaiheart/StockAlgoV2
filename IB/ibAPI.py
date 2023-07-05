@@ -7,8 +7,13 @@ from ib_insync import *
 # util.startLoop()  # uncomment this line when in a notebook
 
 ib = IB()
-logging.basicConfig(filename='error_ib.log', level=logging.ERROR)
 
+logging.basicConfig(
+    filename='error_ib.log',
+    level=logging.ERROR,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M'
+)
 
 def ib_connect():
     if not ib.isConnected():
