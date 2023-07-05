@@ -21,9 +21,9 @@ def ib_connect():
         try:
             ib.connect('192.168.1.119', 7497, clientId=1, timeout=10)
             ###use 127.0.0.1 for local
-        except (ConnectionRefusedError, asyncio.exceptions.TimeoutError) as e:
-            logging.error('Connection error: %s', e)
-            print('Connection error: %s', e)
+        except (Exception, asyncio.exceptions.TimeoutError) as e:
+            logging.error('Connection error: ', e)
+            print('Connection error:', e)
             pass
         finally:
             print('hmm')
