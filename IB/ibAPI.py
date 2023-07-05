@@ -1,11 +1,10 @@
 import asyncio
 import datetime
 import logging
-
+import random
 from ib_insync import *
 
-# util.startLoop()  # uncomment this line when in a notebook
-
+#
 ib = IB()
 
 logging.basicConfig(
@@ -18,11 +17,12 @@ logging.basicConfig(
 def ib_connect():
     if not ib.isConnected():
         print('Connecting')
+        randomclientID = random.randint(0,9999)
         try:
-            ib.connect('192.168.1.119', 7497, clientId=1, timeout=10)
+            ib.connect('192.168.1.119', 7497, clientId=randomclientID, timeout=10)
             ###use 127.0.0.1 for local
         except (Exception, asyncio.exceptions.TimeoutError) as e:
-            logging.error('Connection error: ', e)
+            logging.getLogger().error('Connection error: %s', e)
             print('Connection error:', e)
             pass
         finally:
@@ -41,7 +41,7 @@ def ib_disconnect():
     try:
         ib.disconnect()
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('Connection error: ', e)
+        logging.error('Connection error: %s', e)
 
 
 ##removed quantity
@@ -104,7 +104,7 @@ def placeBuyBracketOrder(ticker, current_price):
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('BuyBracketOrder error: ', e)
+        logging.error('BuyBracketOrder error: %s', e)
 
 def placeSellBracketOrder(ticker, current_price):
     try:
@@ -165,7 +165,7 @@ def placeSellBracketOrder(ticker, current_price):
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('SellBracketOrder error: ', e)
+        logging.error('SellBracketOrder error: %s', e)
 
 def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
                           custom_trailamount=None):
@@ -239,7 +239,7 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlaceCallBracketOrder error: ', e)
+        logging.error('PlaceCallBracketOrder error: %s', e)
 
 # outsideRth=True
 ###TODO add this for tracking diff algoes. can have 30 cid.
@@ -354,7 +354,7 @@ def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlacePutBracketOrder error: ', e)
+        logging.error('PlacePutBracketOrder error: %s', e)
 
 ###TODO diff client id for diff stat. and add options.
 """

@@ -9,7 +9,6 @@ def save_market_schedule_to_file():
     today = datetime.utcnow().date()
     market_schedule = nyse.schedule(start_date=today, end_date=today)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
-    print(type(market_schedule['market_open_utc']))
     market_schedule["market_close_utc"] = pd.to_datetime(market_schedule["market_close"])
     market_schedule.to_csv("market_schedule.csv", index=True)
 def is_market_open_now():
@@ -28,14 +27,11 @@ def is_market_open_now():
     print(today_timestamp,market_schedule.loc[today_timestamp, "market_open_utc"]
         )
     if today_timestamp in market_schedule.index:
-        print('hksdhafsfd')
-        print(today,today_timestamp)
         market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"].time()
         market_close_utc = market_schedule.loc[today_timestamp, "market_close_utc"].time()
 
         # Get the current time in UTC
         now_utc = datetime.utcnow().time()
-        print(now_utc,today,market_open_utc,market_close_utc)
         if market_open_utc <= now_utc <= market_close_utc:
             print("The stock market is currently open.")
             is_market_open = True

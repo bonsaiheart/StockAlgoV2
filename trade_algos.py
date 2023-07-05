@@ -1079,36 +1079,41 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
 # # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
 #
-#     if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 and dailyminutes_df['RSI'].iloc[-1]<30:
-#         send_notifications.email_me_string("dailyminutes_df['B1/B2'][0] > 1.15 and dailyminutes_df['RSI'][0]<30:", "Call",
-#                                            ticker)
-#         # try:
-#         #     # IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1)
-#         # except Exception as e:
-#         #     print(e)
-#         # finally:
-#         #     pass
-#         # TradierAPI.buy(x)
-#
-#         #
-#         #         IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1), response.status_code, json_response)
-#
-#         if ticker=="SPY":
-#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up', f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
-# ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-#     if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1]>70:
-#         send_notifications.email_me_string("dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put",
-#                                            ticker)
-#         # try:
-#         #     # IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,1)
-#         #
-#         # except Exception as e:
-#         #     print(e)
-#         # finally:
-#         #     pass
-#         if ticker == "SPY":
-#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
-#
+    if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 and dailyminutes_df['RSI'].iloc[-1]<30:
+        send_notifications.email_me_string("dailyminutes_df['B1/B2'][0] > 1.15 and dailyminutes_df['RSI'][0]<30:", "Call",
+                                           ticker)
+
+
+        try:
+            IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1)
+
+            print("sending tweet")
+            # send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+            #                                                    f"${ticker} has hit ${current_price}. 20 min and you'll make profit on a PUT. #A4 {formatted_time}",
+            #                                                    1200)
+
+        except Exception as e:
+            print(e)
+        finally:
+            pass
+
+
+
+####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
+    if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1]>70:
+        send_notifications.email_me_string("dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put",
+                                           ticker)
+        try:
+            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,1)
+
+        except Exception as e:
+            print(e)
+        finally:
+            pass
+        # if ticker == "SPY":
+        #     send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
+
 # #### TESTING JUST RSI
 #     if dailyminutes_df['RSI'].iloc[-1] < 22:
 #         send_notifications.email_me_string("['RSI'][-1] < 22:", "Call",
