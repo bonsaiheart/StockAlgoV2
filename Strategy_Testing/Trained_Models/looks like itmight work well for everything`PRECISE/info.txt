@@ -1,0 +1,36 @@
+This file contains information about the model.
+
+File analyzed: ../historical_minute_DF/SPY/230603_SPY.csv
+Lookahead Target: 1 hour later change %
+
+Best parameters for Target_Up: {'max_depth': None, 'min_samples_split': 60, 'n_estimators': 250}. 
+Best precision: 0.939075630252101
+Best parameters for Target_Down: {'max_depth': None, 'min_samples_split': 80, 'n_estimators': 250}. 
+Best precision: 0.8890667636300927
+
+Metrics for Target_Up:
+Precision: 0.8666666666666667
+Accuracy: 0.9246231155778895
+Recall: 0.5
+F1-Score: 0.6341463414634146
+Cross-validation scores for Target_Up: [0.85714286 0.87755102 0.85714286]
+Mean cross-validation score for Target_Up: 0.8639455782312925
+
+Metrics for Target_Down:
+Precision: 1.0
+Accuracy: 0.8140703517587939
+Recall: 0.38333333333333336
+F1-Score: 0.5542168674698795
+Cross-validation scores for Target_Down: [
+0.83673469 0.65306122 0.73469388]
+Mean cross-validation score for Target_Down: 0.7414965986394558
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4', 'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2', 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc', 'B1% Change', 'B2% Change']
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up2', 'ITM OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-4', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up3', 'ITM PCRoi Down4', 'ITM OI', 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike', 'NIV 1Lower Strike', 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike', 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike', 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']
+
+Threshold Up(sensitivity): 0.5
+Threshold Down(sensitivity): 0.8
+Target Underlying Percentage Up: 0.3
+Target Underlying Percentage Down: -0.2

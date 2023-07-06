@@ -1,0 +1,42 @@
+This file contains information about the model.
+
+File analyzed: ../historical_multiday_minute_DF/SPY/230626_SPY.csv
+Cells_Foward_to_check: 5
+
+Best parameters for Target_Up: OrderedDict([('max_depth', 5), ('min_samples_split', 3), ('n_estimators', 100)]). 
+Best precision: 0.9761361396865084
+Best parameters for Target_Down: OrderedDict([('max_depth', 3), ('min_samples_split', 2), ('n_estimators', 50)]). 
+Best precision: 0.9866793435145418
+
+Metrics for Target_Up:
+Precision: 0.9844444444444445
+Accuracy: 0.9547657512116317
+Recall: 0.9004065040650406
+F1-Score: 0.940552016985138
+Cross-validation scores for Target_Up: [0.94660194 0.96116505 0.95631068 0.95631068 0.94660194]
+Mean cross-validation score for Target_Up: 0.9533980582524272
+
+Metrics for Target_Down:
+Precision: 0.9895470383275261
+Accuracy: 0.944264943457189
+Recall: 0.8114285714285714
+F1-Score: 0.891679748822606
+Cross-validation scores for Target_Down: [0.95145631 0.96601942 0.98058252 0.95145631 0.96116505]
+Mean cross-validation score for Target_Down: 0.962135922330097
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']
+
+Selected Features Up:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4'],
+      dtype='object')
+Selected Features Down:, Index(['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4',
+       'ITM PCRoi Up4', 'ITM PCRoi Down4'],
+      dtype='object')
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']
+
+Threshold Up(sensitivity): 0.7
+Threshold Down(sensitivity): 0.7
+Target Underlying Percentage Up: 0.3
+Target Underlying Percentage Down: -0.3

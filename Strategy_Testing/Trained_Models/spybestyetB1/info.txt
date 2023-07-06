@@ -1,0 +1,44 @@
+This file contains information about the model.
+
+File analyzed: ../historical_multiday_minute_DF/SPY/230622_SPY.csv
+Lookahead Target: 45 min later change %
+
+Best parameters for Target_Up: OrderedDict([('max_depth', 100), ('min_samples_split', 20), ('n_estimators', 80)]). 
+Best precision: 0.8904802500710428
+Best parameters for Target_Down: OrderedDict([('max_depth', 100), ('min_samples_split', 20), ('n_estimators', 80)]). 
+Best precision: 0.9055365802234873
+
+Metrics for Target_Up:
+Precision: 0.9032258064516129
+Accuracy: 0.9363057324840764
+Recall: 0.8
+F1-Score: 0.8484848484848486
+Cross-validation scores for Target_Up: [0.70512821 0.79487179 0.79487179]
+Mean cross-validation score for Target_Up: 0.7649572649572649
+
+Metrics for Target_Down:
+Precision: 0.8928571428571429
+Accuracy: 0.9331210191082803
+Recall: 0.8620689655172413
+F1-Score: 0.8771929824561403
+Cross-validation scores for Target_Down: [0.75641026 0.87179487 0.87179487]
+Mean cross-validation score for Target_Down: 0.8333333333333334
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4', 'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34']
+
+Selected Features Up:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4',
+       'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34'],
+      dtype='object')
+Selected Features Down:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4',
+       'RSI', 'RSI14', 'RSI2', 'AwesomeOsc5_34'],
+      dtype='object')
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4', 'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4', 'RSI', 'RSI14', 'RSI2', 'AwesomeOsc5_34']
+
+Threshold Up(sensitivity): 0.5
+Threshold Down(sensitivity): 0.5
+Target Underlying Percentage Up: 0.15
+Target Underlying Percentage Down: -0.15

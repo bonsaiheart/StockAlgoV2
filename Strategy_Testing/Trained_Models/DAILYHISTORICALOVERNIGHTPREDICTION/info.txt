@@ -1,0 +1,40 @@
+This file contains information about the model.
+
+File analyzed: ../../Algo_backtest_historicaldaily.csv
+Cells_Foward_to_check: 20
+
+Best parameters for Target_Up: OrderedDict([('max_depth', 5), ('min_samples_split', 9), ('n_estimators', 100)]). 
+Best precision: 0.8081023454157782
+Best parameters for Target_Down: OrderedDict([('max_depth', 5), ('min_samples_split', 9), ('n_estimators', 80)]). 
+Best precision: 0.8133597883597884
+
+Metrics for Target_Up:
+Precision: 0.8493150684931506
+Accuracy: 0.42487046632124353
+Recall: 0.38271604938271603
+F1-Score: 0.5276595744680851
+Cross-validation scores for Target_Up: [0.91666667 0.8125     0.8125    ]
+Mean cross-validation score for Target_Up: 0.8472222222222222
+
+Metrics for Target_Down:
+Precision: 0.8796992481203008
+Accuracy: 0.694300518134715
+Recall: 0.73125
+F1-Score: 0.7986348122866894
+Cross-validation scores for Target_Down: [0.83333333 0.85416667 0.79166667]
+Mean cross-validation score for Target_Down: 0.8263888888888888
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRoi Up2', 'ITM PCRoi Down2', 'RSI', 'AwesomeOsc']
+
+Selected Features Up:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol',
+       'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRoi Up2'],
+      dtype='object')
+Selected Features Down:, Index(['B1/B2', 'ITM PCRoi Down2'], dtype='object')
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRoi Up2']
+Best_Predictors_Selected Down: ['B1/B2', 'ITM PCRoi Down2']
+
+Threshold Up(sensitivity): 0.8
+Threshold Down(sensitivity): 0.8
+Target Underlying Percentage Up: 1.005
+Target Underlying Percentage Down: 0.995

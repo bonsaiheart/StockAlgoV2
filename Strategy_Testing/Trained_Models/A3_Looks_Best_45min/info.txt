@@ -1,0 +1,42 @@
+This file contains information about the model.
+
+File analyzed: ../historical_multiday_minute_DF/SPY/230622_SPY.csv
+Cells_Foward_to_check: 45
+
+Best parameters for Target_Up: OrderedDict([('max_depth', 5), ('min_samples_split', 2), ('n_estimators', 100)]). 
+Best precision: 0.980397527525187
+Best parameters for Target_Down: OrderedDict([('max_depth', 5), ('min_samples_split', 3), ('n_estimators', 80)]). 
+Best precision: 0.9852366671467884
+
+Metrics for Target_Up:
+Precision: 0.9902439024390244
+Accuracy: 0.9699828473413379
+Recall: 0.9290617848970252
+F1-Score: 0.9586776859504132
+Cross-validation scores for Target_Up: [0.93298969 0.93814433 0.96391753 0.97938144 0.95876289]
+Mean cross-validation score for Target_Up: 0.9546391752577319
+
+Metrics for Target_Down:
+Precision: 0.9904306220095693
+Accuracy: 0.9819897084048027
+Recall: 0.915929203539823
+F1-Score: 0.9517241379310345
+Cross-validation scores for Target_Down: [0.96391753 0.93814433 0.96391753 0.98453608 0.96907216]
+Mean cross-validation score for Target_Down: 0.9639175257731958
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']
+
+Selected Features Up:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCRv Down4',
+       'ITM PCRoi Up4', 'ITM PCRoi Down4'],
+      dtype='object')
+Selected Features Down:, Index(['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4',
+       'ITM PCRoi Up4', 'ITM PCRoi Down4'],
+      dtype='object')
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']
+
+Threshold Up(sensitivity): 0.5
+Threshold Down(sensitivity): 0.6
+Target Underlying Percentage Up: 0.5
+Target Underlying Percentage Down: -0.5

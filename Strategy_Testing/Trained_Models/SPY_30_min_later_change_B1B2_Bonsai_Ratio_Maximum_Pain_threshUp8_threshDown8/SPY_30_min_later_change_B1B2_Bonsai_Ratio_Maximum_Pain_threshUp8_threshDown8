@@ -1,0 +1,26 @@
+This file contains information about the model.
+
+Metrics for Target_Up:
+Precision: 1.0
+Accuracy: 0.9261083743842364
+Recall: 0.21052631578947367
+F1-Score: 0.34782608695652173
+Cross-validation scores for Target_Up: [0.59803922 0.98039216 0.5049505  0.94059406 0.92079208 0.81188119
+ 1.         0.91089109 0.94059406 0.91089109]
+Mean cross-validation score for Target_Up: 0.8519025431954962
+
+Metrics for Target_Down:
+Precision: 0.0
+Accuracy: 0.8916256157635468
+Recall: 0.0
+F1-Score: 0.0
+Cross-validation scores for Target_Down: [0.98039216 0.94117647 0.91089109 0.91089109 0.91089109 0.9009901
+ 0.43564356 0.9009901  0.40594059 0.95049505]Mean cross-validation score for Target_Down: 0.8248301300718307
+
+File analyzed: historical_minute_DF/SPY.csv
+Lookahead Target: 30 min later change %
+Predictors: ['B1/B2', 'Bonsai Ratio', 'Maximum Pain']
+Threshold Up(sensitivity): 0.6
+Threshold Down(sensitivity): 0.7
+Target Underlying Percentage Up: 0.3
+Target Underlying Percentage Down: -0.3

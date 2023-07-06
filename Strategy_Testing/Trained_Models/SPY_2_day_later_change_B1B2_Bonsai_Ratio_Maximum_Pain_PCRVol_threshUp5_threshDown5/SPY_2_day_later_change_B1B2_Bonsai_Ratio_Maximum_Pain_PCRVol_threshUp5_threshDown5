@@ -1,0 +1,21 @@
+This file contains information about the model.
+
+Metrics for Target_Down: 
+ Precision: 1.0
+ Accuracy: 0.7478991596638656
+ Recall: 0.03225806451612903
+ F1-Score: 0.0625
+
+Metrics for Target_Up: 
+ Precision: 0.782608695652174
+ Accuracy: 0.865546218487395
+ Recall: 0.6206896551724138
+ F1 - Score: 0.6923076923076923
+
+File analyzed: historical_daily_DF/historical_daily_SPY.csv
+Lookahead Target: 2 day later change %
+Predictors: ['B1/B2', 'Bonsai Ratio', 'Maximum Pain', 'PCR-Vol']
+Threshhold Up(sensitivity): 0.5
+Threshhold Down(sensitivity): 0.5
+Target Underlying Percentage Up: 1
+Target Underlying Percentage Down: -1

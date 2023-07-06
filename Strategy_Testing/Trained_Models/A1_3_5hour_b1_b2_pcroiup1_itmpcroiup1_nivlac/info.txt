@@ -1,0 +1,39 @@
+This file contains information about the model.
+
+File analyzed: ../historical_multiday_minute_DF/SPY/230616_SPY.csv
+Lookahead Target: 5 hour later change %
+
+Best parameters for Target_Up: OrderedDict([('max_depth', 100), ('min_samples_split', 10), ('n_estimators', 15)]). 
+Best precision: 0.7426859935537431
+Best parameters for Target_Down: OrderedDict([('max_depth', 100), ('min_samples_split', 10), ('n_estimators', 80)]). 
+Best precision: 0.9695510199620445
+
+Metrics for Target_Up:
+Precision: 0.834051724137931
+Accuracy: 0.8177676537585421
+Recall: 0.823404255319149
+F1-Score: 0.828693790149893
+Cross-validation scores for Target_Up: [0.94063927 0.92694064 0.89497717]
+Mean cross-validation score for Target_Up: 0.9208523592085237
+
+Metrics for Target_Down:
+Precision: 0.9452631578947368
+Accuracy: 0.9612756264236902
+Recall: 0.9824945295404814
+F1-Score: 0.963519313304721
+Cross-validation scores for Target_Down: [0.8630137  0.90410959 0.88584475]
+Mean cross-validation score for Target_Down: 0.8843226788432267
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1', 'Net IV LAC']
+
+Selected Features Up:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1'], dtype='object')
+Selected Features Down:, Index(['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1', 'Net IV LAC'],
+      dtype='object')
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1', 'Net IV LAC']
+
+Threshold Up(sensitivity): 0.5
+Threshold Down(sensitivity): 0.5
+Target Underlying Percentage Up: 0.2
+Target Underlying Percentage Down: -0.2
