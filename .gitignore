@@ -133,3 +133,5 @@ dmypy.json
 .pyre/
 /did.bin
 /Historical_Data_Scraper/data/historical_optionchain/SPY.csv
+/data/**
+
