@@ -2,7 +2,7 @@ import pandas as pd
 from Strategy_Testing.trained_models  import *
 
 
-dailyminutes_df = pd.read_csv(r"Strategy_Testing/historical_multiday_minute_DF/SPY/230627_SPY.csv")
+dailyminutes_df = pd.read_csv(r"Strategy_Testing/historical_multiday_minute_DF/SPY/230705_SPY.csv")
 dailyminutes_df.dropna(inplace=True)
 ###TODO adding new
 # BuyHistA1 = A1_Buy_historical_prediction(dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol',
@@ -10,6 +10,14 @@ dailyminutes_df.dropna(inplace=True)
 # dailyminutes_df['BuyHistA1'] = BuyHistA1
 # SellHistA1 = A1_Sell_historical_prediction(dailyminutes_df[['B1/B2', 'ITM PCRoi Down2']])
 # dailyminutes_df['SellHistA1'] = SellHistA1
+Buy_5D = Buy_5D(
+            dailyminutes_df[['ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Down4', 'RSI14']])
+dailyminutes_df['Buy_5D'] = Buy_5D
+
+Sell_5D = Sell_5D(
+    dailyminutes_df[['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4']])
+dailyminutes_df['Sell_5D'] = Sell_5D
+
 Buy_5A = Buy_5A(
             dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
        'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])

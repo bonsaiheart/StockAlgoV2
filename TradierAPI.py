@@ -1,5 +1,5 @@
 import requests
-import send_notifications as send_notifications
+from UTILITIES.Send_Notifications import send_notifications as send_notifications
 import PrivateData.tradier_info
 
 paper_acc = PrivateData.tradier_info.paper_acc
@@ -53,7 +53,7 @@ def buy(order):
     json_response = response.json()
     print(response.status_code)
     print(json_response)
-    send_notifications.email_me_string(order,response.status_code,json_response)
+    send_notifications.email_me_string(order, response.status_code, json_response)
 
 def get_cost_basis():
     print("getting cost basis...")

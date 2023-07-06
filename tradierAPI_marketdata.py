@@ -4,9 +4,7 @@ import pandas as pd
 import ta
 from pathlib import Path
 import numpy as np
-import TradierAPI
 import PrivateData.tradier_info
-import send_notifications as send_notifications
 
 # import webullAPI
 

@@ -25,10 +25,9 @@ for subdir in os.listdir(directory):
 
 # Concatenate all the DataFrames in the list
 result_df = pd.concat(df_list)
-BuyHistA1 = trained_models.A1_Buy_historical_prediction(result_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol',
-       'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRoi Up2']])
+BuyHistA1 = trained_models.A1_Buy_historical_prediction(result_df)
 result_df['BuyHistA1'] = BuyHistA1
-SellHistA1 = trained_models.A1_Sell_historical_prediction(result_df[['B1/B2', 'ITM PCRoi Down2']])
+SellHistA1 = trained_models.A1_Sell_historical_prediction(result_df)
 result_df['SellHistA1'] = SellHistA1
 
 # Save the concatenated DataFrame to a CSV file

@@ -1,37 +1,27 @@
 import logging
 import traceback
-
-# Configure the logging settings
-logging.basicConfig(filename='error.log', level=logging.ERROR)
-from datetime import datetime,timedelta
-from Strategy_Testing.trained_models import *
+import pandas as pd
+from datetime import datetime
 import numpy as np
 from Strategy_Testing import trained_models
-import pandas as pd
 import IB.ibAPI
-import send_notifications as send_notifications
+from UTILITIES.Send_Notifications import send_notifications as send_notifications
+logging.basicConfig(filename='error.log', level=logging.ERROR)
 logging.basicConfig(filename='trade_algos_error.log', level=logging.ERROR,    format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S')
-# dailyminutes_df= pd.read_csv('data/DailyMinutes/SPY/SPY_230616.csv')
-# print(trained_models.get_sell_signal_NewPerhapsExcellentTargetDown5to15minSPY(
-#             dailyminutes_df[["Bonsai Ratio", "Net ITM IV",'RSI']]))
+
 now = datetime.now()
 formatted_time = now.strftime("%y%m%d %H:%M EST")
 
 def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
-    import pandas as pd
     expdates_strikes_dict = {}
     for index, row in processeddata.iterrows():
         key = row['ExpDate']
         value = row['Closest Strike Above/Below(below to above,4 each) list']
         expdates_strikes_dict[key] = value
-    # expiration_dates = processeddata['ExpDate'].astype(str)
-    # strikeindex_abovebelow = processeddata['Closest Strike Above/Below(below to above,4 each) list']
-
 
     closest_exp_date =  list(expdates_strikes_dict.keys())[0]
-    closest_strike_expdate_currentprice = expdates_strikes_dict[closest_exp_date][4]
     strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
     optionchain = pd.read_csv(optionchain)
     dailyminutes_df = pd.read_csv(dailyminutes)
@@ -45,11 +35,9 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 ####Different strikes converted to contract form.
     ##This one is the strike one above Closest to Current price strike
 
-
     if strikeindex_closest_expdate[0] != np.nan:
         ib_four_strike_below = strikeindex_closest_expdate[0]
         four_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[0] * 1000)
-
     if strikeindex_closest_expdate[1] != np.nan:
         ib_three_strike_below = strikeindex_closest_expdate[1]
         three_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[1] * 1000)
@@ -71,7 +59,6 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     if strikeindex_closest_expdate[7] != np.nan:
         ib_four_strike_above = strikeindex_closest_expdate[8]
         four_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[7] * 1000)
-    # print(dailyminutes_df["Closest Strike to CP"])
     closest_strike_exp_int_num = int(strikeindex_closest_expdate[5] * 1000)  # Convert decimal to integer
     ###TODO add different exp date options in addition to diff strike optoins.
 
@@ -136,10 +123,17 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     """
     Algo Rules go here:
     """
+
+    Buy_15min_A1 = trained_models.Buy_15min_A1(
+        dailyminutes_df)
+    dailyminuteswithALGOresults_df['Buy_15min_A1'] = Buy_15min_A1
+
+    Sell_15min_A1 = trained_models.Sell_15min_A1( dailyminutes_df)
+    dailyminuteswithALGOresults_df['Sell_15min_A1'] = Sell_15min_A1
     # dailyminutes_df_w_ALGO_results=dailyminutes_df
     try:
         Buy_5D = trained_models.Buy_5D(
-            dailyminutes_df[['ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Down4', 'RSI14']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_5D'] = Buy_5D
         print(Buy_5D)
         if Buy_5D[-1]:
@@ -153,7 +147,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
                 print("sending tweet")
                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5D {formatted_time}",300)
+                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5D {formatted_time}", 300)
 
             except Exception as e:
                 print(e)
@@ -168,7 +162,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_5D = trained_models.Sell_5D(
-            dailyminutes_df[['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_5D'] = Sell_5D
         if Sell_5D[-1]:
@@ -197,8 +191,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Buy_5C = trained_models.Buy_5C(
-            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4',
-       'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_5C'] = Buy_5C
         print(Buy_5C)
         if Buy_5C[-1]:
@@ -212,7 +205,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
                 print("sending tweet")
                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5C {formatted_time}",300)
+                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5C {formatted_time}", 300)
 
             except Exception as e:
                 print(e)
@@ -227,7 +220,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_5C = trained_models.Sell_5C(
-            dailyminutes_df[['Bonsai Ratio', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_5C'] = Sell_5C
         if Sell_5C[-1]:
@@ -256,8 +249,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Buy_5B = trained_models.Buy_5B(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
-       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_5B'] = Buy_5B
         print(Buy_5B)
         if Buy_5B[-1]:
@@ -286,8 +278,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_5B = trained_models.Sell_5B(
-            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRoi Up4',
-       'ITM PCRoi Down4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_5B'] = Sell_5B
         if Sell_5B[-1]:
@@ -296,7 +287,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
                                                ticker)
             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5B {formatted_time}",
-                                                              300)
+                                                               300)
             try:
                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
 
@@ -317,8 +308,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Buy_5A = trained_models.Buy_5A(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
-       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_5A'] = Buy_5A
         print(Buy_5A)
         if Buy_5A[-1]:
@@ -347,8 +337,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_5A = trained_models.Sell_5A(
-            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4',
-       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_5A'] = Sell_5A
         if Sell_5A[-1]:
@@ -377,8 +366,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Buy_A5 = trained_models.Buy_A5(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4',
-       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_A5'] = Buy_A5
         print(Buy_A5)
         if Buy_A5[-1]:
@@ -407,8 +395,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_A5 = trained_models.Sell_A5(
-            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4',
-       'ITM PCRoi Down4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_A5'] = Sell_A5
         if Sell_A5[-1]:
@@ -438,8 +425,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Buy_A4 = trained_models.Buy_A4(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCRv Down4',
-       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_A4'] = Buy_A4
         print(Buy_A4)
         if Buy_A4[-1]:
@@ -468,8 +454,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_A4 = trained_models.Sell_A4(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
-       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_A4'] = Sell_A4
         if Sell_A4[-1]:
@@ -499,8 +484,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Buy_A3 = trained_models.Buy_A3(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCRv Down4',
-       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
         dailyminuteswithALGOresults_df['Buy_A3'] = Buy_A3
         print(Buy_A3)
         # if Buy_A3[-1]:
@@ -529,8 +513,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_A3 = trained_models.Sell_A3(
-            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRv Down4',
-       'ITM PCRoi Up4', 'ITM PCRoi Down4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_A3'] = Sell_A3
         # if Sell_A3[-1]:
@@ -560,9 +543,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
 
     try:
-        Buy_30min_9sallaround = trained_models.Buy_30min_9sallaround(dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
-       'ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Up4', 'ITM PCRoi Down4',
-       'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34']]   )
+        Buy_30min_9sallaround = trained_models.Buy_30min_9sallaround(dailyminutes_df   )
         dailyminuteswithALGOresults_df['Buy_30min_9sallaround'] = Buy_30min_9sallaround
         print(Buy_30min_9sallaround)
         # if Buy_30min_9sallaround[-1]:
@@ -592,8 +573,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         Sell_30min_9sallaround = trained_models.Sell_30min_9sallaround(
-            dailyminutes_df[['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'ITM PCRv Up4', 'ITM PCRoi Up4',
-       'ITM PCRoi Down4']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Sell_30min_9sallaround'] = Sell_30min_9sallaround
         # if Sell_30min_9sallaround[-1]:
@@ -623,17 +603,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
 ####TODO When A1_sell and trythisone2_4 buy line up, its a short term peak?!?!?!
     try:
-        Trythisone2_4Buy = trained_models.Trythisone2_4Buy(dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCR-OI', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down2', 'PCRv Down3',
-       'PCRv Down4', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4', 'PCRoi Down2',
-       'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCR-OI',
-       'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4',
-       'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4',
-       'ITM PCRoi Up2', 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down2',
-       'ITM PCRoi Down3', 'ITM PCRoi Down4', 'Net_IV', 'Net ITM IV',
-       'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-       'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-       'NIV highers(-)lowers1-4', 'NIV 1-2 % from mean', 'NIV 1-4 % from mean',
-       'RSI', 'AwesomeOsc', 'RSI14', 'RSI2', 'AwesomeOsc5_34']]   )
+        Trythisone2_4Buy = trained_models.Trythisone2_4Buy(dailyminutes_df   )
         dailyminuteswithALGOresults_df['Trythisone2_4Buy'] = Trythisone2_4Buy
 
         print(Trythisone2_4Buy)
@@ -666,12 +636,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
     try:
         Trythisone2_4Sell = trained_models.Trythisone2_4Sell(
-        dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv Up2',
-       'PCRv Down3', 'PCRv Down4', 'PCRoi Up3', 'PCRoi Up4', 'PCRoi Down3',
-       'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-       'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Down3',
-       'ITM PCRoi Up2', 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down3',
-       'ITM PCRoi Down4', 'RSI', 'AwesomeOsc', 'RSI14', 'RSI2']])
+        dailyminutes_df)
 
         dailyminuteswithALGOresults_df['Trythisone2_4Sell'] = Trythisone2_4Sell
         # if Trythisone2_4Sell[-1]:
@@ -701,7 +666,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
 
     try:
-        A1_Buy = trained_models.A1_Buy(dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1']]   )
+        A1_Buy = trained_models.A1_Buy(dailyminutes_df   )
         dailyminutes_df['A1_Buy'] = A1_Buy
         dailyminuteswithALGOresults_df['A1_Buy'] = A1_Buy
         print(A1_Buy)
@@ -732,7 +697,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         A1_Sell = trained_models.A1_Sell(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1', 'Net IV LAC']])
+            dailyminutes_df)
 
         dailyminutes_df['A1_Sell'] = A1_Sell
         dailyminuteswithALGOresults_df['A1_Sell'] = A1_Sell
@@ -761,67 +726,69 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
     except Exception as e1:
         print(Exception)
-    # try:
-    #     A2_Buy = trained_models.A2_Buy(dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1']]   )
-    #     dailyminutes_df['A2_Buy'] = A1_Buy
-    #
-    #     if A2_Buy[-1]:
-    #         print("A1_Buy Signal")
-    #         send_notifications.email_me_string("A1_Buy:", "Call",
-    #                                            ticker)
-    #         try:
-    #             IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-    #             IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-    #
-    #
-    #             if ticker == "SPY":
-    #                 print("sending tweet")
-    #                 send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
-    #                                                            f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
-    #
-    #         except Exception as e:
-    #             print(e)
-    #         finally:
-    #             pass
-    #
-    #
-    #     else:
-    #         print('No A1_Buy Signal')
-    #
-    # except KeyError as e1:
-    #     print(Exception)
-    # try:
-    #     A2_Sell = trained_models.A1_Sell(
-    #         dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRoi Up1', 'ITM PCRoi Up1', 'Net IV LAC']])
-    #
-    #     dailyminutes_df['A1_Sell'] = A1_Sell
-    #     if A1_Sell[-1]:
-    #         print('A1_Sell signal')
-    #         send_notifications.email_me_string("A1_Sell", "Put",
-    #                                            ticker)
-    #
-    #         try:
-    #             IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-    #             IB.ibAPI.placeSellBracketOrder(ticker, current_price)
-    #             print("sending tweet")
-    #             send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
-    #                                                        f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
-    #
-    #         except Exception as e:
-    #             print(e)
-    #         finally:
-    #             pass
-    #
-    #
-    #
-    #     else:
-    #         print('No A1_Sell Signal.')
-    #
-    # except Exception as e1:
-    # try:
-    #
+    try:
+        A2_Buy = trained_models.A2_Buy(dailyminutes_df   )
+        dailyminutes_df['A2_Buy'] = A2_Buy
+
+        if A2_Buy[-1]:
+            print("A2_Buy Signal")
+            send_notifications.email_me_string("A2_Buy:", "Call",
+                                               ticker)
+            try:
+                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+
+
+                # if ticker == "SPY":
+                #     print("sending tweet")
+                #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
+                #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
+
+            except Exception as e:
+                print(e)
+            finally:
+                pass
+
+
+        else:
+            print('No A1_Buy Signal')
+
+    except KeyError as e1:
+        print(Exception)
+    try:
+        A2_Sell = trained_models.A2_Sell(
+            dailyminutes_df)
+
+        dailyminutes_df['A2_Sell'] = A2_Sell
+        if A2_Sell[-1]:
+            print('A2_Sell signal')
+            send_notifications.email_me_string("A2_Sell", "Put",
+                                               ticker)
+
+            # try:
+            #     IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+            #     IB.ibAPI.placeSellBracketOrder(ticker, current_price)
+            #     print("sending tweet")
+            #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
+            #                                                f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
+
+            # except Exception as e:
+            #     print(e)
+            # finally:
+            #     pass
+
+
+
+        else:
+            print('No A1_Sell Signal.')
+
+    except Exception as e1:
+        print(e1)
+    try:
+
         buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(
-            dailyminutes_df[["B1/B2", "Bonsai Ratio", "RSI", 'ITM PCR-Vol']])
+            dailyminutes_df)
+        dailyminutes_df['buy_signal1'] = buy_signal1
 
         if buy_signal1[-1]:
             # if ticker=="SPY":
@@ -835,7 +802,6 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             # try:
             #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
             # except Exception as e:
-            #     print(e)
             # finally:
             #     pass
             print('Buy signal!')
@@ -846,23 +812,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         buy_signal2 = trained_models.get_buy_signal_NEWONE_PRECISE(
-            dailyminutes_df[['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2',
-                          'PCR-Vol', 'PCRv Up1', 'PCRv Up2',
-                          'PCRv Up3', 'PCRv Up4', 'PCRv Down1',
-                          'PCRv Down2', 'PCRv Down3', 'PCRv Down4',
-                          'ITM PCR-Vol', 'ITM PCRv Up1',
-                          'ITM PCRv Up2', 'ITM PCRv Up3',
-                          'ITM PCRv Up4', 'ITM PCRv Down1',
-                          'ITM PCRv Down2', 'ITM PCRv Down3',
-                          'ITM PCRv Down4', 'ITM PCRoi Up2',
-                          'ITM OI', 'ITM Contracts %', 'Net_IV',
-                          'Net ITM IV', 'NIV 1Lower Strike',
-                          'NIV 2Higher Strike', 'NIV 2Lower Strike',
-                          'NIV 3Higher Strike', 'NIV 3Lower Strike',
-                          'NIV 4Higher Strike', 'NIV 4Lower Strike',
-                          'NIV highers(-)lowers1-4',
-                          'NIV 1-4 % from mean', 'RSI',
-                          'AwesomeOsc']])
+            dailyminutes_df)
 
         dailyminuteswithALGOresults_df['buy_signal2'] = buy_signal2
 
@@ -884,20 +834,10 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
 
     try:
-        buy_signal3 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df[
-                                                                                     ['Bonsai Ratio', 'Bonsai Ratio 2',
-                                                                                      'PCR-Vol', 'PCRv Down1',
-                                                                                      'PCRv Down2',
-                                                                                      'PCRv Down3', 'ITM PCRv Up3',
-                                                                                      'ITM PCRv Up4', 'ITM PCRv Down2',
-                                                                                      'ITM PCRv Down3', 'Net_IV',
-                                                                                      'NIV 2Lower Strike',
-                                                                                      'NIV 4Higher Strike',
-                                                                                      'NIV highers(-)lowers1-4']
-                                                                                 ])
-        dailyminuteswithALGOresults_df['buy_signal3'] = buy_signal3
-        if buy_signal3[-1]:
-            send_notifications.email_me_string("buy_signal3[-1]:", "Call",
+        buy_signal4 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df)
+        dailyminuteswithALGOresults_df['buy_signal4'] = buy_signal4
+        if buy_signal4[-1]:
+            send_notifications.email_me_string("buy_signal4:", "Call",
                                                ticker)
             # try:
             #     IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
@@ -905,17 +845,16 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             #     print(e)
             # finally:
             #     pass
-            print('Buy signal 3!')
+            print('Buy signal 4!')
         else:
 
-            print('No buy signal 3.')
+            print('No buy signal 4.')
 
 
     except Exception as e3:
         print(Exception)
     try:
-        new_buy_signal1 = trained_models.get_buy_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(dailyminutes_df[
-                                                                                       ['Bonsai Ratio','Net ITM IV','RSI']   ])
+        new_buy_signal1 = trained_models.get_buy_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(dailyminutes_df)
         dailyminuteswithALGOresults_df['new_buy_signal1'] = new_buy_signal1
 
 
@@ -943,7 +882,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(Exception)
     try:
         new_sell_signal1 = trained_models.get_sell_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(
-            dailyminutes_df[["Bonsai Ratio", "Net ITM IV"]])
+            dailyminutes_df)
         print(new_sell_signal1)
         dailyminuteswithALGOresults_df['new_sell_signal1'] = new_sell_signal1
         if new_sell_signal1[-1]:
@@ -969,34 +908,33 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
 #     except Exception as e1:
 #         print(Exception)
-#     try:
-#         new_buy_signal2 = trained_models.get_buy_signal_NewPerhapsExcellentTargetDown5to15minSPY(dailyminutes_df[
-#                                                                                        ['Bonsai Ratio','Net ITM IV']   ])
-#         dailyminutes_df['new_buy_signal2'] = new_buy_signal2
-#
-#         print(new_buy_signal2)
-#         if new_buy_signal2[-1]:
-#             print("New Buy Signal 2")
-#             send_notifications.email_me_string("New Buy Signal 2[-1]:", "Call",
-#                                                ticker)
-#             try:
-#                 IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-#
-#                 # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
-#             except Exception as e:
-#                 print(e)
-#             finally:
-#                 pass
-#
-#
-#         else:
-#             print('No New Buy Signal 2.')
-#
-#     except KeyError as e1:
-#         print(Exception)
+    try:
+        new_buy_signal2 = trained_models.get_buy_signal_NewPerhapsExcellentTargetDown5to15minSPY(dailyminutes_df )
+        dailyminutes_df['new_buy_signal2'] = new_buy_signal2
+
+        print(new_buy_signal2)
+        if new_buy_signal2[-1]:
+            print("New Buy Signal 2")
+            send_notifications.email_me_string("New Buy Signal 2[-1]:", "Call",
+                                               ticker)
+            # try:
+            #     IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+            #
+            #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+            # except Exception as e:
+            #     print(e)
+            # finally:
+            #     pass
+
+
+        else:
+            print('No New Buy Signal 2.')
+
+    except KeyError as e1:
+        print(Exception)
     try:
         new_sell_signal2 = trained_models.get_sell_signal_NewPerhapsExcellentTargetDown5to15minSPY(
-            dailyminutes_df[["Bonsai Ratio", "Net ITM IV",'RSI']])
+            dailyminutes_df)
         print(new_sell_signal2)
         dailyminuteswithALGOresults_df['new_sell_signal2'] = new_sell_signal2
         if new_sell_signal2[-1]:
@@ -1020,142 +958,50 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
     except Exception as e1:
         print(Exception)
-#     # try:
-#     #     sell_signal2 = trained_models.get_sell_signal_NEWONE_PRECISE(dailyminutes_df[
-#     #                                                                      ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2',
-#     #                                                                       'PCR-Vol', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3',
-#     #                                                                       'PCRv Up4', 'PCRv Down1', 'PCRv Down2',
-#     #                                                                       'PCRv Down3', 'PCRv Down4', 'PCRoi Up1',
-#     #                                                                       'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3',
-#     #                                                                       'PCRoi Down4', 'ITM PCR-Vol', 'ITM PCRv Up1',
-#     #                                                                       'ITM PCRv Up2', 'ITM PCRv Up3',
-#     #                                                                       'ITM PCRv Up4',
-#     #                                                                       'ITM PCRv Down1', 'ITM PCRv Down2',
-#     #                                                                       'ITM PCRv Down3', 'ITM PCRv Down4',
-#     #                                                                       'ITM PCRoi Up1', 'ITM PCRoi Up3',
-#     #                                                                       'ITM PCRoi Down4', 'ITM OI',
-#     #                                                                       'ITM Contracts %',
-#     #                                                                       'Net_IV', 'Net ITM IV', 'NIV 1Higher Strike',
-#     #                                                                       'NIV 1Lower Strike', 'NIV 2Higher Strike',
-#     #                                                                       'NIV 2Lower Strike', 'NIV 3Higher Strike',
-#     #                                                                       'NIV 3Lower Strike', 'NIV 4Higher Strike',
-#     #                                                                       'NIV 4Lower Strike',
-#     #                                                                       'NIV highers(-)lowers1-2',
-#     #                                                                       'NIV highers(-)lowers1-4',
-#     #                                                                       'NIV 1-2 % from mean',
-#     #                                                                       'NIV 1-4 % from mean', 'RSI', 'AwesomeOsc']
-#     #                                                                  ])
-#     #     if sell_signal2[-1]:
-#     #         send_notifications.email_me_string("sell_signal2[-1]:", "Put",
-#     #                                            ticker)
-#     #         try:
-#     #             IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-#     #         except Exception as e:
-#     #             print(e)
-#     #         finally:
-#     #             pass
-#     #         print('Sell signal!')
-#     #     else:
-#     #         print('No sell signal.')
-#     #
-#     #
-#     # except Exception as e1:
-#     #     print(Exception)
+    try:
+
+        sell_signal2 = trained_models.get_sell_signal_NEWONE_PRECISE(dailyminutes_df)
+        dailyminuteswithALGOresults_df['sell_signal2'] = sell_signal2
+
+        # if sell_signal2[-1]:
+        #     send_notifications.email_me_string("sell_signal2[-1]:", "Put",
+        #                                        ticker)
+        #     try:
+        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+        #     except Exception as e:
+        #         print(e)
+        #     finally:
+        #         pass
+        #     print('Sell signal!')
+        # else:
+        #     print('No sell signal.')
+
+
+    except Exception as e1:
+        print(Exception)
+
+    try:
+        sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df)
+
+        if sell_signal3[-1]:
+            print("sell signal 333333333333333333333333333333")
+            send_notifications.email_me_string("sell_signal3[-1]:", "Put",
+                                               ticker)
+            # try:
+            #     IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
+            # except Exception as e:
+            #     print(e)
+            # finally:
+            #     pass
+
+            print('Sell signal!')
+        else:
+            print('No sell signal 3.')
+
+    except KeyError as e1:
+        print(Exception)
+
 #
-#     # try:
-#     #     sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df[
-#     #                                                                                    ['Bonsai Ratio',
-#     #                                                                                     'Bonsai Ratio 2',
-#     #                                                                                     'B1/B2', 'PCR-Vol', 'PCRv Up1',
-#     #                                                                                     'PCRv Up2', 'PCRv Up3',
-#     #                                                                                     'PCRv Up4',
-#     #                                                                                     'PCRv Down1', 'PCRv Down2',
-#     #                                                                                     'PCRv Down3', 'PCRv Down4',
-#     #                                                                                     'PCRoi Up1', 'PCRoi Up2',
-#     #                                                                                     'PCRoi Up3', 'PCRoi Up4',
-#     #                                                                                     'PCRoi Down3', 'PCRoi Down4',
-#     #                                                                                     'ITM PCR-Vol', 'ITM PCR-OI',
-#     #                                                                                     'ITM PCRv Up1', 'ITM PCRv Up2',
-#     #                                                                                     'ITM PCRv Up3', 'ITM PCRv Up4',
-#     #                                                                                     'ITM PCRv Down1',
-#     #                                                                                     'ITM PCRv Down2',
-#     #                                                                                     'ITM PCRv Down3',
-#     #                                                                                     'ITM PCRv Down4',
-#     #                                                                                     'ITM PCRoi Up1',
-#     #                                                                                     'ITM PCRoi Up2',
-#     #                                                                                     'ITM PCRoi Up3',
-#     #                                                                                     'ITM PCRoi Up4',
-#     #                                                                                     'ITM PCRoi Down1',
-#     #                                                                                     'ITM PCRoi Down2',
-#     #                                                                                     'ITM PCRoi Down4', 'ITM OI',
-#     #                                                                                     'Total OI', 'ITM Contracts %',
-#     #                                                                                     'Net_IV', 'Net ITM IV',
-#     #                                                                                     'NIV 1Higher Strike',
-#     #                                                                                     'NIV 1Lower Strike',
-#     #                                                                                     'NIV 2Higher Strike',
-#     #                                                                                     'NIV 2Lower Strike',
-#     #                                                                                     'NIV 3Higher Strike',
-#     #                                                                                     'NIV 3Lower Strike',
-#     #                                                                                     'NIV 4Higher Strike',
-#     #                                                                                     'NIV 4Lower Strike',
-#     #                                                                                     'NIV highers(-)lowers1-2',
-#     #                                                                                     'NIV highers(-)lowers1-4',
-#     #                                                                                     'NIV 1-2 % from mean',
-#     #                                                                                     'NIV 1-4 % from mean', 'RSI']
-#     #                                                                                ])
-#     #     print(sell_signal3)
-#     #     if sell_signal3[-1]:
-#     #         print("sell signal 333333333333333333333333333333")
-#     #         send_notifications.email_me_string("sell_signal3[-1]:", "Put",
-#     #                                            ticker)
-#     #         try:
-#     #             IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
-#     #         except Exception as e:
-#     #             print(e)
-#     #         finally:
-#     #             pass
-#     #
-#     #         print('Sell signal!')
-#     #     else:
-#     #         print('No sell signal 3.')
-#     #
-#     # except KeyError as e1:
-#     #     print(Exception)
-#
-#
-#     if dailyminutes_df['B2/B1'].iloc[-1] >500 and dailyminutes_df['Bonsai Ratio'].iloc[-1]<.0001 and dailyminutes_df['ITM PCRv Up2'].iloc[-1]<.01 and dailyminutes_df['ITM PCRv Down2'].iloc[-1]<5 and dailyminutes_df['NIV 1-2 % from mean'].iloc[-1]>dailyminutes_df['NIV 1-4 % from mean'].iloc[-1]>0:
-#         send_notifications.email_me_string("['B2/B1'][-1] >500 and dailyminutes_df['Bonsai Ratio'][0]<.0001 and dailyminutes_df['ITM PCRv Up2'][0]<.01 and dailyminutes_df['ITM PCRv Down2'][0]<5 and dailyminutes_df['NIV 1-2 % from mean'][0]>dailyminutes_df['NIV 1-4 % from mean'][0]>0:", "Put",
-#                                            ticker)
-#         # try:
-#         #     # IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,10,custom_takeprofit=1.2)
-#         # except Exception as e:
-#         #     print(e)
-#         # finally:
-#         #     pass
-#         if ticker == "SPY":
-#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} looks ripe for a short term drop at ${current_price}. [STdownf1]")
-# # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
-#
-    if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 and dailyminutes_df['RSI'].iloc[-1]<30:
-        send_notifications.email_me_string("dailyminutes_df['B1/B2'][0] > 1.15 and dailyminutes_df['RSI'][0]<30:", "Call",
-                                           ticker)
-
-
-        try:
-            IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-            IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,19,'b1/b2 + rsi')
-
-            print("sending tweet")
-            # send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-            #                                                    f"${ticker} has hit ${current_price}. 20 min and you'll make profit on a PUT. #A4 {formatted_time}",
-            #                                                    1200)
-
-        except Exception as e:
-            print(e)
-        finally:
-            pass
-
-
 
 ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
     if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1]>70:
@@ -1168,231 +1014,77 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             print(e)
         finally:
             pass
-        # if ticker == "SPY":
-        #     send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down', f"${ticker} has hit a peak at ${current_price}. Short term downwards movement expected.")
 
-# #### TESTING JUST RSI
-#     if dailyminutes_df['RSI'].iloc[-1] < 22:
-#         send_notifications.email_me_string("['RSI'][-1] < 22:", "Call",
-#                                            ticker)
-#         # try:
-#         #     # IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1,custom_takeprofit=1.01)
-#         # except Exception as e:
-#         #     print(e)
-#         # finally:
-#         #     pass
-#         if ticker == "SPY":
-#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-#                                           f"${ticker} has hit a trough at ${current_price}. Short term upwards movement expected.")
 #         ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
 #     if dailyminutes_df['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14'].iloc[-1]>75:
-#         send_notifications.email_me_string("['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14']>75:", "Put",
-#                                            ticker)
-        # try:
-        #     # IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,1,custom_takeprofit=1.02)
-        # except Exception as e:
-        #     print(e)
-        # finally:
-        #     pass
 
 ###JUST b1/b2
     # if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 :
-    #     send_notifications.email_me_string("['B1/B2''][-1] > 1.15:", "Call",
-    #                                        ticker)
-    #     try:
-    #         IB.ibAPI.placeCallBracketOrder(ticker,IB_option_date,ib_one_strike_below, DownOne_Call_Price,1,custom_takeprofit=1.3,custom_trailamount=.7)
-    #     except Exception as e:
-    #         print(e)
-    #     finally:
-    #         pass
 
     # ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
     # if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 :
-    #     send_notifications.email_me_string("['B1/B2'][-1] < 0.25:", "Put",
-    #                                            ticker)
-    #     try:
-    #         IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,1,custom_takeprofit=1.005)
-    #     except Exception as e:
-    #         print(e)
-    #     finally:
-    #         pass
+
+    buy_signala2 = trained_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(dailyminutes_df)
+    dailyminutes_df['buy_signala2'] = buy_signala2
+
+    sell_signala2 = trained_models.get_sell_signal_B1B2_RSI_1hr_threshDown7(dailyminutes_df)
+    dailyminutes_df['sell_signala2'] = sell_signala2
+
+    buy_signala1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(dailyminutes_df)
+    dailyminuteswithALGOresults_df['buy_signala1'] = buy_signala1
+
+    sell_signala1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(dailyminutes_df)
+    dailyminuteswithALGOresults_df['sell_signala1'] = sell_signala1
+
+    dailyminuteswithALGOresults_df['B1/B2'] = (dailyminutes_df['B1/B2'] > 1.15).astype(int)
+
+    dailyminuteswithALGOresults_df['B1/B2'] = (dailyminutes_df['B1/B2'] < 0.01).astype(int)
+
+    dailyminuteswithALGOresults_df['NIV 1-2 % from mean & NIV 1-4 % from mean'] = (
+                (dailyminutes_df['NIV 1-2 % from mean'] < -100) & (
+                    dailyminutes_df['NIV 1-4 % from mean'] < -200)).astype(int)
+
+    dailyminuteswithALGOresults_df['NIV 1-2 % from mean & NIV 1-4 % from mean'] = (
+                (dailyminutes_df['NIV 1-2 % from mean'] > 100) & (dailyminutes_df['NIV 1-4 % from mean'] > 200)).astype(
+        int)
+
+    dailyminuteswithALGOresults_df['NIV highers(-)lowers1-4'] = (
+                dailyminutes_df['NIV highers(-)lowers1-4'] < -20).astype(int)
+
+    dailyminuteswithALGOresults_df['NIV highers(-)lowers1-4'] = (
+                dailyminutes_df['NIV highers(-)lowers1-4'] > 20).astype(int)
+
+    dailyminuteswithALGOresults_df['ITM PCR-Vol & RSI'] = (
+                (dailyminutes_df['ITM PCR-Vol'] > 1.3) & (dailyminutes_df['RSI'] > 70)).astype(int)
+
+    dailyminuteswithALGOresults_df['Bonsai Ratio & ITM PCR-Vol & RSI'] = (
+                (dailyminutes_df['Bonsai Ratio'] < 0.8) & (dailyminutes_df['ITM PCR-Vol'] < 0.8) & (
+                    dailyminutes_df['RSI'] < 30)).astype(int)
+
+    dailyminuteswithALGOresults_df['Bonsai Ratio & ITM PCR-Vol & RSI'] = (
+                (dailyminutes_df['Bonsai Ratio'] > 1.5) & (dailyminutes_df['ITM PCR-Vol'] > 1.2) & (
+                    dailyminutes_df['RSI'] > 70)).astype(int)
+
+    dailyminuteswithALGOresults_df["Bonsai Ratio < 0.7 & Net_IV < -50 & Net ITM IV > -41"] = (
+                (dailyminutes_df["Bonsai Ratio"] < 0.7) & (dailyminutes_df["Net_IV"] < -50) & (
+                    dailyminutes_df["Net ITM IV"] > -41)).astype(int)
+
+    dailyminuteswithALGOresults_df[
+        'B2/B1>500 Bonsai Ratio<.0001 ITM PCRv Up2<.01 ITM PCRv Down2<5 NIV 1-2 % from mean>NIV 1-4 % from mean>0'] = int(
+        (dailyminutes_df['B2/B1'].iloc[-1] > 500)
+        and (dailyminutes_df['Bonsai Ratio'].iloc[-1] < 0.0001)
+        and (dailyminutes_df['ITM PCRv Up2'].iloc[-1] < 0.01)
+        and (dailyminutes_df['ITM PCRv Down2'].iloc[-1] < 5)
+        and (dailyminutes_df['NIV 1-2 % from mean'].iloc[-1] > dailyminutes_df['NIV 1-4 % from mean'].iloc[-1] > 0)
+    )
 
 
-# predictor_values = {'Bonsai Ratio': .0007, 'ITM PCR-Vol': 20}
-# predictor_df = pd.DataFrame(predictor_values, index=[0])
+    # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
+    dailyminuteswithALGOresults_df['b1/b2 and rsi'] = int(
+        (dailyminutes_df['B1/B2'].iloc[-1] > 1.15)
+        and (dailyminutes_df['RSI'].iloc[-1] < 30)
+    )
 
-
-
-
-
-
-
-
-
-
-
-    #
-    # except (ValueError, ConnectionError) as e:
-    #     logging.error('Error: %s', e)
-    #
-    #     pass
-
-    # send_notifications.email_me_string(order, response.status_code, json_response)
-    # send_notifications.email_me_string(order,response.status_code,json_response)
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # buy_signal2 = trained_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(dailyminutes_df[["B1/B2", "RSI"]].head(1))
-    # if buy_signal2:
-    #     x = (f'get_buy_signal_b1b2_RSI_1hr_thresh7  {ticker}',
-    #          f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-    #          "1",
-    #          call_contract, .8, 1.25
-    #          )
-    #
-    #     TradierAPI.buy(x)
-    #     print('Buy signal!')
-    # else:
-    #     print('No buy signal.')
-    # sell_signal2 = trained_models.get_sell_signal_B1B2_RSI_1hr_threshDown7(dailyminutes_df[["B1/B2", "RSI"]].head(1))
-    # if sell_signal2:
-    #     x = (f'get_sell_signal_b1b2_RSI_1hr_thresh7 {ticker}',
-    #          f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-    #          "1",
-    #          put_contract, .8, 1.25
-    #          )
-    #
-    #     TradierAPI.buy(x)
-    #     print('Sell signal!')
-    # else:
-    #     print('No sell signal.')
-    # buy_signal3 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(dailyminutes_df[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-    #
-    # if buy_signal3:
-    #     x = (f'get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA  {ticker}',
-    #          f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-    #          "1",
-    #          call_contract, .8, 1.2
-    #          )
-    #
-    #     TradierAPI.buy(x)
-    #     print('Buy signal!')
-    # else:
-    #     print('No buy signal.')
-    # sell_signal3 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(dailyminutes_df[["B1/B2","Bonsai Ratio","RSI",'ITM PCR-Vol']].head(1))
-    # if sell_signal3:
-    #     x = (f'get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA {ticker}',
-    #          f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-    #          "1",
-    #          put_contract, .8, 1.2
-    #          )
-    #
-    #     TradierAPI.buy(x)
-    #     print('Sell signal!')
-    # else:
-    #     print('No sell signal.')
-    # if dailyminutes_df["B1/B2"][0] > 1.15 :
-    #     x = (f'b1/b2>1.15  {ticker}',
-    #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-    #         "10",
-    #         call_contract, .6, 1.6
-    #     )
-    #
-    #     TradierAPI.buy(x)
-    #
-    # if dailyminutes_df["B1/B2"][0] < 0.01:
-    #     x = (f'b1/b2<.01  {ticker}',
-    #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-    #         "10",
-    #         put_contract, .6, 1.6
-    #     )
-    #
-    #     TradierAPI.buy(x)
-
-    # if dailyminutes_df["NIV 1-2 % from mean"][0] < -100 and dailyminutes_df["NIV 1-4 % from mean"][0] <-200:
-    #     x = ("NIV 1-2 % from mean< -100 & NIV 1-4 % from mean<-200",
-    #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]  }",
-    #         "8",
-    #         put_contract, .6,1.6
-    #     )
-    #
-    #     TradierAPI.buy(x)
-    # if dailyminutes_df["NIV 1-2 % from mean"][0] > 100 and dailyminutes_df["NIV 1-4 % from mean"][0] > 200:
-    #     x = ('NIV 1-2 % from mean> 100 & NIV 1-4 % from mean > 200',
-    #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-    #         "7",
-    #         call_contract, .6, 1.6
-    #     )
-    #
-    #     TradierAPI.buy(x)
-    # if dailyminutes_df["NIV highers(-)lowers1-4"][0] < -20:
-    #     x = ("NIV highers(-)lowers1-4 < -20",
-    #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]  }",
-    #         "6",
-    #         call_contract, .6,1.6
-    #     )
-    #
-    #     TradierAPI.buy(x)
-    # if dailyminutes_df["NIV highers(-)lowers1-4"][0] > 20:
-    #     x = ('NIV highers(-)lowers1-4> 20'
-    #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
-    #         "5",
-    #         put_contract, .6, 1.6
-    #     )
-
-        # TradierAPI.buy(x)
-
-
-    # if dailyminutes_df["ITM PCR-Vol"][0] > 1.3 and dailyminutes_df["RSI"][0] > 70:
-    #     x = (
-    #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
-    #         "99",
-    #         put_contract,.9,1.05
-    #     )
-    #
-    #     TradierAPI.buy(x)
-
-    #     ###MADE 100% on this near close 5/12
-    # if dailyminutes_df["Bonsai Ratio"][0] < .8 and dailyminutes_df["ITM PCR-Vol"][0] < 0.8 and dailyminutes_df["RSI"][0] < 30:
-    #     x = ('Bonsai Ratio < .8 and ITM PCR-Vol < 0.8',
-    #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-    #         "3",
-    #         call_contract,.8,1.2
-    #     )
-    #     print(x)
-    #     TradierAPI.buy(x)
-    #
-    #
-    # if dailyminutes_df["Bonsai Ratio"][0] > 1.5  and dailyminutes_df["ITM PCR-Vol"][0] > 1.2 and dailyminutes_df["RSI"][0] > 70:
-    #     x = ('Bonsai Ratio > 1.5  andITM PCR-Vol > 1.2',
-    #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
-    #         "2",
-    #         put_contract,.9,1.05
-    #     )
-    #
-    #     TradierAPI.buy(x)
-    # if (
-    #     dailyminutes_df["Bonsai Ratio"][0] < 0.7
-    #     and dailyminutes_df["Net_IV"][0] < -50
-    #     and dailyminutes_df["Net ITM IV"][0] > -41
-    # ):
-    #     x = ('Bonsai Ratio < 0.7 and Net_IV < -50 and Net ITM IV> -41',
-    #         f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
-    #         "1",
-    #         call_contract,.9,1.05
-    #     )
-
-        # TradierAPI.buy(x)
     dailyminutes_df.to_csv(dailyminutes,index=False)
     dailyminuteswithALGOresults_df.to_csv(dailyminuteswithALGOresults,index=False)
 # Define functions for each prediction model

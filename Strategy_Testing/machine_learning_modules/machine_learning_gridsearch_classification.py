@@ -10,28 +10,33 @@ import numpy as np
 import sys
 from skopt import BayesSearchCV, Optimizer
 
-DF_filename = "../historical_multiday_minute_DF/SPY/230626_SPY.csv"
+DF_filename = "../historical_multiday_minute_DF/SPY/230705_SPY.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
-Chosen_Predictor = [ 'Bonsai Ratio','Bonsai Ratio 2', 'B1/B2', 'PCRv Up4',
-       'PCRv Down4',   'ITM PCRv Up4',
-        'ITM PCRv Down4',
-        'ITM PCRoi Up4', 'ITM PCRoi Down4','RSI14','AwesomeOsc5_34','RSI','RSI2','AwesomeOsc'
+Chosen_Predictor = [ 'Bonsai Ratio','Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4','ITM PCRv Down4',
+      'RSI14','AwesomeOsc5_34','RSI','RSI2','AwesomeOsc'
       ]
 
 ##had highest corr for 3-5 hours with these:
-# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV LAC']
+# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
 # print(ml_dataframe.columns)
-cells_forward_to_check = 5
+cells_forward_to_check = 15
+threshold_cells_up = cells_forward_to_check * .6
+threshold_cells_down = cells_forward_to_check * .6
+num_features_up = 3
+num_features_down = 3
+threshold_up = 0.7
+threshold_down = 0.7
+percent_up = .1
+percent_down = -.1
+parameters = {
+    'max_depth': (4 , 6,  8, 10),
+    'min_samples_split': (40,80,100),
 
-num_features_up = 4
-num_features_down = 4
-threshold_up = 0.8
-threshold_down = 0.8
-percent_up = 0.15
-percent_down = -0.15
-
+    'n_estimators': (50,75,100,200),
+}
+####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
 
 ml_dataframe.dropna(subset= Chosen_Predictor, inplace=True)
 
@@ -43,52 +48,58 @@ Chosen_Predictor_nobrackets = [x.replace('/', '').replace(',', '_').replace(' ',
                                Chosen_Predictor]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 
+length = ml_dataframe.shape[0]
+print("Length of ml_dataframe:", length)
 
  # Number of cells to check
 ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 ml_dataframe["Target_Up"] = 0
+targetUpCounter =0
+targetDownCounter=0
 for i in range(1, cells_forward_to_check+1):
-    ml_dataframe["Target_Down"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) < percent_down).astype(int)
-    ml_dataframe["Target_Up"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) > percent_up).astype(int)
-# ml_dataframe["Target_Down"] = ml_dataframe["Target_Down"].astype(int)
-# ml_dataframe["Target_Up"] = ((ml_dataframe[Chosen_Timeframe] > percent_up) | (ml_dataframe[Chosen_Timeframe2] > percent_up)| (ml_dataframe[Chosen_Timeframe3] > percent_up)).astype(int)
-# ml_dataframe["Target_Down"] = ((ml_dataframe[Chosen_Timeframe] < percent_down) | (ml_dataframe[Chosen_Timeframe2] < percent_down)| (ml_dataframe[Chosen_Timeframe3] < percent_down)).astype(int)
+    # print("TARGETT DOWN",ml_dataframe["Target_Down"]
+    condition_met_up = ml_dataframe["Current SP % Change(LAC)"].shift(-i) > ml_dataframe["Current SP % Change(LAC)"]+percent_up
+    condition_met_down = ml_dataframe["Current SP % Change(LAC)"].shift(-i) < ml_dataframe["Current SP % Change(LAC)"]+percent_down
+    targetUpCounter += condition_met_up.astype(int)
+    targetDownCounter += condition_met_down.astype(int)
+    ml_dataframe["Target_Down"] = (targetDownCounter >= threshold_cells_down).astype(int)
+    ml_dataframe["Target_Up"] = (targetUpCounter >= threshold_cells_up).astype(int)
+
+ml_dataframe.dropna(subset= ['Target_Up','Target_Down'], inplace=True)
+
+# # ml_dataframe["Target_Down"] = ml_dataframe["Target_Down"].astype(int)
+# ml_dataframe["Target_Down"] |= ((ml_dataframe["Current SP % Change(LAC)"].shift(-1)* percent_down) <(ml_dataframe["Current SP % Change(LAC)"]).astype(int))
+# ml_dataframe["Target_Up"] |= ((ml_dataframe["Current SP % Change(LAC)"].shift(-1) * percent_up)>(ml_dataframe["Current SP % Change(LAC)"] ).astype(int))
 ml_dataframe.to_csv("Current_ML_DF_FOR_TRAINING.csv")
 
-model = RandomForestClassifier(random_state=None)
+model = RandomForestClassifier(random_state=None, class_weight="balanced")
 ###25/50      ###2/20   ###100/40
-parameters = {
-    'max_depth': (  2,3,4,5,6,7),
-    'min_samples_split': (2,3,4,5,6),
 
-    'n_estimators': (100
-                     ,200,300,400,500),
-}
 X = ml_dataframe[Chosen_Predictor]
 # Reset the index of your DataFrame
-print(X.head())
 X.reset_index(drop=True, inplace=True)
-print(type(ml_dataframe.columns))
 
 y_up = ml_dataframe["Target_Up"]
 y_down = ml_dataframe["Target_Down"]
-print(type(ml_dataframe.Target_Down))
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.2,    random_state=None)
 # Feature selection for Target_Up
-feature_selector_up = SelectKBest(score_func=f_classif, k=num_features_up,)
+
+feature_selector_up = SelectKBest(score_func=mutual_info_classif)
 
 X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
 X_test_selected_up = feature_selector_up.transform(X_test)
 
 # Feature selection for Target_Down
-feature_selector_down = SelectKBest(score_func=f_classif, k=num_features_down,)
+feature_selector_down = SelectKBest(score_func=mutual_info_classif)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
+print("Shape of X_test_selected_up:", X_test_selected_up.shape)
+print("Shape of X_test_selected_down:", X_test_selected_down.shape,'\n')
 
 tscv = TimeSeriesSplit(n_splits=5)
 
 grid_search_up = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
-print("Performing GridSearchCV UP...")
+print("Performing GridSearchCV UP...\n")
 grid_search_up.fit(X_train_selected_up, y_up_train)
 best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
 print("Best features for Target_Up:", best_features_up)
@@ -101,23 +112,22 @@ X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up > 0)] =
 X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up < 0)] = -sys.float_info.max
 importance_tuples = [(feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
-print(importance_tuples)
 for feature, importance in importance_tuples:
     print(f"model up {feature}: {importance}")
 
 selected_features_up = feature_selector_up.get_support(indices=True)
 feature_names_up = X_train.columns[selected_features_up]
-print("Selected Features:", feature_names_up)
+print("Selected Features Up:", feature_names_up)
 
 grid_search_down = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
-print("Performing GridSearchCV DOWN...")
+print("Performing GridSearchCV DOWN...",'\n')
 grid_search_down.fit(X_train_selected_down, y_down_train)
 best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
 print("Best features for Target_Down:", best_features_down)
 selected_features_down = feature_selector_down.get_support(indices=True)
 
 print("Best parameters for Target_Down:", grid_search_down.best_params_)
-print("Best score for Target_Down:", grid_search_down.best_score_)
+print("Best score for Target_Down:", grid_search_down.best_score_,'\n')
 best_param_down = f"Best parameters for Target_Down: {grid_search_down.best_params_}. Best precision: {grid_search_down.best_score_}"
 model_down = grid_search_down.best_estimator_
 
@@ -126,10 +136,13 @@ importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 
 for feature, importance in importance_tuples:
     print(f"Modle down {feature}: {importance}")
-
+selected_features_down = feature_selector_down.get_support(indices=True)
+feature_names_down = X_train.columns[selected_features_down]
+print("Selected Features Down:", feature_names_down)
 # Use the selected features for prediction
 predicted_probabilities_up = model_up.predict_proba(X_test_selected_up)
 predicted_probabilities_down = model_down.predict_proba(X_test_selected_down)
+print("Shape of predicted_probabilities_up:", predicted_probabilities_up.shape)
 
 ###predict
 predicted_up = (predicted_probabilities_up[:, 1] > threshold_up).astype(int)
@@ -145,25 +158,26 @@ accuracy_down = accuracy_score(y_down_test, predicted_down)
 recall_down = recall_score(y_down_test, predicted_down)
 f1_down = f1_score(y_down_test, predicted_down)
 
-print("Metrics for Target_Up:")
+cv_scores_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv)
+cv_scores_down = cross_val_score(model_down, X_test_selected_down, y_down_test, cv=tscv)
+print("Metrics for Target_Up:",'\n')
 print("Precision:", precision_up)
 print("Accuracy:", accuracy_up)
 print("Recall:", recall_up)
-print("F1-Score:", f1_up)
+print("F1-Score:", f1_up,'\n')
+print("Cross-validation scores for Target_Up:", cv_scores_up)
+print("Mean cross-validation score for Target_Up:", cv_scores_up.mean(),'\n')
 
-print("Metrics for Target_Down:")
+print("Metrics for Target_Down:",'\n')
 print("Precision:", precision_down)
 print("Accuracy:", accuracy_down)
 print("Recall:", recall_down)
-print("F1-Score:", f1_down)
+print("F1-Score:", f1_down,'\n')
 
-cv_scores_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv)
-cv_scores_down = cross_val_score(model_down, X_test_selected_down, y_down_test, cv=tscv)
-
-print("Cross-validation scores for Target_Up:", cv_scores_up)
-print("Mean cross-validation score for Target_Up:", cv_scores_up.mean())
 print("Cross-validation scores for Target_Down:", cv_scores_down)
-print("Mean cross-validation score for Target_Down:", cv_scores_down.mean())
+print("Mean cross-validation score for Target_Down:", cv_scores_down.mean(),'\n')
+
+
 
 
 def save_file_with_shorter_name(data, file_path):

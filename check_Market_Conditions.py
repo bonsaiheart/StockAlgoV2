@@ -1,8 +1,12 @@
+import glob
 import os
 import pandas as pd
 from datetime import datetime
-
 import pandas_market_calendars as mcal
+
+today = datetime.utcnow().date()
+today_timestamp = pd.to_datetime(today)
+
 
 def save_market_schedule_to_file():
     nyse = mcal.get_calendar("NYSE")
@@ -10,21 +14,40 @@ def save_market_schedule_to_file():
     market_schedule = nyse.schedule(start_date=today, end_date=today)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
     market_schedule["market_close_utc"] = pd.to_datetime(market_schedule["market_close"])
-    market_schedule.to_csv("market_schedule.csv", index=True)
+
+    directory = "market_schedule"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Delete other .csv files in the directory
+    file_pattern = os.path.join(directory, "*.csv")
+    existing_files = glob.glob(file_pattern)
+    for file in existing_files:
+        os.remove(file)
+
+    file_path = os.path.join(directory, f"market_schedule_{today}.csv")
+    market_schedule.to_csv(file_path, index=True)
+
+
 def is_market_open_now():
-    if not os.path.exists("market_schedule.csv"):
+    today = datetime.utcnow().date()
+    today_timestamp = pd.to_datetime(today)
+    directory = "market_schedule"
+    file_path = os.path.join(directory, f"market_schedule_{today}.csv")
+
+    if not os.path.exists(file_path):
         save_market_schedule_to_file()
-    market_schedule = pd.read_csv("market_schedule.csv", parse_dates=True, index_col=0)
+
+    market_schedule = pd.read_csv(file_path, parse_dates=True, index_col=0)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
     market_schedule["market_close_utc"] = pd.to_datetime(market_schedule["market_close"])
 
     # Load the saved market schedule from file
     market_schedule.index = pd.to_datetime(market_schedule.index)  # Convert index to datetime
 
-    today = datetime.utcnow().date()
-    today_timestamp = pd.to_datetime(today)
 
-    print(today_timestamp,market_schedule.loc[today_timestamp, "market_open_utc"]
+
+    print("today timestamp",today_timestamp,market_schedule.loc[today_timestamp, "market_open_utc"]
         )
     if today_timestamp in market_schedule.index:
         market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"].time()
