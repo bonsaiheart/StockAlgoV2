@@ -10,6 +10,20 @@ base_dir = os.path.dirname(__file__)
 # percent_down=-.1
 ###TODO could make features = modle.info "features"
 ###supposed to be for 30 min .3 spy tsla
+def Buy_15min_A2(new_data_df):
+    features = ['Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'AwesomeOsc']
+    model_filename = f'{base_dir}/Trained_Models/_15min_A2/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+    predictions = loaded_model.predict(new_data_df[features])
+    return predictions
+
+def Sell_15min_A2(new_data_df):
+    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI']
+    model_filename = 'Strategy_Testing/Trained_Models/_15min_A2/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+    predictions = loaded_model.predict(new_data_df[features])
+    return predictions
+
 def Buy_15min_A1(new_data_df):
     features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'AwesomeOsc5_34', 'RSI', 'RSI2']
     model_filename = f'{base_dir}/Trained_Models/_15min_A1/target_up.joblib'
@@ -302,7 +316,7 @@ def get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later
     return predictions
 def A1_Sell_historical_prediction(new_data_df):
     features =['B1/B2', 'ITM PCRoi Down2']
-    model_filename = f'Strategy_Testing/Trained_Models/DAILYHISTORICALOVERNIGHTPREDICTION/target_down.joblib'
+    model_filename = f'{base_dir}/Trained_Models/DAILYHISTORICALOVERNIGHTPREDICTION/target_down.joblib'
     loaded_model = joblib.load(model_filename)
 
     predictions = loaded_model.predict(new_data_df[features])
@@ -311,7 +325,7 @@ def A1_Sell_historical_prediction(new_data_df):
 def A1_Buy_historical_prediction(new_data_df):
     features =['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol',
        'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRoi Up2']
-    model_filename = f'Strategy_Testing/Trained_Models/DAILYHISTORICALOVERNIGHTPREDICTION/target_up.joblib'
+    model_filename = f'{base_dir}/Trained_Models/DAILYHISTORICALOVERNIGHTPREDICTION/target_up.joblib'
     loaded_model = joblib.load(model_filename)
 
     predictions = loaded_model.predict(new_data_df[features])

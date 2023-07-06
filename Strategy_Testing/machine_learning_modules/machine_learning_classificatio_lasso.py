@@ -66,6 +66,7 @@ Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 ml_dataframe["Target_Up"] = 0
 for i in range(1, cells_forward_to_check+1):
+    ###TODO pretty sure should be postive numbers.
     ml_dataframe["Target_Down"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) < percent_down).astype(int)
     ml_dataframe["Target_Up"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) > percent_up).astype(int)
 # ml_dataframe["Target_Down"] = ml_dataframe["Target_Down"].astype(int)

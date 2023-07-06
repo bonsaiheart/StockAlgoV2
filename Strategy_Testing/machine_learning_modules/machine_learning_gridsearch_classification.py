@@ -28,8 +28,8 @@ num_features_up = 3
 num_features_down = 3
 threshold_up = 0.7
 threshold_down = 0.7
-percent_up = .1
-percent_down = -.1
+percent_up = .15
+percent_down = -.15
 parameters = {
     'max_depth': (4 , 6,  8, 10),
     'min_samples_split': (40,80,100),
@@ -58,8 +58,8 @@ targetUpCounter =0
 targetDownCounter=0
 for i in range(1, cells_forward_to_check+1):
     # print("TARGETT DOWN",ml_dataframe["Target_Down"]
-    condition_met_up = ml_dataframe["Current SP % Change(LAC)"].shift(-i) > ml_dataframe["Current SP % Change(LAC)"]+percent_up
-    condition_met_down = ml_dataframe["Current SP % Change(LAC)"].shift(-i) < ml_dataframe["Current SP % Change(LAC)"]+percent_down
+    condition_met_up = ml_dataframe["Current SP % Change(LAC)"].shift(i) > ml_dataframe["Current SP % Change(LAC)"]+percent_up
+    condition_met_down = ml_dataframe["Current SP % Change(LAC)"].shift(i) < ml_dataframe["Current SP % Change(LAC)"]+percent_down
     targetUpCounter += condition_met_up.astype(int)
     targetDownCounter += condition_met_down.astype(int)
     ml_dataframe["Target_Down"] = (targetDownCounter >= threshold_cells_down).astype(int)
@@ -207,8 +207,7 @@ if input_val == "Y":
     model_filename_up = os.path.join(model_directory, "target_up.joblib")
     model_filename_down = os.path.join(model_directory, "target_down.joblib")
 
-    model_filename_up = os.path.join(model_directory, "target_up.joblib")
-    model_filename_down = os.path.join(model_directory, "target_down.joblib")
+
     joblib.dump(model_up, model_filename_up)
     joblib.dump(model_down, model_filename_down)
 

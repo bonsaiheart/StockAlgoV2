@@ -19,17 +19,16 @@ def ib_connect():
         print('Connecting')
         randomclientID = random.randint(0,9999)
         try:
-            ib.connect('192.168.1.119', 7497, clientId=randomclientID, timeout=10)
+            ib.connect('127.0.0.1', 7497, clientId=1, timeout=15)
             ###use 127.0.0.1 for local
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error('Connection error: %s', e)
             print('Connection error:', e)
             pass
-        finally:
-            print('hmm')
+
     else:
         print("ib already connected?")
-
+ib_connect()
 
 # limitBuyOrder = LimitOrder('BUY', quantity, limit_price)
 # limitSellOrder = LimitOrder('SELL', quantity, limit_price)
