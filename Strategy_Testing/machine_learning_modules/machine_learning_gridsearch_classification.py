@@ -23,25 +23,26 @@ cells_forward_to_check = 15
 ##this many cells must meet the percentup/down requiremnet.
 threshold_cells_up = cells_forward_to_check * .5
 threshold_cells_down = cells_forward_to_check * .5
-percent_up = .15
-percent_down = -.15
+percent_up = .1
+percent_down = -.1
 ###this many cells cannot be < current price for up, > current price for down.
-anticondition_threshold_cells_up = cells_forward_to_check *.3
-anticondition_threshold_cells_down = cells_forward_to_check *.3
+anticondition_threshold_cells_up = cells_forward_to_check *.4
+anticondition_threshold_cells_down = cells_forward_to_check *.4
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
-positivecase_weight_up =1.2
-positivecase_weight_down =1.2
+positivecase_weight_up =20
+positivecase_weight_down =20
 # num_features_up = 3
 # num_features_down = 3
 ##probablility threshhold.
 threshold_up = 0.7
 threshold_down = 0.7
+
 ###35,5,80   6/3/80
 parameters = {
-    'max_depth': (5,10,20,30,40,50),
-    'min_samples_split': (2,3,4,5,6,8,10),
-    'n_estimators': (60,80,100),
+    'max_depth': (25,50,75),#50
+    'min_samples_split': (2,5,10,20,30),#5
+    'n_estimators': (500,750,1000,1250,1500),#500,1000
 }
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
 ml_dataframe.dropna(subset= Chosen_Predictor, inplace=True)
