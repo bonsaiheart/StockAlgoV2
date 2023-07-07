@@ -138,6 +138,10 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         elif model_name.startswith('Sell'):
             CorP = 'P'
 
+        upordown = 'up' if CorP == 'C' else 'down'
+        callorput = 'call' if CorP == 'C' else 'P'
+        contractStrike = ib_one_strike_below if CorP == 'C' else ib_one_strike_above
+        contract_price = DownOne_Call_Price if CorP == 'C' else UpOne_Put_Price
         result = model(dailyminutes_df)
         dailyminuteswithALGOresults_df[model_name] = result
 
@@ -158,27 +162,21 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             print(f"{model_name} Signal")
             send_notifications.email_me_string(model_name, CorP, ticker)
             # Other actions based on the model_name and signal
-
         # Add more function calls and corresponding parameters here
+            try:
+                # Place order or perform other actions specific to the action
+                IB.ibAPI.placeOptionBracketOrder(CorP=CorP, ticker=ticker, exp=IB_option_date,
+                                                 strike=contractStrike,
+                                                 contract_current_price=contract_price,
+                                                 quantity=5, orderRef=f'{model_name}')
+                # Other actions specific to the action
+            except Exception as e:
+                print("Error occurred while placing order:", str(e))
 
-        upordown = 'up' if CorP == 'C' else 'down'
-        callorput = 'call' if CorP == 'C' else 'P'
-        contractStrike = ib_one_strike_below if CorP == 'C' else ib_one_strike_above
-        contract_price = DownOne_Call_Price if CorP == 'C' else UpOne_Put_Price
-        try:
-            # Place order or perform other actions specific to the action
-            IB.ibAPI.placeOptionBracketOrder(CorP=CorP, ticker=ticker, exp=IB_option_date,
-                                             strike=contractStrike,
-                                             contract_current_price=contract_price,
-                                             quantity=5, orderRef=f'{model_name}')
-            # Other actions specific to the action
-        except Exception as e:
-            print("Error occurred while placing order:", str(e))
+            print("sending tweet")
+            send_notifications.send_tweet_w_countdown_followup(ticker, current_price, upordown,   f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",  seconds)
 
-        print("sending tweet")
-        send_notifications.send_tweet_w_countdown_followup(ticker, current_price, upordown,   f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",  seconds)
-
-#
+    #
 #     # Buy_1hr_A1 = trained_models.Buy_1hr_A1(
 #     #     dailyminutes_df)
 #     # dailyminuteswithALGOresults_df['Buy_1hr_A1'] = Buy_1hr_A1
