@@ -4,6 +4,9 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 from Strategy_Testing import trained_models
+import inspect
+import re
+
 import IB.ibAPI
 from UTILITIES.Send_Notifications import send_notifications as send_notifications
 logging.basicConfig(filename='error.log', level=logging.ERROR)
@@ -116,935 +119,999 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(e)
         traceback.print_exc()
         pass
-    #             # IB.ibAPI.placeSellBracketOrder(ticker, current_price, "SELL")
-    #         IB.ibAPI.placeBuyBracketOrder(ticker,current_price,"BUY")
-
-
-    """
-    Algo Rules go here:
-    """
+# def checkAlgos_placeOrders(dailyminutes_df):
     actions = [
-        ('Buy_1hr_A1', 'Call', trained_models.Buy_1hr_A1),
-        ('Sell_1hr_A1', 'Put', trained_models.Sell_1hr_A1),
-        ('Buy_20min_A1', 'Call', trained_models.Buy_20min_A1),
-        ('Sell_20min_A1', 'Put', trained_models.Sell_20min_A1),
-        ('Buy_15min_A2', 'Call', trained_models.Buy_15min_A2),
-        ('Sell_15min_A2', 'Put', trained_models.Sell_15min_A2),
-        ('Buy_15min_A1', 'Call', trained_models.Buy_15min_A1),
-        ('Sell_15min_A1', 'Put', trained_models.Sell_15min_A1)
+        trained_models.Buy_1hr_A1,
+        trained_models.Sell_1hr_A1,
+        trained_models.Buy_20min_A1,
+        trained_models.Sell_20min_A1,
+        trained_models.Buy_15min_A2,
+        trained_models.Sell_15min_A2,
+        trained_models.Buy_15min_A1,
     ]
 
-    for action, option, model_func in actions:
-        result = model_func(dailyminutes_df)[-1]
-        dailyminuteswithALGOresults_df[action] = result
+    for model in actions:
 
-        if result:  # Assuming the result is a boolean indicating the condition is met
-            send_notifications.email_me_string(action, option, ticker)
-    # Buy_1hr_A1 = trained_models.Buy_1hr_A1(
-    #     dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Buy_1hr_A1'] = Buy_1hr_A1
-    # send_notifications.email_me_string("Buy_1hr_A1", "Call",
-    #                                    ticker)
-    # Sell_1hr_A1 = trained_models.Sell_1hr_A1(dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Sell_1hr_A1'] = Sell_1hr_A1
-    # send_notifications.email_me_string("Sell_1hr_A1", "Put",
-    #                                    ticker)
-    # Buy_20min_A1 = trained_models.Buy_20min_A1(
-    #     dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Buy_20min_A1'] = Buy_20min_A1
-    # send_notifications.email_me_string("Buy_20min_A1", "Call",
-    #                                    ticker)
-    # Sell_20min_A1 = trained_models.Sell_20min_A1( dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Sell_20min_A1'] = Sell_20min_A1
-    # send_notifications.email_me_string("Sell_20min_A1", "Put",
-    #                                    ticker)
-    # Buy_15min_A2 = trained_models.Buy_15min_A2(
-    #     dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Buy_15min_A2'] = Buy_15min_A2
-    # send_notifications.email_me_string("Buy_15min_A2", "Call",
-    #                                    ticker)
-    # Sell_15min_A2 = trained_models.Sell_15min_A2( dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Sell_15min_A2'] = Sell_15min_A2
-    # send_notifications.email_me_string("Sell_15min_A2", "Put",
-    #                                    ticker)
-    # Buy_15min_A1 = trained_models.Buy_15min_A1(
-    #     dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Buy_15min_A1'] = Buy_15min_A1
-    # send_notifications.email_me_string("Buy_15min_A1", "Call",
-    #                                    ticker)
-    # Sell_15min_A1 = trained_models.Sell_15min_A1( dailyminutes_df)
-    # dailyminuteswithALGOresults_df['Sell_15min_A1'] = Sell_15min_A1
-    # send_notifications.email_me_string("Sell_15min_A1", "Put",
-    #                                    ticker)
-    try:
-        Buy_5D = trained_models.Buy_5D(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_5D'] = Buy_5D
-        print(Buy_5D)
-        if Buy_5D[-1]:
-            print("Buy_5D Signal")
-            send_notifications.email_me_string("Buy_5D:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5,'buy_5D')
-                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+        model_name = model.__name__
+        if model_name.startswith('Buy'):
+            CorP = 'C'
+        elif model_name.startswith('Sell'):
+            CorP = 'P'
+
+        result = model(dailyminutes_df)
+        dailyminuteswithALGOresults_df[model_name] = result
 
 
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5D {formatted_time}", 300)
+        interval_match = re.search(r'\d+(min|hr)', model.__name__)
 
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
+        if interval_match:
+            timetill_expectedprofit = interval_match.group()
+            seconds = int(timetill_expectedprofit[:-3]) * 60 if timetill_expectedprofit.endswith('min') else int(timetill_expectedprofit[:-2]) * 3600
         else:
-            print('No Buy_5D Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_5D = trained_models.Sell_5D(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_5D'] = Sell_5D
-        if Sell_5D[-1]:
-            print('Sell_5D  Signal.')
-            send_notifications.email_me_string("Sell_5D", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5,'5D')
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5D {formatted_time}", 300)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No Sell_5D Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        Buy_5C = trained_models.Buy_5C(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_5C'] = Buy_5C
-        print(Buy_5C)
-        if Buy_5C[-1]:
-            print("Buy_5C Signal")
-            send_notifications.email_me_string("Buy_5C:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5,'buy_5c')
-                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                               f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5C {formatted_time}", 300)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_5C Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_5C = trained_models.Sell_5C(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_5C'] = Sell_5C
-        if Sell_5C[-1]:
-            print('Sell_5C  Signal.')
-            send_notifications.email_me_string("Sell_5C", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5C {formatted_time}", 300)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No Sell_5C Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        Buy_5B = trained_models.Buy_5B(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_5B'] = Buy_5B
-        print(Buy_5B)
-        if Buy_5B[-1]:
-            print("Buy_5B Signal")
-            send_notifications.email_me_string("Buy_5B:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5)
-                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                                   f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5B {formatted_time}", 300)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_5B Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_5B = trained_models.Sell_5B(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_5B'] = Sell_5B
-        if Sell_5B[-1]:
-            print('Sell_5B  Signal.')
-            send_notifications.email_me_string("Sell_5B", "Put",
-                                               ticker)
-            send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-                                                              f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5B {formatted_time}",
-                                                               300)
-            try:
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
-
-                print("sending tweet")
-
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No Sell_5B Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        Buy_5A = trained_models.Buy_5A(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_5A'] = Buy_5A
-        print(Buy_5A)
-        if Buy_5A[-1]:
-            print("5A_Buy Signal")
-            send_notifications.email_me_string("Buy_5A:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                                   f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5A {formatted_time}", 300)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_5A Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_5A = trained_models.Sell_5A(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_5A'] = Sell_5A
-        if Sell_5A[-1]:
-            print('Sell_5A  Signal.')
-            send_notifications.email_me_string("Sell_5A", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5A {formatted_time}", 300)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No 5A_Sell Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        Buy_A5 = trained_models.Buy_A5(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_A5'] = Buy_A5
-        print(Buy_A5)
-        if Buy_A5[-1]:
-            print("A5_Buy Signal")
-            send_notifications.email_me_string("Buy_A5:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                                   f"${ticker} ${current_price}. 30 minutes to profit on a Call. #A5 {formatted_time}", 1800)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_A5 Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_A5 = trained_models.Sell_A5(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_A5'] = Sell_A5
-        if Sell_A5[-1]:
-            print('Sell_A5  Signal.')
-            send_notifications.email_me_string("Sell_A5", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-                                                               f"${ticker}  ${current_price}. 30 min till profit on a PUT. #A5 {formatted_time}", 1800)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No A5_Sell Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        Buy_A4 = trained_models.Buy_A4(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_A4'] = Buy_A4
-        print(Buy_A4)
-        if Buy_A4[-1]:
-            print("A4_Buy Signal")
-            send_notifications.email_me_string("Buy_A4:", "Call",
-                                               ticker)
-            try:
-                # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-                if ticker == "SPY":
-                    print("sending tweet")
-                    send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-                                                                   f"${ticker} has hit a temporal LOW at ${current_price}. 20 minutes to profit on a Call. #A4 {formatted_time}", 1200)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No Buy_A4 Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_A4 = trained_models.Sell_A4(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_A4'] = Sell_A4
-        if Sell_A4[-1]:
-            print('A4 Sell Signal.')
-            send_notifications.email_me_string("Sell_A4", "Put",
-                                               ticker)
-
-            try:
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-                IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-
-                print("sending tweet")
-                send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-                                                               f"${ticker} has hit ${current_price}. 20 min and you'll make profit on a PUT. #A4 {formatted_time}", 1200)
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-
-        else:
-            print('No A4_Sell Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        Buy_A3 = trained_models.Buy_A3(
-            dailyminutes_df)
-        dailyminuteswithALGOresults_df['Buy_A3'] = Buy_A3
-        print(Buy_A3)
-        # if Buy_A3[-1]:
-        #     print("A3_Buy Signal")
-        #     send_notifications.email_me_string("Buy_A3:", "Call",
-        #                                        ticker)
-        #     try:
-        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #
-        #         if ticker == "SPY":
-        #             print("sending tweet")
-        #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-        #                                                            f"${ticker} has hit a temporal LOW at ${current_price}. 45 minutes to profit on a Call. #A3")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        # else:
-        #     print('No Buy_A3 Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_A3 = trained_models.Sell_A3(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_A3'] = Sell_A3
-        # if Sell_A3[-1]:
-        #     print('A3 Sell Signal.')
-        #     send_notifications.email_me_string("Sell_A3", "Put",
-        #                                        ticker)
-        #
-        #     try:
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-        #
-        #         print("sending tweet")
-        #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-        #                                                        f"${ticker} has hit ${current_price}. 45 min and you'll make profit on a PUT. #A3")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-
-
-
-        # else:
-        #     print('No A3_Sell Signal.')
-
-    except Exception as e1:
-        print(Exception)
-
-    try:
-        Buy_30min_9sallaround = trained_models.Buy_30min_9sallaround(dailyminutes_df   )
-        dailyminuteswithALGOresults_df['Buy_30min_9sallaround'] = Buy_30min_9sallaround
-        print(Buy_30min_9sallaround)
-        # if Buy_30min_9sallaround[-1]:
-        #     print("A1_Buy Signal")
-        #     send_notifications.email_me_string("Buy_30min_9sallaround:", "Call",
-        #                                        ticker)
-        #     try:
-        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #
-        #
-        #         if ticker == "SPY":
-        #             print("sending tweet")
-        #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
-        #                                                        f"${ticker} has hit a temporal LOW at ${current_price}.You got 30 minutes or so to get some profit on a Call.")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        # else:
-        #     print('No Buy_30min_9sallaround Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        Sell_30min_9sallaround = trained_models.Sell_30min_9sallaround(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Sell_30min_9sallaround'] = Sell_30min_9sallaround
-        # if Sell_30min_9sallaround[-1]:
-        #     print('Sell_30min_9sallaround signal')
-        #     send_notifications.email_me_string("Sell_30min_9sallaround", "Put",
-        #                                        ticker)
-        #
-        #     try:
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-        #
-        #         print("sending tweet")
-        #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
-        #                                                    f"${ticker} has hit a temporal HIGH at ${current_price}.You PROBS have like 30 min and you'll make profit on a PUT.")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        #
-        # else:
-        #     print('No A1_Sell Signal.')
-
-    except Exception as e1:
-        print(Exception)
-####TODO When A1_sell and trythisone2_4 buy line up, its a short term peak?!?!?!
-    try:
-        Trythisone2_4Buy = trained_models.Trythisone2_4Buy(dailyminutes_df   )
-        dailyminuteswithALGOresults_df['Trythisone2_4Buy'] = Trythisone2_4Buy
-
-        print(Trythisone2_4Buy)
-        # if Trythisone2_4Buy[-1]:
-        #     print("Trythisone2_4Buy Signal")
-        #     send_notifications.email_me_string("Trythisone2_4Buy:", "Call",
-        #                                        ticker)
-        #     try:
-        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #
-        #
-        #         # if ticker == "SPY":
-        #         #     print("sending tweet")
-        #         #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
-        #         #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        # else:
-        #     print('No Trythisone2_4Buy Signal')
-
-    except KeyError as e1:
-        print(Exception)
-        pass
-
-    try:
-        Trythisone2_4Sell = trained_models.Trythisone2_4Sell(
-        dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['Trythisone2_4Sell'] = Trythisone2_4Sell
-        # if Trythisone2_4Sell[-1]:
-        #     print('Trythisone2_Sell signal')
-        #     send_notifications.email_me_string("Trythisone2_4Sell", "Put",
-        #                                        ticker)
-        #
-        #     try:
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-        #
-        #         # print("sending tweet")
-        #         # send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
-        #         #                                            f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        #
-        # else:
-        #     print('No Trythisone2_4Sell Signal.')
-    finally:
-        pass
-
-
-    try:
-        A1_Buy = trained_models.A1_Buy(dailyminutes_df   )
-        dailyminutes_df['A1_Buy'] = A1_Buy
-        dailyminuteswithALGOresults_df['A1_Buy'] = A1_Buy
-        print(A1_Buy)
-        # if A1_Buy[-1]:
-        #     print("A1_Buy Signal")
-        #     send_notifications.email_me_string("A1_Buy:", "Call",
-        #                                        ticker)
-        #     try:
-        #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #
-        #
-        #         if ticker == "SPY":
-        #             print("sending tweet")
-        #             send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
-        #                                                        f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        # else:
-        #     print('No A1_Buy Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        A1_Sell = trained_models.A1_Sell(
-            dailyminutes_df)
-
-        dailyminutes_df['A1_Sell'] = A1_Sell
-        dailyminuteswithALGOresults_df['A1_Sell'] = A1_Sell
-        # if A1_Sell[-1]:
-        #     print('A1_Sell signal')
-        #     send_notifications.email_me_string("A1_Sell", "Put",
-        #                                        ticker)
-        #
-        #     try:
-        #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-        #
-        #         print("sending tweet")
-        #         send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
-        #                                                    f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
-        #
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #
-        #
-        #
-        # else:
-        #     print('No A1_Sell Signal.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-        A2_Buy = trained_models.A2_Buy(dailyminutes_df   )
-        dailyminutes_df['A2_Buy'] = A2_Buy
-
-        if A2_Buy[-1]:
-            print("A2_Buy Signal")
-            send_notifications.email_me_string("A2_Buy:", "Call",
-                                               ticker)
-            try:
-                IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-                IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-
-
-                # if ticker == "SPY":
-                #     print("sending tweet")
-                #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
-                #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
-
-            except Exception as e:
-                print(e)
-            finally:
-                pass
-
-
-        else:
-            print('No A1_Buy Signal')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        A2_Sell = trained_models.A2_Sell(
-            dailyminutes_df)
-
-        dailyminutes_df['A2_Sell'] = A2_Sell
-        if A2_Sell[-1]:
-            print('A2_Sell signal')
-            send_notifications.email_me_string("A2_Sell", "Put",
-                                               ticker)
-
-            # try:
-            #     IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-            #     IB.ibAPI.placeSellBracketOrder(ticker, current_price)
-            #     print("sending tweet")
-            #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
-            #                                                f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
-
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-
-
-
-        else:
-            print('No A1_Sell Signal.')
-
-    except Exception as e1:
-        print(e1)
-    try:
-
-        buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(
-            dailyminutes_df)
-        dailyminutes_df['buy_signal1'] = buy_signal1
-
-        if buy_signal1[-1]:
-            # if ticker=="SPY":
-            # # send_notifications.send_tweet(ticker,current_price,'up',f"${ticker} has hit a temporal low at ${current_price}. 80% chance of going higher within 1 hr..")
-            #
-            #
-            # else:
-            #     pass
-            send_notifications.email_me_string("buy_signal1[-1]:", "Call",
-                                               ticker)
-            # try:
-            #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-            # except Exception as e:
-            # finally:
-            #     pass
-            print('Buy signal!')
-
-        else:
-            print('No buy signal.')
-    except Exception as e1:
-        print(Exception)
-    try:
-        buy_signal2 = trained_models.get_buy_signal_NEWONE_PRECISE(
-            dailyminutes_df)
-
-        dailyminuteswithALGOresults_df['buy_signal2'] = buy_signal2
-
-        if buy_signal2[-1]:
-            send_notifications.email_me_string("buy_signal2[-1]:", "Call",
-                                               ticker)
-            # try:
-            #     IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-            print('Buy signal!')
-        else:
-            print('No buy signal.')
-
-    except Exception as e2:
-        print(Exception)
-
-
-    try:
-        buy_signal4 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df)
-        dailyminuteswithALGOresults_df['buy_signal4'] = buy_signal4
-        if buy_signal4[-1]:
-            send_notifications.email_me_string("buy_signal4:", "Call",
-                                               ticker)
-            # try:
-            #     IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-            print('Buy signal 4!')
-        else:
-
-            print('No buy signal 4.')
-
-
-    except Exception as e3:
-        print(Exception)
-    try:
-        new_buy_signal1 = trained_models.get_buy_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(dailyminutes_df)
-        dailyminuteswithALGOresults_df['new_buy_signal1'] = new_buy_signal1
-
-
-
-
-        print(new_buy_signal1)
-        if new_buy_signal1[-1]:
-            print("New Buy Signal 1")
-            send_notifications.email_me_string("New Buy Signal 1[-1]:", "Call",
-                                               ticker)
-            # try:
-            #     IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-            #
-            #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-
-
-        else:
-            print('No New Buy Signal 1.')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        new_sell_signal1 = trained_models.get_sell_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(
-            dailyminutes_df)
-        print(new_sell_signal1)
-        dailyminuteswithALGOresults_df['new_sell_signal1'] = new_sell_signal1
-        if new_sell_signal1[-1]:
-            print('New Sell signal 1!')
-            # send_notifications.email_me_string("new_sell_signal 1[-1]:", "Put",
-            #                                    ticker)
-            #
-            # try:
-            #     IB.ibAPI.placeSellBracketOrder(ticker, current_price)
-            #
-            #     # IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-
-
-
-        else:
-            print('No New Sell Signal 1.')
-    finally:
-        pass
-
+            print(f"Invalid model function name: {model.__name__}")
+            continue
+
+        result = model(dailyminutes_df)
+        dailyminuteswithALGOresults_df[model_name] = result
+
+        if result[-1]:
+            print(f"{model_name} Signal")
+            send_notifications.email_me_string(model_name, CorP, ticker)
+            # Other actions based on the model_name and signal
+
+        # Add more function calls and corresponding parameters here
+
+        upordown = 'up' if CorP == 'C' else 'down'
+        callorput = 'call' if CorP == 'C' else 'P'
+        contractStrike = ib_one_strike_below if CorP == 'C' else ib_one_strike_above
+        contract_price = DownOne_Call_Price if CorP == 'C' else UpOne_Put_Price
+        try:
+            # Place order or perform other actions specific to the action
+            IB.ibAPI.placeOptionBracketOrder(CorP=CorP, ticker=ticker, exp=IB_option_date,
+                                             strike=contractStrike,
+                                             contract_current_price={contract_price},
+                                             quantity=5, orderRef=f'{model_name}')
+            # Other actions specific to the action
+        except Exception as e:
+            print("Error occurred while placing order:", str(e))
+
+        print("sending tweet")
+        send_notifications.send_tweet_w_countdown_followup(ticker, current_price, upordown,   f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",  seconds)
+
+#
+#     # Buy_1hr_A1 = trained_models.Buy_1hr_A1(
+#     #     dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Buy_1hr_A1'] = Buy_1hr_A1
+#     # send_notifications.email_me_string("Buy_1hr_A1", "Call",
+#     #                                    ticker)
+#     # Sell_1hr_A1 = trained_models.Sell_1hr_A1(dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Sell_1hr_A1'] = Sell_1hr_A1
+#     # send_notifications.email_me_string("Sell_1hr_A1", "Put",
+#     #                                    ticker)
+#     # Buy_20min_A1 = trained_models.Buy_20min_A1(
+#     #     dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Buy_20min_A1'] = Buy_20min_A1
+#     # send_notifications.email_me_string("Buy_20min_A1", "Call",
+#     #                                    ticker)
+#     # Sell_20min_A1 = trained_models.Sell_20min_A1( dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Sell_20min_A1'] = Sell_20min_A1
+#     # send_notifications.email_me_string("Sell_20min_A1", "Put",
+#     #                                    ticker)
+#     # Buy_15min_A2 = trained_models.Buy_15min_A2(
+#     #     dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Buy_15min_A2'] = Buy_15min_A2
+#     # send_notifications.email_me_string("Buy_15min_A2", "Call",
+#     #                                    ticker)
+#     # Sell_15min_A2 = trained_models.Sell_15min_A2( dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Sell_15min_A2'] = Sell_15min_A2
+#     # send_notifications.email_me_string("Sell_15min_A2", "Put",
+#     #                                    ticker)
+#     # Buy_15min_A1 = trained_models.Buy_15min_A1(
+#     #     dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Buy_15min_A1'] = Buy_15min_A1
+#     # send_notifications.email_me_string("Buy_15min_A1", "Call",
+#     #                                    ticker)
+#     # Sell_15min_A1 = trained_models.Sell_15min_A1( dailyminutes_df)
+#     # dailyminuteswithALGOresults_df['Sell_15min_A1'] = Sell_15min_A1
+#     # send_notifications.email_me_string("Sell_15min_A1", "Put",
+#     #                                    ticker)
+#     try:
+#         Buy_5D = trained_models.Buy_5D(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_5D'] = Buy_5D
+#         print(Buy_5D)
+#         if Buy_5D[-1]:
+#             print("Buy_5D Signal")
+#             send_notifications.email_me_string("Buy_5D:", "Call",
+#                                                ticker)
+#             try:
+#                 IB.ibAPI.placeOptionBracketOrder(CorP='C',ticker=ticker,exp= IB_option_date, strike=ib_one_strike_below, contract_current_price=DownOne_Call_Price,quantity=5,orderRef='buy_5D')
+#                 # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#                                                                f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5D {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No Buy_5D Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     # actions = [
+#     #     ('Buy_5D', 'C', '5 min.',trained_models.Buy_5D),
+#     #
+#     #     # Add more function calls and corresponding parameters here
+#     # ]
+#     #
+#     # for modelname, CorP, timetoprofit, model in actions:
+#     #     result = model(dailyminutes_df)
+#     #     dailyminuteswithALGOresults_df[modelname] = result
+#     #     print(result)
+#     #     upordown = 'up' if CorP == 'C' else 'down'
+#     #     callorput = 'call' if CorP == 'C' else 'P'
+#     #     if result[-1]:
+#     #         print(f"{modelname} Signal")
+#     #         send_notifications.email_me_string(modelname, CorP, ticker)
+#     #         try:
+#     #             # Place order or perform other actions specific to the action
+#     #             IB.ibAPI.placeOptionBracketOrder(CorP=CorP, ticker=ticker, exp=IB_option_date,
+#     #                                              strike=ib_one_strike_below,
+#     #                                              contract_current_price=DownOne_Call_Price,
+#     #                                              quantity=5, orderRef=f'{modelname}')
+#     #             # Other actions specific to the action
+#     #         except Exception as e:
+#     #             print("Error occurred while placing order:", str(e))
+#     #
+#     #         print("sending tweet")
+#     #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, upordown,
+#     #                                                            f"${ticker} ${current_price}. {timetoprofit} to make money on a {callorput} #{modelname} {formatted_time}",  300)
+#     try:
+#         Sell_5D = trained_models.Sell_5D(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_5D'] = Sell_5D
+#         if Sell_5D[-1]:
+#             print('Sell_5D  Signal.')
+#             send_notifications.email_me_string("Sell_5D", "Put",
+#                                                ticker)
+#
+#             try:
+#                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5,'5D')
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#                                                                f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5D {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#
+#         else:
+#             print('No Sell_5D Signal.')
+#
 #     except Exception as e1:
 #         print(Exception)
-    try:
-        new_buy_signal2 = trained_models.get_buy_signal_NewPerhapsExcellentTargetDown5to15minSPY(dailyminutes_df )
-        dailyminutes_df['new_buy_signal2'] = new_buy_signal2
-
-        print(new_buy_signal2)
-        if new_buy_signal2[-1]:
-            print("New Buy Signal 2")
-            send_notifications.email_me_string("New Buy Signal 2[-1]:", "Call",
-                                               ticker)
-            # try:
-            #     IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
-            #
-            #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-
-
-        else:
-            print('No New Buy Signal 2.')
-
-    except KeyError as e1:
-        print(Exception)
-    try:
-        new_sell_signal2 = trained_models.get_sell_signal_NewPerhapsExcellentTargetDown5to15minSPY(
-            dailyminutes_df)
-        print(new_sell_signal2)
-        dailyminuteswithALGOresults_df['new_sell_signal2'] = new_sell_signal2
-        if new_sell_signal2[-1]:
-            print('New Sell signal 2!')
-            send_notifications.email_me_string("new_sell_signal 2[-1]:", "Put",
-                                               ticker)
-
-            # try:
-            #     # IB.ibAPI.placeSellBracketOrder(ticker, current_price)
-            #
-            #     # IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-
-
-
-        else:
-            print('No New Sell Signal 2.')
-
-    except Exception as e1:
-        print(Exception)
-    try:
-
-        sell_signal2 = trained_models.get_sell_signal_NEWONE_PRECISE(dailyminutes_df)
-        dailyminuteswithALGOresults_df['sell_signal2'] = sell_signal2
-
-        # if sell_signal2[-1]:
-        #     send_notifications.email_me_string("sell_signal2[-1]:", "Put",
-        #                                        ticker)
-        #     try:
-        #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
-        #     except Exception as e:
-        #         print(e)
-        #     finally:
-        #         pass
-        #     print('Sell signal!')
-        # else:
-        #     print('No sell signal.')
-
-
-    except Exception as e1:
-        print(Exception)
-
-    try:
-        sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df)
-
-        if sell_signal3[-1]:
-            print("sell signal 333333333333333333333333333333")
-            send_notifications.email_me_string("sell_signal3[-1]:", "Put",
-                                               ticker)
-            # try:
-            #     IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
-            # except Exception as e:
-            #     print(e)
-            # finally:
-            #     pass
-
-            print('Sell signal!')
-        else:
-            print('No sell signal 3.')
-
-    except KeyError as e1:
-        print(Exception)
+#     try:
+#         Buy_5C = trained_models.Buy_5C(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_5C'] = Buy_5C
+#         print(Buy_5C)
+#         if Buy_5C[-1]:
+#             print("Buy_5C Signal")
+#             send_notifications.email_me_string("Buy_5C:", "Call",
+#                                                ticker)
+#             try:
+#                 IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5,'buy_5c')
+#                 # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#                                                                f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5C {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No Buy_5C Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_5C = trained_models.Sell_5C(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_5C'] = Sell_5C
+#         if Sell_5C[-1]:
+#             print('Sell_5C  Signal.')
+#             send_notifications.email_me_string("Sell_5C", "Put",
+#                                                ticker)
+#
+#             try:
+#                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#                                                                f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5C {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#
+#         else:
+#             print('No Sell_5C Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         Buy_5B = trained_models.Buy_5B(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_5B'] = Buy_5B
+#         print(Buy_5B)
+#         if Buy_5B[-1]:
+#             print("Buy_5B Signal")
+#             send_notifications.email_me_string("Buy_5B:", "Call",
+#                                                ticker)
+#             try:
+#                 IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 5)
+#                 # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#                 if ticker == "SPY":
+#                     print("sending tweet")
+#                     send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#                                                                    f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5B {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No Buy_5B Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_5B = trained_models.Sell_5B(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_5B'] = Sell_5B
+#         if Sell_5B[-1]:
+#             print('Sell_5B  Signal.')
+#             send_notifications.email_me_string("Sell_5B", "Put",
+#                                                ticker)
+#             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#                                                               f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5B {formatted_time}",
+#                                                                300)
+#             try:
+#                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 5)
+#
+#                 print("sending tweet")
+#
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#
+#         else:
+#             print('No Sell_5B Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         Buy_5A = trained_models.Buy_5A(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_5A'] = Buy_5A
+#         print(Buy_5A)
+#         if Buy_5A[-1]:
+#             print("5A_Buy Signal")
+#             send_notifications.email_me_string("Buy_5A:", "Call",
+#                                                ticker)
+#             try:
+#                 IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#                 IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#                 if ticker == "SPY":
+#                     print("sending tweet")
+#                     send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#                                                                    f"${ticker} ${current_price}. 5 minutes to profit on a Call. #5A {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No Buy_5A Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_5A = trained_models.Sell_5A(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_5A'] = Sell_5A
+#         if Sell_5A[-1]:
+#             print('Sell_5A  Signal.')
+#             send_notifications.email_me_string("Sell_5A", "Put",
+#                                                ticker)
+#
+#             try:
+#                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#                                                                f"${ticker}  ${current_price}. 5 min till profit on a PUT. #5A {formatted_time}", 300)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#
+#         else:
+#             print('No 5A_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         Buy_A5 = trained_models.Buy_A5(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_A5'] = Buy_A5
+#         print(Buy_A5)
+#         if Buy_A5[-1]:
+#             print("A5_Buy Signal")
+#             send_notifications.email_me_string("Buy_A5:", "Call",
+#                                                ticker)
+#             try:
+#                 IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#                 IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#                 if ticker == "SPY":
+#                     print("sending tweet")
+#                     send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#                                                                    f"${ticker} ${current_price}. 30 minutes to profit on a Call. #A5 {formatted_time}", 1800)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No Buy_A5 Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_A5 = trained_models.Sell_A5(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_A5'] = Sell_A5
+#         if Sell_A5[-1]:
+#             print('Sell_A5  Signal.')
+#             send_notifications.email_me_string("Sell_A5", "Put",
+#                                                ticker)
+#
+#             try:
+#                 IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#                                                                f"${ticker}  ${current_price}. 30 min till profit on a PUT. #A5 {formatted_time}", 1800)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#
+#         else:
+#             print('No A5_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         Buy_A4 = trained_models.Buy_A4(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_A4'] = Buy_A4
+#         print(Buy_A4)
+#         if Buy_A4[-1]:
+#             print("A4_Buy Signal")
+#             send_notifications.email_me_string("Buy_A4:", "Call",
+#                                                ticker)
+#             try:
+#                 # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#                 # IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#                 if ticker == "SPY":
+#                     print("sending tweet")
+#                     send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#                                                                    f"${ticker} has hit a temporal LOW at ${current_price}. 20 minutes to profit on a Call. #A4 {formatted_time}", 1200)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No Buy_A4 Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_A4 = trained_models.Sell_A4(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_A4'] = Sell_A4
+#         if Sell_A4[-1]:
+#             print('A4 Sell Signal.')
+#             send_notifications.email_me_string("Sell_A4", "Put",
+#                                                ticker)
+#
+#             try:
+#                 IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#                 IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#
+#                 print("sending tweet")
+#                 send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#                                                                f"${ticker} has hit ${current_price}. 20 min and you'll make profit on a PUT. #A4 {formatted_time}", 1200)
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#
+#         else:
+#             print('No A4_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         Buy_A3 = trained_models.Buy_A3(
+#             dailyminutes_df)
+#         dailyminuteswithALGOresults_df['Buy_A3'] = Buy_A3
+#         print(Buy_A3)
+#         # if Buy_A3[-1]:
+#         #     print("A3_Buy Signal")
+#         #     send_notifications.email_me_string("Buy_A3:", "Call",
+#         #                                        ticker)
+#         #     try:
+#         #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #
+#         #         if ticker == "SPY":
+#         #             print("sending tweet")
+#         #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#         #                                                            f"${ticker} has hit a temporal LOW at ${current_price}. 45 minutes to profit on a Call. #A3")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         # else:
+#         #     print('No Buy_A3 Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_A3 = trained_models.Sell_A3(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_A3'] = Sell_A3
+#         # if Sell_A3[-1]:
+#         #     print('A3 Sell Signal.')
+#         #     send_notifications.email_me_string("Sell_A3", "Put",
+#         #                                        ticker)
+#         #
+#         #     try:
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#         #
+#         #         print("sending tweet")
+#         #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#         #                                                        f"${ticker} has hit ${current_price}. 45 min and you'll make profit on a PUT. #A3")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#
+#
+#
+#         # else:
+#         #     print('No A3_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#
+#     try:
+#         Buy_30min_9sallaround = trained_models.Buy_30min_9sallaround(dailyminutes_df   )
+#         dailyminuteswithALGOresults_df['Buy_30min_9sallaround'] = Buy_30min_9sallaround
+#         print(Buy_30min_9sallaround)
+#         # if Buy_30min_9sallaround[-1]:
+#         #     print("A1_Buy Signal")
+#         #     send_notifications.email_me_string("Buy_30min_9sallaround:", "Call",
+#         #                                        ticker)
+#         #     try:
+#         #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #
+#         #
+#         #         if ticker == "SPY":
+#         #             print("sending tweet")
+#         #             send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'up',
+#         #                                                        f"${ticker} has hit a temporal LOW at ${current_price}.You got 30 minutes or so to get some profit on a Call.")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         # else:
+#         #     print('No Buy_30min_9sallaround Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         Sell_30min_9sallaround = trained_models.Sell_30min_9sallaround(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Sell_30min_9sallaround'] = Sell_30min_9sallaround
+#         # if Sell_30min_9sallaround[-1]:
+#         #     print('Sell_30min_9sallaround signal')
+#         #     send_notifications.email_me_string("Sell_30min_9sallaround", "Put",
+#         #                                        ticker)
+#         #
+#         #     try:
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#         #
+#         #         print("sending tweet")
+#         #         send_notifications.send_tweet_w_countdown_followup(ticker, current_price, 'down',
+#         #                                                    f"${ticker} has hit a temporal HIGH at ${current_price}.You PROBS have like 30 min and you'll make profit on a PUT.")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         #
+#         # else:
+#         #     print('No A1_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+# ####TODO When A1_sell and trythisone2_4 buy line up, its a short term peak?!?!?!
+#     try:
+#         Trythisone2_4Buy = trained_models.Trythisone2_4Buy(dailyminutes_df   )
+#         dailyminuteswithALGOresults_df['Trythisone2_4Buy'] = Trythisone2_4Buy
+#
+#         print(Trythisone2_4Buy)
+#         # if Trythisone2_4Buy[-1]:
+#         #     print("Trythisone2_4Buy Signal")
+#         #     send_notifications.email_me_string("Trythisone2_4Buy:", "Call",
+#         #                                        ticker)
+#         #     try:
+#         #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #
+#         #
+#         #         # if ticker == "SPY":
+#         #         #     print("sending tweet")
+#         #         #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
+#         #         #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         # else:
+#         #     print('No Trythisone2_4Buy Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#         pass
+#
+#     try:
+#         Trythisone2_4Sell = trained_models.Trythisone2_4Sell(
+#         dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['Trythisone2_4Sell'] = Trythisone2_4Sell
+#         # if Trythisone2_4Sell[-1]:
+#         #     print('Trythisone2_Sell signal')
+#         #     send_notifications.email_me_string("Trythisone2_4Sell", "Put",
+#         #                                        ticker)
+#         #
+#         #     try:
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#         #
+#         #         # print("sending tweet")
+#         #         # send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
+#         #         #                                            f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         #
+#         # else:
+#         #     print('No Trythisone2_4Sell Signal.')
+#     finally:
+#         pass
+#
+#
+#     try:
+#         A1_Buy = trained_models.A1_Buy(dailyminutes_df   )
+#         dailyminutes_df['A1_Buy'] = A1_Buy
+#         dailyminuteswithALGOresults_df['A1_Buy'] = A1_Buy
+#         print(A1_Buy)
+#         # if A1_Buy[-1]:
+#         #     print("A1_Buy Signal")
+#         #     send_notifications.email_me_string("A1_Buy:", "Call",
+#         #                                        ticker)
+#         #     try:
+#         #         IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #
+#         #
+#         #         if ticker == "SPY":
+#         #             print("sending tweet")
+#         #             send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
+#         #                                                        f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         # else:
+#         #     print('No A1_Buy Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         A1_Sell = trained_models.A1_Sell(
+#             dailyminutes_df)
+#
+#         dailyminutes_df['A1_Sell'] = A1_Sell
+#         dailyminuteswithALGOresults_df['A1_Sell'] = A1_Sell
+#         # if A1_Sell[-1]:
+#         #     print('A1_Sell signal')
+#         #     send_notifications.email_me_string("A1_Sell", "Put",
+#         #                                        ticker)
+#         #
+#         #     try:
+#         #         IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#         #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#         #
+#         #         print("sending tweet")
+#         #         send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
+#         #                                                    f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
+#         #
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #
+#         #
+#         #
+#         # else:
+#         #     print('No A1_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         A2_Buy = trained_models.A2_Buy(dailyminutes_df   )
+#         dailyminutes_df['A2_Buy'] = A2_Buy
+#
+#         if A2_Buy[-1]:
+#             print("A2_Buy Signal")
+#             send_notifications.email_me_string("A2_Buy:", "Call",
+#                                                ticker)
+#             try:
+#                 IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#                 IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#
+#
+#                 # if ticker == "SPY":
+#                 #     print("sending tweet")
+#                 #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'up',
+#                 #                                                f"${ticker} has hit a temporal LOW at ${current_price}.This is a signal that the price has a high chance of rising significantly in a 3-5 hour window.")
+#
+#             except Exception as e:
+#                 print(e)
+#             finally:
+#                 pass
+#
+#
+#         else:
+#             print('No A1_Buy Signal')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         A2_Sell = trained_models.A2_Sell(
+#             dailyminutes_df)
+#
+#         dailyminutes_df['A2_Sell'] = A2_Sell
+#         if A2_Sell[-1]:
+#             print('A2_Sell signal')
+#             send_notifications.email_me_string("A2_Sell", "Put",
+#                                                ticker)
+#
+#             # try:
+#             #     IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#             #     IB.ibAPI.placeSellBracketOrder(ticker, current_price)
+#             #     print("sending tweet")
+#             #     send_notifications.send_tweet_w_5hour_followup(ticker, current_price, 'down',
+#             #                                                f"${ticker} has hit a temporal HIGH at ${current_price}.This is a signal that the price has a high likelihood of falling significantly in a 3-5 hour window.")
+#
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#
+#
+#
+#         else:
+#             print('No A1_Sell Signal.')
+#
+#     except Exception as e1:
+#         print(e1)
+#     try:
+#
+#         buy_signal1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(
+#             dailyminutes_df)
+#         dailyminutes_df['buy_signal1'] = buy_signal1
+#
+#         if buy_signal1[-1]:
+#             # if ticker=="SPY":
+#             # # send_notifications.send_tweet(ticker,current_price,'up',f"${ticker} has hit a temporal low at ${current_price}. 80% chance of going higher within 1 hr..")
+#             #
+#             #
+#             # else:
+#             #     pass
+#             send_notifications.email_me_string("buy_signal1[-1]:", "Call",
+#                                                ticker)
+#             # try:
+#             #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#             # except Exception as e:
+#             # finally:
+#             #     pass
+#             print('Buy signal!')
+#
+#         else:
+#             print('No buy signal.')
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#         buy_signal2 = trained_models.get_buy_signal_NEWONE_PRECISE(
+#             dailyminutes_df)
+#
+#         dailyminuteswithALGOresults_df['buy_signal2'] = buy_signal2
+#
+#         if buy_signal2[-1]:
+#             send_notifications.email_me_string("buy_signal2[-1]:", "Call",
+#                                                ticker)
+#             # try:
+#             #     IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#             print('Buy signal!')
+#         else:
+#             print('No buy signal.')
+#
+#     except Exception as e2:
+#         print(Exception)
+#
+#
+#     try:
+#         buy_signal4 = trained_models.get_buy_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df)
+#         dailyminuteswithALGOresults_df['buy_signal4'] = buy_signal4
+#         if buy_signal4[-1]:
+#             send_notifications.email_me_string("buy_signal4:", "Call",
+#                                                ticker)
+#             # try:
+#             #     IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price, 1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#             print('Buy signal 4!')
+#         else:
+#
+#             print('No buy signal 4.')
+#
+#
+#     except Exception as e3:
+#         print(Exception)
+#     try:
+#         new_buy_signal1 = trained_models.get_buy_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(dailyminutes_df)
+#         dailyminuteswithALGOresults_df['new_buy_signal1'] = new_buy_signal1
+#
+#
+#
+#
+#         print(new_buy_signal1)
+#         if new_buy_signal1[-1]:
+#             print("New Buy Signal 1")
+#             send_notifications.email_me_string("New Buy Signal 1[-1]:", "Call",
+#                                                ticker)
+#             # try:
+#             #     IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#             #
+#             #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#
+#
+#         else:
+#             print('No New Buy Signal 1.')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         new_sell_signal1 = trained_models.get_sell_signal_1to4hourNewGreatPrecNumbersBonsai1NETitmIV(
+#             dailyminutes_df)
+#         print(new_sell_signal1)
+#         dailyminuteswithALGOresults_df['new_sell_signal1'] = new_sell_signal1
+#         if new_sell_signal1[-1]:
+#             print('New Sell signal 1!')
+#             # send_notifications.email_me_string("new_sell_signal 1[-1]:", "Put",
+#             #                                    ticker)
+#             #
+#             # try:
+#             #     IB.ibAPI.placeSellBracketOrder(ticker, current_price)
+#             #
+#             #     # IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#
+#
+#
+#         else:
+#             print('No New Sell Signal 1.')
+#     finally:
+#         pass
+#
+# #     except Exception as e1:
+# #         print(Exception)
+#     try:
+#         new_buy_signal2 = trained_models.get_buy_signal_NewPerhapsExcellentTargetDown5to15minSPY(dailyminutes_df )
+#         dailyminutes_df['new_buy_signal2'] = new_buy_signal2
+#
+#         print(new_buy_signal2)
+#         if new_buy_signal2[-1]:
+#             print("New Buy Signal 2")
+#             send_notifications.email_me_string("New Buy Signal 2[-1]:", "Call",
+#                                                ticker)
+#             # try:
+#             #     IB.ibAPI.placeBuyBracketOrder(ticker, current_price)
+#             #
+#             #     # IB.ibAPI.placeCallBracketOrder(ticker, IB_option_date, ib_one_strike_below, DownOne_Call_Price,1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#
+#
+#         else:
+#             print('No New Buy Signal 2.')
+#
+#     except KeyError as e1:
+#         print(Exception)
+#     try:
+#         new_sell_signal2 = trained_models.get_sell_signal_NewPerhapsExcellentTargetDown5to15minSPY(
+#             dailyminutes_df)
+#         print(new_sell_signal2)
+#         dailyminuteswithALGOresults_df['new_sell_signal2'] = new_sell_signal2
+#         if new_sell_signal2[-1]:
+#             print('New Sell signal 2!')
+#             send_notifications.email_me_string("new_sell_signal 2[-1]:", "Put",
+#                                                ticker)
+#
+#             # try:
+#             #     # IB.ibAPI.placeSellBracketOrder(ticker, current_price)
+#             #
+#             #     # IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#
+#
+#
+#         else:
+#             print('No New Sell Signal 2.')
+#
+#     except Exception as e1:
+#         print(Exception)
+#     try:
+#
+#         sell_signal2 = trained_models.get_sell_signal_NEWONE_PRECISE(dailyminutes_df)
+#         dailyminuteswithALGOresults_df['sell_signal2'] = sell_signal2
+#
+#         # if sell_signal2[-1]:
+#         #     send_notifications.email_me_string("sell_signal2[-1]:", "Put",
+#         #                                        ticker)
+#         #     try:
+#         #         IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price, 1)
+#         #     except Exception as e:
+#         #         print(e)
+#         #     finally:
+#         #         pass
+#         #     print('Sell signal!')
+#         # else:
+#         #     print('No sell signal.')
+#
+#
+#     except Exception as e1:
+#         print(Exception)
+#
+#     try:
+#         sell_signal3 = trained_models.get_sell_signal_NEWONE_TESTED_WELL_MOSTLY_UP(dailyminutes_df)
+#
+#         if sell_signal3[-1]:
+#             print("sell signal 333333333333333333333333333333")
+#             send_notifications.email_me_string("sell_signal3[-1]:", "Put",
+#                                                ticker)
+#             # try:
+#             #     IB.ibAPI.placePutBracketOrder(ticker, IB_option_date, ib_one_strike_above, UpOne_Put_Price,1)
+#             # except Exception as e:
+#             #     print(e)
+#             # finally:
+#             #     pass
+#
+#             print('Sell signal!')
+#         else:
+#             print('No sell signal 3.')
+#
+#     except KeyError as e1:
+#         print(Exception)
 
 #
 
@@ -1052,13 +1119,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1]>70:
         send_notifications.email_me_string("dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put",
                                            ticker)
-        try:
-            IB.ibAPI.placePutBracketOrder(ticker,IB_option_date,ib_one_strike_above, UpOne_Put_Price,19,"b1/b2+rsi")
 
-        except Exception as e:
-            print(e)
-        finally:
-            pass
 
 #         ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
 #     if dailyminutes_df['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14'].iloc[-1]>75:

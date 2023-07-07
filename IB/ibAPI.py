@@ -276,7 +276,7 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
 #     ib.disconnect()
 #
 #
-# def placeCallBracketOrder(clientId, ticker, exp, strike, current_price, quantity, custom_takeprofit=None,
+# def placeCallBracketOrder(clientId, ticker, exp, strike, contract_current_price, quantity, custom_takeprofit=None,
 #                           custom_trailamount=None):
 #     ib_connect(clientId)  # Connect with the specified client ID
 #     ticker_symbol = ticker
@@ -360,7 +360,80 @@ def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
         logging.error('PlacePutBracketOrder error: %s', e)
+def placeOptionBracketOrder(CorP,ticker, exp, strike, contract_current_price, quantity, orderRef=None, custom_takeprofit=None,
+                            custom_trailamount=None):
+    ib_connect()
+    try:
 
+        print(ticker, exp, strike, contract_current_price)
+        print(type(ticker))
+        print(type(exp))
+        print(type(strike))
+        print(type(contract_current_price))
+        ## needed to remove 'USD' for option
+        ticker_contract = Option(ticker, exp, strike, CorP, 'SMART')
+        ib.qualifyContracts(ticker_contract)
+        contract_current_price = round(contract_current_price, 2)
+        quantity = quantity  # Replace with the desired order quantity
+        limit_price = contract_current_price  # Replace with your desired limit price
+        if custom_takeprofit is not None:
+            take_profit_price = round(contract_current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
+
+        else:
+            take_profit_price = round(contract_current_price * 1.15, 2)  # Replace with your desired take profit price
+        stop_loss_price = contract_current_price * .9  # Replace with your desired stop-loss price
+        if custom_trailamount is not None:
+            trailAmount = round(contract_current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
+
+        else:
+            trailAmount = round(contract_current_price * .1, 2)  # Replace with your desired trailing stop percentage
+
+        triggerPrice = limit_price
+
+        # This will be our main or "parent" order
+        parent = Order()
+        parent.orderId = ib.client.getReqId()
+        parent.action = "BUY"
+        parent.orderType = "LMT"
+        parent.totalQuantity = quantity
+        parent.lmtPrice = limit_price
+        parent.transmit = False
+        parent.outsideRth = True
+        ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
+        parent.tif = 'GTD'
+        parent.goodTillDate = gtddelta
+
+        takeProfit = Order()
+        takeProfit.orderId = ib.client.getReqId()
+        takeProfit.action = "SELL"
+        takeProfit.orderType = "LMT"
+        takeProfit.totalQuantity = quantity
+        takeProfit.lmtPrice = take_profit_price
+        takeProfit.parentId = parent.orderId
+        takeProfit.outsideRth = True
+        takeProfit.transmit = False
+
+        stopLoss = Order()
+        stopLoss.orderId = ib.client.getReqId()
+        stopLoss.action = "SELL"
+        stopLoss.orderType = "TRAIL"
+        stopLoss.TrailingUnit = 1
+        stopLoss.auxPrice = trailAmount
+        stopLoss.trailStopPrice = limit_price - trailAmount
+        stopLoss.totalQuantity = quantity
+        stopLoss.parentId = parent.orderId
+        stopLoss.outsideRth = True
+        stopLoss.transmit = True
+
+        bracketOrder = [parent, takeProfit, stopLoss]
+        # return bracketOrder
+        for o in bracketOrder:
+            if orderRef != None:
+                o.orderRef = orderRef
+            print(ib.placeOrder(ticker_contract, o))
+            ib.sleep(1)
+    except (Exception, asyncio.exceptions.TimeoutError) as e:
+        logging.error('PlaceCallBracketOrder error: %s', e)
 ###TODO diff client id for diff stat. and add options.
 """
 

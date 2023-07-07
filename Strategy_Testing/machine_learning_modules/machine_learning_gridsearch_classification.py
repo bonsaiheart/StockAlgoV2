@@ -40,9 +40,10 @@ threshold_down = 0.7
 
 ###35,5,80   6/3/80
 parameters = {
-    'max_depth': (25,50,75),#50
-    'min_samples_split': (2,5,10,20,30),#5
-    'n_estimators': (500,750,1000,1250,1500),#500,1000
+    'max_depth': (65,70,80,100),#50//70
+    'min_samples_split': (2,5,7),#5//5
+
+    'n_estimators': (1250,1300,1400,1600,1800),#1300//1600/1300
 }
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
 ml_dataframe.dropna(subset= Chosen_Predictor, inplace=True)
