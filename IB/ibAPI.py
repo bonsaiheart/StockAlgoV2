@@ -59,7 +59,7 @@ def placeBuyBracketOrder(ticker, current_price):
 
         print(take_profit_price)
         stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        trailAmount = round(current_price * .003, 2)  # Replace with your desired trailing stop percentage
+        trailAmount = round(current_price * .002, 2)  # Replace with your desired trailing stop percentage
         triggerPrice = limit_price
 
         # This will be our main or "parent" order
@@ -118,11 +118,11 @@ def placeSellBracketOrder(ticker, current_price):
         current_price = current_price
         quantity = 5  # Replace with the desired order quantity
         limit_price = current_price  # Replace with your desired limit price
-        take_profit_price = round(current_price * .997, 2)  # Replace with your desired take profit price
+        take_profit_price = round(current_price * 1.003, 2)  # Replace with your desired take profit price
 
         print(take_profit_price)
         stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        trailAmount = round(current_price * .01, 2)  # Replace with your desired trailing stop percentage
+        trailAmount = round(current_price * .002, 2)  # Replace with your desired trailing stop percentage
         triggerPrice = limit_price
 
         # This will be our main or "parent" order
@@ -196,7 +196,7 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
             trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(current_price * .1, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(current_price * .05, 2)  # Replace with your desired trailing stop percentage
 
         triggerPrice = limit_price
 
@@ -313,7 +313,7 @@ def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=
             trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(current_price * .1, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(current_price * .05, 2)  # Replace with your desired trailing stop percentage
         stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
         triggerPrice = limit_price
 
@@ -386,7 +386,7 @@ def placeOptionBracketOrder(CorP,ticker, exp, strike, contract_current_price, qu
             trailAmount = round(contract_current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(contract_current_price * .1, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(contract_current_price * .05, 2)  # Replace with your desired trailing stop percentage
 
         triggerPrice = limit_price
 
