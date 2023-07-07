@@ -10,44 +10,36 @@ import numpy as np
 import sys
 from skopt import BayesSearchCV, Optimizer
 
-DF_filename = "../historical_multiday_minute_DF/SPY/230705_SPY.csv"
+DF_filename = "../historical_multiday_minute_DF/SPY/230706_SPY.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 Chosen_Predictor = [ 'Bonsai Ratio','Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4','ITM PCRv Down4',
       'RSI14','AwesomeOsc5_34','RSI','RSI2','AwesomeOsc'
       ]
-
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-# print(ml_dataframe.columns)
-cells_forward_to_check = 15
-threshold_cells_up = cells_forward_to_check * .6
-threshold_cells_down = cells_forward_to_check * .6
+cells_forward_to_check = 20
+threshold_cells_up = cells_forward_to_check * .7
+threshold_cells_down = cells_forward_to_check * .7
 num_features_up = 3
 num_features_down = 3
 threshold_up = 0.7
 threshold_down = 0.7
-percent_up = .15
-percent_down = -.15
+percent_up = .2
+percent_down = -.2
 parameters = {
-    'max_depth': (4 , 6,  8, 10),
-    'min_samples_split': (40,80,100),
-
-    'n_estimators': (50,75,100,200),
+    'max_depth': (4 , 6,  8, 12,16,20),
+    'min_samples_split': (5,10,20),
+    'n_estimators': (80,100,200,240),
 }
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
-
 ml_dataframe.dropna(subset= Chosen_Predictor, inplace=True)
-
-
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
-
 Chosen_Predictor_nobrackets = [x.replace('/', '').replace(',', '_').replace(' ', '_').replace('-', '') for x in
                                Chosen_Predictor]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
-
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
 
@@ -57,48 +49,62 @@ ml_dataframe["Target_Up"] = 0
 targetUpCounter =0
 targetDownCounter=0
 for i in range(1, cells_forward_to_check+1):
-    # print("TARGETT DOWN",ml_dataframe["Target_Down"]
-    condition_met_up = ml_dataframe["Current SP % Change(LAC)"].shift(i) > ml_dataframe["Current SP % Change(LAC)"]+percent_up
-    condition_met_down = ml_dataframe["Current SP % Change(LAC)"].shift(i) < ml_dataframe["Current SP % Change(LAC)"]+percent_down
+    condition_met_up = ml_dataframe["Current SP % Change(LAC)"].shift(-i) > ml_dataframe["Current SP % Change(LAC)"]+percent_up
+    condition_met_down = ml_dataframe["Current SP % Change(LAC)"].shift(-i) < ml_dataframe["Current SP % Change(LAC)"]+percent_down
     targetUpCounter += condition_met_up.astype(int)
     targetDownCounter += condition_met_down.astype(int)
     ml_dataframe["Target_Down"] = (targetDownCounter >= threshold_cells_down).astype(int)
     ml_dataframe["Target_Up"] = (targetUpCounter >= threshold_cells_up).astype(int)
 
 ml_dataframe.dropna(subset= ['Target_Up','Target_Down'], inplace=True)
-
-# # ml_dataframe["Target_Down"] = ml_dataframe["Target_Down"].astype(int)
-# ml_dataframe["Target_Down"] |= ((ml_dataframe["Current SP % Change(LAC)"].shift(-1)* percent_down) <(ml_dataframe["Current SP % Change(LAC)"]).astype(int))
-# ml_dataframe["Target_Up"] |= ((ml_dataframe["Current SP % Change(LAC)"].shift(-1) * percent_up)>(ml_dataframe["Current SP % Change(LAC)"] ).astype(int))
-ml_dataframe.to_csv("Current_ML_DF_FOR_TRAINING.csv")
-
-model = RandomForestClassifier(random_state=None, class_weight="balanced")
-###25/50      ###2/20   ###100/40
-
+y_up = ml_dataframe["Target_Up"]
+y_down = ml_dataframe["Target_Down"]
 X = ml_dataframe[Chosen_Predictor]
 # Reset the index of your DataFrame
 X.reset_index(drop=True, inplace=True)
 
-y_up = ml_dataframe["Target_Up"]
-y_down = ml_dataframe["Target_Down"]
+ml_dataframe.to_csv("Current_ML_DF_FOR_TRAINING.csv")
+
+# weight_negative = 1.0
+# weight_positive = 5.0  # Assigning a higher weight to the positive class (you can adjust this value based on your needs)
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(X, y_up, y_down, test_size=0.2,    random_state=None)
-# Feature selection for Target_Up
-
 feature_selector_up = SelectKBest(score_func=mutual_info_classif)
+# Calculate class weights
+num_positive_up = sum(y_up_train)  # Number of positive cases in the training set
+num_negative_up = len(y_up_train) - num_positive_up  # Number of negative cases in the training set
+weight_negative_up = 1.0
+weight_positive_up = num_negative_up / num_positive_up
 
+num_positive_down = sum(y_down_train)  # Number of positive cases in the training set
+num_negative_down = len(y_down_train) - num_positive_down  # Number of negative cases in the training set
+weight_negative_down = 1.0
+weight_positive_down = num_negative_down / num_positive_down
+print('num_positive_up= ',num_positive_up,'num_negative_up= ',num_negative_up,'num_positive_down= ',num_positive_down,'negative_down= ',num_negative_down)
+print('weight_positve_up: ',weight_positive_up,'//weight_negative_up: ',weight_negative_up)
+print('weight_positve_down: ',weight_positive_down,'//weight_negative_down: ',weight_negative_down)
+# Define custom class weights as a dictionary
+custom_weights_up = {0: weight_negative_up,1: weight_positive_up}  # Assign weight_negative to class 0 and weight_positive to class 1
+custom_weights_down = {0: weight_negative_down, 1: weight_positive_down}  # Assign weight_negative to class 0 and weight_positive to class 1
+# Create RandomForestClassifier with custom class weights
+model_up = RandomForestClassifier(class_weight=custom_weights_up)
+model_down = RandomForestClassifier(class_weight=custom_weights_down)
+###25/50      ###2/20   ###100/40
+# model = RandomForestClassifier(random_state=None, class_weight="balanced")
 X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
 X_test_selected_up = feature_selector_up.transform(X_test)
-
 # Feature selection for Target_Down
 feature_selector_down = SelectKBest(score_func=mutual_info_classif)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
 print("Shape of X_test_selected_up:", X_test_selected_up.shape)
 print("Shape of X_test_selected_down:", X_test_selected_down.shape,'\n')
-
+print("Shape of X_train_selected_up:", X_train_selected_up.shape)
+print("Shape of X_train_selected_down:", X_train_selected_down.shape,'\n')
 tscv = TimeSeriesSplit(n_splits=5)
 
-grid_search_up = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
+
+grid_search_up = GridSearchCV(estimator=model_up, param_grid=parameters, cv=tscv, scoring='precision')
+
 print("Performing GridSearchCV UP...\n")
 grid_search_up.fit(X_train_selected_up, y_up_train)
 best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
@@ -119,7 +125,7 @@ selected_features_up = feature_selector_up.get_support(indices=True)
 feature_names_up = X_train.columns[selected_features_up]
 print("Selected Features Up:", feature_names_up)
 
-grid_search_down = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring='precision')
+grid_search_down = GridSearchCV(estimator=model_down, param_grid=parameters, cv=tscv, scoring='precision')
 print("Performing GridSearchCV DOWN...",'\n')
 grid_search_down.fit(X_train_selected_down, y_down_train)
 best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]

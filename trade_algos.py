@@ -123,6 +123,19 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     """
     Algo Rules go here:
     """
+    Buy_20min_A1 = trained_models.Buy_20min_A1(
+        dailyminutes_df)
+    dailyminuteswithALGOresults_df['Buy_20min_A1'] = Buy_20min_A1
+
+    Sell_20min_A1 = trained_models.Sell_20min_A1( dailyminutes_df)
+    dailyminuteswithALGOresults_df['Sell_20min_A1'] = Sell_20min_A1
+
+    Buy_15min_A2 = trained_models.Buy_15min_A2(
+        dailyminutes_df)
+    dailyminuteswithALGOresults_df['Buy_15min_A2'] = Buy_15min_A2
+
+    Sell_15min_A2 = trained_models.Sell_15min_A2( dailyminutes_df)
+    dailyminuteswithALGOresults_df['Sell_15min_A2'] = Sell_15min_A2
 
     Buy_15min_A1 = trained_models.Buy_15min_A1(
         dailyminutes_df)

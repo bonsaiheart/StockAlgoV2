@@ -10,6 +10,20 @@ dailyminutes_df.dropna(inplace=True)
 # dailyminutes_df['BuyHistA1'] = BuyHistA1
 # SellHistA1 = A1_Sell_historical_prediction(dailyminutes_df[['B1/B2', 'ITM PCRoi Down2']])
 # dailyminutes_df['SellHistA1'] = SellHistA1
+Buy_15min_A2 = Buy_15min_A2(
+    dailyminutes_df)
+dailyminutes_df['Buy_15min_A2'] = Buy_15min_A2
+
+Sell_15min_A2 = Sell_15min_A2(dailyminutes_df)
+dailyminutes_df['Sell_15min_A2'] = Sell_15min_A2
+
+Buy_15min_A1 = Buy_15min_A1(
+    dailyminutes_df)
+dailyminutes_df['Buy_15min_A1'] = Buy_15min_A1
+
+Sell_15min_A1 = Sell_15min_A1(dailyminutes_df)
+dailyminutes_df['Sell_15min_A1'] = Sell_15min_A1
+# dailyminutes_df_w_ALGO_results=dailyminutes_df
 Buy_5D = Buy_5D(
             dailyminutes_df[['ITM PCRv Up4', 'ITM PCRv Down4', 'ITM PCRoi Down4', 'RSI14']])
 dailyminutes_df['Buy_5D'] = Buy_5D
@@ -197,10 +211,10 @@ dailyminutes_df['A1_Buy'] = A1_Buy
 buy_signal1 = get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(
     dailyminutes_df[["B1/B2", "Bonsai Ratio", "RSI", 'ITM PCR-Vol']])
 dailyminutes_df['buy_signal1']= buy_signal1
-
-sell_signal1 = get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(
-    dailyminutes_df[["B1/B2", "Bonsai Ratio", "RSI", 'ITM PCR-Vol']])
-dailyminutes_df['sell_signal1']= sell_signal1
+#
+# sell_signal1 = get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp5_threshDown5_30_min_later_change_SPY(
+#     dailyminutes_df[["B1/B2", "Bonsai Ratio", "RSI", 'ITM PCR-Vol']])
+# dailyminutes_df['sell_signal1']= sell_signal1
 
 
 
@@ -632,4 +646,4 @@ dailyminutes_df['sell_signal1']= sell_signal1
     #     )
 
         # TradierAPI.buy(x)
-dailyminutes_df.to_csv("spy_230627_am.csv")
+dailyminutes_df.to_csv("spy_combined_minutes_algotest.csv")
