@@ -10,6 +10,21 @@ base_dir = os.path.dirname(__file__)
 # percent_down=-.1
 ###TODO could make features = modle.info "features"
 ###supposed to be for 30 min .3 spy tsla
+def Buy_1hr_A1(new_data_df):
+    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'AwesomeOsc5_34', 'RSI', 'RSI2']
+    model_filename = f'{base_dir}/Trained_Models/_15min_A2/target_up.joblib'
+    loaded_model = joblib.load(model_filename)
+    predictions = loaded_model.predict(new_data_df[features])
+    return predictions
+
+def Sell_1hr_A1(new_data_df):
+    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
+       'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI2']
+    model_filename = 'Strategy_Testing/Trained_Models/_15min_A2/target_down.joblib'
+    loaded_model = joblib.load(model_filename)
+    predictions = loaded_model.predict(new_data_df[features])
+    return predictions
 def Buy_20min_A1(new_data_df):
     features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
        'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'RSI', 'AwesomeOsc']

@@ -19,19 +19,29 @@ Chosen_Predictor = [ 'Bonsai Ratio','Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv
       ]
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 20
-threshold_cells_up = cells_forward_to_check * .7
-threshold_cells_down = cells_forward_to_check * .7
-num_features_up = 3
-num_features_down = 3
+cells_forward_to_check = 15
+##this many cells must meet the percentup/down requiremnet.
+threshold_cells_up = cells_forward_to_check * .5
+threshold_cells_down = cells_forward_to_check * .5
+percent_up = .15
+percent_down = -.15
+###this many cells cannot be < current price for up, > current price for down.
+anticondition_threshold_cells_up = cells_forward_to_check *.3
+anticondition_threshold_cells_down = cells_forward_to_check *.3
+
+####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
+positivecase_weight_up =1.2
+positivecase_weight_down =1.2
+# num_features_up = 3
+# num_features_down = 3
+##probablility threshhold.
 threshold_up = 0.7
 threshold_down = 0.7
-percent_up = .2
-percent_down = -.2
+###35,5,80   6/3/80
 parameters = {
-    'max_depth': (4 , 6,  8, 12,16,20),
-    'min_samples_split': (5,10,20),
-    'n_estimators': (80,100,200,240),
+    'max_depth': (5,10,20,30,40,50),
+    'min_samples_split': (2,3,4,5,6,8,10),
+    'n_estimators': (60,80,100),
 }
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
 ml_dataframe.dropna(subset= Chosen_Predictor, inplace=True)
@@ -48,13 +58,24 @@ ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 ml_dataframe["Target_Up"] = 0
 targetUpCounter =0
 targetDownCounter=0
+anticondition_UpCounter =0
+anticondition_DownCounter=0
 for i in range(1, cells_forward_to_check+1):
-    condition_met_up = ml_dataframe["Current SP % Change(LAC)"].shift(-i) > ml_dataframe["Current SP % Change(LAC)"]+percent_up
+    shifted_values = ml_dataframe["Current SP % Change(LAC)"].shift(-i)
+    condition_met_up = shifted_values > ml_dataframe["Current SP % Change(LAC)"] + percent_up
+    anticondition_up =  shifted_values <= ml_dataframe["Current SP % Change(LAC)"]
+
     condition_met_down = ml_dataframe["Current SP % Change(LAC)"].shift(-i) < ml_dataframe["Current SP % Change(LAC)"]+percent_down
+    anticondition_down =  shifted_values >= ml_dataframe["Current SP % Change(LAC)"]
+
     targetUpCounter += condition_met_up.astype(int)
     targetDownCounter += condition_met_down.astype(int)
-    ml_dataframe["Target_Down"] = (targetDownCounter >= threshold_cells_down).astype(int)
-    ml_dataframe["Target_Up"] = (targetUpCounter >= threshold_cells_up).astype(int)
+
+    anticondition_UpCounter += anticondition_up.astype(int)
+    anticondition_DownCounter += anticondition_down.astype(int)
+    ml_dataframe["Target_Up"] = ((targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)).astype(int)
+
+    ml_dataframe["Target_Down"] = ((targetDownCounter >= threshold_cells_down) & (anticondition_DownCounter <= anticondition_threshold_cells_down)).astype(int)
 
 ml_dataframe.dropna(subset= ['Target_Up','Target_Down'], inplace=True)
 y_up = ml_dataframe["Target_Up"]
@@ -73,12 +94,12 @@ feature_selector_up = SelectKBest(score_func=mutual_info_classif)
 num_positive_up = sum(y_up_train)  # Number of positive cases in the training set
 num_negative_up = len(y_up_train) - num_positive_up  # Number of negative cases in the training set
 weight_negative_up = 1.0
-weight_positive_up = num_negative_up / num_positive_up
+weight_positive_up =( num_negative_up / num_positive_up)*positivecase_weight_up
 
 num_positive_down = sum(y_down_train)  # Number of positive cases in the training set
 num_negative_down = len(y_down_train) - num_positive_down  # Number of negative cases in the training set
 weight_negative_down = 1.0
-weight_positive_down = num_negative_down / num_positive_down
+weight_positive_down =( num_negative_down / num_positive_down)*positivecase_weight_down
 print('num_positive_up= ',num_positive_up,'num_negative_up= ',num_negative_up,'num_positive_down= ',num_positive_down,'negative_down= ',num_negative_down)
 print('weight_positve_up: ',weight_positive_up,'//weight_negative_up: ',weight_negative_up)
 print('weight_positve_down: ',weight_positive_down,'//weight_negative_down: ',weight_negative_down)

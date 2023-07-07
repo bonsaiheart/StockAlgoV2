@@ -10,6 +10,19 @@ dailyminutes_df.dropna(inplace=True)
 # dailyminutes_df['BuyHistA1'] = BuyHistA1
 # SellHistA1 = A1_Sell_historical_prediction(dailyminutes_df[['B1/B2', 'ITM PCRoi Down2']])
 # dailyminutes_df['SellHistA1'] = SellHistA1
+Buy_1hr_A1 = Buy_1hr_A1(
+    dailyminutes_df)
+dailyminutes_df['Buy_1hr_A1'] = Buy_1hr_A1
+
+Sell_1hr_A1 = Sell_1hr_A1(dailyminutes_df)
+dailyminutes_df['Sell_1hr_A1'] = Sell_1hr_A1
+
+Buy_20min_A1 = Buy_20min_A1(
+    dailyminutes_df)
+dailyminutes_df['Buy_20min_A1'] = Buy_20min_A1
+
+Sell_20min_A1 = Sell_20min_A1(dailyminutes_df)
+dailyminutes_df['Sell_20min_A1'] = Sell_20min_A1
 Buy_15min_A2 = Buy_15min_A2(
     dailyminutes_df)
 dailyminutes_df['Buy_15min_A2'] = Buy_15min_A2
