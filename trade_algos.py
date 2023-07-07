@@ -151,7 +151,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             print(f"Invalid model function name: {model.__name__}")
             continue
 
-        result = model(dailyminutes_df)
+        result = model(dailyminutes_df).astype(int)
         dailyminuteswithALGOresults_df[model_name] = result
 
         if result[-1]:
@@ -169,7 +169,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             # Place order or perform other actions specific to the action
             IB.ibAPI.placeOptionBracketOrder(CorP=CorP, ticker=ticker, exp=IB_option_date,
                                              strike=contractStrike,
-                                             contract_current_price={contract_price},
+                                             contract_current_price=contract_price,
                                              quantity=5, orderRef=f'{model_name}')
             # Other actions specific to the action
         except Exception as e:

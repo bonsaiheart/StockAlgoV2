@@ -13,7 +13,7 @@ base_dir = os.path.dirname(__file__)
 def Buy_1hr_A1(new_data_df):
     features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
        'ITM PCRv Up4', 'ITM PCRv Down4', 'AwesomeOsc5_34', 'RSI', 'RSI2']
-    model_filename = f'{base_dir}/Trained_Models/_15min_A2/target_up.joblib'
+    model_filename = f'{base_dir}/Trained_Models/_1hr_A1/target_up.joblib'
     loaded_model = joblib.load(model_filename)
     predictions = loaded_model.predict(new_data_df[features])
     return predictions
@@ -21,14 +21,14 @@ def Buy_1hr_A1(new_data_df):
 def Sell_1hr_A1(new_data_df):
     features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
        'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI2']
-    model_filename = 'Strategy_Testing/Trained_Models/_15min_A2/target_down.joblib'
+    model_filename = 'Strategy_Testing/Trained_Models/_1hr_A1/target_down.joblib'
     loaded_model = joblib.load(model_filename)
     predictions = loaded_model.predict(new_data_df[features])
     return predictions
 def Buy_20min_A1(new_data_df):
     features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
        'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'RSI', 'AwesomeOsc']
-    model_filename = f'{base_dir}/Trained_Models/_15min_A2/target_up.joblib'
+    model_filename = f'{base_dir}/Trained_Models/_20min_A1/target_up.joblib'
     loaded_model = joblib.load(model_filename)
     predictions = loaded_model.predict(new_data_df[features])
     return predictions
@@ -36,7 +36,7 @@ def Buy_20min_A1(new_data_df):
 def Sell_20min_A1(new_data_df):
     features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4',
        'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI']
-    model_filename = 'Strategy_Testing/Trained_Models/_15min_A2/target_down.joblib'
+    model_filename = 'Strategy_Testing/Trained_Models/_20min_A1/target_down.joblib'
     loaded_model = joblib.load(model_filename)
     predictions = loaded_model.predict(new_data_df[features])
     return predictions
