@@ -6,8 +6,6 @@ import trade_algos
 import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
-from ib_insync import IB
-ib = IB()
 
 
 # import webullapi
@@ -48,8 +46,11 @@ success = False
 
 for i in range(max_retries):
     try:
+
         if check_Market_Conditions.is_market_open_now() == True:
+            ibAPI.connection_stats()
             ibAPI.ib_connect()
+            print(ibAPI.ib.isConnected())
             for ticker in tickerlist:
                 ticker=ticker.upper()
                 print(ticker)
@@ -78,7 +79,6 @@ for i in range(max_retries):
                 if ticker =="SPY":
                     trade_algos.actions(optionchain, dailyminutes,processeddataWithALGOresults, processeddata, ticker,current_price)
                 # email_me.email_me(processeddata)
-            ibAPI.ib_disconnect()
             break
         else:
             with open(log_path, "a") as f:
@@ -86,15 +86,14 @@ for i in range(max_retries):
             break
 #
     except Exception as e:
-        ibAPI.ib_disconnect()
         with open(log_path, "a") as f:
             print(traceback.format_exc())
             print(f"Error occurred: {traceback.format_exc()}.  Retrying in {retry_delay} seconds...")
             f.write(
                 f"Ran at {datetime}. Occurred on attempt #{i +1}: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
             )
-    finally:
-        ibAPI.ib_disconnect()
-        pass
+    # finally:
+    #     ibAPI.ib_disconnect()
+    #     pass
 
 

@@ -123,34 +123,59 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     """
     Algo Rules go here:
     """
-    Buy_1hr_A1 = trained_models.Buy_1hr_A1(
-        dailyminutes_df)
-    dailyminuteswithALGOresults_df['Buy_1hr_A1'] = Buy_1hr_A1
+    actions = [
+        ('Buy_1hr_A1', 'Call', trained_models.Buy_1hr_A1),
+        ('Sell_1hr_A1', 'Put', trained_models.Sell_1hr_A1),
+        ('Buy_20min_A1', 'Call', trained_models.Buy_20min_A1),
+        ('Sell_20min_A1', 'Put', trained_models.Sell_20min_A1),
+        ('Buy_15min_A2', 'Call', trained_models.Buy_15min_A2),
+        ('Sell_15min_A2', 'Put', trained_models.Sell_15min_A2),
+        ('Buy_15min_A1', 'Call', trained_models.Buy_15min_A1),
+        ('Sell_15min_A1', 'Put', trained_models.Sell_15min_A1)
+    ]
 
-    Sell_1hr_A1 = trained_models.Sell_1hr_A1(dailyminutes_df)
-    dailyminuteswithALGOresults_df['Sell_1hr_A1'] = Sell_1hr_A1
+    for action, option, model_func in actions:
+        result = model_func(dailyminutes_df)[-1]
+        dailyminuteswithALGOresults_df[action] = result
 
-    Buy_20min_A1 = trained_models.Buy_20min_A1(
-        dailyminutes_df)
-    dailyminuteswithALGOresults_df['Buy_20min_A1'] = Buy_20min_A1
-
-    Sell_20min_A1 = trained_models.Sell_20min_A1( dailyminutes_df)
-    dailyminuteswithALGOresults_df['Sell_20min_A1'] = Sell_20min_A1
-
-    Buy_15min_A2 = trained_models.Buy_15min_A2(
-        dailyminutes_df)
-    dailyminuteswithALGOresults_df['Buy_15min_A2'] = Buy_15min_A2
-
-    Sell_15min_A2 = trained_models.Sell_15min_A2( dailyminutes_df)
-    dailyminuteswithALGOresults_df['Sell_15min_A2'] = Sell_15min_A2
-
-    Buy_15min_A1 = trained_models.Buy_15min_A1(
-        dailyminutes_df)
-    dailyminuteswithALGOresults_df['Buy_15min_A1'] = Buy_15min_A1
-
-    Sell_15min_A1 = trained_models.Sell_15min_A1( dailyminutes_df)
-    dailyminuteswithALGOresults_df['Sell_15min_A1'] = Sell_15min_A1
-    # dailyminutes_df_w_ALGO_results=dailyminutes_df
+        if result:  # Assuming the result is a boolean indicating the condition is met
+            send_notifications.email_me_string(action, option, ticker)
+    # Buy_1hr_A1 = trained_models.Buy_1hr_A1(
+    #     dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Buy_1hr_A1'] = Buy_1hr_A1
+    # send_notifications.email_me_string("Buy_1hr_A1", "Call",
+    #                                    ticker)
+    # Sell_1hr_A1 = trained_models.Sell_1hr_A1(dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Sell_1hr_A1'] = Sell_1hr_A1
+    # send_notifications.email_me_string("Sell_1hr_A1", "Put",
+    #                                    ticker)
+    # Buy_20min_A1 = trained_models.Buy_20min_A1(
+    #     dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Buy_20min_A1'] = Buy_20min_A1
+    # send_notifications.email_me_string("Buy_20min_A1", "Call",
+    #                                    ticker)
+    # Sell_20min_A1 = trained_models.Sell_20min_A1( dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Sell_20min_A1'] = Sell_20min_A1
+    # send_notifications.email_me_string("Sell_20min_A1", "Put",
+    #                                    ticker)
+    # Buy_15min_A2 = trained_models.Buy_15min_A2(
+    #     dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Buy_15min_A2'] = Buy_15min_A2
+    # send_notifications.email_me_string("Buy_15min_A2", "Call",
+    #                                    ticker)
+    # Sell_15min_A2 = trained_models.Sell_15min_A2( dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Sell_15min_A2'] = Sell_15min_A2
+    # send_notifications.email_me_string("Sell_15min_A2", "Put",
+    #                                    ticker)
+    # Buy_15min_A1 = trained_models.Buy_15min_A1(
+    #     dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Buy_15min_A1'] = Buy_15min_A1
+    # send_notifications.email_me_string("Buy_15min_A1", "Call",
+    #                                    ticker)
+    # Sell_15min_A1 = trained_models.Sell_15min_A1( dailyminutes_df)
+    # dailyminuteswithALGOresults_df['Sell_15min_A1'] = Sell_15min_A1
+    # send_notifications.email_me_string("Sell_15min_A1", "Put",
+    #                                    ticker)
     try:
         Buy_5D = trained_models.Buy_5D(
             dailyminutes_df)

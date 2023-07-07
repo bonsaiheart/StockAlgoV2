@@ -13,22 +13,23 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M'
 )
+def connection_stats():
+    print(ib.isConnected())
 
 def ib_connect():
     if not ib.isConnected():
         print('Connecting')
-        randomclientID = random.randint(0,9999)
+        randomclientID = random.randint(0,999)
+        # 7497 tws 4002 for gateway   -1 EACH FOR REAL MONEY
         try:
-            ib.connect('127.0.0.1', 7497, clientId=1, timeout=15)
+            ib.connect('192.168.1.119', 7497, clientId=randomclientID, timeout=10)
             ###use 127.0.0.1 for local
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error('Connection error: %s', e)
             print('Connection error:', e)
             pass
-
     else:
         print("ib already connected?")
-ib_connect()
 
 # limitBuyOrder = LimitOrder('BUY', quantity, limit_price)
 # limitSellOrder = LimitOrder('SELL', quantity, limit_price)
@@ -45,6 +46,7 @@ def ib_disconnect():
 
 ##removed quantity
 def placeBuyBracketOrder(ticker, current_price):
+    ib_connect()
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
@@ -106,6 +108,8 @@ def placeBuyBracketOrder(ticker, current_price):
         logging.error('BuyBracketOrder error: %s', e)
 
 def placeSellBracketOrder(ticker, current_price):
+    ib_connect()
+
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
@@ -168,6 +172,7 @@ def placeSellBracketOrder(ticker, current_price):
 
 def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
                           custom_trailamount=None):
+    ib_connect()
     try:
         ticker_symbol = ticker
         print(ticker, exp, strike, current_price)
@@ -284,6 +289,7 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
 
 def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
                          custom_trailamount=None):
+    ib_connect()
     try:
         ticker_symbol = ticker
         print(ticker, exp, strike, current_price)
