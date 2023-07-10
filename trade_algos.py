@@ -159,9 +159,10 @@ def actions(optionchain, dailyminutes, dailyminuteswithALGOresults, processeddat
         trained_minute_models.Sell_1hr_A1,  # WORKS GREAT?
         trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
         trained_minute_models.Sell_20min_A1,  # WORKS GREAT?
-        trained_minute_models.Buy_15min_A2,
-        trained_minute_models.Sell_15min_A2,
-        trained_minute_models.Buy_15min_A1,
+        trained_minute_models.Buy_15min_A2,  #works well?
+        trained_minute_models.Sell_15min_A2,  #works well?
+        trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
+        trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
     ]
 
     for model in model_list:
