@@ -60,6 +60,7 @@ for i in range(max_retries):
                     this_minute_ta_frame,
                     closest_exp_date,
                 ) = tradierAPI_marketdata.get_options_data(ticker)
+                print("getoptindata complete")
                 (
                     optionchain,
                     dailyminutes,

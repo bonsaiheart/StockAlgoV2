@@ -1,5 +1,4 @@
 import datetime
-import json
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -8,10 +7,6 @@ from email import encoders
 import tweepy
 import PrivateData.twitter_info
 from Task_Queue import celery_client
-
-
-from celery import Celery
-
 
 last_tweet_time = None
 min_tweet_interval = datetime.timedelta(minutes=20)  # Minimum interval between tweets (5 minutes)
@@ -26,9 +21,6 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
     consumer_secret = PrivateData.twitter_info.consumer_secret
     access_token = PrivateData.twitter_info.access_token
     access_token_secret = PrivateData.twitter_info.access_token_secret
-    api_key = PrivateData.twitter_info.api_key
-    api_key_secret = PrivateData.twitter_info.api_key_secret
-
     client = tweepy.Client(
         bearer_token=bearer_token,
         consumer_key=consumer_key,
@@ -36,7 +28,6 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
         access_token=access_token,
         access_token_secret=access_token_secret,
     )
-
     try:
         with open(timestamp_file_path, "r") as file:
             timestamp_str = file.read().strip()
@@ -97,6 +88,8 @@ def email_me_string(strat, callorput, ticker):
 
 
 # send_tweet("spy","3","up","test")
+
+
 def email_me(filepath):
     # Email configuration
     smtp_host = "bonsaiheart.com"

@@ -844,8 +844,9 @@ def perform_operations(
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
-        df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
+        print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
         exit()
+    print('perform ops complete')
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
         f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",

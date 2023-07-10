@@ -6,8 +6,6 @@ paper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
-
-
 # response = requests.post('https://sandbox.tradier.com/v1/accounts/VA24599882/orders',
 #     data={'class': 'oto', 'duration': 'gtc', 'type[0]': 'limit', 'price[0]': '160.55', 'option_symbol[0]': 'SPY230512C00415000', 'side[0]': 'buy_to_open', 'quantity[0]': '1', 'type[1]': 'market', 'option_symbol[1]': 'SPY230512C00415000', 'side[1]': 'sell_to_close', 'quantity[1]': '1'},
 #     headers={'Authorization': 'Bearer ee5myzHJ8pAoJR9vdHunAJsdQMFJ', 'Accept': 'application/json'}

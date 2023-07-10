@@ -38,6 +38,62 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_230707.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_230710.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes_w_algo_results/SPY/SPY_230706.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes_w_algo_results/SPY/SPY_230707.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230707/SPY_230707_1444.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230707/SPY_230707_1447.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230707/SPY_230707_1448.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230707/SPY_230707_1449.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\Strategy_Testing\corr\SPY\230501.csv">
           <value>
             <Attribute>
