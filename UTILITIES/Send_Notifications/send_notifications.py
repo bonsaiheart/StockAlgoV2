@@ -13,7 +13,6 @@ from Task_Queue import celery_client
 from celery import Celery
 
 
-
 last_tweet_time = None
 min_tweet_interval = datetime.timedelta(minutes=20)  # Minimum interval between tweets (5 minutes)
 timestamp_file_path = "last_tweet_timestamp.txt"  # Path to the file storing the last tweet timestamp
@@ -30,11 +29,13 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
     api_key = PrivateData.twitter_info.api_key
     api_key_secret = PrivateData.twitter_info.api_key_secret
 
-    client = tweepy.Client(bearer_token=bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret,
-                           access_token=access_token, access_token_secret=access_token_secret)
-
-
-
+    client = tweepy.Client(
+        bearer_token=bearer_token,
+        consumer_key=consumer_key,
+        consumer_secret=consumer_secret,
+        access_token=access_token,
+        access_token_secret=access_token_secret,
+    )
 
     try:
         with open(timestamp_file_path, "r") as file:
@@ -43,8 +44,6 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
                 last_tweet_time = datetime.datetime.fromisoformat(timestamp_str)
     except FileNotFoundError:
         pass
-
-
 
     if last_tweet_time is None or (current_time - last_tweet_time) >= min_tweet_interval:
         # Send the tweet
@@ -55,10 +54,10 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
         try:
             response = client.create_tweet(text=message)
 
-            tweet_id = response.data['id']
+            tweet_id = response.data["id"]
 
-            print('Tweet ID:', tweet_id)
-         # wait_60_minutes_and_send_tweet("test3")
+            print("Tweet ID:", tweet_id)
+            # wait_60_minutes_and_send_tweet("test3")
 
             celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
@@ -66,7 +65,7 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             print(last_tweet_time, "last tweet time")
 
 
-def email_me_string(strat,callorput,ticker):
+def email_me_string(strat, callorput, ticker):
     # Email configuration
     message = strat
     smtp_host = "bonsaiheart.com"
@@ -75,7 +74,7 @@ def email_me_string(strat,callorput,ticker):
     smtp_password = "P3ruv!4nT0rch"
     from_email = "bot@bonsaiheart.com"
     to_email = "bot@bonsaiheart.com"
-    subject =f"{str(callorput)} Ticker:{str(ticker)}"
+    subject = f"{str(callorput)} Ticker:{str(ticker)}"
 
     # Create the email message
     msg = MIMEMultipart()
@@ -95,6 +94,8 @@ def email_me_string(strat,callorput,ticker):
     server.quit()
 
     print("Email sent!")
+
+
 # send_tweet("spy","3","up","test")
 def email_me(filepath):
     # Email configuration

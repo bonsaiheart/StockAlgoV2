@@ -15,7 +15,7 @@ def get_options_data(ticker):
     tickerhistory = yf.Ticker(ticker).history(period="5d", interval="1m")
 
     Close = tickerhistory["Close"]
-    tickerhistory.to_csv('tickerhistory.csv')
+    tickerhistory.to_csv("tickerhistory.csv")
     tickerhistory["AwesomeOsc"] = ta.momentum.awesome_oscillator(
         high=tickerhistory["High"], low=tickerhistory["Low"], window1=1, window2=5, fillna=False
     )
@@ -189,7 +189,14 @@ def get_options_data(ticker):
         else:
             print(f"An error occurred while writing the CSV file,: {e}")
             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
-    print(type(LAC), type(CurrentPrice), type(price_change_percent), type(StockLastTradeTime), type(this_minute_ta_frame), type(closest_exp_date))
+    print(
+        type(LAC),
+        type(CurrentPrice),
+        type(price_change_percent),
+        type(StockLastTradeTime),
+        type(this_minute_ta_frame),
+        type(closest_exp_date),
+    )
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
     return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
 
@@ -698,20 +705,37 @@ def perform_operations(
                 "NIV 4Higher Strike": round(NIV_4HigherStrike, 3),
                 "NIV 4Lower Strike": round(NIV_4LowerStrike, 3),
                 ###Positive number means NIV highers are higher, and price will drop.
-                #TODO should do as percentage change from total niv numbers to see if its big diff.
-                "NIV highers(-)lowers1-2": (
-                                                       NIV_1HigherStrike + NIV_2HigherStrike ) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike ),
-
-                "NIV highers(-)lowers1-4": (NIV_1HigherStrike+NIV_2HigherStrike+NIV_3HigherStrike+NIV_4HigherStrike)-(NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike+NIV_4LowerStrike),
+                # TODO should do as percentage change from total niv numbers to see if its big diff.
+                "NIV highers(-)lowers1-2": (NIV_1HigherStrike + NIV_2HigherStrike)
+                - (NIV_1LowerStrike + NIV_2LowerStrike),
+                "NIV highers(-)lowers1-4": (
+                    NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike
+                )
+                - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
                 "NIV 1-2 % from mean": (
-                        ((NIV_1HigherStrike + NIV_2HigherStrike) - (
-                                                   NIV_1LowerStrike + NIV_2LowerStrike))/((NIV_1HigherStrike+NIV_2HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike)/4))*100,
-
+                    ((NIV_1HigherStrike + NIV_2HigherStrike) - (NIV_1LowerStrike + NIV_2LowerStrike))
+                    / ((NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)
+                )
+                * 100,
                 "NIV 1-4 % from mean": (
-                    (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)/((NIV_1HigherStrike+NIV_2HigherStrike+ NIV_3HigherStrike + NIV_4HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike + NIV_4LowerStrike)/8))*100,
-##TODO swap (/) with result = np.divide(x, y)
+                    (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike)
+                    - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)
+                    / (
+                        (
+                            NIV_1HigherStrike
+                            + NIV_2HigherStrike
+                            + NIV_3HigherStrike
+                            + NIV_4HigherStrike
+                            + NIV_1LowerStrike
+                            + NIV_2LowerStrike
+                            + NIV_3LowerStrike
+                            + NIV_4LowerStrike
+                        )
+                        / 8
+                    )
+                )
+                * 100,
+                ##TODO swap (/) with result = np.divide(x, y)
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
                 "Closest Strike to CP": closest_strike_currentprice,
@@ -814,7 +838,9 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         x = (
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]  }",
             "150",
-            call_contract, .6,1.6
+            call_contract,
+            0.6,
+            1.6,
         )
 
         TradierAPI.buy(x)
@@ -822,7 +848,9 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         x = (
             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0]}",
             "140",
-            put_contract, .6, 1.6
+            put_contract,
+            0.6,
+            1.6,
         )
 
         TradierAPI.buy(x)
@@ -830,37 +858,41 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         x = (
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]  }",
             "100",
-            call_contract,.9,1.05
+            call_contract,
+            0.9,
+            1.05,
         )
 
         TradierAPI.buy(x)
 
-
-    # if processeddata["ITM PCR-Vol"][0] > 1.3 and processeddata["RSI"][0] > 70:
-    #     x = (
-    #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
-    #         "99",
-    #         put_contract,.9,1.05
-    #     )
+        # if processeddata["ITM PCR-Vol"][0] > 1.3 and processeddata["RSI"][0] > 70:
+        #     x = (
+        #         f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
+        #         "99",
+        #         put_contract,.9,1.05
+        #     )
 
         TradierAPI.buy(x)
 
         ###MADE 100% on this near close 5/12
-    if processeddata["Bonsai Ratio"][0] < .8 and processeddata["ITM PCR-Vol"][0] < 0.8:
+    if processeddata["Bonsai Ratio"][0] < 0.8 and processeddata["ITM PCR-Vol"][0] < 0.8:
         x = (
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
             "98",
-            call_contract,.8,1.2
+            call_contract,
+            0.8,
+            1.2,
         )
         print(x)
         TradierAPI.buy(x)
 
-
-    if processeddata["Bonsai Ratio"][0] > 1.5  and processeddata["ITM PCR-Vol"][0] > 1.2:
+    if processeddata["Bonsai Ratio"][0] > 1.5 and processeddata["ITM PCR-Vol"][0] > 1.2:
         x = (
             f"{optionchain.loc[optionchain['p_contractSymbol'] == put_contract]['Put_LastPrice'].values[0] }",
             "97",
-            put_contract,.9,1.05
+            put_contract,
+            0.9,
+            1.05,
         )
 
         TradierAPI.buy(x)
@@ -872,11 +904,14 @@ def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp
         x = (
             f"{optionchain.loc[optionchain['c_contractSymbol'] == call_contract]['Call_LastPrice'].values[0]}",
             "96",
-            call_contract,.9,1.05
+            call_contract,
+            0.9,
+            1.05,
         )
 
         TradierAPI.buy(x)
     else:
         print("No Order")
+
 
 # get_options_data('spy')

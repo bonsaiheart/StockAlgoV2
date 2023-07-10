@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import Trained_Models.trained_minute_models  # Import your module
 
+
 def get_model_names(module):
     model_names = []
     for name, obj in inspect.getmembers(module):
@@ -10,17 +11,19 @@ def get_model_names(module):
             model_names.append(name)
     return model_names
 
+
 module_name = Trained_Models.trained_minute_models  # Provide the correct module name
 model_names = get_model_names(module_name)
 print(model_names)
+
+
 def apply_predictions_to_df(model_names, df, filename):
-    df.dropna(axis=1, how='all', inplace=True)
+    df.dropna(axis=1, how="all", inplace=True)
 
     # Columns to keep
-    columns_to_keep = ['LastTradeTime', 'Current SP % Change(LAC)'] + model_names
+    columns_to_keep = ["LastTradeTime", "Current SP % Change(LAC)"] + model_names
 
     # Filter the DataFrame to keep only the desired columns
-
 
     for model_name in model_names:
         model_func = getattr(Trained_Models.trained_minute_models, model_name)
@@ -28,14 +31,16 @@ def apply_predictions_to_df(model_names, df, filename):
         df[model_name] = prediction
 
     df_filtered = df[columns_to_keep]
-    df_filtered.to_csv(f'algooutput_{filename}')
-dir = '../data/historical_multiday_minute_DF'
+    df_filtered.to_csv(f"algooutput_{filename}")
+
+
+dir = "../data/historical_multiday_minute_DF"
 for filename in os.listdir(dir):
     filepath = os.path.join(dir, filename)
 
     if filename.endswith(".csv"):
         df = pd.read_csv(filepath)
-        apply_predictions_to_df(model_names,df,filename)
+        apply_predictions_to_df(model_names, df, filename)
 
 # threshold = 1e10  # Define a threshold value to limit the range
 

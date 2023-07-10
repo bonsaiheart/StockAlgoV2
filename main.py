@@ -45,13 +45,12 @@ success = False
 
 for i in range(max_retries):
     try:
-
         if check_Market_Conditions.is_market_open_now() == True:
             ibAPI.connection_stats()
             ibAPI.ib_connect()
             print(ibAPI.ib.isConnected())
             for ticker in tickerlist:
-                ticker=ticker.upper()
+                ticker = ticker.upper()
                 print(ticker)
                 (
                     LAC,
@@ -63,8 +62,9 @@ for i in range(max_retries):
                 ) = tradierAPI_marketdata.get_options_data(ticker)
                 (
                     optionchain,
-                    dailyminutes,processeddata,
-                                        ticker,
+                    dailyminutes,
+                    processeddata,
+                    ticker,
                 ) = tradierAPI_marketdata.perform_operations(
                     ticker,
                     LAC,
@@ -75,15 +75,15 @@ for i in range(max_retries):
                     closest_exp_date,
                 )
                 print(current_price)
-                if ticker =="SPY":
-                    trade_algos.actions(optionchain, dailyminutes, processeddata, ticker,current_price)
+                if ticker == "SPY":
+                    trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
                 # email_me.email_me(processeddata)
             break
         else:
             with open(log_path, "a") as f:
                 f.write(f"Ran at {datetime}. Market was closed today.\n")
             break
-#
+    #
     except Exception as e:
         with open(log_path, "a") as f:
             print(traceback.format_exc())
@@ -94,5 +94,3 @@ for i in range(max_retries):
     # finally:
     #     ibAPI.ib_disconnect()
     #     pass
-
-

@@ -45,10 +45,7 @@ def is_market_open_now():
     # Load the saved market schedule from file
     market_schedule.index = pd.to_datetime(market_schedule.index)  # Convert index to datetime
 
-
-
-    print("today timestamp",today_timestamp,market_schedule.loc[today_timestamp, "market_open_utc"]
-        )
+    print("today timestamp", today_timestamp, market_schedule.loc[today_timestamp, "market_open_utc"])
     if today_timestamp in market_schedule.index:
         market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"].time()
         market_close_utc = market_schedule.loc[today_timestamp, "market_close_utc"].time()
@@ -66,5 +63,6 @@ def is_market_open_now():
         is_market_open = False
 
     return is_market_open
+
 
 # Call this function to check if the market is open

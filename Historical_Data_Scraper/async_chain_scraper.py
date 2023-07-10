@@ -11,30 +11,41 @@ from aiohttp import ClientError
 from requests import RequestException
 
 
-firstpage=0
-lastpage=2000
-filename = f'Pages_{firstpage}_{lastpage}.csv'
+firstpage = 0
+lastpage = 2000
+filename = f"Pages_{firstpage}_{lastpage}.csv"
 
 
+column_titles = [
+    "Contract",
+    "Ticker",
+    "ExpDate",
+    "Put_Call",
+    "Strike",
+    "Date",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume",
+    "Open Interest",
+]
 
-column_titles = ["Contract", "Ticker", "ExpDate", "Put_Call", "Strike", "Date", "Open", "High", "Low", "Close", "Volume",
-                 "Open Interest"]
-
-error_log_file = open('error_log.txt', 'a')  # Open the error log file for appending
+error_log_file = open("error_log.txt", "a")  # Open the error log file for appending
 
 missed_subdirs = []
 
 
 # Check if the file exists and its size is zero
 if not os.path.isfile(filename) or os.path.getsize(filename) == 0:
-    with open(filename, 'a', newline='') as file:
+    with open(filename, "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(column_titles)
 
 
 async def process_subdirectory(session, subdir, writer):
-    url = f'https://chartexchange.com/symbol/opra-{subdir}'
-    with open(filename, 'a', newline='') as file:
+    url = f"https://chartexchange.com/symbol/opra-{subdir}"
+    with open(filename, "a", newline="") as file:
         writer = csv.writer(file)
 
         try:
@@ -56,7 +67,14 @@ async def process_subdirectory(session, subdir, writer):
                     option_contract = f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
 
                     for match in matches:
-                        data_row = [option_contract, symbol, expiration_date, option_type, formatted_strike_price, *match]
+                        data_row = [
+                            option_contract,
+                            symbol,
+                            expiration_date,
+                            option_type,
+                            formatted_strike_price,
+                            *match,
+                        ]
                         writer.writerow(data_row)
 
         except ClientError as e:
@@ -75,11 +93,11 @@ async def process_subdirectories(queue, session, writer, sem):
 
 
 async def get_and_write_data():
-    with open(filename, 'a', newline='') as file:
+    with open(filename, "a", newline="") as file:
         writer = csv.writer(file)
 
         try:
-            with open('last_processed.txt', 'r') as f:
+            with open("last_processed.txt", "r") as f:
                 firstpage = int(f.readline())
                 subdir_index = int(f.readline())
         except FileNotFoundError:
@@ -87,22 +105,22 @@ async def get_and_write_data():
             subdir_index = 0
 
         for page in range(firstpage, lastpage):
-            url = f'https://chartexchange.com/list/optionequity/?page={page}'
+            url = f"https://chartexchange.com/list/optionequity/?page={page}"
             print(page)
             try:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url) as response:
                         response.raise_for_status()
-                        soup = BeautifulSoup(await response.text(), 'html.parser')
+                        soup = BeautifulSoup(await response.text(), "html.parser")
 
-                        anchor_tags = soup.find_all('a')
+                        anchor_tags = soup.find_all("a")
 
                         subdirectories = []
 
                         for anchor in anchor_tags:
-                            href = anchor.get('href')
-                            if href and href.startswith('/symbol/opra-'):
-                                subdirectory = href.replace("/symbol/opra-", "").strip('/')
+                            href = anchor.get("href")
+                            if href and href.startswith("/symbol/opra-"):
+                                subdirectory = href.replace("/symbol/opra-", "").strip("/")
                                 subdirectories.append(subdirectory)
 
                         # Create a queue and populate it with subdirectories
@@ -128,46 +146,44 @@ async def get_and_write_data():
                 error_log_file.write(f"Error occurred while retrieving page {page}: {e}\n")
 
                 # Save the current progress
-                with open('last_processed.txt', 'w') as f:
-                    f.write(str(page) + '\n')
-                    f.write(str(subdir_index) + '\n')
+                with open("last_processed.txt", "w") as f:
+                    f.write(str(page) + "\n")
+                    f.write(str(subdir_index) + "\n")
 
                 continue
 
             subdir_index = 0  # Reset the subdir_index for the next page
 
             # Save the last processed values of x and subdir_index
-            with open('last_processed.txt', 'w') as f:
-                f.write(str(page + 1) + '\n')  # Add 1 to account for the current iteration
-                f.write(str(subdir_index) + '\n')
+            with open("last_processed.txt", "w") as f:
+                f.write(str(page + 1) + "\n")  # Add 1 to account for the current iteration
+                f.write(str(subdir_index) + "\n")
 
             # Save the missed subdirectories to a file for later processing
-            with open('missed_subdirs.txt', 'a') as f:
+            with open("missed_subdirs.txt", "a") as f:
                 for subdir in missed_subdirs:
-                    f.write(page + '\n')
-                    f.write(subdir + '\n')
+                    f.write(page + "\n")
+                    f.write(subdir + "\n")
 
 
 def process_missed_subdirs():
-    with open(filename, 'a', newline='') as file:
+    with open(filename, "a", newline="") as file:
         writer = csv.writer(file)
-        with open('missed_subdirs.txt', 'r') as read_missed_subdirs:
+        with open("missed_subdirs.txt", "r") as read_missed_subdirs:
             lines = read_missed_subdirs.readlines()
 
-        with open('missed_subdirs.txt', 'w') as write_missed_subdir:
+        with open("missed_subdirs.txt", "w") as write_missed_subdir:
             for i in range(0, len(lines), 2):
                 page = int(lines[i].strip())
                 subdir = lines[i + 1].strip()
 
                 max_retries = 3  # Maximum number of retries
 
-
-
                 retry_count = 0  # Counter for retry attempts
 
                 while retry_count < max_retries:
                     try:
-                        response = requests.get(f'https://chartexchange.com/symbol/opra-{subdir}')
+                        response = requests.get(f"https://chartexchange.com/symbol/opra-{subdir}")
                         response.raise_for_status()
                         break  # Break out of the retry loop if the request is successful
                     except RequestException as e:
@@ -178,16 +194,13 @@ def process_missed_subdirs():
 
                 if retry_count == max_retries:
                     # Save the current progress
-                    with open('last_processed.txt', 'w') as f:
-                        f.write(str(page) + '\n')
-                        f.write(str(i) + '\n')
+                    with open("last_processed.txt", "w") as f:
+                        f.write(str(page) + "\n")
+                        f.write(str(i) + "\n")
 
-
-                content = response.content.decode('utf-8')
+                content = response.content.decode("utf-8")
                 pattern = r'\["(\d+)","([\d.]+)","([\d.]+)","([\d.]+)","([\d.]+)","(\d+)"(?:,"(\d+)")?\]'
                 matches = re.findall(pattern, content)
-
-
 
                 symbol_pattern = r"([a-zA-Z]+)(\d{8})([a-zA-Z])(\d+\.?\d*)"
                 match_symbol = re.match(symbol_pattern, subdir)
@@ -200,28 +213,35 @@ def process_missed_subdirs():
                     option_contract = f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
 
                     for match in matches:
-                        data_row = [option_contract, symbol, expiration_date, option_type, formatted_strike_price, *match]
+                        data_row = [
+                            option_contract,
+                            symbol,
+                            expiration_date,
+                            option_type,
+                            formatted_strike_price,
+                            *match,
+                        ]
                         writer.writerow(data_row)
 
                 print(f"Processing missed subdir: {subdir}, missed page: {page}")
                 time.sleep(1)
 
-            # Rewrite the remaining lines to the file
-                write_missed_subdir.writelines(lines[i+2:])
+                # Rewrite the remaining lines to the file
+                write_missed_subdir.writelines(lines[i + 2 :])
                 # Set the file position to the beginning and truncate the file
                 write_missed_subdir.seek(0)
                 write_missed_subdir.truncate()
 
-while lastpage <= 2261775:
 
+while lastpage <= 2261775:
     try:
         asyncio.run(get_and_write_data())
-        print(firstpage,time)
+        print(firstpage, time)
         process_missed_subdirs()
         firstpage += 2000
         lastpage += 2000
     except Exception as e:
-    # Handle any exceptions that occur during execution
+        # Handle any exceptions that occur during execution
         error_log_file.write(f"Error occurred: {e}\n")
 
     finally:

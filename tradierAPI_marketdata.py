@@ -20,15 +20,15 @@ YYMMDD = datetime.today().strftime("%y%m%d")
 def get_options_data(ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
-    response = requests.get('https://api.tradier.com/v1/markets/timesales',
-                            params={'symbol': ticker, 'interval': '1min', 'start': start, 'end': end,
-                                    'session_filter': 'all'},
-                            headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-                            )
+    response = requests.get(
+        "https://api.tradier.com/v1/markets/timesales",
+        params={"symbol": ticker, "interval": "1min", "start": start, "end": end, "session_filter": "all"},
+        headers={f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
+    )
     json_response = response.json()
     # print(response.status_code)
     # print(json_response)
-    df = pd.DataFrame(json_response['series']['data']).set_index('time')
+    df = pd.DataFrame(json_response["series"]["data"]).set_index("time")
     # df.set_index('time', inplace=True)
     ##change index to datetimeindex
     df.index = pd.to_datetime(df.index)
@@ -52,20 +52,21 @@ def get_options_data(ticker):
     # df.to_csv('df.csv')
 
     # quote
-    response = requests.get('https://api.tradier.com/v1/markets/quotes',
-                            params={'symbols': ticker, 'greeks': 'false'},
-                            headers={f'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-                            )
+    response = requests.get(
+        "https://api.tradier.com/v1/markets/quotes",
+        params={"symbols": ticker, "greeks": "false"},
+        headers={f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
+    )
     json_response = response.json()
     # print(response.status_code)
     # print(json_response)
     # print(json_response)
-    quote_df = pd.DataFrame.from_dict(json_response['quotes']['quote'], orient='index').T
-    LAC = quote_df.at[0, 'prevclose']
+    quote_df = pd.DataFrame.from_dict(json_response["quotes"]["quote"], orient="index").T
+    LAC = quote_df.at[0, "prevclose"]
 
-    CurrentPrice = quote_df.at[0, 'last']
-    price_change_percent = quote_df['change_percentage'][0]
-    StockLastTradeTime = quote_df['trade_date'][0]
+    CurrentPrice = quote_df.at[0, "last"]
+    price_change_percent = quote_df["change_percentage"][0]
+    StockLastTradeTime = quote_df["trade_date"][0]
     StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
     StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
     print(f"${ticker} last Trade Time: {StockLastTradeTime}")
@@ -75,14 +76,15 @@ def get_options_data(ticker):
     # quote_df.to_csv('tradierquote.csv')
 
     ###TODO finish making this df look just like yfinance df.
-    response = requests.get('https://api.tradier.com/v1/markets/options/expirations',
-                            params={'symbol': ticker, 'includeAllRoots': 'true', 'strikes': 'true'},
-                            headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-                            )
+    response = requests.get(
+        "https://api.tradier.com/v1/markets/options/expirations",
+        params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"},
+        headers={"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
+    )
     json_response = response.json()
 
-    expirations = json_response['expirations']['expiration']
-    expiration_dates = [expiration['date'] for expiration in expirations]
+    expirations = json_response["expirations"]["expiration"]
+    expiration_dates = [expiration["date"] for expiration in expirations]
 
     closest_exp_date = expiration_dates[0]
 
@@ -90,17 +92,18 @@ def get_options_data(ticker):
     putsChain = []
 
     for exp_date in expiration_dates:
-        response = requests.get('https://api.tradier.com/v1/markets/options/chains',
-                                params={'symbol': ticker, 'expiration': exp_date, 'greeks': 'true'},
-                                headers={'Authorization': f'Bearer {real_auth}', 'Accept': 'application/json'}
-                                )
+        response = requests.get(
+            "https://api.tradier.com/v1/markets/options/chains",
+            params={"symbol": ticker, "expiration": exp_date, "greeks": "true"},
+            headers={"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
+        )
         json_response = response.json()
         # print(response.status_code)
         # print("Option Chain: ",json_response)
-        optionchain_df = pd.DataFrame(json_response['options']['option'])
-        grouped = optionchain_df.groupby('option_type')
-        call_group = grouped.get_group('call').copy()
-        put_group = grouped.get_group('put').copy()
+        optionchain_df = pd.DataFrame(json_response["options"]["option"])
+        grouped = optionchain_df.groupby("option_type")
+        call_group = grouped.get_group("call").copy()
+        put_group = grouped.get_group("put").copy()
 
         # print(call_group.columns)
         # print(put_group.columns)
@@ -121,7 +124,7 @@ def get_options_data(ticker):
     calls_df["dollarsFromStrike"] = abs(calls_df["strike"] - LAC)
     calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["open_interest"]
     calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
-    calls_df["impliedVolatility"] = calls_df['greeks'].str.get('mid_iv')
+    calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
     # print("callsiv",calls_df['impliedVolatility'])
 
     calls_df.rename(
@@ -155,7 +158,7 @@ def get_options_data(ticker):
     puts_df["dollarsFromStrike"] = abs(puts_df["strike"] - LAC)
     puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["open_interest"]
     puts_df["lastContractPricexOI"] = puts_df["last"] * puts_df["open_interest"]
-    puts_df["impliedVolatility"] = puts_df['greeks'].str.get('mid_iv')
+    puts_df["impliedVolatility"] = puts_df["greeks"].str.get("mid_iv")
     # print("PUTSsiv", puts_df['impliedVolatility'])
     puts_df.rename(
         columns={
@@ -272,13 +275,13 @@ def get_options_data(ticker):
 
 #
 def perform_operations(
-        ticker,
-        last_adj_close,
-        current_price,
-        price_change_percent,
-        StockLastTradeTime,
-        this_minute_ta_frame,
-        expiration_dates,
+    ticker,
+    last_adj_close,
+    current_price,
+    price_change_percent,
+    StockLastTradeTime,
+    this_minute_ta_frame,
+    expiration_dates,
 ):
     closest_exp_date = expiration_dates[0]
     results = []
@@ -288,7 +291,6 @@ def perform_operations(
     groups = data.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
     for exp_date, group in groups:
-
         pain_list = []
         strike_LASTPRICExOI_list = []
         call_LASTPRICExOI_list = []
@@ -426,7 +428,6 @@ def perform_operations(
             lower_strike_index4 = current_price_index - 4
             # get the strikes for the closest higher and lower strikes
             try:
-
                 closest_strike_currentprice = group.loc[current_price_index, "Strike"]
 
             except KeyError as e:
@@ -606,9 +607,9 @@ def perform_operations(
             PCR_vol_OI_at_MP = round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3)
 
         if (
-                np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
-                or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
-                or PC_Ratio_OI_Closest_Strike_LAC == 0
+            np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
+            or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
+            or PC_Ratio_OI_Closest_Strike_LAC == 0
         ):
             PCR_vol_OI_at_LAC = np.nan
         else:
@@ -651,14 +652,14 @@ def perform_operations(
         ###TODO error handling for scalar divide of zero denominator
 
         Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
-                (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
+            (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
         )
         Bonsai2_Ratio = (
             # (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
             # and float("inf")
             # or
-                ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
-                * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
+            ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
+            * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
         )
 
         # Calculate the percentage change###TODO figure out how to look at bonsai %change, will need to transform to timesheet.
@@ -754,29 +755,40 @@ def perform_operations(
                 "NIV 4Lower Strike": round(NIV_4LowerStrike, 3),
                 ###Positive number means NIV highers are higher, and price will drop.
                 # TODO should do as percentage change from total niv numbers to see if its big diff.
-                "NIV highers(-)lowers1-2": (
-                                                   NIV_1HigherStrike + NIV_2HigherStrike) - (
-                                                   NIV_1LowerStrike + NIV_2LowerStrike),
-
+                "NIV highers(-)lowers1-2": (NIV_1HigherStrike + NIV_2HigherStrike)
+                - (NIV_1LowerStrike + NIV_2LowerStrike),
                 "NIV highers(-)lowers1-4": (
-                                                       NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
+                    NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike
+                )
+                - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
                 "NIV 1-2 % from mean": (
-                                               ((NIV_1HigherStrike + NIV_2HigherStrike) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike)) / ((
-                                                                                                            NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)) * 100,
-
+                    ((NIV_1HigherStrike + NIV_2HigherStrike) - (NIV_1LowerStrike + NIV_2LowerStrike))
+                    / ((NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)
+                )
+                * 100,
                 "NIV 1-4 % from mean": (
-                                               (
-                                                           NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike) / (
-                                                           (
-                                                                       NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike) / 8)) * 100,
+                    (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike)
+                    - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)
+                    / (
+                        (
+                            NIV_1HigherStrike
+                            + NIV_2HigherStrike
+                            + NIV_3HigherStrike
+                            + NIV_4HigherStrike
+                            + NIV_1LowerStrike
+                            + NIV_2LowerStrike
+                            + NIV_3LowerStrike
+                            + NIV_4LowerStrike
+                        )
+                        / 8
+                    )
+                )
+                * 100,
                 ##TODO swap (/) with result = np.divide(x, y)
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
                 "Closest Strike to CP": closest_strike_currentprice,
-                "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow
+                "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow,
             }
         )
 
@@ -800,7 +812,7 @@ def perform_operations(
     df["RSI14"] = this_minute_ta_frame["RSI14"]
     df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
 
-    df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]# this_minute_ta_frame['exp_date'] = '230427.0'
+    df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
     # df = pd.concat([this_minute_ta_frame,df])
     # df['']
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
@@ -808,19 +820,18 @@ def perform_operations(
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
     output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")
-    output_file_dailyminutes_w_algo_results =Path(f"data/DailyMinutes_w_algo_results/{ticker}/{ticker}_{YYMMDD}.csv")
+    output_file_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}/{ticker}_{YYMMDD}.csv")
     output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
     if output_file_dailyminutes.exists():
         # Load the existing DataFrame from the file
         dailyminutes = pd.read_csv(output_file_dailyminutes)
-        dailyminutes= dailyminutes.dropna().drop_duplicates(subset='LastTradeTime')
-        dailyminutes = pd.concat([dailyminutes,df.head(1)], ignore_index=True)
+        dailyminutes = dailyminutes.dropna().drop_duplicates(subset="LastTradeTime")
+        dailyminutes = pd.concat([dailyminutes, df.head(1)], ignore_index=True)
         # print(dailyminutes)
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
     else:
-
         # dailyminutes = df.head(1)
         dailyminutes = pd.concat([df.head(1)], ignore_index=True)
         # Append the new row to the existing DataFrame
@@ -831,14 +842,14 @@ def perform_operations(
 
     try:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
-###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
+    ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
         exit()
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
         f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
-         df,
+        df,
         ##df is processeddata
         ticker,
     )

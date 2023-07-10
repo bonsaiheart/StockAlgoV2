@@ -6,26 +6,39 @@ from bs4 import BeautifulSoup
 import re
 from requests.exceptions import RequestException
 
-column_titles = ["Contract", "Ticker", "ExpDate", "Put_Call", "Strike", "Date", "Open", "High", "Low", "Close", "Volume",
-                 "Open Interest"]
+column_titles = [
+    "Contract",
+    "Ticker",
+    "ExpDate",
+    "Put_Call",
+    "Strike",
+    "Date",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume",
+    "Open Interest",
+]
 
 ##await asyncio.sleep() in process_subdirectory
 
-error_log_file = open('error_log.txt', 'a')  # Open the error log file for appending
+error_log_file = open("error_log.txt", "a")  # Open the error log file for appending
 
 missed_subdirs = []
 
-filename = 'test.csv'
+filename = "test.csv"
 
 # Check if the file exists and its size is zero
 if not os.path.isfile(filename) or os.path.getsize(filename) == 0:
-    with open(filename, 'a', newline='') as file:
+    with open(filename, "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(column_titles)
 
-def get_and_write_data(firstpage,lastpage):
+
+def get_and_write_data(firstpage, lastpage):
     try:
-        with open('last_processed.txt', 'r') as f:
+        with open("last_processed.txt", "r") as f:
             firstpage = int(f.readline())
             subdir_index = int(f.readline())
     except FileNotFoundError:
@@ -33,7 +46,7 @@ def get_and_write_data(firstpage,lastpage):
         subdir_index = 0
 
     for page in range(firstpage, lastpage):
-        url = f'https://chartexchange.com/list/optionequity/?page={page}'
+        url = f"https://chartexchange.com/list/optionequity/?page={page}"
         print(url)
         try:
             response = requests.get(url)
@@ -42,23 +55,22 @@ def get_and_write_data(firstpage,lastpage):
             error_log_file.write(f"Error occurred while retrieving page {page}: {e}\n")
 
             # Save the current progress
-            with open('last_processed.txt', 'w') as f:
-                f.write(str(page) + '\n')
-                f.write(str(subdir_index) + '\n')
+            with open("last_processed.txt", "w") as f:
+                f.write(str(page) + "\n")
+                f.write(str(subdir_index) + "\n")
 
             continue
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(response.content, "html.parser")
 
-
-        anchor_tags = soup.find_all('a')
+        anchor_tags = soup.find_all("a")
 
         subdirectories = []
 
         for anchor in anchor_tags:
-            href = anchor.get('href')
-            if href and href.startswith('/symbol/opra-'):
-                subdirectory = href.replace("/symbol/opra-", "").strip('/')
+            href = anchor.get("href")
+            if href and href.startswith("/symbol/opra-"):
+                subdirectory = href.replace("/symbol/opra-", "").strip("/")
                 subdirectories.append(subdirectory)
                 print(subdirectory)
         # Process each subdirectory
@@ -71,7 +83,7 @@ def get_and_write_data(firstpage,lastpage):
 
             while retry_count < max_retries:
                 try:
-                    response = requests.get(f'https://chartexchange.com/symbol/opra-{subdir}')
+                    response = requests.get(f"https://chartexchange.com/symbol/opra-{subdir}")
                     response.raise_for_status()
 
                     break  # Break out of the retry loop if the request is successful
@@ -83,19 +95,17 @@ def get_and_write_data(firstpage,lastpage):
 
             if retry_count == max_retries:
                 # Save the current progress
-                with open('last_processed.txt', 'w') as f:
-                    f.write(str(page) + '\n')
-                    f.write(str(i) + '\n')
+                with open("last_processed.txt", "w") as f:
+                    f.write(str(page) + "\n")
+                    f.write(str(i) + "\n")
 
                 missed_subdirs.append(subdir)  # Add the missed subdir to the list
                 continue
 
-            content = response.content.decode('utf-8')
+            content = response.content.decode("utf-8")
 
             pattern = r'\["(\d+)","([\d.]+)","([\d.]+)","([\d.]+)","([\d.]+)","(\d+)"(?:,"(\d+)")?\]'
             matches = re.findall(pattern, content)
-
-
 
             symbol_pattern = r"([a-zA-Z]+)(\d{8})([a-zA-Z])(\d+\.?\d*)"
             match_symbol = re.match(symbol_pattern, subdir)
@@ -117,37 +127,35 @@ def get_and_write_data(firstpage,lastpage):
         subdir_index = 0  # Reset the subdir_index for the next page
 
         # Save the last processed values of x and subdir_index
-        with open('last_processed.txt', 'w') as f:
-            f.write(str(page + 1) + '\n')  # Add 1 to account for the current iteration
-            f.write(str(subdir_index) + '\n')
-
+        with open("last_processed.txt", "w") as f:
+            f.write(str(page + 1) + "\n")  # Add 1 to account for the current iteration
+            f.write(str(subdir_index) + "\n")
 
         # Save the missed subdirectories to a file for later processing
-        with open('missed_subdirs.txt', 'a') as f:
+        with open("missed_subdirs.txt", "a") as f:
             for subdir in missed_subdirs:
-                f.write(page + '\n')
-                f.write(subdir + '\n')
+                f.write(page + "\n")
+                f.write(subdir + "\n")
 
     error_log_file.close()
 
+
 def process_missed_subdirs(writer):
-    with open('missed_subdirs.txt', 'r') as read_missed_subdirs:
+    with open("missed_subdirs.txt", "r") as read_missed_subdirs:
         lines = read_missed_subdirs.readlines()
 
-    with open('missed_subdirs.txt', 'w') as write_missed_subdir:
+    with open("missed_subdirs.txt", "w") as write_missed_subdir:
         for i in range(0, len(lines), 2):
             page = int(lines[i].strip())
             subdir = lines[i + 1].strip()
 
             max_retries = 3  # Maximum number of retries
 
-
-
             retry_count = 0  # Counter for retry attempts
 
             while retry_count < max_retries:
                 try:
-                    response = requests.get(f'https://chartexchange.com/symbol/opra-{subdir}')
+                    response = requests.get(f"https://chartexchange.com/symbol/opra-{subdir}")
                     response.raise_for_status()
                     print(response)
                     break  # Break out of the retry loop if the request is successful
@@ -158,12 +166,11 @@ def process_missed_subdirs(writer):
 
             if retry_count == max_retries:
                 # Save the current progress
-                with open('last_processed.txt', 'w') as f:
-                    f.write(str(page) + '\n')
-                    f.write(str(i) + '\n')
+                with open("last_processed.txt", "w") as f:
+                    f.write(str(page) + "\n")
+                    f.write(str(i) + "\n")
 
-
-            content = response.content.decode('utf-8')
+            content = response.content.decode("utf-8")
             print("content", content)
             pattern = r'\["(\d+)","([\d.]+)","([\d.]+)","([\d.]+)","([\d.]+)","(\d+)"(?:,"(\d+)")?\]'
             matches = re.findall(pattern, content)
@@ -189,8 +196,8 @@ def process_missed_subdirs(writer):
             print(f"Processing missed subdir: {subdir}, missed page: {page}")
             time.sleep(1)
 
-        # Rewrite the remaining lines to the file
-            write_missed_subdir.writelines(lines[i+2:])
+            # Rewrite the remaining lines to the file
+            write_missed_subdir.writelines(lines[i + 2 :])
             # Set the file position to the beginning and truncate the file
             write_missed_subdir.seek(0)
             write_missed_subdir.truncate()
@@ -199,7 +206,7 @@ def process_missed_subdirs(writer):
 
 
 # Call the function within the with block
-with open(filename, 'a', newline='') as file:
+with open(filename, "a", newline="") as file:
     writer = csv.writer(file)
-    get_and_write_data(firstpage,lastpage)
+    get_and_write_data(firstpage, lastpage)
     process_missed_subdirs(writer)

@@ -8,28 +8,33 @@ from ib_insync import *
 ib = IB()
 
 logging.basicConfig(
-    filename='error_ib.log',
+    filename="error_ib.log",
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M'
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
 )
+
+
 def connection_stats():
     print(ib.isConnected())
 
+
 def ib_connect():
     if not ib.isConnected():
-        print('Connecting')
-        randomclientID = random.randint(0,999)
+        print("Connecting")
+        randomclientID = random.randint(0, 999)
         # 7497 tws 4002 for gateway   -1 EACH FOR REAL MONEY
         try:
-            ib.connect('192.168.1.119', 7497, clientId=randomclientID, timeout=10)
+            ib.connect("192.168.1.119", 7497, clientId=randomclientID, timeout=10)
             ###use 127.0.0.1 for local
         except (Exception, asyncio.exceptions.TimeoutError) as e:
-            logging.getLogger().error('Connection error: %s', e)
-            print('Connection error:', e)
+            logging.getLogger().error("Connection error: %s", e)
+            print("Connection error:", e)
             pass
     else:
         print("ib already connected?")
+
+
 ib_connect()
 # limitBuyOrder = LimitOrder('BUY', quantity, limit_price)
 # limitSellOrder = LimitOrder('SELL', quantity, limit_price)
@@ -41,7 +46,7 @@ def ib_disconnect():
     try:
         ib.disconnect()
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('Connection error: %s', e)
+        logging.error("Connection error: %s", e)
 
 
 ##removed quantity
@@ -49,7 +54,7 @@ def placeBuyBracketOrder(ticker, current_price):
     ib_connect()
     try:
         ticker_symbol = ticker
-        ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
+        ticker_contract = Stock(ticker_symbol, "SMART", "USD")
         ib.qualifyContracts(ticker_contract)
 
         current_price = current_price
@@ -58,8 +63,8 @@ def placeBuyBracketOrder(ticker, current_price):
         take_profit_price = round(current_price * 1.003, 2)  # Replace with your desired take profit price
 
         print(take_profit_price)
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        trailAmount = round(current_price * .002, 2)  # Replace with your desired trailing stop percentage
+        stop_loss_price = current_price * 0.9  # Replace with your desired stop-loss price
+        trailAmount = round(current_price * 0.002, 2)  # Replace with your desired trailing stop percentage
         triggerPrice = limit_price
 
         # This will be our main or "parent" order
@@ -73,12 +78,11 @@ def placeBuyBracketOrder(ticker, current_price):
         parent.outsideRth = True
         parent.goodTillDate = gtddelta
         ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
+        parent.tif = "GTD"
 
         takeProfit = Order()
         takeProfit.orderId = ib.client.getReqId()
-        takeProfit.action = "SELL" if parent.action \
-                                      == "BUY" else "BUY"
+        takeProfit.action = "SELL" if parent.action == "BUY" else "BUY"
         takeProfit.outsideRth = True
         takeProfit.orderType = "LMT"
         takeProfit.totalQuantity = quantity
@@ -105,14 +109,15 @@ def placeBuyBracketOrder(ticker, current_price):
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('BuyBracketOrder error: %s', e)
+        logging.error("BuyBracketOrder error: %s", e)
+
 
 def placeSellBracketOrder(ticker, current_price):
     ib_connect()
 
     try:
         ticker_symbol = ticker
-        ticker_contract = Stock(ticker_symbol, 'SMART', 'USD')
+        ticker_contract = Stock(ticker_symbol, "SMART", "USD")
         ib.qualifyContracts(ticker_contract)
 
         current_price = current_price
@@ -121,8 +126,8 @@ def placeSellBracketOrder(ticker, current_price):
         take_profit_price = round(current_price * 1.003, 2)  # Replace with your desired take profit price
 
         print(take_profit_price)
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
-        trailAmount = round(current_price * .002, 2)  # Replace with your desired trailing stop percentage
+        stop_loss_price = current_price * 0.9  # Replace with your desired stop-loss price
+        trailAmount = round(current_price * 0.002, 2)  # Replace with your desired trailing stop percentage
         triggerPrice = limit_price
 
         # This will be our main or "parent" order
@@ -133,7 +138,7 @@ def placeSellBracketOrder(ticker, current_price):
         parent.totalQuantity = quantity
         parent.outsideRth = True
         ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
+        parent.tif = "GTD"
         parent.goodTillDate = gtddelta
 
         parent.lmtPrice = limit_price
@@ -168,10 +173,12 @@ def placeSellBracketOrder(ticker, current_price):
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('SellBracketOrder error: %s', e)
+        logging.error("SellBracketOrder error: %s", e)
 
-def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
-                          custom_trailamount=None):
+
+def placeCallBracketOrder(
+    ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None, custom_trailamount=None
+):
     ib_connect()
     try:
         ticker_symbol = ticker
@@ -181,22 +188,26 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
         print(type(strike))
         print(type(current_price))
         ## needed to remove 'USD' for option
-        ticker_contract = Option(ticker, exp, strike, "C", 'SMART')
+        ticker_contract = Option(ticker, exp, strike, "C", "SMART")
         ib.qualifyContracts(ticker_contract)
         current_price = round(current_price, 2)
         quantity = quantity  # Replace with the desired order quantity
         limit_price = current_price  # Replace with your desired limit price
         if custom_takeprofit is not None:
-            take_profit_price = round(current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
+            take_profit_price = round(
+                current_price * custom_takeprofit, 2
+            )  # Replace with your desired take profit price
 
         else:
             take_profit_price = round(current_price * 1.15, 2)  # Replace with your desired take profit price
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+        stop_loss_price = current_price * 0.9  # Replace with your desired stop-loss price
         if custom_trailamount is not None:
-            trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(
+                current_price * custom_trailamount, 2
+            )  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(current_price * .05, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(current_price * 0.05, 2)  # Replace with your desired trailing stop percentage
 
         triggerPrice = limit_price
 
@@ -210,7 +221,7 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
         parent.transmit = False
         parent.outsideRth = True
         ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
+        parent.tif = "GTD"
         parent.goodTillDate = gtddelta
 
         takeProfit = Order()
@@ -243,7 +254,8 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlaceCallBracketOrder error: %s', e)
+        logging.error("PlaceCallBracketOrder error: %s", e)
+
 
 # outsideRth=True
 ###TODO add this for tracking diff algoes. can have 30 cid.
@@ -287,8 +299,10 @@ def placeCallBracketOrder(ticker, exp, strike, current_price, quantity, orderRef
 #         print(ib.placeOrder(ticker_contract, o))
 #         ib.sleep(1)
 
-def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None,
-                         custom_trailamount=None):
+
+def placePutBracketOrder(
+    ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None, custom_trailamount=None
+):
     ib_connect()
     try:
         ticker_symbol = ticker
@@ -298,23 +312,27 @@ def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=
         print(type(strike))
         print(type(current_price))
         ###needed to remove 'USD' from end.
-        ticker_contract = Option(ticker_symbol, exp, strike, "P", 'SMART')
+        ticker_contract = Option(ticker_symbol, exp, strike, "P", "SMART")
 
         current_price = round(current_price, 2)
         quantity = quantity  # Replace with the desired order quantity
         limit_price = current_price  # Replace with your desired limit price
         if custom_takeprofit is not None:
-            take_profit_price = round(current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
+            take_profit_price = round(
+                current_price * custom_takeprofit, 2
+            )  # Replace with your desired take profit price
 
         else:
             take_profit_price = round(current_price * 1.15, 2)  # Replace with your desired take profit price
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+        stop_loss_price = current_price * 0.9  # Replace with your desired stop-loss price
         if custom_trailamount is not None:
-            trailAmount = round(current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(
+                current_price * custom_trailamount, 2
+            )  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(current_price * .05, 2)  # Replace with your desired trailing stop percentage
-        stop_loss_price = current_price * .9  # Replace with your desired stop-loss price
+            trailAmount = round(current_price * 0.05, 2)  # Replace with your desired trailing stop percentage
+        stop_loss_price = current_price * 0.9  # Replace with your desired stop-loss price
         triggerPrice = limit_price
 
         # This will be our main or "parent" order
@@ -327,7 +345,7 @@ def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=
         parent.transmit = False
         parent.outsideRth = True
         ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
+        parent.tif = "GTD"
         parent.goodTillDate = gtddelta
 
         takeProfit = Order()
@@ -359,34 +377,48 @@ def placePutBracketOrder(ticker, exp, strike, current_price, quantity, orderRef=
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlacePutBracketOrder error: %s', e)
-def placeOptionBracketOrder(CorP,ticker, exp, strike, contract_current_price, quantity, orderRef=None, custom_takeprofit=None,
-                            custom_trailamount=None):
+        logging.error("PlacePutBracketOrder error: %s", e)
+
+
+def placeOptionBracketOrder(
+    CorP,
+    ticker,
+    exp,
+    strike,
+    contract_current_price,
+    quantity,
+    orderRef=None,
+    custom_takeprofit=None,
+    custom_trailamount=None,
+):
     ib_connect()
     try:
-
         print(ticker, exp, strike, contract_current_price)
         print(type(ticker))
         print(type(exp))
         print(type(strike))
         print(type(contract_current_price))
         ## needed to remove 'USD' for option
-        ticker_contract = Option(ticker, exp, strike, CorP, 'SMART')
+        ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         ib.qualifyContracts(ticker_contract)
         contract_current_price = round(contract_current_price, 2)
         quantity = quantity  # Replace with the desired order quantity
         limit_price = contract_current_price  # Replace with your desired limit price
         if custom_takeprofit is not None:
-            take_profit_price = round(contract_current_price * custom_takeprofit, 2)  # Replace with your desired take profit price
+            take_profit_price = round(
+                contract_current_price * custom_takeprofit, 2
+            )  # Replace with your desired take profit price
 
         else:
             take_profit_price = round(contract_current_price * 1.15, 2)  # Replace with your desired take profit price
-        stop_loss_price = contract_current_price * .9  # Replace with your desired stop-loss price
+        stop_loss_price = contract_current_price * 0.9  # Replace with your desired stop-loss price
         if custom_trailamount is not None:
-            trailAmount = round(contract_current_price * custom_trailamount, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(
+                contract_current_price * custom_trailamount, 2
+            )  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(contract_current_price * .05, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(contract_current_price * 0.05, 2)  # Replace with your desired trailing stop percentage
 
         triggerPrice = limit_price
 
@@ -400,7 +432,7 @@ def placeOptionBracketOrder(CorP,ticker, exp, strike, contract_current_price, qu
         parent.transmit = False
         parent.outsideRth = True
         ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-        parent.tif = 'GTD'
+        parent.tif = "GTD"
         parent.goodTillDate = gtddelta
 
         takeProfit = Order()
@@ -433,7 +465,9 @@ def placeOptionBracketOrder(CorP,ticker, exp, strike, contract_current_price, qu
             print(ib.placeOrder(ticker_contract, o))
             ib.sleep(1)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error('PlaceCallBracketOrder error: %s', e)
+        logging.error("PlaceCallBracketOrder error: %s", e)
+
+
 ###TODO diff client id for diff stat. and add options.
 """
 

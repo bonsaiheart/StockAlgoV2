@@ -13,7 +13,6 @@ with open("UTILITIES/tickerlist.txt", "r") as f:
 processed_dir = "data\ProcessedData"
 
 
-
 for ticker in tickerlist:
     ticker_dir = os.path.join(processed_dir, ticker)
     list_of_df = []
@@ -30,21 +29,22 @@ for ticker in tickerlist:
                 date = filename.split("_")[1]
                 column_name = f"MP {date}"
 
-                if 'Maximum Pain' in dataframe_slice.columns:
-                    dataframe_slice[column_name] = dataframe_slice['Maximum Pain']
+                if "Maximum Pain" in dataframe_slice.columns:
+                    dataframe_slice[column_name] = dataframe_slice["Maximum Pain"]
                     list_of_df.append(dataframe_slice[[column_name]])
 
                     # Check if 'ExpDate' column exists and add its values to the list of ExpDates
-                    if 'ExpDate' in dataframe_slice.columns:
-                        exp_date_list.extend(dataframe_slice['ExpDate'])
+                    if "ExpDate" in dataframe_slice.columns:
+                        exp_date_list.extend(dataframe_slice["ExpDate"])
 
                     break  # Stop processing the current file
 
     # Create a DataFrame with the combined ExpDate values
-    exp_date_df = pd.DataFrame({'ExpDate': exp_date_list})
+    exp_date_df = pd.DataFrame({"ExpDate": exp_date_list})
 
     # Concatenate the DataFrames and include the 'ExpDate' column on the far left
-    combined_frame = pd.concat([exp_date_df.reset_index(drop=True)] + [df.reset_index(drop=True) for df in list_of_df],
-                               axis=1)
+    combined_frame = pd.concat(
+        [exp_date_df.reset_index(drop=True)] + [df.reset_index(drop=True) for df in list_of_df], axis=1
+    )
     print(combined_frame)
     combined_frame.to_csv("MP_EXP.csv", index=False)
