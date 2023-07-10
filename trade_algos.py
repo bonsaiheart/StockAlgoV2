@@ -21,8 +21,10 @@ now = datetime.now()
 formatted_time = now.strftime("%y%m%d %H:%M EST")
 
 
-def actions(optionchain, dailyminutes, dailyminuteswithALGOresults, processeddata, ticker, current_price):
+def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
+    print(type(dailyminutes))
+
     expdates_strikes_dict = {}
     for index, row in processeddata.iterrows():
         key = row["ExpDate"]
@@ -189,11 +191,12 @@ def actions(optionchain, dailyminutes, dailyminuteswithALGOresults, processeddat
         else:
             print(f"Invalid model function name: {model.__name__}")
             continue
-
+        print(dailyminutes)
         result = model(dailyminutes_df).astype(int)
-        dailyminutes[model_name] = result
-
-        if result[-1]:
+        dailyminutes_df[model_name] = result
+        dailyminutes_df.to_csv("testdailyminutes.csv")
+        print(result)
+        if dailyminutes_df[model_name].iloc[-1]:
             print(f"{model_name} Signal")
             send_notifications.email_me_string(model_name, CorP, ticker)
             # Other actions based on the model_name and signal
@@ -1174,25 +1177,9 @@ def actions(optionchain, dailyminutes, dailyminuteswithALGOresults, processeddat
     # ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
     # if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 :
 
-    buy_signala2 = trained_minute_models.get_buy_signal_B1B2_RSI_1hr_threshUp7(dailyminutes_df)
-    dailyminutes_df["buy_signala2"] = buy_signala2
 
-    sell_signala2 = trained_minute_models.get_sell_signal_B1B2_RSI_1hr_threshDown7(dailyminutes_df)
-    dailyminutes_df["sell_signala2"] = sell_signala2
 
-    buy_signala1 = (
-        trained_minute_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(
-            dailyminutes_df
-        )
-    )
-    dailyminutes_df["buy_signala1"] = buy_signala1
 
-    sell_signala1 = (
-        trained_minute_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(
-            dailyminutes_df
-        )
-    )
-    dailyminutes_df["sell_signala1"] = sell_signala1
 
     dailyminutes_df["B1/B2"] = (dailyminutes_df["B1/B2"] > 1.15).astype(int)
 
@@ -1242,8 +1229,8 @@ def actions(optionchain, dailyminutes, dailyminuteswithALGOresults, processeddat
     dailyminutes_df["b1/b2 and rsi"] = int(
         (dailyminutes_df["B1/B2"].iloc[-1] > 1.15) and (dailyminutes_df["RSI"].iloc[-1] < 30)
     )
-
-    dailyminutes_df.to_csv(dailyminuteswithALGOresults, index=False)
+###TODO figure out how to make this save to correct dir
+    # dailyminutes_df.to_csv(f'algooutput_{ticker}', index=False)
 
 
 # Define functions for each prediction model
