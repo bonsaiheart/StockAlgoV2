@@ -131,7 +131,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-/did.bin
+/PrivateData/did.bin
 /Historical_Data_Scraper/data/historical_optionchain/SPY.csv
 /data/**
 

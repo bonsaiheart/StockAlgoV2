@@ -1,9 +1,8 @@
 from datetime import datetime
 import os
-import time
 import traceback
 import trade_algos
-import check_Market_Conditions
+from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 
@@ -29,7 +28,7 @@ print(datetime)
 
 
 ####TODO make sure it runs at d-9am on days when market is open.
-with open("Input/tickerlist.txt", "r") as f:
+with open("UTILITIES/tickerlist.txt", "r") as f:
     tickerlist = [line.strip().upper() for line in f.readlines()]
 
 log_dir = "errorlog"
@@ -64,7 +63,7 @@ for i in range(max_retries):
                 ) = tradierAPI_marketdata.get_options_data(ticker)
                 (
                     optionchain,
-                    dailyminutes,processeddataWithALGOresults,processeddata,
+                    dailyminutes,processeddata,
                                         ticker,
                 ) = tradierAPI_marketdata.perform_operations(
                     ticker,
@@ -77,7 +76,7 @@ for i in range(max_retries):
                 )
                 print(current_price)
                 if ticker =="SPY":
-                    trade_algos.actions(optionchain, dailyminutes,processeddataWithALGOresults, processeddata, ticker,current_price)
+                    trade_algos.actions(optionchain, dailyminutes, processeddata, ticker,current_price)
                 # email_me.email_me(processeddata)
             break
         else:

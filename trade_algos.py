@@ -3,13 +3,12 @@ import traceback
 import pandas as pd
 from datetime import datetime
 import numpy as np
-from Strategy_Testing import trained_models
-import inspect
+from Strategy_Testing.Trained_Models import trained_minute_models
 import re
 
 import IB.ibAPI
 from UTILITIES.Send_Notifications import send_notifications as send_notifications
-logging.basicConfig(filename='error.log', level=logging.ERROR)
+# logging.basicConfig(filename='error.log', level=logging.ERROR)
 logging.basicConfig(filename='trade_algos_error.log', level=logging.ERROR,    format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -28,7 +27,6 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
     optionchain = pd.read_csv(optionchain)
     dailyminutes_df = pd.read_csv(dailyminutes)
-    dailyminuteswithALGOresults_df = pd.read_csv(dailyminuteswithALGOresults)
     print(ticker, current_price)
     date_string = str(closest_exp_date)
     date_object = datetime.strptime(date_string, "%y%m%d")
@@ -119,18 +117,17 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         print(e)
         traceback.print_exc()
         pass
-# def checkAlgos_placeOrders(dailyminutes_df):
-    actions = [
-        trained_models.Buy_1hr_A1,
-        trained_models.Sell_1hr_A1,
-        trained_models.Buy_20min_A1,
-        trained_models.Sell_20min_A1,
+    model_list = [
+        trained_models.Buy_1hr_A1,#WORKS GREAT?
+        trained_models.Sell_1hr_A1,#WORKS GREAT?
+        trained_models.Buy_20min_A1,#WORKS GREAT?
+        trained_models.Sell_20min_A1,#WORKS GREAT?
         trained_models.Buy_15min_A2,
         trained_models.Sell_15min_A2,
         trained_models.Buy_15min_A1,
     ]
 
-    for model in actions:
+    for model in model_list:
 
         model_name = model.__name__
         if model_name.startswith('Buy'):
@@ -142,8 +139,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
         callorput = 'call' if CorP == 'C' else 'P'
         contractStrike = ib_one_strike_below if CorP == 'C' else ib_one_strike_above
         contract_price = DownOne_Call_Price if CorP == 'C' else UpOne_Put_Price
-        result = model(dailyminutes_df)
-        dailyminuteswithALGOresults_df[model_name] = result
+
 
 
         interval_match = re.search(r'\d+(min|hr)', model.__name__)
@@ -156,7 +152,7 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
             continue
 
         result = model(dailyminutes_df).astype(int)
-        dailyminuteswithALGOresults_df[model_name] = result
+        dailyminutes[model_name] = result
 
         if result[-1]:
             print(f"{model_name} Signal")
@@ -1135,45 +1131,45 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
     dailyminutes_df['sell_signala2'] = sell_signala2
 
     buy_signala1 = trained_models.get_buy_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(dailyminutes_df)
-    dailyminuteswithALGOresults_df['buy_signala1'] = buy_signala1
+    dailyminutes_df['buy_signala1'] = buy_signala1
 
     sell_signala1 = trained_models.get_sell_B1B2_Bonsai_Ratio_RSI_ITM_PCRVol_threshUp7_threshDown7_30_min_later_change_TSLA(dailyminutes_df)
-    dailyminuteswithALGOresults_df['sell_signala1'] = sell_signala1
+    dailyminutes_df['sell_signala1'] = sell_signala1
 
-    dailyminuteswithALGOresults_df['B1/B2'] = (dailyminutes_df['B1/B2'] > 1.15).astype(int)
+    dailyminutes_df['B1/B2'] = (dailyminutes_df['B1/B2'] > 1.15).astype(int)
 
-    dailyminuteswithALGOresults_df['B1/B2'] = (dailyminutes_df['B1/B2'] < 0.01).astype(int)
+    dailyminutes_df['B1/B2'] = (dailyminutes_df['B1/B2'] < 0.01).astype(int)
 
-    dailyminuteswithALGOresults_df['NIV 1-2 % from mean & NIV 1-4 % from mean'] = (
+    dailyminutes_df['NIV 1-2 % from mean & NIV 1-4 % from mean'] = (
                 (dailyminutes_df['NIV 1-2 % from mean'] < -100) & (
                     dailyminutes_df['NIV 1-4 % from mean'] < -200)).astype(int)
 
-    dailyminuteswithALGOresults_df['NIV 1-2 % from mean & NIV 1-4 % from mean'] = (
+    dailyminutes_df['NIV 1-2 % from mean & NIV 1-4 % from mean'] = (
                 (dailyminutes_df['NIV 1-2 % from mean'] > 100) & (dailyminutes_df['NIV 1-4 % from mean'] > 200)).astype(
         int)
 
-    dailyminuteswithALGOresults_df['NIV highers(-)lowers1-4'] = (
+    dailyminutes_df['NIV highers(-)lowers1-4'] = (
                 dailyminutes_df['NIV highers(-)lowers1-4'] < -20).astype(int)
 
-    dailyminuteswithALGOresults_df['NIV highers(-)lowers1-4'] = (
+    dailyminutes_df['NIV highers(-)lowers1-4'] = (
                 dailyminutes_df['NIV highers(-)lowers1-4'] > 20).astype(int)
 
-    dailyminuteswithALGOresults_df['ITM PCR-Vol & RSI'] = (
+    dailyminutes_df['ITM PCR-Vol & RSI'] = (
                 (dailyminutes_df['ITM PCR-Vol'] > 1.3) & (dailyminutes_df['RSI'] > 70)).astype(int)
 
-    dailyminuteswithALGOresults_df['Bonsai Ratio & ITM PCR-Vol & RSI'] = (
+    dailyminutes_df['Bonsai Ratio & ITM PCR-Vol & RSI'] = (
                 (dailyminutes_df['Bonsai Ratio'] < 0.8) & (dailyminutes_df['ITM PCR-Vol'] < 0.8) & (
                     dailyminutes_df['RSI'] < 30)).astype(int)
 
-    dailyminuteswithALGOresults_df['Bonsai Ratio & ITM PCR-Vol & RSI'] = (
+    dailyminutes_df['Bonsai Ratio & ITM PCR-Vol & RSI'] = (
                 (dailyminutes_df['Bonsai Ratio'] > 1.5) & (dailyminutes_df['ITM PCR-Vol'] > 1.2) & (
                     dailyminutes_df['RSI'] > 70)).astype(int)
 
-    dailyminuteswithALGOresults_df["Bonsai Ratio < 0.7 & Net_IV < -50 & Net ITM IV > -41"] = (
+    dailyminutes_df["Bonsai Ratio < 0.7 & Net_IV < -50 & Net ITM IV > -41"] = (
                 (dailyminutes_df["Bonsai Ratio"] < 0.7) & (dailyminutes_df["Net_IV"] < -50) & (
                     dailyminutes_df["Net ITM IV"] > -41)).astype(int)
 
-    dailyminuteswithALGOresults_df[
+    dailyminutes_df[
         'B2/B1>500 Bonsai Ratio<.0001 ITM PCRv Up2<.01 ITM PCRv Down2<5 NIV 1-2 % from mean>NIV 1-4 % from mean>0'] = int(
         (dailyminutes_df['B2/B1'].iloc[-1] > 500)
         and (dailyminutes_df['Bonsai Ratio'].iloc[-1] < 0.0001)
@@ -1184,13 +1180,12 @@ def actions(optionchain, dailyminutes,dailyminuteswithALGOresults, processeddata
 
 
     # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
-    dailyminuteswithALGOresults_df['b1/b2 and rsi'] = int(
+    dailyminutes_df['b1/b2 and rsi'] = int(
         (dailyminutes_df['B1/B2'].iloc[-1] > 1.15)
         and (dailyminutes_df['RSI'].iloc[-1] < 30)
     )
 
-    dailyminutes_df.to_csv(dailyminutes,index=False)
-    dailyminuteswithALGOresults_df.to_csv(dailyminuteswithALGOresults,index=False)
+    dailyminutes_df.to_csv(dailyminuteswithALGOresults,index=False)
 # Define functions for each prediction model
 # def make_sell_5C_predictions(data):
 #     return trained_models.Sell_5C(data)

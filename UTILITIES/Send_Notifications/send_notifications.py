@@ -13,34 +13,10 @@ from Task_Queue import celery_client
 from celery import Celery
 
 
-# def reply_tweet_1_hour_later(message,tweet_id):
-#
-#
-#     bearer_token = PrivateData.twitter_info.bearer_token
-#     consumer_key = PrivateData.twitter_info.consumer_key
-#     consumer_secret = PrivateData.twitter_info.consumer_secret
-#     access_token = PrivateData.twitter_info.access_token
-#     access_token_secret = PrivateData.twitter_info.access_token_secret
-#     api_key = PrivateData.twitter_info.api_key
-#     api_key_secret = PrivateData.twitter_info.api_key_secret
-#
-#     client = tweepy.Client(bearer_token=bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret,
-#                            access_token=access_token, access_token_secret=access_token_secret)
-#
-#
-#     response = client.create_tweet(text=message,in_reply_to_tweet_id=tweet_id)
-#
-#     tweet_id = response.data['id']
-#
-#     print('Tweet ID:', tweet_id)
-#     # wait_60_minutes_and_send_tweet("test3")
-
 
 last_tweet_time = None
-min_tweet_interval = datetime.timedelta(minutes=10)  # Minimum interval between tweets (5 minutes)
-timestamp_file_path = "../../last_tweet_timestamp.txt"  # Path to the file storing the last tweet timestamp
-
-
+min_tweet_interval = datetime.timedelta(minutes=20)  # Minimum interval between tweets (5 minutes)
+timestamp_file_path = "last_tweet_timestamp.txt"  # Path to the file storing the last tweet timestamp
 
 
 def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds):
@@ -67,7 +43,6 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
                 last_tweet_time = datetime.datetime.fromisoformat(timestamp_str)
     except FileNotFoundError:
         pass
-    print(last_tweet_time,"last tweet time")
 
 
 
@@ -88,6 +63,8 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             print(e)
+            print(last_tweet_time, "last tweet time")
+
 
 def email_me_string(strat,callorput,ticker):
     # Email configuration

@@ -6,7 +6,7 @@ import pandas as pd
 
 YYMMDD = dt.datetime.today().strftime("%y%m%d")
 
-with open("Input/tickerlist.txt", "r") as f:
+with open("UTILITIES/tickerlist.txt", "r") as f:
     tickerlist = [line.strip().upper() for line in f.readlines()]
 
 

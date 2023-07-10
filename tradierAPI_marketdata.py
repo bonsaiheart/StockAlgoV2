@@ -807,11 +807,11 @@ def perform_operations(
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
-    output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")
     output_file_dailyminutes_w_algo_results =Path(f"data/DailyMinutes_w_algo_results/{ticker}/{ticker}_{YYMMDD}.csv")
-    output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
     if output_file_dailyminutes.exists():
         # Load the existing DataFrame from the file
         dailyminutes = pd.read_csv(output_file_dailyminutes)
@@ -819,7 +819,6 @@ def perform_operations(
         dailyminutes = pd.concat([dailyminutes,df.head(1)], ignore_index=True)
         # print(dailyminutes)
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
-        dailyminutes.to_csv(output_file_dailyminutes_w_algo_results, index=False)
     else:
 
         # dailyminutes = df.head(1)
@@ -829,16 +828,16 @@ def perform_operations(
         # Save the updated DataFrame back to the file
 
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
-        dailyminutes.to_csv(output_file_dailyminutes_w_algo_results, index=False)
 
     try:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
 ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
+        exit()
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
-        f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv", output_file_dailyminutes_w_algo_results,
+        f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
          df,
         ##df is processeddata
         ticker,

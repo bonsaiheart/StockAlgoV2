@@ -30,7 +30,7 @@ def ib_connect():
             pass
     else:
         print("ib already connected?")
-
+ib_connect()
 # limitBuyOrder = LimitOrder('BUY', quantity, limit_price)
 # limitSellOrder = LimitOrder('SELL', quantity, limit_price)
 # trailStopOrder = ('SELL', stop_loss_price, trailing_percent)
