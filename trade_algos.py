@@ -224,7 +224,7 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
                 current_price,
                 upordown,
                 f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                seconds,
+                seconds,model_name
             )
 
     #
