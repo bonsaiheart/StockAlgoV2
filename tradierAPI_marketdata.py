@@ -845,7 +845,7 @@ def perform_operations(
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
         print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
-        exit()
+        # exit()
     print('perform ops complete')
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
