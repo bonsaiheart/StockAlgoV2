@@ -38,6 +38,7 @@ def get_dailyminutes_make_single_multiday_df(ticker):
 
 
     df = pd.concat(list_of_df, ignore_index=True)
+    df.drop_duplicates(subset='LastTradeTime', inplace=True)
 
     output_dir = Path(f"historical_mulitday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
