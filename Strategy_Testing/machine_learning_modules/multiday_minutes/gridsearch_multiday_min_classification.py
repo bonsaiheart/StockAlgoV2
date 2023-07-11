@@ -30,15 +30,15 @@ Chosen_Predictor = [
 ]
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 15
+cells_forward_to_check = 30
 ##this many cells must meet the percentup/down requiremnet.
 threshold_cells_up = cells_forward_to_check * 0.5
 threshold_cells_down = cells_forward_to_check * 0.5
-percent_up = 0.1
-percent_down = -0.1
+percent_up = 0.15
+percent_down = -0.15
 ###this many cells cannot be < current price for up, > current price for down.
-anticondition_threshold_cells_up = cells_forward_to_check * 0.4
-anticondition_threshold_cells_down = cells_forward_to_check * 0.4
+anticondition_threshold_cells_up = cells_forward_to_check * 0.6
+anticondition_threshold_cells_down = cells_forward_to_check * 0.6
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
 positivecase_weight_up = 20
@@ -52,11 +52,15 @@ threshold_up = 0.7
 threshold_down = 0.7
 
 ###35,5,80   6/3/80
+
+
 parameters = {
-    "max_depth": (20,40, 60 , 80, 100, ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300
-    "min_samples_split": (2, 3, 4, 5, 6, 7, 8, 9, 20),  # 5//5/2     5
-    "n_estimators": (800,1000, 1100, 1300, 1400, 1500 ),  # 1300//1600/1300/1400/1400
+    "max_depth": (60,80, 100,120 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    # ###up 100/2/1300,down 80/3/1000
+    "min_samples_split": (2, 3, 4,6,8),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "n_estimators": (800,900,1000, 1200, 1300  ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
+#30cells - up80.4.900 down
 
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
 #down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
