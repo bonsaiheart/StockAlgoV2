@@ -55,13 +55,13 @@ threshold_down = 0.7
 
 
 parameters = {
-    "max_depth": (60,80, 100 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    "max_depth": (30,40,50,60,80, 100 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
     # ###up 100/2/1300,down 80/3/1000
     "min_samples_split": (2, 3, 4,6,),  # 5//5/2     5                      71123                  for 15   2, 3,
     "n_estimators": (800,900,1000 ,1250,1500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 #30cells - up80.4.900 down  80.2.1300
-
+#60cells up=60.2.800  down= 60.2.1250
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
 #down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
