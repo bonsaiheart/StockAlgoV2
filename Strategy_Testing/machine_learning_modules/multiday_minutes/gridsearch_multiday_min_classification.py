@@ -30,18 +30,21 @@ Chosen_Predictor = [
 ]
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 60
+cells_forward_to_check = 45
 ##this many cells must meet the percentup/down requiremnet.
 threshold_cells_up = cells_forward_to_check * 0.6
 threshold_cells_down = cells_forward_to_check * 0.6
+#TODO add Beta to the percent, to make it more applicable across tickers.
 percent_up = 0.5
 percent_down = -0.5
-###this many cells cannot be < current price for up, > current price for down.
+###this many cells cannot be < current price for up, >
+# current price for down.
 anticondition_threshold_cells_up = cells_forward_to_check * 0.6
 anticondition_threshold_cells_down = cells_forward_to_check * 0.6
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
 positivecase_weight_up = 20
+
 positivecase_weight_down = 20
 
 
@@ -61,7 +64,7 @@ parameters = {
     "n_estimators": (800,900,1000 ,1250,1500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 #30cells - up80.4.900 down  80.2.1300
-#60cells up=60.2.800  down= 60.2.1250
+#60cells up=60.2.800  down= 60.2.1250 1 hr=Target_Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}Target_Down: {'max_depth': 30, 'min_samples_split': 4, 'n_estimators': 800}
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
 #down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
