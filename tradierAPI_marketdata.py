@@ -854,3 +854,11 @@ def perform_operations(
         ##df is processeddata
         ticker,
     )
+"""Although taken at face value asyncio *is* an all-or-nothing deal, there are still two escape hatches that can help when dealing with legacy or heterogenous environment:
+
+* Within asyncio, you can await [`loop.run_in_executor(callable, args...)`](https://docs.python.org/3/library/asyncio-eventloop.html#executing-code-in-thread-or-process-pools) to evaluate sync code in another thread, suspending the current coroutine until the result is ready.
+
+* Outside asyncio, you can use [`asyncio.run_coroutine_threadsafe()`](https://docs.python.org/3/library/asyncio-task.html#asyncio.run_coroutine_threadsafe) to submit a coroutine to an event loop running in another thread. It immediately returns returns a [`concurrent.futures` future](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Future) which has a blocking `result()` method that blocks the current thread without adversely affecting the event loop. (The use of `run_coroutine_threadsafe` requires starting an event loop in a dedicated thread beforehand.)"""
+"""To fix the issue, you should avoid mixing threads and asyncio in the first place. For example, if you need to run several coroutines in parallel, you can spawn them as tasks using asyncio.crate_task, and then await some or all of them. Or you can use the asyncio.gather utility function which does it for you:
+
+result1, result2, ... = await asyncio.gather(coro1(), coro2(), ...)"""

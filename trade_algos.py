@@ -159,6 +159,8 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
         traceback.print_exc()
         pass
     model_list = [
+        trained_minute_models.Buy_1hr_A3,
+        trained_minute_models.Sell_1hr_A3,
         trained_minute_models.Buy_1hr_A2,
         trained_minute_models.Sell_1hr_A2,
         trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
