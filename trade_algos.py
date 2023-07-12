@@ -165,6 +165,8 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
         trained_minute_models.Sell_1hr_A2,
         trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
         trained_minute_models.Sell_1hr_A1,  # WORKS GREAT?
+        trained_minute_models.Buy_45min_A1,  # WORKS GREAT?
+        trained_minute_models.Sell_45min_A1,
         trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
         trained_minute_models.Sell_30min_A1,
         trained_minute_models.Buy_20min_A1,  # WORKS GREAT?

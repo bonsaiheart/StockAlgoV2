@@ -64,6 +64,7 @@ parameters = {
     "n_estimators": (800,900,1000 ,1250,1500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 #30cells - up80.4.900 down  80.2.1300
+#45 cells Target_Up: {'max_depth': 40, 'min_samples_split': 2, 'n_estimators': 900}Down: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
 #60cells up=60.2.800  down= 60.2.1250 1 hr=Target_Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}Target_Down: {'max_depth': 30, 'min_samples_split': 4, 'n_estimators': 800}
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
 #down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
