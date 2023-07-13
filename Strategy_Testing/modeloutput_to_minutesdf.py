@@ -35,7 +35,7 @@ def apply_predictions_to_df(model_names, df, filename):
 
 
 dir = "../data/historical_multiday_minute_DF"
-for filename in os.listdir(dir):
+for filename in sorted(os.listdir(dir)):
     filepath = os.path.join(dir, filename)
 
     if filename.endswith(".csv"):
