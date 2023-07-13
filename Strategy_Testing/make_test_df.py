@@ -18,7 +18,7 @@ def get_dailyminutes_make_single_multiday_df(ticker):
 
     ticker_dir = os.path.join(dailyminutes_dir, ticker)
     list_of_df = []
-    for filename in os.listdir(ticker_dir):
+    for filename in sorted(os.listdir(ticker_dir)):
 
 
         if filename.endswith(".csv"):

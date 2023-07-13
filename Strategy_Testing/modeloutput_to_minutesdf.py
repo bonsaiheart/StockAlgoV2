@@ -11,10 +11,11 @@ def get_model_names(module):
             model_names.append(name)
     return model_names
 
-print("i made changes but git wont add")
+
 module_name = Trained_Models.trained_minute_models  # Provide the correct module name
 model_names = get_model_names(module_name)
 print(model_names)
+
 
 def apply_predictions_to_df(model_names, df, filename):
     df.dropna(axis=1, how="all", inplace=True)
@@ -34,7 +35,7 @@ def apply_predictions_to_df(model_names, df, filename):
 
 
 dir = "../data/historical_multiday_minute_DF"
-for filename in sorted(os.listdir(dir)):
+for filename in os.listdir(dir):
     filepath = os.path.join(dir, filename)
 
     if filename.endswith(".csv"):
