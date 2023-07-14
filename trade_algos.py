@@ -161,6 +161,9 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
     model_list = [
         trained_minute_models.Buy_2hr_A1,
         trained_minute_models.Sell_2hr_A1,
+        trained_minute_models.Buy_1hr_A5,
+        trained_minute_models.Sell_1hr_A5,        trained_minute_models.Buy_1hr_A6,
+        trained_minute_models.Sell_1hr_A6,
         trained_minute_models.Buy_1hr_A4,
         trained_minute_models.Sell_1hr_A4,
         trained_minute_models.Buy_1hr_A3,

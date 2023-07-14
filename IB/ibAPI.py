@@ -25,7 +25,7 @@ parentOrderIdFile = 'IB/parent_order_ids.txt'
 # Global variables
 gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 parentOrders = {}
-
+##TODO figure out how to allow multiple orders and avoid "orders on both sides" from child orders.
 # ...
 @app.task
 def close_orders():

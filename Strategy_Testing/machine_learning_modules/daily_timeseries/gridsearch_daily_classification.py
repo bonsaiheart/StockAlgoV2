@@ -17,44 +17,43 @@ Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol
 
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 2
+cells_forward_to_check = 1
 ##this many cells must meet the percentup/down requiremnet.
-threshold_cells_up = cells_forward_to_check * 0.6
-threshold_cells_down = cells_forward_to_check * 0.6
+threshold_cells_up = cells_forward_to_check * 0.8
+threshold_cells_down = cells_forward_to_check * 0.8
 #TODO add Beta to the percent, to make it more applicable across tickers.
-percent_up = 2
-percent_down = -2
+percent_up = 1
+percent_down = -1
 ###this many cells cannot be < current price for up, >
 # current price for down.
-anticondition_threshold_cells_up = cells_forward_to_check * 0
-anticondition_threshold_cells_down = cells_forward_to_check * 0
+anticondition_threshold_cells_up = cells_forward_to_check
+anticondition_threshold_cells_down = cells_forward_to_check
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
-positivecase_weight_up = 10   ###changed these from 20 7/12
+positivecase_weight_up = 50   ###changed these from 20 7/12
 
-positivecase_weight_down = 10
+positivecase_weight_down = 50
 ###changed these from 20 7/12
 
 
 # num_features_up = 3
 # num_features_down = 3
 ##probablility threshhold.
-threshold_up = 0.7
-threshold_down = 0.7
+threshold_up = 0.8
+threshold_down = 0.8
 
 ###35,5,80   6/3/80
 
 
 parameters = {
-    "max_depth": (10,30,40,50,60,80, 100 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    "max_depth": (60,80, 100 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
     # ###up 100/2/1300,down 80/3/1000
-    "min_samples_split": (2, 3,6,10,15),  # 5//5/2     5                      71123                  for 15   2, 3,
-    "n_estimators": (800,1000 ,1500,2000 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+    "min_samples_split": (2, 3,6,),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "n_estimators": (1500,2000,2500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
+#2 days(2 cells)    Target_Up:'{'max_depth': 100, 'min_samples_split': 3, 'n_estimators': 1500}Down: {'max_depth': 100, 'min_samples_split': 2, 'n_estimators': 800} up:60,2,1000 down:60,2,2000
 #120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
 #30cells - up80.4.900 down  80.2.1300
-#45 cells Target_Up: {'max_depth': 40, 'min_samples_split': 2, 'n_estimators': 900}Down: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
-#60cells up=60.2.800  down= 60.2.1250 1 hr=Target_Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}Target_Down: {'max_depth': 30, 'min_samples_split': 4, 'n_estimators': 800}
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
 #down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
