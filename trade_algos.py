@@ -43,7 +43,7 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
 
     ####Different strikes converted to contract form.
     ##This one is the strike one above Closest to Current price strike
-
+    print(strikeindex_closest_expdate)
     if strikeindex_closest_expdate[0] != np.nan:
         ib_four_strike_below = strikeindex_closest_expdate[0]
         four_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[0] * 1000)
@@ -57,18 +57,20 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
         ib_one_strike_below = strikeindex_closest_expdate[3]
         one_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[3] * 1000)
     if strikeindex_closest_expdate[4] != np.nan:
-        ib_one_strike_above = strikeindex_closest_expdate[5]
-        one_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[4] * 1000)
+        ib_closest_strike = strikeindex_closest_expdate[4]
+        closest_strike_exp_int_num = int(strikeindex_closest_expdate[4] * 1000)
     if strikeindex_closest_expdate[5] != np.nan:
-        ib_two_strike_above = strikeindex_closest_expdate[6]
-        two_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[5] * 1000)
+        ib_one_strike_above = strikeindex_closest_expdate[5]
+        one_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[5] * 1000)
     if strikeindex_closest_expdate[6] != np.nan:
-        ib_three_strike_above = strikeindex_closest_expdate[7]
-        three_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[6] * 1000)
+        ib_two_strike_above = strikeindex_closest_expdate[6]
+        two_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[6] * 1000)
     if strikeindex_closest_expdate[7] != np.nan:
+        ib_three_strike_above = strikeindex_closest_expdate[7]
+        three_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[7] * 1000)
+    if strikeindex_closest_expdate[8] != np.nan:
         ib_four_strike_above = strikeindex_closest_expdate[8]
-        four_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[7] * 1000)
-    closest_strike_exp_int_num = int(strikeindex_closest_expdate[5] * 1000)  # Convert decimal to integer
+        four_strike_above_closest_cp_strike_int_num = int(strikeindex_closest_expdate[8] * 1000)
     ###TODO add different exp date options in addition to diff strike optoins.
 
     one_strike_above_CCPS = "{:08d}".format(one_strike_above_closest_cp_strike_int_num)
@@ -80,7 +82,7 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
     four_strike_above_CCPS = "{:08d}".format(four_strike_above_closest_cp_strike_int_num)
     four_strike_below_CCPS = "{:08d}".format(four_strike_below_closest_cp_strike_int_num)
     closest_contract_strike = "{:08d}".format(closest_strike_exp_int_num)
-
+    print(closest_contract_strike,"ccs",closest_strike_exp_int_num)
     CCP_upone_call_contract = f"{ticker}{new_date_string}C{one_strike_above_CCPS}"
     CCP_upone_put_contract = f"{ticker}{new_date_string}P{one_strike_above_CCPS}"
     CCP_downone_call_contract = f"{ticker}{new_date_string}C{one_strike_below_CCPS}"
@@ -157,14 +159,29 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
         traceback.print_exc()
         pass
     model_list = [
+        trained_minute_models.Buy_2hr_A1,
+        trained_minute_models.Sell_2hr_A1,
+        trained_minute_models.Buy_1hr_A5,
+        trained_minute_models.Sell_1hr_A5,        trained_minute_models.Buy_1hr_A6,
+        trained_minute_models.Sell_1hr_A6,
+        trained_minute_models.Buy_1hr_A4,
+        trained_minute_models.Sell_1hr_A4,
+        trained_minute_models.Buy_1hr_A3,
+        trained_minute_models.Sell_1hr_A3,
+        trained_minute_models.Buy_1hr_A2,
+        trained_minute_models.Sell_1hr_A2,
         trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
         trained_minute_models.Sell_1hr_A1,  # WORKS GREAT?
+        trained_minute_models.Buy_45min_A1,  # WORKS GREAT?
+        trained_minute_models.Sell_45min_A1,
+        trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
+        trained_minute_models.Sell_30min_A1,
         trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
         trained_minute_models.Sell_20min_A1,  # WORKS GREAT?
         trained_minute_models.Buy_15min_A2,  #works well?
         trained_minute_models.Sell_15min_A2,  #works well?
-        trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
-        trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
+        # trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
+        # trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
     ]
 
     for model in model_list:
@@ -174,10 +191,16 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
         elif model_name.startswith("Sell"):
             CorP = "P"
 
-        upordown = "up" if CorP == "C" else "down"
-        callorput = "call" if CorP == "C" else "P"
-        contractStrike = ib_one_strike_below if CorP == "C" else ib_one_strike_above
-        contract_price = DownOne_Call_Price if CorP == "C" else UpOne_Put_Price
+        if CorP == "C":
+            upordown = "up"
+            callorput = "call"
+            contractStrike = ib_one_strike_below
+            contract_price = DownOne_Call_Price
+        else:
+            upordown = "down"
+            callorput = "put"
+            contractStrike = ib_one_strike_above
+            contract_price = UpOne_Put_Price
 
         interval_match = re.search(r"\d+(min|hr)", model.__name__)
 
@@ -222,7 +245,7 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
                 current_price,
                 upordown,
                 f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                seconds,
+                seconds,model_name
             )
 
     #

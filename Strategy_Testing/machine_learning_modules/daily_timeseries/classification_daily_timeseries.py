@@ -22,9 +22,11 @@ Chosen_Predictor = [
     "ITM PCR-Vol",
     "ITM PCR-OI",
     "ITM PCRv Up2",
-    "ITM PCRv Down2",
+    "ITM PCRv Down2",   "ITM PCRv Up3",
+    "ITM PCRv Down3",
     "ITM PCRoi Up2",
-    "ITM PCRoi Down2",
+    "ITM PCRoi Down2", "ITM PCRoi Up3",
+    "ITM PCRoi Down3",
     "RSI",
     "AwesomeOsc",
 ]

@@ -18,9 +18,12 @@ Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2",
+    "PCRv Up3",
+    "PCRv Down3",
     "PCRv Up4",
     "PCRv Down4",
-    "ITM PCRv Up4",
+    "ITM PCRv Up3",
+    "ITM PCRv Down3","ITM PCRv Up4",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -30,19 +33,23 @@ Chosen_Predictor = [
 ]
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 15
+cells_forward_to_check = 60
 ##this many cells must meet the percentup/down requiremnet.
-threshold_cells_up = cells_forward_to_check * 0.5
-threshold_cells_down = cells_forward_to_check * 0.5
-percent_up = 0.1
-percent_down = -0.1
-###this many cells cannot be < current price for up, > current price for down.
-anticondition_threshold_cells_up = cells_forward_to_check * 0.4
-anticondition_threshold_cells_down = cells_forward_to_check * 0.4
+threshold_cells_up = cells_forward_to_check * 0.6
+threshold_cells_down = cells_forward_to_check * 0.6
+#TODO add Beta to the percent, to make it more applicable across tickers.
+percent_up = 0.3
+percent_down = -0.3
+###this many cells cannot be < current price for up, >
+# current price for down.
+anticondition_threshold_cells_up = cells_forward_to_check * 0.8
+anticondition_threshold_cells_down = cells_forward_to_check * 0.8
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
-positivecase_weight_up = 20
+positivecase_weight_up = 20   ###changed these from 20 7/12
+
 positivecase_weight_down = 20
+###changed these from 20 7/12
 
 
 # num_features_up = 3
@@ -52,12 +59,18 @@ threshold_up = 0.7
 threshold_down = 0.7
 
 ###35,5,80   6/3/80
-parameters = {
-    "max_depth": (20,40, 60 , 80, 100, ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300
-    "min_samples_split": (2, 3, 4, 5, 6, 7, 8, 9, 20),  # 5//5/2     5
-    "n_estimators": (800,1000, 1100, 1300, 1400, 1500 ),  # 1300//1600/1300/1400/1400
-}
 
+
+parameters = {
+    "max_depth": (20,40,60,80 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    # ###up 100/2/1300,down 80/3/1000
+    "min_samples_split": (2, 3, 4,6,),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "n_estimators": (800,900,1000 ,1250,1500,1750),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+}
+#120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
+#30cells - up80.4.900 down  80.2.1300
+#45 cells Target_Up: {'max_depth': 40, 'min_samples_split': 2, 'n_estimators': 900}Down: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
+#60cells up=60.2.800  down= 60.2.1250 up=30.2.1250  Down: 50: 2: 900}
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
 #down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23

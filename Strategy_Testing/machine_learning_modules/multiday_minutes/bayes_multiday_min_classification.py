@@ -20,29 +20,33 @@ from skopt import BayesSearchCV, Optimizer
 # ticker_dir = os.path.join(processed_dir, ticker)
 
 
-DF_filename = "../../data/historical_multiday_minute_DF/SPY/230626_SPY.csv"
+DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 ml_dataframe = pd.read_csv(DF_filename)
-
+print(ml_dataframe.columns)
 # Chosen_Timeframe = "15 min later change %"
 # Chosen_Timeframe2 = "10 min later change %"
 # Chosen_Timeframe3 = "5 min later change %"
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 Chosen_Predictor = [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up4",
-    "ITM PCRv Down4",
-    "ITM PCRoi Up4",
-    "ITM PCRoi Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
+'Maximum Pain', 'Bonsai Ratio',
+       'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
+       'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+       'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+       'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
+       'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+       'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
+       'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
+       'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
+       'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
+       'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
+       'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
+       'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
+       'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+       'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+       'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+       'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+       'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+       'RSI14', 'RSI2', 'AwesomeOsc5_34' ]
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'Net IV LAC']
 
 ##had highest corr for 3-5 hours with these:

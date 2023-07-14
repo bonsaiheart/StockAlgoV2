@@ -6,120 +6,115 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSplit
 import os
-
-processed_dir = "dailyDF"
-ticker = "SPY"
-print(ticker)
-list_of_df = []
-ticker_dir = os.path.join(processed_dir, ticker)
-
-DF_filename = "../historical_minute_DF/SPY/230603_SPY.csv"
+DF_filename = "../../../Historical_Data_Scraper/data/Historical_Processed_ChainData/SPY_w_OHLC.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
-Chosen_Timeframe = "15 min later change %"
-Chosen_Timeframe_formatted = Chosen_Timeframe.replace(" ", "_").strip("%").replace(" ", "_").replace("%", "")
+Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','RSI','AwesomeOsc']
 
-Chosen_Predictor = [
-    "time",
-    "Current SP % Change(LAC)",
-    "Maximum Pain",
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "B2/B1",
-    "PCR-Vol",
-    "PCR-OI",
-    "PCRv @CP Strike",
-    "PCRoi @CP Strike",
-    "PCRv Up1",
-    "PCRv Up2",
-    "PCRv Up3",
-    "PCRv Up4",
-    "PCRv Down1",
-    "PCRv Down2",
-    "PCRv Down3",
-    "PCRv Down4",
-    "PCRoi Up1",
-    "PCRoi Up2",
-    "PCRoi Up3",
-    "PCRoi Up4",
-    "PCRoi Down1",
-    "PCRoi Down2",
-    "PCRoi Down3",
-    "PCRoi Down4",
-    "ITM PCR-Vol",
-    "ITM PCR-OI",
-    "ITM PCRv Up1",
-    "ITM PCRv Up2",
-    "ITM PCRv Up3",
-    "ITM PCRv Up4",
-    "ITM PCRv Down1",
-    "ITM PCRv Down2",
-    "ITM PCRv Down3",
-    "ITM PCRv Down4",
-    "ITM PCRoi Up1",
-    "ITM PCRoi Up2",
-    "ITM PCRoi Up3",
-    "ITM PCRoi Up4",
-    "ITM PCRoi Down1",
-    "ITM PCRoi Down2",
-    "ITM PCRoi Down3",
-    "ITM PCRoi Down4",
-    "ITM OI",
-    "Total OI",
-    "ITM Contracts %",
-    "Net_IV",
-    "Net ITM IV",
-    "NIV Current Strike",
-    "NIV 1Higher Strike",
-    "NIV 1Lower Strike",
-    "NIV 2Higher Strike",
-    "NIV 2Lower Strike",
-    "NIV 3Higher Strike",
-    "NIV 3Lower Strike",
-    "NIV 4Higher Strike",
-    "NIV 4Lower Strike",
-    "NIV highers(-)lowers1-2",
-    "NIV highers(-)lowers1-4",
-    "NIV 1-2 % from mean",
-    "NIV 1-4 % from mean",
-    "Net_IV/OI",
-    "Net ITM_IV/ITM_OI",
-    "RSI",
-    "AwesomeOsc",
-    "Up or down",
-    "B1% Change",
-    "B2% Change",
-]
-threshold_up = 0.9
-threshold_down = 0.9
-percent_up = 0.1
-percent_down = -0.1
-num_best_features = 3
-ml_dataframe.dropna(subset=[Chosen_Timeframe] + Chosen_Predictor, inplace=True)
+##had highest corr for 3-5 hours with these:
+# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
+cells_forward_to_check = 1
+##this many cells must meet the percentup/down requiremnet.
+threshold_cells_up = cells_forward_to_check * 0.5
+threshold_cells_down = cells_forward_to_check * 0.5
+#TODO add Beta to the percent, to make it more applicable across tickers.
+percent_up = 1
+percent_down = -1
+###this many cells cannot be < current price for up, >
+# current price for down.
+anticondition_threshold_cells_up = cells_forward_to_check
+anticondition_threshold_cells_down = cells_forward_to_check
 
-num_rows = len(ml_dataframe[Chosen_Timeframe].dropna())
-ml_dataframe.dropna(thresh=num_rows, axis=1, inplace=True)
+####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
+positivecase_weight_up = 50   ###changed these from 20 7/12
+
+positivecase_weight_down = 50
+###changed these from 20 7/12
+
+
+num_features_up = 5
+num_features_down = 5
+##probablility threshhold.
+threshold_up = 0.8
+threshold_down = 0.8
+
+###35,5,80   6/3/80
+
+
+parameters = {
+    "max_depth": (20,40,60,80, 100 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    # ###up 100/2/1300,down 80/3/1000
+    "min_samples_split": (2, 3,6,),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "n_estimators": (800,1000 ,1500,2000,2500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+}
+#2 days(2 cells)    Target_Up:'{'max_depth': 100, 'min_samples_split': 3, 'n_estimators': 1500}Down: {'max_depth': 100, 'min_samples_split': 2, 'n_estimators': 800} up:60,2,1000 down:60,2,2000
+#120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
+#30cells - up80.4.900 down  80.2.1300
+##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
+#down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
+####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
+ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
+
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
-
 Chosen_Predictor_nobrackets = [
     x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "") for x in Chosen_Predictor
 ]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
+length = ml_dataframe.shape[0]
+print("Length of ml_dataframe:", length)
 
 
-X = ml_dataframe[Chosen_Predictor].values
+# Number of cells to check
+ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
+ml_dataframe["Target_Up"] = 0
+targetUpCounter = 0
+targetDownCounter = 0
+anticondition_UpCounter = 0
+anticondition_DownCounter = 0
+for i in range(1, cells_forward_to_check + 1):
+    shifted_values = ml_dataframe["Open"].shift(-i)
+    condition_met_up = shifted_values > ml_dataframe["Open"] + percent_up
+    anticondition_up = shifted_values <= ml_dataframe["Open"]
 
-ml_dataframe["Target_Up"] = (ml_dataframe[Chosen_Timeframe] > percent_up).astype(int)
-ml_dataframe["Target_Down"] = (ml_dataframe[Chosen_Timeframe] < percent_down).astype(int)
+    condition_met_down = (
+        ml_dataframe["Open"].shift(-i) < ml_dataframe["Open"] + percent_down
+    )
+    anticondition_down = shifted_values >= ml_dataframe["Open"]
+
+    targetUpCounter += condition_met_up.astype(int)
+    targetDownCounter += condition_met_down.astype(int)
+
+    anticondition_UpCounter += anticondition_up.astype(int)
+    anticondition_DownCounter += anticondition_down.astype(int)
+    ml_dataframe["Target_Up"] = (
+        (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+    ).astype(int)
+
+    ml_dataframe["Target_Down"] = (
+        (targetDownCounter >= threshold_cells_down) & (anticondition_DownCounter <= anticondition_threshold_cells_down)
+    ).astype(int)
+
+ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
 y_up = ml_dataframe["Target_Up"]
 y_down = ml_dataframe["Target_Down"]
+# Reset the index of your DataFrame
+
+X = ml_dataframe[Chosen_Predictor]
+X = X.mask(np.isinf(X), 100000)
+X = X.mask(np.isneginf(X), -100000)
+
+X = X.astype("float64")
+# Reset the index of your DataFrame
+print(X.head())
+X.reset_index(drop=True, inplace=True)
+# ml_dataframe.to_csv("Current_ML_DF_FOR_TRAINING.csv")
+
+# weight_negative = 1.0
+# weight_positive = 5.0  # Assigning a higher weight to the positive class (you can adjust this value based on your needs)
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(
-    X, y_up, y_down, test_size=0.2, shuffle=False
+    X, y_up, y_down, test_size=0.2, random_state=None
 )
-
-
 selector_up = SelectKBest(f_regression, k=num_best_features)
 selector_down = SelectKBest(f_regression, k=num_best_features)
 
