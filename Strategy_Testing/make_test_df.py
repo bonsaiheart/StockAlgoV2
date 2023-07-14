@@ -11,7 +11,7 @@ YYMMDD = dt.datetime.today().strftime("%y%m%d")
 def get_dailyminutes_make_single_multiday_df(ticker):
     expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefix
 
-    dailyminutes_dir = "..\data\DailyMinutes"
+    dailyminutes_dir = "../data/DailyMinutes"
 
     ###TODO manually change tickero
     ticker = ticker.upper()
