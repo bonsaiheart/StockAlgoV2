@@ -39,7 +39,7 @@ async def main():
 
     for i in range(max_retries):
         try:
-            if check_Market_Conditions.is_market_open_now() == True:
+            if check_Market_Conditions.is_market_open_now() == True:#TODO change back
                 with open("UTILITIES/tickerlist.txt", "r") as f:
                     tickerlist = [line.strip().upper() for line in f.readlines()]
                 await ibAPI.ib_connect()
