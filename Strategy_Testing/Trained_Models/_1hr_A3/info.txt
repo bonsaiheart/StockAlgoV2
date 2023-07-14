@@ -1,0 +1,38 @@
+This file contains information about the model.
+
+File analyzed: ../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv
+Cells_Foward_to_check: 60
+
+Best parameters for Target_Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}. 
+Best precision: 0.9550000000000001
+Best parameters for Target_Down: {'max_depth': 30, 'min_samples_split': 4, 'n_estimators': 800}. 
+Best precision: 0.9550000000000001
+
+Metrics for Target_Up:
+Precision: 1.0
+Accuracy: 0.9976689976689976
+Recall: 0.8181818181818182
+F1-Score: 0.9
+Cross-validation scores for Target_Up: [0.98601399 0.97902098 0.98601399 0.98601399 0.99300699]
+Mean cross-validation score for Target_Up: 0.986013986013986
+
+Metrics for Target_Down:
+Precision: 1.0
+Accuracy: 0.993006993006993
+Recall: 0.7777777777777778
+F1-Score: 0.8750000000000001
+Cross-validation scores for Target_Down: [0.97202797 0.97902098 0.97202797 0.97202797 0.98601399]
+Mean cross-validation score for Target_Down: 0.9762237762237762
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+
+Selected Features Up:, [0 1 2 3 4 5 6 7 8 9]
+Selected Features Down:, [ 0  1  2  3  4  5  6  7  8 10]
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI2']
+
+Threshold Up(sensitivity): 0.7
+Threshold Down(sensitivity): 0.7
+Target Underlying Percentage Up: 0.7
+Target Underlying Percentage Down: -0.7

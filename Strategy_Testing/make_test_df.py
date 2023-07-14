@@ -11,14 +11,14 @@ YYMMDD = dt.datetime.today().strftime("%y%m%d")
 def get_dailyminutes_make_single_multiday_df(ticker):
     expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefix
 
-    dailyminutes_dir = "..\data\DailyMinutes"
+    dailyminutes_dir = "../data/DailyMinutes"
 
     ###TODO manually change tickero
     ticker = ticker.upper()
 
     ticker_dir = os.path.join(dailyminutes_dir, ticker)
     list_of_df = []
-    for filename in os.listdir(ticker_dir):
+    for filename in sorted(os.listdir(ticker_dir)):
 
 
         if filename.endswith(".csv"):
@@ -38,6 +38,7 @@ def get_dailyminutes_make_single_multiday_df(ticker):
 
 
     df = pd.concat(list_of_df, ignore_index=True)
+    df.drop_duplicates(subset='LastTradeTime', inplace=True)
 
     output_dir = Path(f"historical_mulitday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)

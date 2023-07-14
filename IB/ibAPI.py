@@ -20,48 +20,58 @@ logging.basicConfig(
 ib = IB()
 
 # File paths for storing order IDs
-parentOrderIdFile = 'IB/parent_order_ids.txt'
+parentOrderIdFile = "IB/parent_order_ids.txt"
 
 # Global variables
 gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 parentOrders = {}
 
+
 # ...
-@app.task
-def close_orders():
-    global parentOrders
-    for parentOrderId, childOrders in parentOrders.items():
-        for childOrderId in childOrders:
-            ib.cancelOrder(childOrderId)
-        parentOrder = ib.reqParentOrders(parentOrderId)
-        if parentOrder and parentOrder[0].filled:
-            # Get the contract and action from the parent order
-            contract = parentOrder[0].contract
-            action = "SELL" if parentOrder[0].action == "BUY" else "BUY"
+# @app.task
+# def close_orders():
+#     global parentOrders
+#     for parentOrderId, childOrders in parentOrders.items():
+#         for childOrderId in childOrders:
+#             ib.cancelOrder(childOrderId)
+#         parentOrder = ib.reqParentOrders(parentOrderId)
+#         if parentOrder and parentOrder[0].filled:
+#             # Get the contract and action from the parent order
+#             contract = parentOrder[0].contract
+#             action = "SELL" if parentOrder[0].action == "BUY" else "BUY"
+#
+#             # Create a closing order
+#             closeOrder = MarketOrder(action, parentOrder[0].filledQuantity)
+#
+#             # Place the closing order
+#             ib.placeOrder(contract, closeOrder)
+#
+#             # Remove the parent order from the dictionary
+#             del parentOrders[parentOrderId]
 
-            # Create a closing order
-            closeOrder = MarketOrder(action, parentOrder[0].filledQuantity)
-
-            # Place the closing order
-            ib.placeOrder(contract, closeOrder)
-
-            # Remove the parent order from the dictionary
-            del parentOrders[parentOrderId]
 
 def connection_stats():
     print(ib.isConnected())
 
+def handle_exception(loop, context):
+    msg = context.get("exception", context["message"])
+    logging.error(f"Caught exception: {msg}")
+    logging.info("Shutting down...")
+    asyncio.create_task(loop.shutdown())
+loop = asyncio.get_event_loop()
+loop.set_exception_handler(handle_exception)
+
+
 # ib.disconnect()
-def ib_connect():
+async def ib_connect():
     if not ib.isConnected():
         print("Connecting")
         randomclientID = random.randint(0, 999)
         try:
-            ib.connect("192.168.1.119", 7497, clientId=1, timeout=10)
+            await ib.connectAsync("192.168.1.119", 7497, clientId=1)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
             print("Connection error:", e)
-            pass
     else:
         print("ib already connected?")
 
@@ -72,9 +82,10 @@ def ib_disconnect():
     except (Exception, asyncio.exceptions.TimeoutError) as e:
         logging.error("Connection error: %s", e)
 
+
 # asyncio.get_event_loop().close()
 def saveOrderIdToFile(file_path, order_ids):
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         for parentOrderId, childOrders in order_ids.items():
             f.write(f'{parentOrderId}: {",".join(str(childOrderId) for childOrderId in childOrders)}\n')
 
@@ -82,21 +93,34 @@ def saveOrderIdToFile(file_path, order_ids):
 def retrieveOrderIdFromFile(file_path):
     order_ids = {}
     if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             for line in f:
-                parentOrderId, childOrderIds = line.strip().split(': ')
-                order_ids[int(parentOrderId)] = {int(childOrderId) for childOrderId in childOrderIds.split(',') if childOrderId}
+                parentOrderId, childOrderIds = line.strip().split(": ")
+                order_ids[int(parentOrderId)] = {
+                    int(childOrderId) for childOrderId in childOrderIds.split(",") if childOrderId
+                }
     return order_ids
 
-
+def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
+    try:
+        ib.placeOptionBracketOrder(corP=CorP,
+                                   ticker=ticker,
+                                   exp=exp,
+                                   strike=strike,
+                                   contract_current_price=contract_current_price,
+                                   quantity=quantity,
+                                   orderRef=orderRef)
+    except Exception as e:
+        print(f'Error occurred while placing order: {e}')
 
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
-    if orderStatus.status == 'Filled':
+    if orderStatus.status == "Filled":
         parentOrderId = orderStatus.orderStatus.parentId
         childOrderId = orderStatus.orderStatus.orderId
         if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
             parentOrders[parentOrderId].pop(childOrderId, None)
+
 
 def placeOptionBracketOrder(
     CorP,
@@ -109,8 +133,8 @@ def placeOptionBracketOrder(
     custom_takeprofit=None,
     custom_trailamount=None,
 ):
-    ib_connect()
-    print('Placeing order:')
+    print("Placeing order:")
+
     try:
         print(ticker, exp, strike, contract_current_price)
         print(type(ticker))
@@ -119,7 +143,7 @@ def placeOptionBracketOrder(
         print(type(contract_current_price))
         ## needed to remove 'USD' for option
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
-        ib.qualifyContracts(ticker_contract)
+        # ib.qualifyContracts(ticker_contract)
         contract_current_price = round(contract_current_price, 2)
         quantity = quantity  # Replace with the desired order quantity
         limit_price = contract_current_price  # Replace with your desired limit price
@@ -129,7 +153,7 @@ def placeOptionBracketOrder(
             )  # Replace with your desired take profit price
 
         else:
-            take_profit_price = round(contract_current_price * 1.15, 2)  # Replace with your desired take profit price
+            take_profit_price = round(contract_current_price * 1.5, 2)  # Replace with your desired take profit price
         stop_loss_price = contract_current_price * 0.9  # Replace with your desired stop-loss price
         if custom_trailamount is not None:
             trailAmount = round(
@@ -137,7 +161,7 @@ def placeOptionBracketOrder(
             )  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(contract_current_price * 0.05, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(contract_current_price * 0.3, 2)  # Replace with your desired trailing stop percentage
 
         triggerPrice = limit_price
 
@@ -177,14 +201,13 @@ def placeOptionBracketOrder(
         stopLoss.outsideRth = True
         stopLoss.transmit = True
 
-
         bracketOrder = [parent, takeProfit, stopLoss]
         parentOrderId = parent.orderId
         parentOrders[parentOrderId] = {"parent": parentOrderId}  # Create an entry for the parent order ID
 
         childOrderId = [takeProfit.orderId, stopLoss.orderId]
         parentOrders[parentOrderId] = childOrderId  # Assign child order IDs to parent order ID key
-
+##TODO change ref back
         for o in bracketOrder:
             if orderRef is not None:
                 o.orderRef = orderRef
@@ -192,16 +215,19 @@ def placeOptionBracketOrder(
             print(o.orderId)
 
             ib.sleep(0)
-
+        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
-
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error("PlaceCallBracketOrder error: %s", e)
+        logging.exception("PlaceCallBracketOrder error.")
+        logging.getLogger().error("Placeoptionbracket error: %s", e)
+
+        # ib.disconnect()
 
 
 def placeBuyBracketOrder(ticker, current_price):
-    ib_connect()
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
@@ -258,24 +284,19 @@ def placeBuyBracketOrder(ticker, current_price):
         takeProfitOrderID.append(parentOrders[parentOrderId])
         stopLossOrderID.append(parentOrders[parentOrderId])
         for o in bracketOrder:
-
             childOrderId = ib.placeOrder(ticker_contract, o)
             parentOrders[parentOrderId][childOrderId] = o
-
 
             ib.placeOrder(ticker_contract, o)
             ib.sleep(0)
 
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
-
     except (Exception, asyncio.exceptionsTimeoutError) as e:
         logging.error("BuyBracketOrder error: %s", e)
 
 
 def placeSellBracketOrder(ticker, current_price):
-    ib_connect()
-
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
@@ -342,7 +363,6 @@ def placeSellBracketOrder(ticker, current_price):
 def placeCallBracketOrder(
     ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None, custom_trailamount=None
 ):
-    ib_connect()
     try:
         ticker_symbol = ticker
         print(ticker, exp, strike, current_price)
@@ -357,16 +377,12 @@ def placeCallBracketOrder(
         quantity = quantity
         limit_price = current_price
         if custom_takeprofit is not None:
-            take_profit_price = round(
-                current_price * custom_takeprofit, 2
-            )
+            take_profit_price = round(current_price * custom_takeprofit, 2)
         else:
             take_profit_price = round(current_price * 1.15, 2)
         stop_loss_price = current_price * 0.9
         if custom_trailamount is not None:
-            trailAmount = round(
-                current_price * custom_trailamount, 2
-            )
+            trailAmount = round(current_price * custom_trailamount, 2)
         else:
             trailAmount = round(current_price * 0.05, 2)
 
@@ -428,7 +444,7 @@ parentOrders = retrieveOrderIdFromFile(parentOrderIdFile)
 
 # Register the event handler for order status
 ib.orderStatusEvent += orderStatusHandler
-#
+
 ###TODO diff client id for diff stat. and add options.
 """
 
@@ -472,3 +488,4 @@ stop = Order(action = reverseAction, totalQuantity = 1, orderType = "STP",
                          adjustedTrailingAmount = trail_amount,
                          adjustedStopPrice = adjusted_stop_price )  
 """
+

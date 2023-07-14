@@ -15,17 +15,89 @@ real_auth = PrivateData.tradier_info.real_auth
 
 ###TODO time and sales (will be used for awesome ind. and ta.
 YYMMDD = datetime.today().strftime("%y%m%d")
+import aiohttp
+import asyncio
+
+async def get_option_chain(session, ticker, exp_date, headers):
+    response = await session.get(
+        "https://api.tradier.com/v1/markets/options/chains",
+        params={"symbol": ticker, "expiration": exp_date, "greeks": "true"},
+        headers=headers,
+    )
+    json_response = await response.json()
+    # print(response.status_code)
+    # print("Option Chain: ",json_response)
+    optionchain_df = pd.DataFrame(json_response["options"]["option"])
+    return optionchain_df
+
+async def get_option_chains_concurrently(ticker, expiration_dates, headers):
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for exp_date in expiration_dates:
+            tasks.append(get_option_chain(session, ticker, exp_date, headers))
+        all_option_chains = await asyncio.gather(*tasks)
+    return all_option_chains
+async def fetch(session, url, params, headers):
+    async with session.get(url, params=params, headers=headers) as response:
+        return await response.json()
 
 
-def get_options_data(ticker):
+async def get_options_data(ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
-    response = requests.get(
-        "https://api.tradier.com/v1/markets/timesales",
-        params={"symbol": ticker, "interval": "1min", "start": start, "end": end, "session_filter": "all"},
-        headers={f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
-    )
-    json_response = response.json()
+    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        # Add tasks to tasks list
+        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
+                           params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
+                                   "session_filter": "all"}, headers=headers))
+
+        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
+                           params={"symbols": ticker, "greeks": "false"}, headers=headers))
+
+        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/options/expirations",
+                           params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"}, headers=headers))
+
+        # Wait for all tasks to complete
+        responses = await asyncio.gather(*tasks)
+
+        # Process responses
+        time_sale_response = responses[0]
+        quotes_response = responses[1]
+        expirations_response = responses[2]
+
+        # ... continue with your processing ...
+
+
+async def get_options_data(ticker):
+    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
+    end = datetime.today().strftime("%Y-%m-%d %H:%M")
+    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        # Add tasks to tasks list
+        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
+                           params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
+                                   "session_filter": "all"}, headers=headers))
+
+        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
+                           params={"symbols": ticker, "greeks": "false"}, headers=headers))
+
+        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/options/expirations",
+                           params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"}, headers=headers))
+
+        # Wait for all tasks to complete
+        responses = await asyncio.gather(*tasks)
+
+        # Process responses
+        time_sale_response = responses[0]
+        quotes_response = responses[1]
+        expirations_response = responses[2]
+
+    json_response = time_sale_response
     # print(response.status_code)
     # print(json_response)
     df = pd.DataFrame(json_response["series"]["data"]).set_index("time")
@@ -48,19 +120,9 @@ def get_options_data(ticker):
     lastgroup = group_dates[-1]
     ta_data = groups.get_group(lastgroup)
     this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
-    # print(this_minute_ta_frame)
-    # df.to_csv('df.csv')
 
-    # quote
-    response = requests.get(
-        "https://api.tradier.com/v1/markets/quotes",
-        params={"symbols": ticker, "greeks": "false"},
-        headers={f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
-    )
-    json_response = response.json()
-    # print(response.status_code)
-    # print(json_response)
-    # print(json_response)
+    json_response = quotes_response
+
     quote_df = pd.DataFrame.from_dict(json_response["quotes"]["quote"], orient="index").T
     LAC = quote_df.at[0, "prevclose"]
 
@@ -73,40 +135,19 @@ def get_options_data(ticker):
     print(f"LAC: ${LAC}")
     print(f"Current Price: ${CurrentPrice}")
 
-    # quote_df.to_csv('tradierquote.csv')
-
-    ###TODO finish making this df look just like yfinance df.
-    response = requests.get(
-        "https://api.tradier.com/v1/markets/options/expirations",
-        params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"},
-        headers={"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
-    )
-    json_response = response.json()
-
-    expirations = json_response["expirations"]["expiration"]
+    expirations = expirations_response["expirations"]["expiration"]
     expiration_dates = [expiration["date"] for expiration in expirations]
 
     closest_exp_date = expiration_dates[0]
 
     callsChain = []
     putsChain = []
+    all_option_chains = await get_option_chains_concurrently(ticker, expiration_dates, headers)
 
-    for exp_date in expiration_dates:
-        response = requests.get(
-            "https://api.tradier.com/v1/markets/options/chains",
-            params={"symbol": ticker, "expiration": exp_date, "greeks": "true"},
-            headers={"Authorization": f"Bearer {real_auth}", "Accept": "application/json"},
-        )
-        json_response = response.json()
-        # print(response.status_code)
-        # print("Option Chain: ",json_response)
-        optionchain_df = pd.DataFrame(json_response["options"]["option"])
+    for optionchain_df in all_option_chains:
         grouped = optionchain_df.groupby("option_type")
         call_group = grouped.get_group("call").copy()
         put_group = grouped.get_group("put").copy()
-
-        # print(call_group.columns)
-        # print(put_group.columns)
         callsChain.append(call_group)
         putsChain.append(put_group)
 
@@ -275,13 +316,13 @@ def get_options_data(ticker):
 
 #
 def perform_operations(
-    ticker,
-    last_adj_close,
-    current_price,
-    price_change_percent,
-    StockLastTradeTime,
-    this_minute_ta_frame,
-    expiration_dates,
+        ticker,
+        last_adj_close,
+        current_price,
+        price_change_percent,
+        StockLastTradeTime,
+        this_minute_ta_frame,
+        expiration_dates,
 ):
     closest_exp_date = expiration_dates[0]
     results = []
@@ -330,45 +371,36 @@ def perform_operations(
         all_CallsOI = group.Call_OI.sum()
         all_PutsOI = group.Put_OI.sum()
         all_OI = all_PutsOI + all_CallsOI
-
         ITM_Call_IV = group.loc[(group["Strike"] <= current_price), "Call_IV"].sum()
         ITM_Put_IV = group.loc[(group["Strike"] >= current_price), "Put_IV"].sum()
         Call_IV = group["Call_IV"].sum()
         Put_IV = group["Put_IV"].sum()
         ITM_Avg_Net_IV = ITM_Call_IV - ITM_Put_IV
         Net_IV = Call_IV - Put_IV
-
         if all_CallsVol != 0 and not np.isnan(all_CallsVol):
             PC_Ratio_Vol = all_PutsVol / all_CallsVol
         else:
             PC_Ratio_Vol = np.nan
-
         if ITM_CallsVol != 0 and not np.isnan(ITM_CallsVol):
             ITM_PC_Ratio_Vol = ITM_PutsVol / ITM_CallsVol
         else:
             ITM_PC_Ratio_Vol = np.nan
-
         if all_CallsOI != 0 and not np.isnan(all_CallsOI):
             PC_Ratio_OI = all_PutsOI / all_CallsOI
         else:
             PC_Ratio_OI = np.nan
-
         if ITM_CallsOI != 0 and not np.isnan(ITM_CallsOI):
             ITM_PC_Ratio_OI = ITM_PutsOI / ITM_CallsOI
         else:
             ITM_PC_Ratio_OI = np.nan
-
         DFSxOI_dict = (
             group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
             .set_index("Strike")
             .to_dict()
         )
-
         # All_PC_Ratio =
         # Money_weighted_PC_Ratio =
-        ###TODO figure out WHEN this needs to run... probalby after 6pm eastern and before mrkt open.  remove otm
         ###TODO add highest premium puts/calls, greeks corelation?
-
         ###TODO correlate volume and IV, high volume high iv = contracts being bought, high volume, low vol. = contracts being sold.
         # print("wassup123",strike)
         for strikeprice in strike:
@@ -378,7 +410,6 @@ def perform_operations(
             itmPuts_dollarsFromStrikeXoiSum = group.loc[
                 (group["Strike"] > strikeprice), "Puts_dollarsFromStrikeXoi"
             ].sum()
-
             call_LASTPRICExOI = calls_LASTPRICExOI_dict.get("Calls_lastPriceXoi", {}).get(strikeprice, 0)
             put_LASTPRICExOI = puts_LASTPRICExOI_dict.get("Puts_lastPriceXoi", {}).get(strikeprice, 0)
             # call_DFSxOI = calls_DFSxOI_dict.get("Calls_dollarsFromStrikeXoi", {}).get(strikeprice, 0)
@@ -394,29 +425,23 @@ def perform_operations(
         highest_premium_call = max(call_LASTPRICExOI_list, key=lambda x: x[1])[0]
         highest_premium_put = max(put_LASTPRICExOI_list, key=lambda x: x[1])[0]
         max_pain = min(pain_list, key=lambda x: x[1])[0]
-
         top_five_calls = group.loc[group["Call_OI"] > 0].sort_values(by="Call_OI", ascending=False).head(5)
         top_five_calls_dict = top_five_calls[["Strike", "Call_OI"]].set_index("Strike").to_dict()["Call_OI"]
-
         top_five_puts = group.loc[group["Put_OI"] > 0].sort_values(by="Put_OI", ascending=False).head(5)
         top_five_puts_dict = top_five_puts[["Strike", "Put_OI"]].set_index("Strike").to_dict()["Put_OI"]
 
-        ### FINDING CLOSEST STRIKE TO LAC
+        ### FINDING CLOSEST STRIKE TO LAc
         # target number from column A
         # calculate difference between target and each value in column B
         data["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
         # find index of row with smallest difference
-
         if not group.empty:
             smallest_change_from_lac = data["strike_lac_diff"].abs().idxmin()
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
-
             current_price_index = group["Strike"].sub(current_price).abs().idxmin()
             # print("currentprice index", current_price_index)
             ###RETURNS index of strike closest to CP
-
             higher_strike_index1 = current_price_index + 1
-
             higher_strike_index2 = current_price_index + 2
             higher_strike_index3 = current_price_index + 3
             higher_strike_index4 = current_price_index + 4
@@ -424,38 +449,31 @@ def perform_operations(
             lower_strike_index1 = current_price_index - 1
             lower_strike_index2 = current_price_index - 2
             lower_strike_index3 = current_price_index - 3
-
             lower_strike_index4 = current_price_index - 4
             # get the strikes for the closest higher and lower strikes
             try:
                 closest_strike_currentprice = group.loc[current_price_index, "Strike"]
-
             except KeyError as e:
                 closest_strike_currentprice = None
-
                 ("KeyError:", e)
             try:
                 closest_higher_strike1 = group.loc[higher_strike_index1, "Strike"]
                 # print(closest_higher_strike1)
             except KeyError:
                 closest_higher_strike1 = None
-
             try:
                 closest_higher_strike2 = group.loc[higher_strike_index2, "Strike"]
             except KeyError:
                 closest_higher_strike2 = None
-
             try:
                 closest_higher_strike3 = group.loc[higher_strike_index3, "Strike"]
                 # print('closesthigherstrike3',closest_higher_strike3)
             except KeyError:
                 closest_higher_strike3 = None
-
             try:
                 closest_higher_strike4 = group.loc[higher_strike_index4, "Strike"]
             except KeyError:
                 closest_higher_strike4 = None
-
             try:
                 closest_lower_strike1 = group.loc[lower_strike_index1, "Strike"]
             except KeyError:
@@ -489,6 +507,7 @@ def perform_operations(
             closest_lower_strike2 = None
             closest_lower_strike3 = None
             closest_lower_strike4 = None
+
 
         # closest_strike_currentprice_dict[exp_date] = closest_strike_currentprice
 
@@ -607,9 +626,9 @@ def perform_operations(
             PCR_vol_OI_at_MP = round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3)
 
         if (
-            np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
-            or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
-            or PC_Ratio_OI_Closest_Strike_LAC == 0
+                np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
+                or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
+                or PC_Ratio_OI_Closest_Strike_LAC == 0
         ):
             PCR_vol_OI_at_LAC = np.nan
         else:
@@ -652,14 +671,14 @@ def perform_operations(
         ###TODO error handling for scalar divide of zero denominator
 
         Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
-            (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
+                (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
         )
         Bonsai2_Ratio = (
             # (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
             # and float("inf")
             # or
-            ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
-            * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
+                ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
+                * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
         )
 
         # Calculate the percentage change###TODO figure out how to look at bonsai %change, will need to transform to timesheet.
@@ -689,18 +708,9 @@ def perform_operations(
                 "Bonsai Ratio 2": round(Bonsai2_Ratio, 5),
                 "B1/B2": round((Bonsai_Ratio / Bonsai2_Ratio), 4),
                 "B2/B1": round((Bonsai2_Ratio / Bonsai_Ratio), 4),
-                # 'Bonsai_2 %change': bonsai2_percent_change,
-                # 'Maximum Pain % -LAC': round((last_adj_close-max_pain)/max_pain,2),
-                # 'Implied % Move -previousMP': 0,
-                # 'Implied % Move-LAC': round(implied_percentage_move, 2),
                 # TODO ITM contract $ %
-                # PCR
                 "PCR-Vol": round(PC_Ratio_Vol, 3),
                 "PCR-OI": round(PC_Ratio_OI, 3),
-                # 'PCR Vol/OI': round(PC_Ratio_Vol / PC_Ratio_OI, 3),
-                # 'ITM PCR Vol/OI': float('inf') if ITM_PC_Ratio_OI == 0 else 0 if ITM_PC_Ratio_Vol == 0 else round(ITM_PC_Ratio_Vol / ITM_PC_Ratio_OI, 3),
-                # 'PCR @MP Vol/OI ': round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3),
-                # 'PCR @LAC Vol/OI ': round(PCR_vol_OI_at_LAC, 3),
                 "PCRv @CP Strike": round(PCRv_cp_strike, 3),
                 "PCRoi @CP Strike": round(PCRoi_cp_strike, 3),
                 "PCRv Up1": round(strike_PCRv_dict[closest_higher_strike1], 3),
@@ -756,34 +766,39 @@ def perform_operations(
                 ###Positive number means NIV highers are higher, and price will drop.
                 # TODO should do as percentage change from total niv numbers to see if its big diff.
                 "NIV highers(-)lowers1-2": (NIV_1HigherStrike + NIV_2HigherStrike)
-                - (NIV_1LowerStrike + NIV_2LowerStrike),
+                                           - (NIV_1LowerStrike + NIV_2LowerStrike),
                 "NIV highers(-)lowers1-4": (
-                    NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike
-                )
-                - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
+                                                   NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike
+                                           )
+                                           - (
+                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
                 "NIV 1-2 % from mean": (
-                    ((NIV_1HigherStrike + NIV_2HigherStrike) - (NIV_1LowerStrike + NIV_2LowerStrike))
-                    / ((NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)
-                )
-                * 100,
+                                               ((NIV_1HigherStrike + NIV_2HigherStrike) - (
+                                                           NIV_1LowerStrike + NIV_2LowerStrike))
+                                               / ((
+                                                              NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)
+                                       )
+                                       * 100,
                 "NIV 1-4 % from mean": (
-                    (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike)
-                    - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)
-                    / (
-                        (
-                            NIV_1HigherStrike
-                            + NIV_2HigherStrike
-                            + NIV_3HigherStrike
-                            + NIV_4HigherStrike
-                            + NIV_1LowerStrike
-                            + NIV_2LowerStrike
-                            + NIV_3LowerStrike
-                            + NIV_4LowerStrike
-                        )
-                        / 8
-                    )
-                )
-                * 100,
+                                               (
+                                                           NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike)
+                                               - (
+                                                           NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)
+                                               / (
+                                                       (
+                                                               NIV_1HigherStrike
+                                                               + NIV_2HigherStrike
+                                                               + NIV_3HigherStrike
+                                                               + NIV_4HigherStrike
+                                                               + NIV_1LowerStrike
+                                                               + NIV_2LowerStrike
+                                                               + NIV_3LowerStrike
+                                                               + NIV_4LowerStrike
+                                                       )
+                                                       / 8
+                                               )
+                                       )
+                                       * 100,
                 ##TODO swap (/) with result = np.divide(x, y)
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
@@ -791,53 +806,30 @@ def perform_operations(
                 "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow,
             }
         )
-
-        # if len(results) >= 2:
-        #     # print(results[-2]['Maximum Pain'])
-        #     implied_move_from_last_MP = ((max_pain - results[-2]['Maximum Pain']) / results[-2]['Maximum Pain']) * 100
-        #     # print(implied_move_fom_last_MP)
-        #     results[-1]['Implied % Move -previousMP'] = round(implied_move_from_last_MP,2)
-
         ##TODO Signal strength 1-3, bull/bear.
-        #
-        # if results('Bonsai Ratio') < 1:
-        #     if results('Maximum Pain') < results('Current Stock Price'):
-
-        # if results('Bonsai Ratio') > 1:
-
     df = pd.DataFrame(results)
-    # print("hello",type(df["Closest Strike Above/Below(below to above,4 each) list"][0]))
     df["RSI"] = this_minute_ta_frame["RSI"]
     df["RSI2"] = this_minute_ta_frame["RSI2"]
     df["RSI14"] = this_minute_ta_frame["RSI14"]
     df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
 
     df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
-    # df = pd.concat([this_minute_ta_frame,df])
-    # df['']
+
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
     output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")
-    output_file_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}/{ticker}_{YYMMDD}.csv")
     output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
     if output_file_dailyminutes.exists():
-        # Load the existing DataFrame from the file
         dailyminutes = pd.read_csv(output_file_dailyminutes)
         dailyminutes = dailyminutes.dropna().drop_duplicates(subset="LastTradeTime")
         dailyminutes = pd.concat([dailyminutes, df.head(1)], ignore_index=True)
-        # print(dailyminutes)
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
     else:
-        # dailyminutes = df.head(1)
         dailyminutes = pd.concat([df.head(1)], ignore_index=True)
-        # Append the new row to the existing DataFrame
-
-        # Save the updated DataFrame back to the file
-
         dailyminutes.to_csv(output_file_dailyminutes, index=False)
 
     try:
@@ -845,7 +837,7 @@ def perform_operations(
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
         print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
-        exit()
+        # exit()
     print('perform ops complete')
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",

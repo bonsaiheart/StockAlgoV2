@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import traceback
 import pandas as pd
@@ -19,9 +20,31 @@ logging.basicConfig(
 
 now = datetime.now()
 formatted_time = now.strftime("%y%m%d %H:%M EST")
+import threading
 
+def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
+    print(CorP, ticker, exp, strike, "ccp",contract_current_price,"qunt", quantity, orderRef)
+    loop = asyncio.new_event_loop()
+    # Set the new event loop as the current one
+    asyncio.set_event_loop(loop)
 
-def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
+    try:
+        IB.ibAPI.placeOptionBracketOrder(CorP=CorP,
+                                   ticker=ticker,
+                                   exp=exp,
+                                   strike=strike,
+                                   contract_current_price=contract_current_price,
+                                   quantity=quantity,
+                                   orderRef=orderRef)
+    finally:
+        loop.close()
+# Then use it in your main code like this:
+
+# loop = asyncio.get_event_loop()
+# loop.run_in_executor(None, place_order_sync, corP, ticker, exp, strike, contract_current_price, quantity, orderRef)
+#
+
+async def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
     print(type(dailyminutes))
 
@@ -220,21 +243,30 @@ def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
         dailyminutes_df.to_csv("testdailyminutes.csv")
         print(result)
         if dailyminutes_df[model_name].iloc[-1]:
+        # x=1
+        # if x ==1:
+            dailyminutes_df.to_csv("asyncdailyminutestest.csv")
             print(f"{model_name} Signal")
             send_notifications.email_me_string(model_name, CorP, ticker)
             # Other actions based on the model_name and signal
             # Add more function calls and corresponding parameters here
             try:
                 # Place order or perform other actions specific to the action
-                IB.ibAPI.placeOptionBracketOrder(
-                    CorP=CorP,
-                    ticker=ticker,
-                    exp=IB_option_date,
-                    strike=contractStrike,
-                    contract_current_price=contract_price,
-                    quantity=5,
-                    orderRef=f"{model_name}",
-                )
+                import asyncio
+                loop = asyncio.get_event_loop()
+
+                loop.run_in_executor(None, place_order_sync, CorP, ticker, IB_option_date, contractStrike,
+                                     contract_price, 5, f"{model_name}")
+
+                # loop = asyncio.get_event_loop()
+                # await IB.ibAPI.placeOptionBracketOrder(
+                #     CorP=CorP,
+                #     ticker=ticker,
+                #     exp=IB_option_date,
+                #     strike=contractStrike,
+                #     contract_current_price=contract_price,
+                #     quantity=5,
+                #     orderRef=f"{model_name}"     )
                 # Other actions specific to the action
             except Exception as e:
                 print("Error occurred while placing order:", str(e))

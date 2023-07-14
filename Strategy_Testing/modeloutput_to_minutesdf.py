@@ -60,3 +60,58 @@ for filename in os.listdir(dir):
 #     feature_values = feature_values.astype(float)
 #     feature_values = np.clip(feature_values, -threshold, threshold)
 #     modified_df[feature] = feature_values
+
+    # TODO added these before i lose them forever.
+    # dailyminutes_df["B1/B2"] = (dailyminutes_df["B1/B2"] > 1.15).astype(int)
+    #
+    # dailyminutes_df["B1/B2"] = (dailyminutes_df["B1/B2"] < 0.01).astype(int)
+    #
+    # dailyminutes_df["NIV 1-2 % from mean & NIV 1-4 % from mean"] = (
+    #     (dailyminutes_df["NIV 1-2 % from mean"] < -100) & (dailyminutes_df["NIV 1-4 % from mean"] < -200)
+    # ).astype(int)
+    #
+    # dailyminutes_df["NIV 1-2 % from mean & NIV 1-4 % from mean"] = (
+    #     (dailyminutes_df["NIV 1-2 % from mean"] > 100) & (dailyminutes_df["NIV 1-4 % from mean"] > 200)
+    # ).astype(int)
+    #
+    # dailyminutes_df["NIV highers(-)lowers1-4"] = (dailyminutes_df["NIV highers(-)lowers1-4"] < -20).astype(int)
+    #
+    # dailyminutes_df["NIV highers(-)lowers1-4"] = (dailyminutes_df["NIV highers(-)lowers1-4"] > 20).astype(int)
+    #
+    # dailyminutes_df["ITM PCR-Vol & RSI"] = (
+    #     (dailyminutes_df["ITM PCR-Vol"] > 1.3) & (dailyminutes_df["RSI"] > 70)
+    # ).astype(int)
+    #
+    # dailyminutes_df["Bonsai Ratio & ITM PCR-Vol & RSI"] = (
+    #     (dailyminutes_df["Bonsai Ratio"] < 0.8) & (dailyminutes_df["ITM PCR-Vol"] < 0.8) & (dailyminutes_df["RSI"] < 30)
+    # ).astype(int)
+    #
+    # dailyminutes_df["Bonsai Ratio & ITM PCR-Vol & RSI"] = (
+    #     (dailyminutes_df["Bonsai Ratio"] > 1.5) & (dailyminutes_df["ITM PCR-Vol"] > 1.2) & (dailyminutes_df["RSI"] > 70)
+    # ).astype(int)
+    #
+    # dailyminutes_df["Bonsai Ratio < 0.7 & Net_IV < -50 & Net ITM IV > -41"] = (
+    #     (dailyminutes_df["Bonsai Ratio"] < 0.7)
+    #     & (dailyminutes_df["Net_IV"] < -50)
+    #     & (dailyminutes_df["Net ITM IV"] > -41)
+    # ).astype(int)
+    #
+    # dailyminutes_df[
+    #     "B2/B1>500 Bonsai Ratio<.0001 ITM PCRv Up2<.01 ITM PCRv Down2<5 NIV 1-2 % from mean>NIV 1-4 % from mean>0"
+    # ] = int(
+    #     (dailyminutes_df["B2/B1"].iloc[-1] > 500)
+    #     and (dailyminutes_df["Bonsai Ratio"].iloc[-1] < 0.0001)
+    #     and (dailyminutes_df["ITM PCRv Up2"].iloc[-1] < 0.01)
+    #     and (dailyminutes_df["ITM PCRv Down2"].iloc[-1] < 5)
+    #     and (dailyminutes_df["NIV 1-2 % from mean"].iloc[-1] > dailyminutes_df["NIV 1-4 % from mean"].iloc[-1] > 0)
+    # )
+    #
+    # # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
+    # dailyminutes_df["b1/b2 and rsi"] = int(
+    #     (dailyminutes_df["B1/B2"].iloc[-1] > 1.15) and (dailyminutes_df["RSI"].iloc[-1] < 30)
+    # )
+
+    # if dailyminutes_df["B1/B2"].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1] > 70:
+    #     send_notifications.email_me_string(
+    #         "dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put", ticker
+    #     )
