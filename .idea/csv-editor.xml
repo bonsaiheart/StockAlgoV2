@@ -17,41 +17,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/Strategy_Testing/historical_minute_DF/SPY.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="/Strategy_Testing/historical_minute_DF/SPY/230603_SPY.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="/Strategy_Testing/historical_minute_DF/SPY/230614_SPY.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="/Strategy_Testing/historical_minute_DF/TSLA/230612_TSLA.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="/Strategy_Testing/mldataframetest.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="/data/DailyMinutes/SPY/SPY_230626.csv">
           <value>
             <Attribute>
@@ -136,13 +101,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/data/ProcessedData/SPY/230714/SPY_230713_2000.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv">
           <value>
             <Attribute>
@@ -150,161 +108,7 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/data/optionchain/SPY/230711/SPY_230711_1117.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="/testdailyminutes.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230501.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230502.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230503.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230504.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230505.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230508.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230509.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230510.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\230511.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\SPY_230518_1130.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\corr\SPY\SPY_230522_1610.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\230505.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\230510.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\230511.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230518_1130.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230518_1600.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230519_1519.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230522_1304.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\SPY\SPY_230522_1610.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\TSLA\TSLA_230519_1600.csv.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="\Strategy_Testing\dailyDF\TSLA\TSLA_230522_1600.csv.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

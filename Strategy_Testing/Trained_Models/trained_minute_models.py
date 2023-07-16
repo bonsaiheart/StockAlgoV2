@@ -1,18 +1,54 @@
 import os
 
 import joblib
+from tensorflow import keras
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 
 base_dir = os.path.dirname(__file__)
 # base_dir = Path(__file__)
 
 # percent_up=.1
 
+def lstm_A1(new_data_df):
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up2',
+                'ITM PCRv Down2', 'ITM PCRoi Up2', 'ITM PCRoi Down2', 'RSI', 'AwesomeOsc']
+    model_filename = f"{base_dir}/_lstm_A1/model.h5"
+    loaded_model = keras.models.load_model(model_filename)
+    input_shape = loaded_model.layers[0].input_shape[1:]
 
-# percent_down=-.1
+    tempdf = new_data_df.copy()
+    tempdf.dropna(subset=features, inplace=True)
+    threshold = 1e10
+    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+
+    # Preprocess the data
+    data_scaled = scaler.transform(tempdf[features])
+
+    # Reshape the data to match the input shape of the LSTM model
+    sequence_length = 10
+    num_features = len(features)
+    data_reshaped = np.zeros((len(data_scaled) - sequence_length + 1, sequence_length, num_features))
+
+    for i in range(sequence_length, len(data_scaled) + 1):
+        data_reshaped[i - sequence_length] = data_scaled[i - sequence_length:i]
+
+    # Make predictions
+    predictions = loaded_model.predict(data_reshaped)
+
+    # Inverse transform the predictions
+    predictions = scaler.inverse_transform(predictions)
+
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions.flatten(), index=tempdf.iloc[sequence_length - 1:].index)
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series.values
+
+    return result["Predictions"]
 ###TODO could make features = modle.info "features"
 ###supposed to be for 30 min .3 spy tsla
 def Buy_2hr_A1(new_data_df):
@@ -319,59 +355,7 @@ def Buy_45min_A1(new_data_df):
     return result["Predictions"]
 
 
-def Sell_45min_A1(new_data_df):
-    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI2']
-    model_filename = f"{base_dir}/_45min_A1/target_down.joblib"
-    loaded_model = joblib.load(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions, index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_30min_A1(new_data_df):
-    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI']
-    model_filename = f"{base_dir}/_30min_A1/target_up.joblib"
-    loaded_model = joblib.load(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions, index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
 
-
-def Sell_30min_A1(new_data_df):
-    features = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up4', 'ITM PCRv Down4', 'AwesomeOsc5_34', 'RSI2', 'AwesomeOsc']
-    model_filename = f"{base_dir}/_30min_A1/target_down.joblib"
-    loaded_model = joblib.load(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions, index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
 def Buy_20min_A1(new_data_df):
     features = [
         "Bonsai Ratio",

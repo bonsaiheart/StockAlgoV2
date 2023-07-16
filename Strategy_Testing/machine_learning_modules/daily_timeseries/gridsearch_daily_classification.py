@@ -30,9 +30,9 @@ anticondition_threshold_cells_up = cells_forward_to_check * 0
 anticondition_threshold_cells_down = cells_forward_to_check * 0
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
-positivecase_weight_up = 10   ###changed these from 20 7/12
+positivecase_weight_up = 20   ###changed these from 20 7/12
 
-positivecase_weight_down = 10
+positivecase_weight_down = 20
 ###changed these from 20 7/12
 
 
@@ -46,10 +46,10 @@ threshold_down = 0.7
 
 
 parameters = {
-    "max_depth": (10,30,40,50,60,80, 100 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    "max_depth": (10,50, 100,140 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
     # ###up 100/2/1300,down 80/3/1000
     "min_samples_split": (2, 3,6,10,15),  # 5//5/2     5                      71123                  for 15   2, 3,
-    "n_estimators": (800,1000 ,1500,2000 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+    "n_estimators": (1000 ,1500,2000,2500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 #120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
 #30cells - up80.4.900 down  80.2.1300
