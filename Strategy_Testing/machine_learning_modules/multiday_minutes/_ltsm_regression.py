@@ -46,7 +46,7 @@ Chosen_Predictor = [
     "RSI2",
     "AwesomeOsc",
 ]
-sequence_length = 60  # up to 500 I've tried.
+sequence_length = 1000  # up to 500 I've tried.
 # how many cells forward the target "current price" is.
 cells_forward_to_predict = 15
 ml_dataframe[f'Price {cells_forward_to_predict}min Later'] = ml_dataframe["Current Stock Price"].shift(-cells_forward_to_predict).values
@@ -184,7 +184,7 @@ print(f'R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})')
 print(f'MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})')
 print(f'MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})')
 print(f'R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})')
-print(f_regression((X_train,y_train)))
+print(f_regression(X_train,y_train))
 f_values, p_values = f_regression(X_test, y_test)
 
     # Print the F-values for each feature
