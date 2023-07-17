@@ -184,27 +184,43 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     model_list = [
         trained_minute_models.Buy_2hr_A1,
         trained_minute_models.Sell_2hr_A1,
+
+        trained_minute_models.Buy_90min_A2,
+        trained_minute_models.Sell_90min_A2,
+
         trained_minute_models.Buy_90min_A1,
         trained_minute_models.Sell_90min_A1,
+
         trained_minute_models.Buy_1hr_A6,
         trained_minute_models.Sell_1hr_A6,
+
+        trained_minute_models.Buy_1hr_A6,
+        trained_minute_models.Sell_1hr_A6,
+
         trained_minute_models.Buy_1hr_A5,
         trained_minute_models.Sell_1hr_A5,
-        trained_minute_models.Buy_1hr_A6,
+
         trained_minute_models.Buy_1hr_A4,
         trained_minute_models.Sell_1hr_A4,
+
         trained_minute_models.Buy_1hr_A3,
         trained_minute_models.Sell_1hr_A3,
+
         trained_minute_models.Buy_1hr_A2,
         trained_minute_models.Sell_1hr_A2,
+
         trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
-        trained_minute_models.Sell_1hr_A1,  # WORKS GREAT?
+        trained_minute_models.Sell_1hr_A1,
+        # WORKS GREAT?
         trained_minute_models.Buy_45min_A1,  # WORKS GREAT?
         trained_minute_models.Sell_45min_A1,
+
         trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
         trained_minute_models.Sell_30min_A1,
+
         trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
-        trained_minute_models.Sell_20min_A1,  # WORKS GREAT?
+        trained_minute_models.Sell_20min_A1,
+        # WORKS GREAT?
         trained_minute_models.Buy_15min_A2,  #works well?
         trained_minute_models.Sell_15min_A2,  #works well?
         # trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
