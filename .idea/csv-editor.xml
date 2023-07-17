@@ -59,6 +59,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_230717.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/data/DailyMinutes_w_algo_results/SPY/SPY_230706.csv">
           <value>
             <Attribute>

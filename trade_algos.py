@@ -189,7 +189,8 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Buy_1hr_A6,
         trained_minute_models.Sell_1hr_A6,
         trained_minute_models.Buy_1hr_A5,
-        trained_minute_models.Sell_1hr_A5,        trained_minute_models.Buy_1hr_A6,
+        trained_minute_models.Sell_1hr_A5,
+        trained_minute_models.Buy_1hr_A6,
         trained_minute_models.Buy_1hr_A4,
         trained_minute_models.Sell_1hr_A4,
         trained_minute_models.Buy_1hr_A3,
@@ -248,7 +249,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         if dailyminutes_df[model_name].iloc[-1]:
         # x=1
         # if x ==1:
-            dailyminutes_df.to_csv("asyncdailyminutestest.csv")
             print(f"{model_name} Signal")
             send_notifications.email_me_string(model_name, CorP, ticker)
             # Other actions based on the model_name and signal
