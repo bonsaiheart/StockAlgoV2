@@ -1,5 +1,5 @@
-import os
 import pickle
+import os
 import pandas as pd
 import numpy as np
 from tensorflow.keras.models import Sequential
@@ -77,17 +77,10 @@ selected_features = [Chosen_Predictor[i] for i in selected_feature_indices]
 # Update the data and Chosen_Predictor with the selected features
 data_scaled = selected_data
 Chosen_Predictor = selected_features
-min_len = float('inf')  # Initialize the minimum length to a large number
 
-# Loop through the data
-for individual_data in data_scaled:
-    # Update the minimum length if necessary
-    min_len = min(min_len, len(individual_data))
-
-    print(min_len)
-# Define the sequence length
 
 ###TODO add  seq. len. to parameter tuner
+#
 # Define the number of folds for cross-validation
 n_splits = 3
 
@@ -129,7 +122,7 @@ for train_index, test_index in tscv.split(data_scaled):
         model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32), return_sequences=True,
                        input_shape=(sequence_length, len(Chosen_Predictor))))
         model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32),
-                       return_sequences=False))  # Set return_sequences to False here
+                       return_sequences=False))
         model.add(Dense(units=1))
         model.compile(optimizer='adam', loss='mse')
         return model
@@ -138,105 +131,112 @@ for train_index, test_index in tscv.split(data_scaled):
     tuner = RandomSearch(
         build_model,
         objective='val_loss',
-        max_trials=10,
-        executions_per_trial=1,
+        max_trials=1,
         directory='ITSM_Regression_Models',
-        project_name='1A'
+        project_name='Project_1A'
     )
 
     tuner.search(X_train, y_train, epochs=100, validation_data=(X_test, y_test), callbacks=[EarlyStopping(patience=10)])
 
     # Get the best model and its hyperparameters
     best_model = tuner.get_best_models(1)[0]
-    print('best model:', best_model)
     best_params = tuner.get_best_hyperparameters(1)[0]
-    print('best_params:',best_params)
-    # Train the best model
-    best_model.fit(X_train, y_train, epochs=100, validation_data=(X_test, y_test), callbacks=[EarlyStopping(patience=10)])
+    # Print feature importance
+    history = best_model.fit(X_train, y_train, epochs=100, validation_data=(X_test, y_test),
+                             callbacks=[EarlyStopping(patience=10)])
 
-    # Predict the train and test data
-    train_preds = best_model.predict(X_train).flatten()
-    test_preds = best_model.predict(X_test).flatten()
-
-    # Compute the evaluation metrics
-    mse_train = mean_squared_error(y_train, train_preds)
-    mae_train = mean_absolute_error(y_train, train_preds)
-    r2_train = r2_score(y_train, train_preds)
-    mse_test = mean_squared_error(y_test, test_preds)
-    mae_test = mean_absolute_error(y_test, test_preds)
-    r2_test = r2_score(y_test, test_preds)
-
-    # Append the metrics to their respective lists
+    # Evaluate the model on the training data
+    train_pred = best_model.predict(X_train)
+    mse_train = mean_squared_error(y_train, train_pred)
+    mae_train = mean_absolute_error(y_train, train_pred)
+    r2_train = r2_score(y_train, train_pred)
     mse_train_scores.append(mse_train)
     mae_train_scores.append(mae_train)
     r2_train_scores.append(r2_train)
+
+    # Evaluate the model on the testing data
+    test_pred = best_model.predict(X_test)
+    mse_test = mean_squared_error(y_test, test_pred)
+    mae_test = mean_absolute_error(y_test, test_pred)
+    r2_test = r2_score(y_test, test_pred)
     mse_test_scores.append(mse_test)
     mae_test_scores.append(mae_test)
     r2_test_scores.append(r2_test)
 
-    # Print feature importance
-    importance_dict = dict(zip(selected_features, best_model.layers[0].get_weights()[0].sum(axis=0)))
-    sorted_importance = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
-    for feature, importance in sorted_importance:
-        print(f"{feature}: {importance}")
+    # Get the tuner's score
+    f_values = tuner.oracle.get_best_trials(1)[0].score
+    print('Best trial score:', f_values)
 
-    print("\nBest Hyperparameters:")
-    print(best_params.values)
-    print(f'MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})')
-    print(f'MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})')
-    print(f'R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})')
-    print(f'MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})')
-    print(f'MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})')
-    print(f'R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})')
-    f_values, p_values = f_regression(X_train, y_train)
+    # Save the f_values in a text file
+    with open('info.txt', 'a') as f:
+        f.write(str(f_values) + '\n')
+
+importance_dict = dict(zip(selected_features, best_model.layers[0].get_weights()[0].sum(axis=0)))
+sorted_importance = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
+for feature, importance in sorted_importance:
+    print(f"{feature}: {importance}")
+
+print("\nBest Hyperparameters:")
+print(best_params.values)
+print(f'MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})')
+print(f'MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})')
+print(f'R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})')
+print(f'MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})')
+print(f'MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})')
+print(f'R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})')
+print(f_regression((X_train,y_train)))
+f_values, p_values = f_regression(X_test, y_test)
 
     # Print the F-values for each feature
-    for feature_idx, f_value in enumerate(f_values):
-        print(f"Feature {feature_idx}: F-value = {f_value}")
+for feature_idx, f_value in enumerate(f_values):
+    print(f"Feature {feature_idx}: F-value = {f_value} P values = {p_values}")
     # Save the model, scalers, selected features, and best hyperparameters if user chooses to
-    save_model = input("Do you want to save the model? (y/n): ")
-    if save_model.lower() == "y":
-        model_name = input("Enter a name for the model: ")
+save_model = input("Do you want to save the model? (y/n): ")
+if save_model.lower() == "y":
+    model_name = input("Enter a name for the model: ")
 
-        # Create the model folder inside saved_models
-        model_dir = os.path.join("saved_models", model_name)
-        os.makedirs(model_dir, exist_ok=True)
+    # Create the model folder inside saved_models
+    model_dir = os.path.join("saved_models", model_name)
+    os.makedirs(model_dir, exist_ok=True)
 
-        # Save the model architecture and weights
-        model_json = best_model.to_json()
-        with open(os.path.join(model_dir, "model_architecture.json"), "w") as json_file:
-            json_file.write(model_json)
-        best_model.save_weights(os.path.join(model_dir, "model_weights.h5"))
+    # Save the model architecture and weights
+    model_json = best_model.to_json()
+    with open(os.path.join(model_dir, "model_architecture.json"), "w") as json_file:
+        json_file.write(model_json)
+    best_model.save_weights(os.path.join(model_dir, "model_weights.h5"))
 
-        # Save the data scaler
-        with open(os.path.join(model_dir, "data_scaler.pkl"), 'wb') as file:
-            pickle.dump(scaler, file)
+    # Save the data scaler
+    with open(os.path.join(model_dir, "data_scaler.pkl"), 'wb') as file:
+        pickle.dump(scaler, file)
 
-        # Save the target scaler
+    # Save the target scaler
 
-        with open(os.path.join(model_dir, "target_scaler.pkl"), 'wb') as file:
-            pickle.dump(target_scaler, file)
+    with open(os.path.join(model_dir, "target_scaler.pkl"), 'wb') as file:
+        pickle.dump(target_scaler, file)
 
-        # Save the selected features
-        with open(os.path.join(model_dir, "model_info.txt"), 'w') as file:
-            file.write("Cells Forward to Predict: " + str(cells_forward_to_predict) + "\n")
-            file.write("Sequence Length: " + str(sequence_length) + "\n")
-            file.write("Chosen Predictor Features:\n")
-            file.write("\n".join(Chosen_Predictor),"\n\n")
+    # Save the selected features
+    with open(os.path.join(model_dir, "model_info.txt"), 'w') as file:
+        file.write("Cells Forward to Predict: " + str(cells_forward_to_predict) + "\n")
+        file.write("Sequence Length: " + str(sequence_length) + "\n")
+        file.write("Chosen Predictor Features:\n")
+        file.write("\n".join(Chosen_Predictor),"\n\n")
+        file.write('F-scores:\n')
+        for feature_idx, f_value in enumerate(f_values):
+            file.write(f"Feature {feature_idx}: F-value = {f_value}\n")
+        file.write('\nBest parameters:\n')
+        file.write(str(best_params.values))
+        file.write(f"MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})\n"
+                   f"MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})\n"
+                   f"R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})\n"
+                   f"MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})\n"
+                   f"MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})\n"
+                   f"R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})")
+        for feature_idx, f_value in enumerate(f_values):
+            file.write(f"Feature {feature_idx}: F-value = {f_value}\n")
+    # Save the best hyperparameters
+    with open(os.path.join(model_dir, "best_hyperparameters.pkl"), 'wb') as file:
+        pickle.dump(best_params, file)
 
-            file.write(f"MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})\n"
-                       f"MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})\n"
-                       f"R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})\n"
-                       f"MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})\n"
-                       f"MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})\n"
-                       f"R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})")
-            for feature_idx, f_value in enumerate(f_values):
-                file.write(f"Feature {feature_idx}: F-value = {f_value}\n")
-        # Save the best hyperparameters
-        with open(os.path.join(model_dir, "best_hyperparameters.pkl"), 'wb') as file:
-            pickle.dump(best_params, file)
-
-        print(f"Saved the model '{model_name}', scalers, selected features, and best hyperparameters.")
+    print(f"Saved the model '{model_name}', scalers, selected features, and best hyperparameters.")
 
 # Print the evaluation metrics
-
