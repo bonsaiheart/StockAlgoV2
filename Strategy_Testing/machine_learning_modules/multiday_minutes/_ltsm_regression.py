@@ -1,15 +1,15 @@
-import pickle
 import os
-import pandas as pd
+import pickle
 import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM
-from tensorflow.keras.callbacks import EarlyStopping
-from keras_tuner.tuners import RandomSearch
+import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import TimeSeriesSplit
 from sklearn.feature_selection import SelectKBest, f_regression
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import TimeSeriesSplit
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.callbacks import EarlyStopping
+from keras_tuner.tuners import RandomSearch
 
 # Load the data
 DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
@@ -17,6 +17,7 @@ ml_dataframe = pd.read_csv(DF_filename)
 
 # Define the chosen predictors
 # Chosen_Predictor = ['Maximum Pain', 'Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
+#                     'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4',
 #                     'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4',
 #                     'PCRv Down1', 'PCRv Down2', 'PCRv Down3', 'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3',
 #                     'PCRoi Up4', 'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4', 'ITM PCR-Vol',
@@ -46,41 +47,33 @@ Chosen_Predictor = [
     "RSI2",
     "AwesomeOsc",
 ]
-sequence_length = 1000  # up to 500 I've tried.
+
+num_features_to_select = 8
+sequence_length = 500  # up to 500 I've tried.
 # how many cells forward the target "current price" is.
 cells_forward_to_predict = 15
 ml_dataframe[f'Price {cells_forward_to_predict}min Later'] = ml_dataframe["Current Stock Price"].shift(-cells_forward_to_predict).values
 ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price {cells_forward_to_predict}min Later'], inplace=True)
 target_column = ml_dataframe[f'Price {cells_forward_to_predict}min Later']
-print(target_column)
+ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price {cells_forward_to_predict}min Later'], inplace=True)
+
 # Preprocess the data
-print(ml_dataframe.shape)
-ml_dataframe.to_csv('temp_test_df.csv')
 data = ml_dataframe[Chosen_Predictor].values
+target = target_column.values.reshape(-1, 1)
 
 # Scale the data and target column
 scaler = MinMaxScaler(feature_range=(0, 1))
 data_scaled = scaler.fit_transform(data)
-target_scaler = MinMaxScaler(feature_range=(0, 1))
-target_scaled = target_scaler.fit_transform(target_column.values.reshape(-1, 1))
+target_scaled = scaler.fit_transform(target)
 
 # Perform feature selection
-selector = SelectKBest(score_func=f_regression)  # specify k value as needed
-selected_data = selector.fit_transform(data_scaled, target_scaled.flatten())
+selector = SelectKBest(score_func=f_regression, k=num_features_to_select)
+data_scaled = selector.fit_transform(data_scaled, target_scaled.flatten())
 
-# Get the selected feature indices
+# Get the selected features
 selected_feature_indices = selector.get_support(indices=True)
+Chosen_Predictor = [Chosen_Predictor[i] for i in selected_feature_indices]
 
-# Select the corresponding feature names
-selected_features = [Chosen_Predictor[i] for i in selected_feature_indices]
-
-# Update the data and Chosen_Predictor with the selected features
-data_scaled = selected_data
-Chosen_Predictor = selected_features
-
-
-###TODO add  seq. len. to parameter tuner
-#
 # Define the number of folds for cross-validation
 n_splits = 3
 
@@ -94,12 +87,14 @@ r2_test_scores = []
 
 # Perform cross-validation
 tscv = TimeSeriesSplit(n_splits=n_splits)
+
 for train_index, test_index in tscv.split(data_scaled):
     # Split the data into training and testing sets
     train_data = data_scaled[train_index]
     test_data = data_scaled[test_index]
-    train_target = target_scaled[train_index].flatten()
-    test_target = target_scaled[test_index].flatten()
+    train_target = target_scaled[train_index]
+    test_target = target_scaled[test_index]
+
 
     # Create the input sequences and corresponding labels
     X_train, y_train = [], []
@@ -121,8 +116,7 @@ for train_index, test_index in tscv.split(data_scaled):
         model = Sequential()
         model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32), return_sequences=True,
                        input_shape=(sequence_length, len(Chosen_Predictor))))
-        model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32),
-                       return_sequences=False))
+        model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32), return_sequences=False))
         model.add(Dense(units=1))
         model.compile(optimizer='adam', loss='mse')
         return model
@@ -131,7 +125,7 @@ for train_index, test_index in tscv.split(data_scaled):
     tuner = RandomSearch(
         build_model,
         objective='val_loss',
-        max_trials=1,
+        max_trials=10,
         directory='ITSM_Regression_Models',
         project_name='Project_1A'
     )
@@ -141,9 +135,6 @@ for train_index, test_index in tscv.split(data_scaled):
     # Get the best model and its hyperparameters
     best_model = tuner.get_best_models(1)[0]
     best_params = tuner.get_best_hyperparameters(1)[0]
-    # Print feature importance
-    history = best_model.fit(X_train, y_train, epochs=100, validation_data=(X_test, y_test),
-                             callbacks=[EarlyStopping(patience=10)])
 
     # Evaluate the model on the training data
     train_pred = best_model.predict(X_train)
@@ -163,13 +154,9 @@ for train_index, test_index in tscv.split(data_scaled):
     mae_test_scores.append(mae_test)
     r2_test_scores.append(r2_test)
 
-    # Get the tuner's score
-    f_values = tuner.oracle.get_best_trials(1)[0].score
-    print('Best trial score:', f_values)
-
-    # Save the f_values in a text file
+    # Save the f-values in a text file
     with open('info.txt', 'a') as f:
-        f.write(str(f_values) + '\n')
+        f.write(str(tuner.oracle.get_best_trials(1)[0].score) + '\n')
 
 importance_dict = dict(zip(selected_features, best_model.layers[0].get_weights()[0].sum(axis=0)))
 sorted_importance = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
@@ -184,13 +171,8 @@ print(f'R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})')
 print(f'MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})')
 print(f'MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})')
 print(f'R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})')
-print(f_regression(X_train,y_train))
-f_values, p_values = f_regression(X_test, y_test)
 
-    # Print the F-values for each feature
-for feature_idx, f_value in enumerate(f_values):
-    print(f"Feature {feature_idx}: F-value = {f_value} P values = {p_values}")
-    # Save the model, scalers, selected features, and best hyperparameters if user chooses to
+# Save the model, scalers, selected features, and best hyperparameters
 save_model = input("Do you want to save the model? (y/n): ")
 if save_model.lower() == "y":
     model_name = input("Enter a name for the model: ")
@@ -210,7 +192,6 @@ if save_model.lower() == "y":
         pickle.dump(scaler, file)
 
     # Save the target scaler
-
     with open(os.path.join(model_dir, "target_scaler.pkl"), 'wb') as file:
         pickle.dump(target_scaler, file)
 
@@ -219,24 +200,14 @@ if save_model.lower() == "y":
         file.write("Cells Forward to Predict: " + str(cells_forward_to_predict) + "\n")
         file.write("Sequence Length: " + str(sequence_length) + "\n")
         file.write("Chosen Predictor Features:\n")
-        file.write("\n".join(Chosen_Predictor),"\n\n")
-        file.write('F-scores:\n')
-        for feature_idx, f_value in enumerate(f_values):
-            file.write(f"Feature {feature_idx}: F-value = {f_value}\n")
-        file.write('\nBest parameters:\n')
+        file.write("\n".join(Chosen_Predictor))
+        file.write('\nBest Parameters:\n')
         file.write(str(best_params.values))
-        file.write(f"MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})\n"
+        file.write(f"\nMSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})\n"
                    f"MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})\n"
                    f"R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})\n"
                    f"MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})\n"
                    f"MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})\n"
                    f"R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})")
-        for feature_idx, f_value in enumerate(f_values):
-            file.write(f"Feature {feature_idx}: F-value = {f_value}\n")
-    # Save the best hyperparameters
-    with open(os.path.join(model_dir, "best_hyperparameters.pkl"), 'wb') as file:
-        pickle.dump(best_params, file)
 
     print(f"Saved the model '{model_name}', scalers, selected features, and best hyperparameters.")
-
-# Print the evaluation metrics

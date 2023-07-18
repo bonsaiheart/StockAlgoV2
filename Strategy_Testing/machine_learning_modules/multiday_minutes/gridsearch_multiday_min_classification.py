@@ -52,8 +52,8 @@ positivecase_weight_down = 5
 ###changed these from 20 7/12
 
 
-# num_features_up = 3
-# num_features_down = 3
+num_features_up = 4
+num_features_down = 4
 ##probablility threshhold.
 threshold_up = 0.8
 threshold_down = 0.8
@@ -128,7 +128,7 @@ X.reset_index(drop=True, inplace=True)
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(
     X, y_up, y_down, test_size=0.2, random_state=None
 )
-feature_selector_up = SelectKBest(score_func=mutual_info_classif)
+feature_selector_up = SelectKBest(score_func=mutual_info_classif,k=num_features_up)
 # Calculate class weights
 num_positive_up = sum(y_up_train)  # Number of positive cases in the training set
 num_negative_up = len(y_up_train) - num_positive_up  # Number of negative cases in the training set
@@ -168,7 +168,7 @@ model_down = RandomForestClassifier(class_weight=custom_weights_down)
 X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
 X_test_selected_up = feature_selector_up.transform(X_test)
 # Feature selection for Target_Down
-feature_selector_down = SelectKBest(score_func=mutual_info_classif)
+feature_selector_down = SelectKBest(score_func=mutual_info_classif,k=num_features_down)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
 print("Shape of X_test_selected_up:", X_test_selected_up.shape)
