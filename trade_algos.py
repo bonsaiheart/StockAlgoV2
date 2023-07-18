@@ -196,9 +196,11 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Sell_90min_A3,
         trained_minute_models.Buy_90min_A4,
         trained_minute_models.Sell_90min_A4,
+        trained_minute_models.Buy_90min_A5,
+        trained_minute_models.Sell_90min_A5,
 
-        trained_minute_models.Buy_1hr_A6,
-        trained_minute_models.Sell_1hr_A6,
+        trained_minute_models.Buy_1hr_A7,
+        trained_minute_models.Sell_1hr_A7,
 
         trained_minute_models.Buy_1hr_A6,
         trained_minute_models.Sell_1hr_A6,
