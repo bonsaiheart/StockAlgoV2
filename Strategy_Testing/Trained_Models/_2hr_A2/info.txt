@@ -1,0 +1,66 @@
+This file contains information about the model.
+
+File analyzed: ../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv
+Cells_Foward_to_check: 120
+
+Best parameters for Target_Up: {'max_depth': 20, 'min_samples_split': 2, 'n_estimators': 1000}. 
+Best precision: 0.9555555555555555
+Best parameters for Target_Down: {'max_depth': 20, 'min_samples_split': 2, 'n_estimators': 1000}. 
+Best precision: 0.9555555555555555
+
+Metrics for Target_Up:
+Precision: 1.0
+Accuracy: 0.9982788296041308
+Recall: 0.6
+F1-Score: 0.7499999999999999
+Cross-validation scores for Target_Up: [0.99481865 0.99481865 0.98963731 1.         0.99481865]
+Mean cross-validation score for Target_Up: 0.9948186528497409
+
+Metrics for Target_Down:
+Precision: 1.0
+Accuracy: 0.9896729776247849
+Recall: 0.75
+F1-Score: 0.8571428571428571
+Cross-validation scores for Target_Down: [0.96891192 0.98445596 0.98445596 0.97927461 0.96891192]
+Mean cross-validation score for Target_Down: 0.97720207253886
+
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up3', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+
+Selected Features Up:, [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19]
+Selected Features Down:, [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19]
+
+Best_Predictors_Selected Up: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up3', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+Best_Predictors_Selected Down: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up3', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+
+Threshold Up(sensitivity): 0.8
+Threshold Down(sensitivity): 0.8
+Target Underlying Percentage Up: 0.7
+Target Underlying Percentage Down: -0.7
+
+Anticondition Up: 253     False
+254     False
+255      True
+256      True
+257      True
+        ...  
+6057    False
+6058    False
+6059    False
+6060    False
+6061    False
+Name: Current SP % Change(LAC), Length: 5808, dtype: bool
+TAnticondition Down: 253      True
+254      True
+255     False
+256     False
+257     False
+        ...  
+6057    False
+6058    False
+6059    False
+6060    False
+6061    False
+Name: Current SP % Change(LAC), Length: 5808, dtype: bool
+
+Weight multiplier Up: 10
+Weight multiplier Down: 10

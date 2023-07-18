@@ -158,7 +158,7 @@ for train_index, test_index in tscv.split(data_scaled):
     with open('info.txt', 'a') as f:
         f.write(str(tuner.oracle.get_best_trials(1)[0].score) + '\n')
 
-importance_dict = dict(zip(selected_features, best_model.layers[0].get_weights()[0].sum(axis=0)))
+importance_dict = dict(zip(selected_feature_indices, best_model.layers[0].get_weights()[0].sum(axis=0)))
 sorted_importance = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
 for feature, importance in sorted_importance:
     print(f"{feature}: {importance}")

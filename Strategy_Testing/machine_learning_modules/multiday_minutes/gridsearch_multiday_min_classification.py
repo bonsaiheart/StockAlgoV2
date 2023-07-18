@@ -18,12 +18,12 @@ Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2",
-    "PCRv Up3",
-    "PCRv Down3",
+    "PCRv Up3",  "PCRv Up2",
+    "PCRv Down3",   "PCRv Down2",
     "PCRv Up4",
     "PCRv Down4",
     "ITM PCRv Up3",
-    "ITM PCRv Down3","ITM PCRv Up4",
+    "ITM PCRv Down3","ITM PCRv Up4",    "ITM PCRv Down2","ITM PCRv Up2",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -33,27 +33,27 @@ Chosen_Predictor = [
 ]
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 60
+cells_forward_to_check = 120
 ##this many cells must meet the percentup/down requiremnet.
-threshold_cells_up = cells_forward_to_check * 0.4
-threshold_cells_down = cells_forward_to_check * 0.4
+threshold_cells_up = cells_forward_to_check * 0.7
+threshold_cells_down = cells_forward_to_check * 0.7
 #TODO add Beta to the percent, to make it more applicable across tickers.
-percent_up = 0.5
-percent_down = -0.5
+percent_up = 0.7
+percent_down = -0.7
 ###this many cells cannot be < current price for up, >
 # current price for down.
-anticondition_threshold_cells_up = cells_forward_to_check * 0.8
-anticondition_threshold_cells_down = cells_forward_to_check * 0.8
+anticondition_threshold_cells_up = cells_forward_to_check * 0.7
+anticondition_threshold_cells_down = cells_forward_to_check * 0.7
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
-positivecase_weight_up = 10   ###changed these from 20 7/12
+positivecase_weight_up = 10  ###changed these from 20 7/12
 
 positivecase_weight_down = 10
 ###changed these from 20 7/12
 
 
-num_features_up = 5
-num_features_down = 5
+num_features_up = 'all'
+num_features_down = 'all'
 ##probablility threshhold.
 threshold_up = 0.8
 threshold_down = 0.8
@@ -64,7 +64,7 @@ threshold_down = 0.8
 parameters = {
     "max_depth": (20,30 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
     # ###up 100/2/1300,down 80/3/1000
-    "min_samples_split": ( 2,5,10,15 ),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "min_samples_split": ( 2,5,10 ),  # 5//5/2     5                      71123                  for 15   2, 3,
     "n_estimators": (1000,1500,2000)# 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 #120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
@@ -302,7 +302,7 @@ if input_val == "Y":
             f"File analyzed: {DF_filename}\nCells_Foward_to_check: {cells_forward_to_check}\n\nBest parameters for Target_Up: {grid_search_up.best_params_}. \nBest precision: {grid_search_down.best_score_}\nBest parameters for Target_Down: {grid_search_down.best_params_}. \nBest precision: {grid_search_down.best_score_}\n\nMetrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\nCross-validation scores for Target_Up: {cv_scores_up}\nMean cross-validation score for Target_Up: {cv_scores_up.mean()}\n\nMetrics for Target_Down:\nPrecision: {precision_down}\nAccuracy: {accuracy_down}\nRecall: {recall_down}\nF1-Score: {f1_down}\nCross-validation scores for Target_Down: {cv_scores_down}\nMean cross-validation score for Target_Down: {cv_scores_down.mean()}\n\n"
         )
         info_txt.write(
-            f"Predictors: {Chosen_Predictor}\n\nSelected Features Up:, {selected_features_up}\nSelected Features Down:, {selected_features_down}\n\nBest_Predictors_Selected Up: {best_features_up}\nBest_Predictors_Selected Down: {best_features_down}\n\nThreshold Up(sensitivity): {threshold_up}\nThreshold Down(sensitivity): {threshold_down}\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n"
+            f"Predictors: {Chosen_Predictor}\n\nSelected Features Up:, {selected_features_up}\nSelected Features Down:, {selected_features_down}\n\nBest_Predictors_Selected Up: {best_features_up}\nBest_Predictors_Selected Down: {best_features_down}\n\nThreshold Up(sensitivity): {threshold_up}\nThreshold Down(sensitivity): {threshold_down}\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n\nAnticondition Up: {anticondition_up}\nTAnticondition Down: {anticondition_down}\n\nWeight multiplier Up: {positivecase_weight_up}\nWeight multiplier Down: {positivecase_weight_down}\n"
         )
 else:
     exit()
