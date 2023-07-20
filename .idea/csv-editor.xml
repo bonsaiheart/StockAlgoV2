@@ -73,14 +73,7 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/data/DailyMinutes_w_algo_results/SPY/SPY_230706.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="/data/DailyMinutes_w_algo_results/SPY/SPY_230707.csv">
+        <entry key="/data/DailyMinutes/SPY/SPY_230719.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -115,6 +108,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/ProcessedData/SPY/230720/SPY_230720_0944.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230720/SPY_230720_0946.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230720/SPY_230720_0947.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv">
           <value>
             <Attribute>
@@ -123,13 +137,6 @@
           </value>
         </entry>
         <entry key="/testdailyminutes.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="diff.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
