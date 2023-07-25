@@ -125,4 +125,4 @@ def email_me(filepath):
     print("Email sent!")
 
 
-# print(send_tweet_w_countdown_followup('tsla', 100, 'up', "06test_response", 12))
+# print(send_tweet_w_countdown_followup('tsla', 100, 'up', "A3test_response", 12,"testmodel4"))
