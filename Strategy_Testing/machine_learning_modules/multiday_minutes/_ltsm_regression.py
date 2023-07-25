@@ -11,7 +11,17 @@ from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.callbacks import EarlyStopping
 from keras_tuner.tuners import RandomSearch
 
-# Load the data
+import tensorflow as tf
+
+
+print(tf.config.list_physical_devices('GPU'))
+# Check GPU support
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    print("GPU support detected.")
+else:
+    print("No GPU support detected. Make sure you have installed the GPU version of TensorFlow and have compatible hardware.")
+
 DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
@@ -48,10 +58,10 @@ Chosen_Predictor = [
     "AwesomeOsc",
 ]
 
-num_features_to_select = 8
-sequence_length = 500  # up to 500 I've tried.
+num_features_to_select = "all"
+sequence_length = 1000  # up to 500 I've tried.
 # how many cells forward the target "current price" is.
-cells_forward_to_predict = 15
+cells_forward_to_predict = 60
 ml_dataframe[f'Price {cells_forward_to_predict}min Later'] = ml_dataframe["Current Stock Price"].shift(-cells_forward_to_predict).values
 ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price {cells_forward_to_predict}min Later'], inplace=True)
 target_column = ml_dataframe[f'Price {cells_forward_to_predict}min Later']

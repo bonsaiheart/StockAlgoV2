@@ -7,7 +7,7 @@ import Trained_Models.trained_minute_models  # Import your module
 def get_model_names(module):
     model_names = []
     for name, obj in inspect.getmembers(module):
-        if inspect.isfunction(obj):
+        if inspect.isfunction(obj) and name != 'load_model':  # Exclude 'load_model'
             model_names.append(name)
     return model_names
 
@@ -26,6 +26,7 @@ def apply_predictions_to_df(model_names, df, filename):
     # Filter the DataFrame to keep only the desired columns
 
     for model_name in model_names:
+        print(model_name)
         model_func = getattr(Trained_Models.trained_minute_models, model_name)
         prediction = model_func(df)
         df[model_name] = prediction

@@ -182,6 +182,10 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         traceback.print_exc()
         pass
     model_list = [
+        # trained_minute_models.Buy_90min_nnA1,  # WORKS GREAT?
+        # trained_minute_models.Sell_90min_nnA1,
+        # trained_minute_models.Buy_1hr_nnA1,  # WORKS GREAT?
+        # trained_minute_models.Sell_1hr_nnA1,
         trained_minute_models.Buy_2hr_A1, ##made 3 out of 3, >.25% change! wow
         trained_minute_models.Sell_2hr_A1,
         trained_minute_models.Buy_2hr_A2,  ##made 3 out of 3, >.25% change! wow

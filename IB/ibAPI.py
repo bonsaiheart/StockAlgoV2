@@ -153,7 +153,7 @@ def placeOptionBracketOrder(
             )  # Replace with your desired take profit price
 
         else:
-            take_profit_price = round(contract_current_price * 1.5, 2)  # Replace with your desired take profit price
+            take_profit_price = round(contract_current_price * 1.05, 2)  # Replace with your desired take profit price
         stop_loss_price = contract_current_price * 0.9  # Replace with your desired stop-loss price
         if custom_trailamount is not None:
             trailAmount = round(
