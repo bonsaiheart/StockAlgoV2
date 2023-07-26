@@ -25,7 +25,7 @@ parentOrderIdFile = "IB/parent_order_ids.txt"
 # Global variables
 gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 parentOrders = {}
-
+#TODO order handling for "cannot both sides of ordr" error
 
 # ...
 # @app.task
@@ -68,7 +68,7 @@ async def ib_connect():
         print("Connecting")
         randomclientID = random.randint(0, 999)
         try:
-            await asyncio.wait_for(ib.connectAsync("192.168.1.119", 7497, clientId=1), timeout=30)
+            await ib.connectAsync("192.168.1.119", 7497, clientId=2)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
             print("Connection error:", e)
