@@ -11,7 +11,7 @@ from Task_Queue.task_queue_cellery_bossman import app as app
 # Set up logging
 logging.basicConfig(
     filename="error_ib.log",
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M",
 )
@@ -68,7 +68,7 @@ async def ib_connect():
         print("Connecting")
         randomclientID = random.randint(0, 999)
         try:
-            await ib.connectAsync("192.168.1.119", 7497, clientId=1)
+            await asyncio.wait_for(ib.connectAsync("192.168.1.119", 7497, clientId=1), timeout=30)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
             print("Connection error:", e)
@@ -213,7 +213,7 @@ def placeOptionBracketOrder(
                 o.orderRef = orderRef
             print(ib.placeOrder(ticker_contract, o))
             print(o.orderId)
-
+##changed this 7.25
             ib.sleep(0)
         print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

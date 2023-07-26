@@ -305,8 +305,9 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
                 #     orderRef=f"{model_name}"     )
                 # Other actions specific to the action
             except Exception as e:
+                logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
+                logging.error("Error occurred while placing order:", exc_info=True)
                 print("Error occurred while placing order:", str(e))
-
             print("sending tweet")
             send_notifications.send_tweet_w_countdown_followup(
                 ticker,

@@ -7,32 +7,19 @@ from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 from ib_insync import util
-
-
 # import webullapi
-
-datetime = datetime.today()
-print(datetime)
 ###TODO took 1:32 to run on dell touchscreen. CAN run about 5-8 tickers in a minute.
-import asyncio
-from datetime import datetime
-import os
-import traceback
-import trade_algos
-from UTILITIES import check_Market_Conditions
-import tradierAPI_marketdata
-from IB import ibAPI
 
 datetime = datetime.today()
 print(datetime)
-
 log_dir = "errorlog"
 log_file = "error.log"
 
 async def main():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    log_path = os.path.join(log_dir, log_file)
+    # log_path = os.path.join(log_dir, log_file)
+    log_path = log_file
     max_retries = 4
     retry_delay = 5  # seconds
     success = False
@@ -68,12 +55,12 @@ async def main():
                     if ticker == "SPY":
                         await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
 
-                ibAPI.ib.disconnect()
+
                 break
             else:
                 with open(log_path, "a") as f:
                     f.write(f"Ran at {datetime}. Market was closed today.\n")
-
+            await ibAPI.ib.disconnect()
         except Exception as e:
             with open(log_path, "a") as f:
                 print(traceback.format_exc())
