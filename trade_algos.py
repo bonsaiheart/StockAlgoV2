@@ -23,7 +23,7 @@ formatted_time = now.strftime("%y%m%d %H:%M EST")
 import threading
 
 def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
-    print(CorP, ticker, exp, strike, "ccp",contract_current_price,"qunt", quantity, orderRef)
+    print(CorP, ticker, exp, strike,contract_current_price, quantity, orderRef)
     loop = asyncio.new_event_loop()
     # Set the new event loop as the current one
     asyncio.set_event_loop(loop)
@@ -46,7 +46,6 @@ def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity
 
 async def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
-    print(type(dailyminutes))
 
     expdates_strikes_dict = {}
     for index, row in processeddata.iterrows():
@@ -66,7 +65,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
 
     ####Different strikes converted to contract form.
     ##This one is the strike one above Closest to Current price strike
-    print(strikeindex_closest_expdate)
     if strikeindex_closest_expdate[0] != np.nan:
         ib_four_strike_below = strikeindex_closest_expdate[0]
         four_strike_below_closest_cp_strike_int_num = int(strikeindex_closest_expdate[0] * 1000)
@@ -105,7 +103,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     four_strike_above_CCPS = "{:08d}".format(four_strike_above_closest_cp_strike_int_num)
     four_strike_below_CCPS = "{:08d}".format(four_strike_below_closest_cp_strike_int_num)
     closest_contract_strike = "{:08d}".format(closest_strike_exp_int_num)
-    print(closest_contract_strike,"ccs",closest_strike_exp_int_num)
     CCP_upone_call_contract = f"{ticker}{new_date_string}C{one_strike_above_CCPS}"
     CCP_upone_put_contract = f"{ticker}{new_date_string}P{one_strike_above_CCPS}"
     CCP_downone_call_contract = f"{ticker}{new_date_string}C{one_strike_below_CCPS}"
@@ -131,6 +128,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         DownOne_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downone_call_contract][
             "Call_LastPrice"
         ].values[0]
+        print(DownOne_Call_Price,"Downone call price was qunt?")
         UpOne_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upone_put_contract][
             "Put_LastPrice"
         ].values[0]
@@ -280,15 +278,12 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         else:
             print(f"Invalid model function name: {model.__name__}")
             continue
-        print(dailyminutes)
         result = model(dailyminutes_df).astype(int)
         dailyminutes_df[model_name] = result
         dailyminutes_df.to_csv("testdailyminutes.csv")
-        print(result)
         if dailyminutes_df[model_name].iloc[-1]:
         # x=1
         # if x ==1:
-            print(f"{model_name} Signal")
             send_notifications.email_me_string(model_name, CorP, ticker)
             # Other actions based on the model_name and signal
             # Add more function calls and corresponding parameters here
@@ -298,7 +293,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
                 loop = asyncio.get_event_loop()
 
                 loop.run_in_executor(None, place_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, 5, f"{model_name}")
+                                     contract_price, 5, f"2-{model_name}")
 
                 # loop = asyncio.get_event_loop()
                 # await IB.ibAPI.placeOptionBracketOrder(
@@ -311,16 +306,17 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
                 #     orderRef=f"{model_name}"     )
                 # Other actions specific to the action
             except Exception as e:
+                logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
+                logging.error("Error occurred while placing order:", exc_info=True)
                 print("Error occurred while placing order:", str(e))
-
-            print("sending tweet")
-            send_notifications.send_tweet_w_countdown_followup(
-                ticker,
-                current_price,
-                upordown,
-                f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                seconds,model_name
-            )
+            print("not sending tweet")
+            # send_notifications.send_tweet_w_countdown_followup(
+            #     ticker,
+            #     current_price,
+            #     upordown,
+            #     f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+            #     seconds,model_name
+            # )
 
     #
     #     # Buy_1hr_A1 = trained_models.Buy_1hr_A1(

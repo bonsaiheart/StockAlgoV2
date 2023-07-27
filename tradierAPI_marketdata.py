@@ -151,141 +151,200 @@ async def get_options_data(ticker):
         callsChain.append(call_group)
         putsChain.append(put_group)
 
-    # combined_call_put_optionchain_df = pd.concat([call_group.set_index('strike'), put_group.set_index('strike')], axis=1, keys=['call', 'put'])
-
-    ###CALLS OPS
-
-    # calls_df["lastTrade"] = pd.to_datetime(calls_df["lastTradeDate"])
-    # calls_df["lastTrade"] = calls_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
 
     calls_df = pd.concat(callsChain, ignore_index=True)
     # for greek in calls_df['greeks']:
     #     print(greek.get('mid_iv'))
-    calls_df["expDate"] = calls_df["symbol"].str[-15:-9]
-    calls_df["dollarsFromStrike"] = abs(calls_df["strike"] - LAC)
-    calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["open_interest"]
-    calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
-    calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
-    # print("callsiv",calls_df['impliedVolatility'])
-
-    calls_df.rename(
-        columns={
-            "symbol": "c_contractSymbol",
-            "trade_date": "c_lastTrade",
-            "last": "c_lastPrice",
-            "bid": "c_bid",
-            "ask": "c_ask",
-            "change": "c_change",
-            "change_percentage": "c_percentChange",
-            "volume": "c_volume",
-            "open_interest": "c_openInterest",
-            "greeks": "c_greeks",
-            "impliedVolatility": "c_impliedVolatility",
-            # "inTheMoney": "c_inTheMoney",
-            # "lastTrade": "c_lastTrade",
-            "dollarsFromStrike": "c_dollarsFromStrike",
-            "dollarsFromStrikexOI": "c_dollarsFromStrikexOI",
-            "lastContractPricexOI": "c_lastContractPricexOI",
-        },
-        inplace=True,
-    )
-    ###PUTS OPS
-
+    # calls_df["expDate"] = calls_df["symbol"].str[-15:-9]
+    # calls_df["dollarsFromStrike"] = abs(calls_df["strike"] - LAC)
+    # calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["open_interest"]
+    # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
+    # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
+    # # print("callsiv",calls_df['impliedVolatility'])
+    #
+    # calls_df.rename(
+    #     columns={
+    #         "symbol": "c_contractSymbol",
+    #         "trade_date": "c_lastTrade",
+    #         "last": "c_lastPrice",
+    #         "bid": "c_bid",
+    #         "ask": "c_ask",
+    #         "change": "c_change",
+    #         "change_percentage": "c_percentChange",
+    #         "volume": "c_volume",
+    #         "open_interest": "c_openInterest",
+    #         "greeks": "c_greeks",
+    #         "impliedVolatility": "c_impliedVolatility",
+    #          "dollarsFromStrike": "c_dollarsFromStrike",
+    #         "dollarsFromStrikexOI": "c_dollarsFromStrikexOI",
+    #         "lastContractPricexOI": "c_lastContractPricexOI",
+    #     },
+    #     inplace=True,
+    # )
+    # ###PUTS OPS
+    #
     puts_df = pd.concat(putsChain, ignore_index=True)
     # puts_df["lastTrade"] = pd.to_datetime(puts_df["lastTradeDate"])
     # puts_df["lastTrade"] = puts_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
-    puts_df["expDate"] = puts_df["symbol"].str[-15:-9]
-    ###TODO for puts, use current price - strike i think.
-    puts_df["dollarsFromStrike"] = abs(puts_df["strike"] - LAC)
-    puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["open_interest"]
-    puts_df["lastContractPricexOI"] = puts_df["last"] * puts_df["open_interest"]
-    puts_df["impliedVolatility"] = puts_df["greeks"].str.get("mid_iv")
-    # print("PUTSsiv", puts_df['impliedVolatility'])
-    puts_df.rename(
-        columns={
-            "symbol": "p_contractSymbol",
-            "trade_date": "p_lastTrade",
-            "last": "p_lastPrice",
-            "bid": "p_bid",
-            "ask": "p_ask",
-            "change": "p_change",
-            "change_percentage": "p_percentChange",
-            "volume": "p_volume",
-            "open_interest": "p_openInterest",
-            "impliedVolatility": "p_impliedVolatility",
-            "greeks": "p_greeks",
-            # "inTheMoney": "p_inTheMoney",
-            # "lastTrade": "p_lastTrade",
-            "dollarsFromStrike": "p_dollarsFromStrike",
-            "dollarsFromStrikexOI": "p_dollarsFromStrikexOI",
-            "lastContractPricexOI": "p_lastContractPricexOI",
-        },
-        inplace=True,
-    )
+    # puts_df["expDate"] = puts_df["symbol"].str[-15:-9]
+    # ###TODO for puts, use current price - strike i think.
+    # puts_df["dollarsFromStrike"] = abs(puts_df["strike"] - LAC)
+    # puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["open_interest"]
+    # puts_df["lastContractPricexOI"] = puts_df["last"] * puts_df["open_interest"]
+    # puts_df["impliedVolatility"] = puts_df["greeks"].str.get("mid_iv")
+    # # print("PUTSsiv", puts_df['impliedVolatility'])
+    # puts_df.rename(
+    #     columns={
+    #         "symbol": "p_contractSymbol",
+    #         "trade_date": "p_lastTrade",
+    #         "last": "p_lastPrice",
+    #         "bid": "p_bid",
+    #         "ask": "p_ask",
+    #         "change": "p_change",
+    #         "change_percentage": "p_percentChange",
+    #         "volume": "p_volume",
+    #         "open_interest": "p_openInterest",
+    #         "impliedVolatility": "p_impliedVolatility",
+    #         "greeks": "p_greeks",
+    #         # "inTheMoney": "p_inTheMoney",
+    #         # "lastTrade": "p_lastTrade",
+    #         "dollarsFromStrike": "p_dollarsFromStrike",
+    #         "dollarsFromStrikexOI": "p_dollarsFromStrikexOI",
+    #         "lastContractPricexOI": "p_lastContractPricexOI",
+    #     },
+    #     inplace=True,
+    # )
+    # combined = pd.merge(puts_df, calls_df, on=["expDate", "strike"])
+    # combined = combined[
+    #     [
+    #         "expDate",
+    #         "strike",
+    #         "c_contractSymbol",
+    #         "c_lastTrade",
+    #         "c_lastPrice",
+    #         "c_bid",
+    #         "c_ask",
+    #         "c_change",
+    #         "c_percentChange",
+    #         "c_volume",
+    #         "c_openInterest",
+    #         "c_impliedVolatility",
+    #         "c_greeks",
+    #         "c_lastTrade",
+    #         "c_dollarsFromStrike",
+    #         "c_dollarsFromStrikexOI",
+    #         "c_lastContractPricexOI",
+    #         "p_contractSymbol",
+    #         "p_lastTrade",
+    #         "p_lastPrice",
+    #         "p_bid",
+    #         "p_ask",
+    #         "p_change",
+    #         "p_percentChange",
+    #         "p_volume",
+    #         "p_openInterest",
+    #         "p_impliedVolatility",
+    #         "c_greeks",
+    #         "p_lastTrade",
+    #         "p_dollarsFromStrike",
+    #         "p_dollarsFromStrikexOI",
+    #         "p_lastContractPricexOI",
+    #     ]
+    # ]
+    # combined.rename(
+    #     columns={
+    #         "expDate": "ExpDate",
+    #         "strike": "Strike",
+    #         "c_lastPrice": "Call_LastPrice",
+    #         "c_percentChange": "Call_PercentChange",
+    #         "c_volume": "Call_Volume",
+    #         "c_openInterest": "Call_OI",
+    #         "c_impliedVolatility": "Call_IV",
+    #         "c_dollarsFromStrike": "Calls_dollarsFromStrike",
+    #         "c_dollarsFromStrikexOI": "Calls_dollarsFromStrikeXoi",
+    #         "c_lastContractPricexOI": "Calls_lastPriceXoi",
+    #         "p_lastPrice": "Put_LastPrice",
+    #         "p_volume": "Put_Volume",
+    #         "p_openInterest": "Put_OI",
+    #         "p_impliedVolatility": "Put_IV",
+    #         "p_dollarsFromStrike": "Puts_dollarsFromStrike",
+    #         "p_dollarsFromStrikexOI": "Puts_dollarsFromStrikeXoi",
+    #         "p_lastContractPricexOI": "Puts_lastPriceXoi",
+    #     },
+    #     inplace=True,
+    # )
+    ####################################################
+    calls_df = pd.concat(callsChain, ignore_index=True)
+    puts_df = pd.concat(putsChain, ignore_index=True)
+    # Columns to keep
 
-    combined = pd.merge(puts_df, calls_df, on=["expDate", "strike"])
 
-    combined = combined[
-        [
-            "expDate",
-            "strike",
-            "c_contractSymbol",
-            "c_lastTrade",
-            "c_lastPrice",
-            "c_bid",
-            "c_ask",
-            "c_change",
-            "c_percentChange",
-            "c_volume",
-            "c_openInterest",
-            "c_impliedVolatility",
-            "c_greeks",
-            # "c_inTheMoney",
-            "c_lastTrade",
-            "c_dollarsFromStrike",
-            "c_dollarsFromStrikexOI",
-            "c_lastContractPricexOI",
-            "p_contractSymbol",
-            "p_lastTrade",
-            "p_lastPrice",
-            "p_bid",
-            "p_ask",
-            "p_change",
-            "p_percentChange",
-            "p_volume",
-            "p_openInterest",
-            "p_impliedVolatility",
-            "c_greeks",
-            # "p_inTheMoney",
-            "p_lastTrade",
-            "p_dollarsFromStrike",
-            "p_dollarsFromStrikexOI",
-            "p_lastContractPricexOI",
-        ]
-    ]
-    combined.rename(
-        columns={
-            "expDate": "ExpDate",
-            "strike": "Strike",
-            "c_lastPrice": "Call_LastPrice",
-            "c_percentChange": "Call_PercentChange",
-            "c_volume": "Call_Volume",
-            "c_openInterest": "Call_OI",
-            "c_impliedVolatility": "Call_IV",
-            "c_dollarsFromStrike": "Calls_dollarsFromStrike",
-            "c_dollarsFromStrikexOI": "Calls_dollarsFromStrikeXoi",
-            "c_lastContractPricexOI": "Calls_lastPriceXoi",
-            "p_lastPrice": "Put_LastPrice",
-            "p_volume": "Put_Volume",
-            "p_openInterest": "Put_OI",
-            "p_impliedVolatility": "Put_IV",
-            "p_dollarsFromStrike": "Puts_dollarsFromStrike",
-            "p_dollarsFromStrikexOI": "Puts_dollarsFromStrikeXoi",
-            "p_lastContractPricexOI": "Puts_lastPriceXoi",
-        },
-        inplace=True,
-    )
+    # Calculate new columns
+    for df in [calls_df, puts_df]:
+        df["dollarsFromStrike"] = abs(df["strike"] - LAC)
+        df["ExpDate"] = df["symbol"].str[-15:-9]
+        df["Strike"] = df["strike"]
+        df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
+        df["lastPriceXoi"] = df["last"] * df["open_interest"]
+        df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
+    # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
+    # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
+    columns_to_keep = ['symbol', 'trade_date', 'last', 'bid', 'ask', 'change', 'change_percentage', 'volume',
+                       'open_interest', 'ExpDate', 'Strike','lastPriceXoi','impliedVolatility','dollarsFromStrikeXoi']
 
+    # Columns to drop (all columns that are not in 'columns_to_keep')
+    columns_to_drop_calls = [col for col in calls_df.columns if col not in columns_to_keep]
+    columns_to_drop_puts = [col for col in puts_df.columns if col not in columns_to_keep]
+
+    # Drop unnecessary columns
+    calls_df = calls_df.drop(columns_to_drop_calls, axis=1)
+    puts_df = puts_df.drop(columns_to_drop_puts, axis=1)
+    # Format date
+    # Rename columns
+    rename_dict = {
+        "symbol": "contractSymbol",
+        "trade_date": "lastTrade",
+        "last": "lastPrice",
+        "bid": "bid",
+        "ask": "ask",
+        "change": "change",
+        "change_percentage": "percentChange",
+        "volume": "volume",
+        "open_interest": "openInterest",
+        "greeks": "greeks",
+        "impliedVolatility": "impliedVolatility",
+        "dollarsFromStrike": "dollarsFromStrike",
+
+        "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
+        "lastPriceXoi": "lastPriceXoi",
+    }
+
+    calls_df.rename(columns={k: f"c_{v}" for k, v in rename_dict.items()}, inplace=True)
+    puts_df.rename(columns={k: f"p_{v}" for k, v in rename_dict.items()}, inplace=True)
+
+    # Merge dataframes
+    combined = pd.merge(puts_df, calls_df, on=["ExpDate", "Strike"])
+    # Update renaming dictionary for the combined DataFrame
+    rename_dict_combined = {
+        "c_lastPrice": "Call_LastPrice",
+        "c_percentChange": "Call_PercentChange",
+        "c_volume": "Call_Volume",
+        "c_openInterest": "Call_OI",
+        "c_impliedVolatility": "Call_IV",
+        "c_dollarsFromStrike": "Calls_dollarsFromStrike",
+        "c_dollarsFromStrikeXoi": "Calls_dollarsFromStrikeXoi",
+        "c_lastPriceXoi": "Calls_lastPriceXoi",
+        "p_lastPrice": "Put_LastPrice",
+        "p_volume": "Put_Volume",
+        "p_openInterest": "Put_OI",
+        "p_impliedVolatility": "Put_IV",
+        "p_dollarsFromStrike": "Puts_dollarsFromStrike",
+        "p_dollarsFromStrikeXoi": "Puts_dollarsFromStrikeXoi",
+        "p_lastPriceXoi": "Puts_lastPriceXoi",
+    }
+
+    combined.rename(columns=rename_dict_combined, inplace=True)
+####################
     # for option in json_response["options"]["option"]:
     #     print(option["symbol"], option["open_interest"])
 
@@ -439,6 +498,7 @@ def perform_operations(
             smallest_change_from_lac = data["strike_lac_diff"].abs().idxmin()
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
             current_price_index = group["Strike"].sub(current_price).abs().idxmin()
+
             # print("currentprice index", current_price_index)
             ###RETURNS index of strike closest to CP
             higher_strike_index1 = current_price_index + 1
@@ -806,7 +866,6 @@ def perform_operations(
                 "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow,
             }
         )
-        ##TODO Signal strength 1-3, bull/bear.
     df = pd.DataFrame(results)
     df["RSI"] = this_minute_ta_frame["RSI"]
     df["RSI2"] = this_minute_ta_frame["RSI2"]
@@ -843,6 +902,6 @@ def perform_operations(
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
         f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
         df,
-        ##df is processeddata
         ticker,
     )
+##df is processeddata
