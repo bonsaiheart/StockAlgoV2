@@ -65,36 +65,6 @@ async def get_options_data(ticker):
 
         # Wait for all tasks to complete
         responses = await asyncio.gather(*tasks)
-
-        # Process responses
-        time_sale_response = responses[0]
-        quotes_response = responses[1]
-        expirations_response = responses[2]
-
-        # ... continue with your processing ...
-
-
-async def get_options_data(ticker):
-    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
-    end = datetime.today().strftime("%Y-%m-%d %H:%M")
-    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
-
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        # Add tasks to tasks list
-        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
-                           params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
-                                   "session_filter": "all"}, headers=headers))
-
-        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
-                           params={"symbols": ticker, "greeks": "false"}, headers=headers))
-
-        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/options/expirations",
-                           params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"}, headers=headers))
-
-        # Wait for all tasks to complete
-        responses = await asyncio.gather(*tasks)
-
         # Process responses
         time_sale_response = responses[0]
         quotes_response = responses[1]
@@ -141,8 +111,6 @@ async def get_options_data(ticker):
     expirations = expirations_response["expirations"]["expiration"]
     expiration_dates = [expiration["date"] for expiration in expirations]
 
-    closest_exp_date = expiration_dates[0]
-
     callsChain = []
     putsChain = []
     all_option_chains = await get_option_chains_concurrently(ticker, expiration_dates, headers)
@@ -154,129 +122,6 @@ async def get_options_data(ticker):
         callsChain.append(call_group)
         putsChain.append(put_group)
 
-
-    calls_df = pd.concat(callsChain, ignore_index=True)
-    # for greek in calls_df['greeks']:
-    #     print(greek.get('mid_iv'))
-    # calls_df["expDate"] = calls_df["symbol"].str[-15:-9]
-    # calls_df["dollarsFromStrike"] = abs(calls_df["strike"] - LAC)
-    # calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["open_interest"]
-    # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
-    # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
-    # # print("callsiv",calls_df['impliedVolatility'])
-    #
-    # calls_df.rename(
-    #     columns={
-    #         "symbol": "c_contractSymbol",
-    #         "trade_date": "c_lastTrade",
-    #         "last": "c_lastPrice",
-    #         "bid": "c_bid",
-    #         "ask": "c_ask",
-    #         "change": "c_change",
-    #         "change_percentage": "c_percentChange",
-    #         "volume": "c_volume",
-    #         "open_interest": "c_openInterest",
-    #         "greeks": "c_greeks",
-    #         "impliedVolatility": "c_impliedVolatility",
-    #          "dollarsFromStrike": "c_dollarsFromStrike",
-    #         "dollarsFromStrikexOI": "c_dollarsFromStrikexOI",
-    #         "lastContractPricexOI": "c_lastContractPricexOI",
-    #     },
-    #     inplace=True,
-    # )
-    # ###PUTS OPS
-    #
-    puts_df = pd.concat(putsChain, ignore_index=True)
-    # puts_df["lastTrade"] = pd.to_datetime(puts_df["lastTradeDate"])
-    # puts_df["lastTrade"] = puts_df["lastTrade"].dt.strftime("%y%m%d_%H%M")
-    # puts_df["expDate"] = puts_df["symbol"].str[-15:-9]
-    # ###TODO for puts, use current price - strike i think.
-    # puts_df["dollarsFromStrike"] = abs(puts_df["strike"] - LAC)
-    # puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["open_interest"]
-    # puts_df["lastContractPricexOI"] = puts_df["last"] * puts_df["open_interest"]
-    # puts_df["impliedVolatility"] = puts_df["greeks"].str.get("mid_iv")
-    # # print("PUTSsiv", puts_df['impliedVolatility'])
-    # puts_df.rename(
-    #     columns={
-    #         "symbol": "p_contractSymbol",
-    #         "trade_date": "p_lastTrade",
-    #         "last": "p_lastPrice",
-    #         "bid": "p_bid",
-    #         "ask": "p_ask",
-    #         "change": "p_change",
-    #         "change_percentage": "p_percentChange",
-    #         "volume": "p_volume",
-    #         "open_interest": "p_openInterest",
-    #         "impliedVolatility": "p_impliedVolatility",
-    #         "greeks": "p_greeks",
-    #         # "inTheMoney": "p_inTheMoney",
-    #         # "lastTrade": "p_lastTrade",
-    #         "dollarsFromStrike": "p_dollarsFromStrike",
-    #         "dollarsFromStrikexOI": "p_dollarsFromStrikexOI",
-    #         "lastContractPricexOI": "p_lastContractPricexOI",
-    #     },
-    #     inplace=True,
-    # )
-    # combined = pd.merge(puts_df, calls_df, on=["expDate", "strike"])
-    # combined = combined[
-    #     [
-    #         "expDate",
-    #         "strike",
-    #         "c_contractSymbol",
-    #         "c_lastTrade",
-    #         "c_lastPrice",
-    #         "c_bid",
-    #         "c_ask",
-    #         "c_change",
-    #         "c_percentChange",
-    #         "c_volume",
-    #         "c_openInterest",
-    #         "c_impliedVolatility",
-    #         "c_greeks",
-    #         "c_lastTrade",
-    #         "c_dollarsFromStrike",
-    #         "c_dollarsFromStrikexOI",
-    #         "c_lastContractPricexOI",
-    #         "p_contractSymbol",
-    #         "p_lastTrade",
-    #         "p_lastPrice",
-    #         "p_bid",
-    #         "p_ask",
-    #         "p_change",
-    #         "p_percentChange",
-    #         "p_volume",
-    #         "p_openInterest",
-    #         "p_impliedVolatility",
-    #         "c_greeks",
-    #         "p_lastTrade",
-    #         "p_dollarsFromStrike",
-    #         "p_dollarsFromStrikexOI",
-    #         "p_lastContractPricexOI",
-    #     ]
-    # ]
-    # combined.rename(
-    #     columns={
-    #         "expDate": "ExpDate",
-    #         "strike": "Strike",
-    #         "c_lastPrice": "Call_LastPrice",
-    #         "c_percentChange": "Call_PercentChange",
-    #         "c_volume": "Call_Volume",
-    #         "c_openInterest": "Call_OI",
-    #         "c_impliedVolatility": "Call_IV",
-    #         "c_dollarsFromStrike": "Calls_dollarsFromStrike",
-    #         "c_dollarsFromStrikexOI": "Calls_dollarsFromStrikeXoi",
-    #         "c_lastContractPricexOI": "Calls_lastPriceXoi",
-    #         "p_lastPrice": "Put_LastPrice",
-    #         "p_volume": "Put_Volume",
-    #         "p_openInterest": "Put_OI",
-    #         "p_impliedVolatility": "Put_IV",
-    #         "p_dollarsFromStrike": "Puts_dollarsFromStrike",
-    #         "p_dollarsFromStrikexOI": "Puts_dollarsFromStrikeXoi",
-    #         "p_lastContractPricexOI": "Puts_lastPriceXoi",
-    #     },
-    #     inplace=True,
-    # )
-    ####################################################
     calls_df = pd.concat(callsChain, ignore_index=True)
     puts_df = pd.concat(putsChain, ignore_index=True)
     # Columns to keep
@@ -545,30 +390,65 @@ def perform_operations(
         strike_ITMPCRoi_dict = {}
 
         # Calculate PCR values for all strikes in strikeindex_abovebelow
-        for strike in strikeindex_abovebelow:
-            strike_data = group_strike.get_group(strike) if strike is not None else None
+        for strikeabovebelow in strikeindex_abovebelow:
+            strike_data = group_strike.get_group(strikeabovebelow) if strikeabovebelow is not None else None
 
             if strike_data is None:
-                strike_PCRv_dict[strike] = np.nan
-                strike_PCRoi_dict[strike] = np.nan
-                strike_ITMPCRv_dict[strike] = np.nan
-                strike_ITMPCRoi_dict[strike] = np.nan
+                strike_PCRv_dict[strikeabovebelow] = np.nan
+                strike_PCRoi_dict[strikeabovebelow] = np.nan
+                strike_ITMPCRv_dict[strikeabovebelow] = np.nan
+                strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
                 continue
-            strike_PCRv_dict[strike] = calculate_pcr_ratio(strike_data["Put_Volume"].values[0],
+            strike_PCRv_dict[strikeabovebelow] = calculate_pcr_ratio(strike_data["Put_Volume"].values[0],
                                                            strike_data["Call_Volume"].values[0])
-            strike_PCRoi_dict[strike] = calculate_pcr_ratio(strike_data["Put_OI"].values[0],
+            strike_PCRoi_dict[strikeabovebelow] = calculate_pcr_ratio(strike_data["Put_OI"].values[0],
                                                             strike_data["Call_OI"].values[0])
 
             # Calculate ITM PCR values for strikes above and below the current strike
             # For puts, the strike is higher
-            itm_put_strike_data = group.loc[group["Strike"] >= current_price]
-            # For calls, the strike is lower
-            itm_call_strike_data = group.loc[group["Strike"] <= current_price]
-            # Then you can calculate your ratios as before but using the correct groups
-            strike_ITMPCRv_dict[strike] = calculate_pcr_ratio(itm_put_strike_data["Put_Volume"].sum(),
-                                                              itm_call_strike_data["Call_Volume"].sum())
-            strike_ITMPCRoi_dict[strike] = calculate_pcr_ratio(itm_put_strike_data["Put_OI"].sum(),
-                                                               itm_call_strike_data["Call_OI"].sum())
+
+
+
+            itm_put_strike_data = group.loc[group["Strike"] >= strikeabovebelow]
+            itm_call_strike_data = group.loc[group["Strike"] <= strikeabovebelow]
+
+            itm_put_volume = itm_put_strike_data["Put_Volume"].sum()
+            itm_call_volume = itm_call_strike_data["Call_Volume"].sum()
+            if itm_call_volume == 0:
+                strike_ITMPCRv_dict[strikeabovebelow] = np.nan
+            else:
+                strike_ITMPCRv_dict[strikeabovebelow] = itm_put_volume / itm_call_volume
+
+            itm_put_oi = itm_put_strike_data["Put_OI"].sum()
+            itm_call_oi = itm_call_strike_data["Call_OI"].sum()
+            if itm_call_oi == 0:
+                strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
+            else:
+                strike_ITMPCRoi_dict[strikeabovebelow] = itm_put_oi / itm_call_oi
+
+#         ####################
+#         for strikeabovebelow in strikeindex_abovebelow:
+#             if strikeabovebelow == None:
+#                 strike_ITMPCRv_dict[strikeabovebelow] = np.nan
+#             else:
+#                 strike_ITMPCRvput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_Volume"].sum()
+#                 strike_ITMPCRvcall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_Volume"].sum()
+#                 if strike_ITMPCRvcall_volume == 0:
+#                     strike_ITMPCRv_dict[strikeabovebelow] = np.nan
+#                 else:
+#                     strike_ITMPCRv_dict[strikeabovebelow] = strike_ITMPCRvput_volume / strike_ITMPCRvcall_volume
+#
+#         for strikeabovebelow in strikeindex_abovebelow:
+#             if strikeabovebelow == None:
+#                 strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
+#             else:
+#                 strike_ITMPCRoiput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_OI"].sum()
+#                 strike_ITMPCRoicall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_OI"].sum()
+#                 if strike_ITMPCRoicall_volume == 0:
+#                     strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
+#                 else:
+#                     strike_ITMPCRoi_dict[strikeabovebelow] = strike_ITMPCRoiput_volume / strike_ITMPCRoicall_volume
+# #####################
 
         def get_ratio_and_iv(strike):
             if strike is None:
@@ -611,31 +491,7 @@ def perform_operations(
 
         ###TODO error handling for scalar divide of zero denominator
 
-        # Check conditions before performing division
-        # def safe_division(numerator, denominator, epsilon=1e-6):
-        #     print(numerator,denominator)
-        #     if denominator == 0 and numerator == 0:
-        #         return 0
-        #     elif denominator == 0:
-        #         return float('inf') if numerator > 0 else float('-inf')
-        #     else:
-        #         return numerator / (denominator + epsilon)
 
-        # Bonsai_Ratio = safe_division(ITM_PutsVol * ITM_PutsOI, all_PutsVol * all_PutsOI) / \
-        #                safe_division(ITM_CallsVol * ITM_CallsOI, all_CallsVol * all_CallsOI)
-        #
-        # Bonsai2_Ratio = safe_division(all_PutsVol, ITM_PutsVol) / safe_division(all_PutsOI, ITM_PutsOI) * \
-        #                 safe_division(all_CallsVol, ITM_CallsVol) / safe_division(all_CallsOI, ITM_CallsOI)
-
-        # Calculate the percentage change###TODO figure out how to look at bonsai %change, will need to transform to timesheet.
-        # if last_Bonsai_Ratio is not None:
-        #     bonsai_percent_change = ((Bonsai_Ratio - last_Bonsai_Ratio) / last_Bonsai_Ratio) * 100
-        # else:
-        #     bonsai_percent_change = 0.0
-        # if last_Bonsai_Ratio_2 is not None:
-        #     bonsai2_percent_change = ((Bonsai2_Ratio - last_Bonsai_Ratio_2) / last_Bonsai_Ratio_2) * 100
-        # else:
-        #     bonsai2_percent_change = 0.0
         Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
                 (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI))
         Bonsai2_Ratio = ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI)) * (

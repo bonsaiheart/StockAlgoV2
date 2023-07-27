@@ -1,8 +1,6 @@
 
 from datetime import datetime, timedelta
-###TODO took 1:32 to run on dell touchscreen. CAN run about 5-8 tickers in a minute.  7/27/23 now running in less than a minute, but not processing modeling data for any but spy
 import asyncio
-from datetime import datetime
 import os
 import traceback
 import trade_algos
@@ -12,9 +10,14 @@ from IB import ibAPI
 
 log_dir = "errorlog"
 log_file = "error.log"
+###7/27 taking 51.3 seconds currently.
 async def ib_connect_and_main():
-    await ibAPI.ib_connect()  # Connect to IB here
-    await main()
+    while True:
+        await ibAPI.ib_connect()  # Connect to IB here
+        await asyncio.sleep(15 * 60)
+
+async def run_program():
+    await asyncio.gather(ib_connect_and_main(), main())
 
 async def main():
     if not os.path.exists(log_dir):
@@ -35,6 +38,7 @@ async def main():
                     ticker = ticker.upper()
                     print(ticker)
                     LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(ticker)
+
                     print("getoptindata complete")
                     (
                         optionchain,
@@ -66,14 +70,13 @@ async def main():
                     f"Ran at {datetime.now()}. Occurred on attempt: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
                 )
         current_time = datetime.now()
-        next_iteration_time = start_time + timedelta(seconds=59.988)
+        next_iteration_time = start_time + timedelta(seconds=60)
         _60sec_countdown = (next_iteration_time - current_time).total_seconds()
         print(start_time, next_iteration_time, current_time, _60sec_countdown)
         await asyncio.sleep(_60sec_countdown)  # Delay for 60 seconds before the next iteration
 
 if __name__ == "__main__":
     try:
-        asyncio.run(ib_connect_and_main())
+        asyncio.run(run_program())
     finally:
         ibAPI.ib_disconnect()  # Disconnect at the end of the script
-###TODO need to make sure an error with ib doesnt prevent data gathering.

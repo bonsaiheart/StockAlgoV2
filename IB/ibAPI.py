@@ -133,7 +133,7 @@ def placeOptionBracketOrder(
     custom_takeprofit=None,
     custom_trailamount=None,
 ):
-    print("Placeing order:")
+    print("Placing order:")
 
     try:
         print(ticker, exp, strike, contract_current_price)

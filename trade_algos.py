@@ -46,11 +46,12 @@ def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity
 
 async def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
-    expdates_strikes_dict = {
-        row["ExpDate"]: row["Closest Strike Above/Below(below to above,4 each) list"]
-        for _, row in processeddata.iterrows()
-    }
 
+    expdates_strikes_dict = {}
+    for exp_date, row in processeddata.iterrows():
+        exp_date = row['ExpDate']
+        closest_strikes_list = row["Closest Strike Above/Below(below to above,4 each) list"]
+        expdates_strikes_dict[exp_date] = closest_strikes_list
     closest_exp_date = list(expdates_strikes_dict.keys())[0]
     strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
     optionchain = pd.read_csv(optionchain)
@@ -128,7 +129,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         DownOne_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downone_call_contract][
             "Call_LastPrice"
         ].values[0]
-        print(DownOne_Call_Price,"Downone call price was qunt?")
         UpOne_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upone_put_contract][
             "Put_LastPrice"
         ].values[0]
