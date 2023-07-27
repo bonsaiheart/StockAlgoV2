@@ -13,6 +13,25 @@ from skopt import BayesSearchCV, Optimizer
 
 DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 ml_dataframe = pd.read_csv(DF_filename)
+"""TODO  as of scikit-learn version 0.23, you can now add feature names to your datasets, which will prevent this warning from occurring. Here is how you can do it:
+# 
+# If you're using a numpy array, you should first convert it to a pandas DataFrame. For example:
+# 
+# python
+# Copy code
+# import pandas as pd
+# 
+# # Assuming X is your feature matrix and feature_names is a list of your feature names
+# X_df = pd.DataFrame(X, columns=feature_names)
+# Now, when you call your RandomForestClassifier's fit method, you can use this DataFrame:
+# 
+# python
+# Copy code
+# clf = RandomForestClassifier()
+# clf.fit(X_df, y)
+# By doing this, your RandomForestClassifier will have the feature names and the warning should no longer occur.
+"""
+
 
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 Chosen_Predictor = [

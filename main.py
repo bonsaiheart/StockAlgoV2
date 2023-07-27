@@ -1,14 +1,6 @@
-import asyncio
+
 from datetime import datetime, timedelta
-import os
-import traceback
-import trade_algos
-from UTILITIES import check_Market_Conditions
-import tradierAPI_marketdata
-from IB import ibAPI
-from ib_insync import util
-# import webullapi
-###TODO took 1:32 to run on dell touchscreen. CAN run about 5-8 tickers in a minute.
+###TODO took 1:32 to run on dell touchscreen. CAN run about 5-8 tickers in a minute.  7/27/23 now running in less than a minute, but not processing modeling data for any but spy
 import asyncio
 from datetime import datetime
 import os
@@ -20,6 +12,9 @@ from IB import ibAPI
 
 log_dir = "errorlog"
 log_file = "error.log"
+async def ib_connect_and_main():
+    await ibAPI.ib_connect()  # Connect to IB here
+    await main()
 
 async def main():
     if not os.path.exists(log_dir):
@@ -32,12 +27,10 @@ async def main():
         start_time = datetime.now()
         print(start_time)
         try:
-            if check_Market_Conditions.is_market_open_now():  # TODO change back
-                await ibAPI.ib_connect()
+            if check_Market_Conditions.is_market_open_now():
                 with open("UTILITIES/tickerlist.txt", "r") as f:
                     tickerlist = [line.strip().upper() for line in f.readlines()]
 
-                print("ib_connected:",ibAPI.ib.isConnected())
                 for ticker in tickerlist:
                     ticker = ticker.upper()
                     print(ticker)
@@ -68,19 +61,19 @@ async def main():
         except Exception as e:
             with open(log_path, "a") as f:
                 print(traceback.format_exc())
-                print(f"Error occurred: {traceback.format_exc()}.  Retrying in {retry_delay} seconds...")
+                print(f"Error occurred: {traceback.format_exc()}. Retrying in {retry_delay} seconds...")
                 f.write(
                     f"Ran at {datetime.now()}. Occurred on attempt: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
                 )
-        current_time =datetime.now()
-        next_iteration_time = start_time + timedelta(seconds=59)
+        current_time = datetime.now()
+        next_iteration_time = start_time + timedelta(seconds=59.988)
         _60sec_countdown = (next_iteration_time - current_time).total_seconds()
-        print(start_time,next_iteration_time,current_time,_60sec_countdown)
-        await asyncio.sleep(_60sec_countdown) # Delay for 60 seconds before the next iteration
+        print(start_time, next_iteration_time, current_time, _60sec_countdown)
+        await asyncio.sleep(_60sec_countdown)  # Delay for 60 seconds before the next iteration
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(ib_connect_and_main())
     finally:
         ibAPI.ib_disconnect()  # Disconnect at the end of the script
 ###TODO need to make sure an error with ib doesnt prevent data gathering.

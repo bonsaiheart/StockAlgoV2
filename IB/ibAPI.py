@@ -73,7 +73,7 @@ async def ib_connect():
             logging.getLogger().error("Connection error: %s", e)
             print("Connection error:", e)
     else:
-        print("ib already connected?")
+        print("IB already connected.")
 
 
 def ib_disconnect():

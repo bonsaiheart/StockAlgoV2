@@ -7,7 +7,8 @@ import numpy as np
 import PrivateData.tradier_info
 
 # import webullAPI
-
+# Add a small constant to denominators to avoid division by zero
+epsilon = 1e-6
 paper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
@@ -18,6 +19,8 @@ YYMMDD = datetime.today().strftime("%y%m%d")
 import aiohttp
 import asyncio
 
+#TODO for now this ignores the divede by zero warnings.
+np.seterr(divide='ignore', invalid='ignore')
 async def get_option_chain(session, ticker, exp_date, headers):
     response = await session.get(
         "https://api.tradier.com/v1/markets/options/chains",
@@ -347,7 +350,6 @@ async def get_options_data(ticker):
 ####################
     # for option in json_response["options"]["option"]:
     #     print(option["symbol"], option["open_interest"])
-
     ##weighted total iv for contract
     # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
     # vega measures response to IV change.
@@ -365,9 +367,6 @@ async def get_options_data(ticker):
             print(f"An error occurred while writing the CSV file,: {e}")
             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
     # combined.to_csv(f"combined_tradier.csv")
-    # print(type(LAC), type(CurrentPrice), type(price_change_percent), type(StockLastTradeTime),
-    #       type(this_minute_ta_frame), type(closest_exp_date))
-    # print(LAC, CurrentPrice,"fffff", price_change_percent,"asdfdasf", StockLastTradeTime, this_minute_ta_frame, closest_exp_date)
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
 
     return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, expiration_dates
@@ -383,7 +382,6 @@ def perform_operations(
         this_minute_ta_frame,
         expiration_dates,
 ):
-    closest_exp_date = expiration_dates[0]
     results = []
 
     data = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
@@ -408,56 +406,53 @@ def perform_operations(
         puts_LASTPRICExOI_dict = (
             group.loc[group["Puts_lastPriceXoi"] >= 0, ["Strike", "Puts_lastPriceXoi"]].set_index("Strike").to_dict()
         )
-        calls_DFSxOI_dict = (
-            group.loc[group["Calls_dollarsFromStrikeXoi"] >= 0, ["Strike", "Calls_dollarsFromStrikeXoi"]]
-            .set_index("Strike")
-            .to_dict()
-        )
-        puts_DFSxOI_dict = (
-            group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
-            .set_index("Strike")
-            .to_dict()
-        )
+        # calls_DFSxOI_dict = (
+        #     group.loc[group["Calls_dollarsFromStrikeXoi"] >= 0, ["Strike", "Calls_dollarsFromStrikeXoi"]]
+        #     .set_index("Strike")
+        #     .to_dict()
+        # )
+        # puts_DFSxOI_dict = (
+        #     group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
+        #     .set_index("Strike")
+        #     .to_dict()
+        # )
+
 
         ITM_CallsVol = group.loc[(group["Strike"] <= current_price), "Call_Volume"].sum()
         ITM_PutsVol = group.loc[(group["Strike"] >= current_price), "Put_Volume"].sum()
         ITM_CallsOI = group.loc[(group["Strike"] <= current_price), "Call_OI"].sum()
         ITM_PutsOI = group.loc[(group["Strike"] >= current_price), "Put_OI"].sum()
-        ITM_OI = ITM_CallsOI + ITM_PutsOI
+
         all_CallsVol = group.Call_Volume.sum()
         all_PutsVol = group.Put_Volume.sum()
 
         all_CallsOI = group.Call_OI.sum()
         all_PutsOI = group.Put_OI.sum()
+
         all_OI = all_PutsOI + all_CallsOI
+        ITM_OI = ITM_CallsOI + ITM_PutsOI
+
         ITM_Call_IV = group.loc[(group["Strike"] <= current_price), "Call_IV"].sum()
         ITM_Put_IV = group.loc[(group["Strike"] >= current_price), "Put_IV"].sum()
+
         Call_IV = group["Call_IV"].sum()
         Put_IV = group["Put_IV"].sum()
+
+        # Now that we have calculated sums, we use them for further calculations
+
         ITM_Avg_Net_IV = ITM_Call_IV - ITM_Put_IV
         Net_IV = Call_IV - Put_IV
-        if all_CallsVol != 0 and not np.isnan(all_CallsVol):
-            PC_Ratio_Vol = all_PutsVol / all_CallsVol
-        else:
-            PC_Ratio_Vol = np.nan
-        if ITM_CallsVol != 0 and not np.isnan(ITM_CallsVol):
-            ITM_PC_Ratio_Vol = ITM_PutsVol / ITM_CallsVol
-        else:
-            ITM_PC_Ratio_Vol = np.nan
-        if all_CallsOI != 0 and not np.isnan(all_CallsOI):
-            PC_Ratio_OI = all_PutsOI / all_CallsOI
-        else:
-            PC_Ratio_OI = np.nan
-        if ITM_CallsOI != 0 and not np.isnan(ITM_CallsOI):
-            ITM_PC_Ratio_OI = ITM_PutsOI / ITM_CallsOI
-        else:
-            ITM_PC_Ratio_OI = np.nan
-        DFSxOI_dict = (
-            group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
-            .set_index("Strike")
-            .to_dict()
-        )
-        # All_PC_Ratio =
+
+        PC_Ratio_Vol = all_PutsVol / all_CallsVol if all_CallsVol != 0 and not np.isnan(all_CallsVol) else np.nan
+        ITM_PC_Ratio_Vol = ITM_PutsVol / ITM_CallsVol if ITM_CallsVol != 0 and not np.isnan(ITM_CallsVol) else np.nan
+        PC_Ratio_OI = all_PutsOI / all_CallsOI if all_CallsOI != 0 and not np.isnan(all_CallsOI) else np.nan
+        ITM_PC_Ratio_OI = ITM_PutsOI / ITM_CallsOI if ITM_CallsOI != 0 and not np.isnan(ITM_CallsOI) else np.nan
+
+        # DFSxOI_dict = (
+        #     group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
+        #     .set_index("Strike")
+        #     .to_dict()
+        # )
         # Money_weighted_PC_Ratio =
         ###TODO add highest premium puts/calls, greeks corelation?
         ###TODO correlate volume and IV, high volume high iv = contracts being bought, high volume, low vol. = contracts being sold.
@@ -493,253 +488,144 @@ def perform_operations(
         # target number from column A
         # calculate difference between target and each value in column B
         data["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
-        # find index of row with smallest difference
+        ###############################
         if not group.empty:
             smallest_change_from_lac = data["strike_lac_diff"].abs().idxmin()
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
+
+            # Find index of row with the closest strike to the current price
             current_price_index = group["Strike"].sub(current_price).abs().idxmin()
 
-            # print("currentprice index", current_price_index)
-            ###RETURNS index of strike closest to CP
-            higher_strike_index1 = current_price_index + 1
-            higher_strike_index2 = current_price_index + 2
-            higher_strike_index3 = current_price_index + 3
-            higher_strike_index4 = current_price_index + 4
-            # get the index of the row with the closest lower strike
-            lower_strike_index1 = current_price_index - 1
-            lower_strike_index2 = current_price_index - 2
-            lower_strike_index3 = current_price_index - 3
-            lower_strike_index4 = current_price_index - 4
-            # get the strikes for the closest higher and lower strikes
-            try:
-                closest_strike_currentprice = group.loc[current_price_index, "Strike"]
-            except KeyError as e:
-                closest_strike_currentprice = None
-                ("KeyError:", e)
-            try:
-                closest_higher_strike1 = group.loc[higher_strike_index1, "Strike"]
-                # print(closest_higher_strike1)
-            except KeyError:
-                closest_higher_strike1 = None
-            try:
-                closest_higher_strike2 = group.loc[higher_strike_index2, "Strike"]
-            except KeyError:
-                closest_higher_strike2 = None
-            try:
-                closest_higher_strike3 = group.loc[higher_strike_index3, "Strike"]
-                # print('closesthigherstrike3',closest_higher_strike3)
-            except KeyError:
-                closest_higher_strike3 = None
-            try:
-                closest_higher_strike4 = group.loc[higher_strike_index4, "Strike"]
-            except KeyError:
-                closest_higher_strike4 = None
-            try:
-                closest_lower_strike1 = group.loc[lower_strike_index1, "Strike"]
-            except KeyError:
-                closest_lower_strike1 = None
+            # Create a list of higher and lower strike indexes
+            higher_strike_indexes = [i for i in range(current_price_index + 1, current_price_index + 5) if
+                                     i in group.index]
+            lower_strike_indexes = [i for i in range(current_price_index - 1, current_price_index - 5, -1) if
+                                    i in group.index]
 
-            try:
-                closest_lower_strike2 = group.loc[lower_strike_index2, "Strike"]
-            except KeyError:
-                closest_lower_strike2 = None
+            # Initialize the lists for the closest strikes
+            closest_higher_strikes = group.loc[higher_strike_indexes, "Strike"].tolist()
+            closest_lower_strikes = group.loc[lower_strike_indexes, "Strike"].tolist()
 
-            try:
-                closest_lower_strike3 = group.loc[lower_strike_index3, "Strike"]
-            except KeyError:
-                closest_lower_strike3 = None
+            # Append None values to the lists to ensure they have a length of 4
+            closest_higher_strikes += [None] * (4 - len(closest_higher_strikes))
+            closest_lower_strikes += [None] * (4 - len(closest_lower_strikes))
 
-            try:
-                closest_lower_strike4 = group.loc[lower_strike_index4, "Strike"]
-                # print("closest_lowerstrike4",closest_lower_strike4)
-            except KeyError:
-                closest_lower_strike4 = None
-
+            closest_strike_currentprice = group.loc[current_price_index, "Strike"]
         else:
-            # handle empty dataframe here
             closest_strike_lac = None
             closest_strike_currentprice = None
-            closest_higher_strike1 = None
-            closest_higher_strike2 = None
-            closest_higher_strike3 = None
-            closest_higher_strike4 = None
-            closest_lower_strike1 = None
-            closest_lower_strike2 = None
-            closest_lower_strike3 = None
-            closest_lower_strike4 = None
+            closest_higher_strikes = [None] * 4
+            closest_lower_strikes = [None] * 4
 
+        # Create the strikeindex_abovebelow list
+        strikeindex_abovebelow = closest_lower_strikes[::-1] + [closest_strike_currentprice] + closest_higher_strikes
+        closest_lower_strike4 = strikeindex_abovebelow[0]
+        closest_lower_strike3 = strikeindex_abovebelow[1]
+        closest_lower_strike2 = strikeindex_abovebelow[2]
+        closest_lower_strike1 = strikeindex_abovebelow[3]
+        closest_higher_strike1= strikeindex_abovebelow[5]
+        closest_higher_strike2= strikeindex_abovebelow[6]
+        closest_higher_strike3=strikeindex_abovebelow[7]
+        closest_higher_strike4=strikeindex_abovebelow[8]
+#################
 
-        # closest_strike_currentprice_dict[exp_date] = closest_strike_currentprice
+        ##Gettting pcr-vol for individual strikes above/below CP(closest to current price strike)
+        def calculate_pcr_ratio(put_data, call_data):
+            if np.isnan(put_data) or np.isnan(call_data) or call_data == 0:
+                return np.inf if call_data == 0 and put_data !=0 and not np.isnan(put_data) else np.nan
+            else:
+                return put_data / call_data
 
-        strikeindex_abovebelow = [
-            closest_lower_strike4,
-            closest_lower_strike3,
-            closest_lower_strike2,
-            closest_lower_strike1,
-            closest_strike_currentprice,
-            closest_higher_strike1,
-            closest_higher_strike2,
-            closest_higher_strike3,
-            closest_higher_strike4,
-        ]
+        group_strike = group.groupby('Strike')
+
+        # Initialize dictionaries for storing PCR values
         strike_PCRv_dict = {}
         strike_PCRoi_dict = {}
         strike_ITMPCRv_dict = {}
         strike_ITMPCRoi_dict = {}
-        ##Gettting pcr-vol for individual strikes above/below CP(closest to current price strike)
+
+        # Calculate PCR values for all strikes in strikeindex_abovebelow
         for strike in strikeindex_abovebelow:
-            if strike == None:
+            strike_data = group_strike.get_group(strike) if strike is not None else None
+
+            if strike_data is None:
                 strike_PCRv_dict[strike] = np.nan
-            else:
-                strikeindex_abovebelowput_volume = group.loc[group["Strike"] == strike, "Put_Volume"].values[0]
-                strikeindex_abovebelowcall_volume = group.loc[group["Strike"] == strike, "Call_Volume"].values[0]
-                if strikeindex_abovebelowcall_volume == 0:
-                    strike_PCRv_dict[strike] = np.nan
-                else:
-                    strike_PCRv_dict[strike] = strikeindex_abovebelowput_volume / strikeindex_abovebelowcall_volume
-        ##Get pcr-oi for individual strikes above/below CP strieki
-        for strike in strikeindex_abovebelow:
-            if strike == None:
                 strike_PCRoi_dict[strike] = np.nan
+                strike_ITMPCRv_dict[strike] = np.nan
+                strike_ITMPCRoi_dict[strike] = np.nan
+                continue
+            strike_PCRv_dict[strike] = calculate_pcr_ratio(strike_data["Put_Volume"].values[0],
+                                                           strike_data["Call_Volume"].values[0])
+            strike_PCRoi_dict[strike] = calculate_pcr_ratio(strike_data["Put_OI"].values[0],
+                                                            strike_data["Call_OI"].values[0])
+
+            # Calculate ITM PCR values for strikes above and below the current strike
+            # For puts, the strike is higher
+            itm_put_strike_data = group.loc[group["Strike"] >= current_price]
+            # For calls, the strike is lower
+            itm_call_strike_data = group.loc[group["Strike"] <= current_price]
+            # Then you can calculate your ratios as before but using the correct groups
+            strike_ITMPCRv_dict[strike] = calculate_pcr_ratio(itm_put_strike_data["Put_Volume"].sum(),
+                                                              itm_call_strike_data["Call_Volume"].sum())
+            strike_ITMPCRoi_dict[strike] = calculate_pcr_ratio(itm_put_strike_data["Put_OI"].sum(),
+                                                               itm_call_strike_data["Call_OI"].sum())
+
+        def get_ratio_and_iv(strike):
+            if strike is None:
+                # handle the case where strike is None
+                return None
             else:
-                strikeindex_abovebelowput_oi = group.loc[group["Strike"] == strike, "Put_OI"].values[0]
-                strikeindex_abovebelowcall_oi = group.loc[group["Strike"] == strike, "Call_OI"].values[0]
-                if strikeindex_abovebelowcall_oi == 0:
-                    strike_PCRoi_dict[strike] = np.nan
-                else:
-                    strike_PCRoi_dict[strike] = strikeindex_abovebelowput_oi / strikeindex_abovebelowcall_oi
+                strike_data = group_strike.get_group(strike)
+                ratio_v = calculate_pcr_ratio(strike_data["Put_Volume"].values[0], strike_data["Call_Volume"].values[0])
+                ratio_oi = calculate_pcr_ratio(strike_data["Put_OI"].values[0], strike_data["Call_OI"].values[0])
+                call_iv = strike_data["Call_IV"].sum()
+                put_iv = strike_data["Put_IV"].sum()
+                net_iv = call_iv - put_iv
+                return ratio_v, ratio_oi, call_iv, put_iv, net_iv
+        # Calculate PCR values for the closest strike to LAC
+        PC_Ratio_Vol_Closest_Strike_LAC, PC_Ratio_OI_Closest_Strike_LAC, Call_IV_Closest_Strike_LAC, Put_IV_Closest_Strike_LAC, Net_IV_Closest_Strike_LAC = get_ratio_and_iv(
+            closest_strike_lac)
+        # Calculate PCR values for the closest strike to CP
+        PCRv_cp_strike, PCRoi_cp_strike, _, _, _ = get_ratio_and_iv(closest_strike_currentprice)
 
-        ##CP PCR V/oi
-        cp_put_vol = group.loc[group["Strike"] == closest_strike_currentprice, "Put_Volume"].values[0]
-        cp_call_vol = group.loc[group["Strike"] == closest_strike_currentprice, "Call_Volume"].values[0]
-        if np.isnan(cp_put_vol) or np.isnan(cp_call_vol) or cp_call_vol == 0:
-            PCRv_cp_strike = np.nan
-        else:
-            PCRv_cp_strike = cp_put_vol / cp_call_vol
 
-        cp_put_OI = group.loc[group["Strike"] == closest_strike_currentprice, "Put_OI"].values[0]
-        cp_call_OI = group.loc[group["Strike"] == closest_strike_currentprice, "Call_OI"].values[0]
-        if np.isnan(cp_put_OI) or np.isnan(cp_call_OI) or cp_call_OI == 0:
-            PCRoi_cp_strike = np.nan
-        else:
-            PCRoi_cp_strike = cp_put_OI / cp_call_OI
 
-        ###MP V PCR
-        mp_put_vol = group.loc[group["Strike"] == max_pain, "Put_Volume"].values[0]
-        mp_call_vol = group.loc[group["Strike"] == max_pain, "Call_Volume"].values[0]
+        # Calculate PCR values for Max Pain strike
+        PC_Ratio_Vol_atMP, PC_Ratio_OI_atMP, Net_Call_IV_at_MP, Net_Put_IV_at_MP, Net_IV_at_MP = get_ratio_and_iv(
+            max_pain)
 
-        if np.isnan(mp_put_vol) or np.isnan(mp_call_vol) or mp_call_vol == 0:
-            PC_Ratio_Vol_atMP = np.nan
-        else:
-            PC_Ratio_Vol_atMP = mp_put_vol / mp_call_vol
-        ##MP OI PCR
-        mp_put_OI = group.loc[group["Strike"] == max_pain, "Put_OI"].values[0]
-        mp_call_OI = group.loc[group["Strike"] == max_pain, "Call_OI"].values[0]
-        if np.isnan(mp_put_OI) or np.isnan(mp_call_OI) or mp_call_OI == 0:
-            PC_Ratio_OI_atMP = np.nan
-        else:
-            PC_Ratio_OI_atMP = mp_put_OI / mp_call_OI
+        NIV_CurrentStrike = get_ratio_and_iv(closest_strike_currentprice)[
+            4] if closest_strike_currentprice is not None else np.nan
+        NIV_1HigherStrike = get_ratio_and_iv(closest_higher_strike1)[
+            4] if closest_higher_strike1 is not None else np.nan
+        NIV_2HigherStrike = get_ratio_and_iv(closest_higher_strike2)[
+            4] if closest_higher_strike2 is not None else np.nan
+        NIV_3HigherStrike = get_ratio_and_iv(closest_higher_strike3)[
+            4] if closest_higher_strike3 is not None else np.nan
+        NIV_4HigherStrike = get_ratio_and_iv(closest_higher_strike4)[
+            4] if closest_higher_strike4 is not None else np.nan
+        NIV_1LowerStrike = get_ratio_and_iv(closest_lower_strike1)[4] if closest_lower_strike1 is not None else np.nan
+        NIV_2LowerStrike = get_ratio_and_iv(closest_lower_strike2)[4] if closest_lower_strike2 is not None else np.nan
+        NIV_3LowerStrike = get_ratio_and_iv(closest_lower_strike3)[4] if closest_lower_strike3 is not None else np.nan
+        NIV_4LowerStrike = get_ratio_and_iv(closest_lower_strike4)[4] if closest_lower_strike4 is not None else np.nan
 
-        ####ITM for four up and four down.
-
-        for strikeabovebelow in strikeindex_abovebelow:
-            if strikeabovebelow == None:
-                strike_ITMPCRv_dict[strikeabovebelow] = np.nan
-            else:
-                strike_ITMPCRvput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_Volume"].sum()
-                strike_ITMPCRvcall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_Volume"].sum()
-                if strike_ITMPCRvcall_volume == 0:
-                    strike_ITMPCRv_dict[strikeabovebelow] = np.nan
-                else:
-                    strike_ITMPCRv_dict[strikeabovebelow] = strike_ITMPCRvput_volume / strike_ITMPCRvcall_volume
-
-        for strikeabovebelow in strikeindex_abovebelow:
-            if strikeabovebelow == None:
-                strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
-            else:
-                strike_ITMPCRoiput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_OI"].sum()
-                strike_ITMPCRoicall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_OI"].sum()
-                if strike_ITMPCRoicall_volume == 0:
-                    strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
-                else:
-                    strike_ITMPCRoi_dict[strikeabovebelow] = strike_ITMPCRoiput_volume / strike_ITMPCRoicall_volume
-
-        ###TODO use above/below lac strikes instead of just closest.
-        ##LAC V/oi PCR
-        lac_put_vol = group.loc[group["Strike"] == closest_strike_lac, "Put_Volume"].values[0]
-        lac_call_vol = group.loc[group["Strike"] == closest_strike_lac, "Call_Volume"].values[0]
-        if np.isnan(lac_put_vol) or np.isnan(lac_call_vol) or lac_call_vol == 0:
-            PC_Ratio_Vol_Closest_Strike_LAC = np.nan
-        else:
-            PC_Ratio_Vol_Closest_Strike_LAC = lac_put_vol / lac_call_vol
-
-        lac_put_OI = group.loc[group["Strike"] == closest_strike_lac, "Put_OI"].values[0]
-        lac_call_OI = group.loc[group["Strike"] == closest_strike_lac, "Call_OI"].values[0]
-        if np.isnan(lac_put_OI) or np.isnan(lac_call_OI) or lac_call_OI == 0:
-            PC_Ratio_OI_Closest_Strike_LAC = np.nan
-        else:
-            PC_Ratio_OI_Closest_Strike_LAC = lac_put_OI / lac_call_OI
-
-        if np.isnan(PC_Ratio_Vol_atMP) or np.isnan(PC_Ratio_OI_atMP) or PC_Ratio_OI_atMP == 0:
-            PCR_vol_OI_at_MP = np.nan
-        else:
-            PCR_vol_OI_at_MP = round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3)
-
-        if (
-                np.isnan(PC_Ratio_Vol_Closest_Strike_LAC)
-                or np.isnan(PC_Ratio_OI_Closest_Strike_LAC)
-                or PC_Ratio_OI_Closest_Strike_LAC == 0
-        ):
-            PCR_vol_OI_at_LAC = np.nan
-        else:
-            PCR_vol_OI_at_LAC = round((PC_Ratio_Vol_Closest_Strike_LAC / PC_Ratio_OI_Closest_Strike_LAC), 3)
-
-        Net_Call_IV_at_MP = group.loc[(group["Strike"] == max_pain), "Call_IV"].sum()
-        Net_Put_IV_at_MP = group.loc[(group["Strike"] == max_pain), "Put_IV"].sum()
-        Net_IV_at_MP = Net_Call_IV_at_MP - Net_Put_IV_at_MP
-        NIV_CurrentStrike = (group.loc[(group["Strike"] == closest_strike_currentprice), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_strike_currentprice), "Put_IV"].sum()
-        )
-        NIV_1HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike1), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike1), "Put_IV"].sum()
-        )
-        NIV_2HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike2), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike2), "Put_IV"].sum()
-        )
-        NIV_3HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike3), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike3), "Put_IV"].sum()
-        )
-        NIV_4HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike4), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike4), "Put_IV"].sum()
-        )
-        NIV_1LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike1), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike1), "Put_IV"].sum()
-        )
-        NIV_2LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike2), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike2), "Put_IV"].sum()
-        )
-        NIV_3LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike3), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike3), "Put_IV"].sum()
-        )
-        NIV_4LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike4), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike4), "Put_IV"].sum()
-        )
-
-        Call_IV_Closest_Strike_LAC = group.loc[(group["Strike"] == closest_strike_lac), "Call_IV"].sum()
-        Put_IV_Closest_Strike_LAC = group.loc[(group["Strike"] == closest_strike_lac), "Put_IV"].sum()
-        Net_IV_Closest_Strike_LAC = Call_IV_Closest_Strike_LAC - Put_IV_Closest_Strike_LAC
         ###TODO error handling for scalar divide of zero denominator
 
-        Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
-                (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
-        )
-        Bonsai2_Ratio = (
-            # (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
-            # and float("inf")
-            # or
-                ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
-                * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
-        )
+        # Check conditions before performing division
+        # def safe_division(numerator, denominator, epsilon=1e-6):
+        #     print(numerator,denominator)
+        #     if denominator == 0 and numerator == 0:
+        #         return 0
+        #     elif denominator == 0:
+        #         return float('inf') if numerator > 0 else float('-inf')
+        #     else:
+        #         return numerator / (denominator + epsilon)
+
+        # Bonsai_Ratio = safe_division(ITM_PutsVol * ITM_PutsOI, all_PutsVol * all_PutsOI) / \
+        #                safe_division(ITM_CallsVol * ITM_CallsOI, all_CallsVol * all_CallsOI)
+        #
+        # Bonsai2_Ratio = safe_division(all_PutsVol, ITM_PutsVol) / safe_division(all_PutsOI, ITM_PutsOI) * \
+        #                 safe_division(all_CallsVol, ITM_CallsVol) / safe_division(all_CallsOI, ITM_CallsOI)
 
         # Calculate the percentage change###TODO figure out how to look at bonsai %change, will need to transform to timesheet.
         # if last_Bonsai_Ratio is not None:
@@ -750,7 +636,10 @@ def perform_operations(
         #     bonsai2_percent_change = ((Bonsai2_Ratio - last_Bonsai_Ratio_2) / last_Bonsai_Ratio_2) * 100
         # else:
         #     bonsai2_percent_change = 0.0
-
+        Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
+                (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI))
+        Bonsai2_Ratio = ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI)) * (
+                (all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
         round(strike_PCRv_dict[closest_higher_strike1], 3),
         results.append(
             {
