@@ -115,6 +115,8 @@ def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity
 
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
+    print("printorderStatus.status:",orderStatus.status)
+    print("printorderstatus.filled:",orderStatus.filled)
     if orderStatus.status == "Filled":
         parentOrderId = orderStatus.orderStatus.parentId
         childOrderId = orderStatus.orderStatus.orderId

@@ -26,7 +26,7 @@ def Buy_4hr_nnSPYA1(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[  prediction_series.index, "Predictions"
     ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
+    return result["Predictions"], .6,.3
 def Sell_4hr_nnSPYA1(new_data_df):
     features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
 
@@ -45,7 +45,7 @@ def Sell_4hr_nnSPYA1(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[  prediction_series.index, "Predictions"
     ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
+    return result["Predictions"], .6,.3
 def Buy_90min_A5(new_data_df):
     features =['Bonsai Ratio', 'PCRv Up3', 'PCRv Down3', 'PCRv Up4', 'ITM PCRv Down3',
        'ITM PCRv Down4']

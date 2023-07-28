@@ -20,6 +20,7 @@ import aiohttp
 import asyncio
 
 #TODO for now this ignores the divede by zero warnings.
+connector = aiohttp.TCPConnector(limit=10)
 np.seterr(divide='ignore', invalid='ignore')
 async def get_option_chain(session, ticker, exp_date, headers):
     response = await session.get(
@@ -34,7 +35,6 @@ async def get_option_chain(session, ticker, exp_date, headers):
     return optionchain_df
 
 async def get_option_chains_concurrently(ticker, expiration_dates, headers):
-    connector = aiohttp.TCPConnector(limit=10)
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
         for exp_date in expiration_dates:
@@ -58,7 +58,7 @@ async def get_options_data(ticker):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
 
-    connector = aiohttp.TCPConnector(limit=10)
+
     async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
         # Add tasks to tasks list

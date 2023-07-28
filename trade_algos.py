@@ -35,7 +35,8 @@ def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity
                                    strike=strike,
                                    contract_current_price=contract_current_price,
                                    quantity=quantity,
-                                   orderRef=orderRef)
+                                   orderRef=orderRef, custom_takeprofit=None,
+    custom_trailamount=None)
     finally:
         loop.close()
 # Then use it in your main code like this:
@@ -279,7 +280,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
             print(f"Invalid model function name: {model.__name__}")
             continue
         result = model(dailyminutes_df)
-        dailyminutes_df[model_name] = result
+        dailyminutes_df[model_name], takeprofit, stoploss = result,None,None
         dailyminutes_df.to_csv("testdailyminutes.csv")
         if dailyminutes_df[model_name].iloc[-1]>.5:
         # x=1
