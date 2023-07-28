@@ -25,7 +25,7 @@ def get_dailyminutes_make_single_multiday_df(ticker):
         if filename.endswith(".csv"):
 
             # print(parts)
-
+            print(filename)
             filepath = os.path.join(ticker_dir, filename)
             dataframe_slice = pd.read_csv(filepath)
 
@@ -143,5 +143,7 @@ def daily_series_prep_for_backtest(ticker,df):
 # daily_series_prep_for_backtest("SPY",df)
 tickers=['spy','tsla','roku','chwy']
 for x in tickers:
+    print(x)
     df=get_dailyminutes_make_single_multiday_df(x)
+    print("corr")
     multiday_minutes_corr(x,df)

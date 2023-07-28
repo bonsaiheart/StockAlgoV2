@@ -68,7 +68,7 @@ async def ib_connect():
         print("Connecting")
         randomclientID = random.randint(0, 999)
         try:
-            await ib.connectAsync("192.168.1.119", 7497, clientId=2)
+            await ib.connectAsync("192.168.1.119", 7497, clientId=1)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
             print("Connection error:", e)
