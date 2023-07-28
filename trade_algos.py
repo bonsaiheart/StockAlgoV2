@@ -180,8 +180,8 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         traceback.print_exc()
         pass
     model_list = [
-        # trained_minute_models.Buy_2hr_nnA1,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_nnA1,
+        trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
+        trained_minute_models.Sell_4hr_nnSPYA1,
         # trained_minute_models.Buy_2hr_nnA2,  ##made 3 out of 3, >.25% change! wow
         # trained_minute_models.Sell_2hr_nnA2,
         # trained_minute_models.Buy_90min_nnA2,  # WORKS GREAT?
@@ -231,21 +231,21 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Sell_1hr_A2,
 
         trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
-        # trained_minute_models.Sell_1hr_A1,   ###didn't seem to work accurately enough
+        trained_minute_models.Sell_1hr_A1,   ###didn't seem to work accurately enough
         # WORKS GREAT?
-        trained_minute_models.Buy_45min_A1,
+        # trained_minute_models.Buy_45min_A1,
         # trained_minute_models.Sell_45min_A1,# only works ~50%?
 
         trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
         trained_minute_models.Sell_30min_A1,  # seems to work well, expect .03-.1 drop.
 
-        trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
-        trained_minute_models.Sell_20min_A1,
+        # trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
+        # trained_minute_models.Sell_20min_A1,
         # WORKS GREAT?
         trained_minute_models.Buy_15min_A2,  #works well?
         trained_minute_models.Sell_15min_A2,  #not sure
-        # trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
-        # trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
+        trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
+        trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
     ]
 #TODO add logic so that if close is <x hours, use next day strike.
     for model in model_list:
@@ -278,10 +278,10 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         else:
             print(f"Invalid model function name: {model.__name__}")
             continue
-        result = model(dailyminutes_df).astype(int)
+        result = model(dailyminutes_df)
         dailyminutes_df[model_name] = result
         dailyminutes_df.to_csv("testdailyminutes.csv")
-        if dailyminutes_df[model_name].iloc[-1]:
+        if dailyminutes_df[model_name].iloc[-1]>.5:
         # x=1
         # if x ==1:
             send_notifications.email_me_string(model_name, CorP, ticker)
@@ -293,14 +293,21 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
                 loop = asyncio.get_event_loop()
 
                 loop.run_in_executor(None, place_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, 5, f"2-{model_name}")
+                                     contract_price, 5, f"{model_name}")
 
 
             except Exception as e:
                 logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
                 logging.error("Error occurred while placing order:", exc_info=True)
                 print("Error occurred while placing order:", str(e))
-            print("not sending tweet")
+            print("sending tweet")
+            send_notifications.send_tweet_w_countdown_followup(
+                ticker,
+                current_price,
+                upordown,
+                f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+                seconds,model_name
+            )
 
 
     Algo1 = int(

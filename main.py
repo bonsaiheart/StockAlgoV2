@@ -15,6 +15,7 @@ async def ib_connect_and_main():
     while True:
         await ibAPI.ib_connect()  # Connect to IB here
         await asyncio.sleep(15 * 60)
+        print('running ib_connect_and_main again.')
 
 async def run_program():
     await asyncio.gather(ib_connect_and_main(), main())

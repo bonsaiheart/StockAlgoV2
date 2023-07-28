@@ -34,7 +34,8 @@ async def get_option_chain(session, ticker, exp_date, headers):
     return optionchain_df
 
 async def get_option_chains_concurrently(ticker, expiration_dates, headers):
-    async with aiohttp.ClientSession() as session:
+    connector = aiohttp.TCPConnector(limit=10)
+    async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
         for exp_date in expiration_dates:
             tasks.append(get_option_chain(session, ticker, exp_date, headers))
@@ -42,6 +43,12 @@ async def get_option_chains_concurrently(ticker, expiration_dates, headers):
     return all_option_chains
 async def fetch(session, url, params, headers):
     async with session.get(url, params=params, headers=headers) as response:
+        print("Rate Limit Headers:")
+        print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
+        print("Used:", response.headers.get("X-Ratelimit-Used"))
+        print("Available:", response.headers.get("X-Ratelimit-Available"))
+        print("Expiry:", response.headers.get("X-Ratelimit-Expiry"))
+
         return await response.json()
 
 
@@ -50,7 +57,9 @@ async def get_options_data(ticker):
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
-    async with aiohttp.ClientSession() as session:
+
+    connector = aiohttp.TCPConnector(limit=10)
+    async with aiohttp.ClientSession(connector=connector) as session:
         tasks = []
         # Add tasks to tasks list
         tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
