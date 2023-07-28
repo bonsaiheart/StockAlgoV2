@@ -8,453 +8,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 base_dir = os.path.dirname(__file__)
-def Buy_4hr_nnSPYA1(new_data_df):
-    features =   ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
 
-    model_filename = f"{base_dir}/_4hr_nnSPYA1/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_4hr_nnSPYA1(new_data_df):
-    features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
-
-    model_filename = f"{base_dir}/_4hr_nnSPYA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-# base_dir = Path(__file__)['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
-def Buy_1hr_nnSPYA1(new_data_df):
-    features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14', "AwesomeOsc5_34"]
-
-    model_filename = f"{base_dir}/_1hr_nnSPYA1/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_1hr_nnSPYA1(new_data_df):
-    features =     ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14', "AwesomeOsc5_34"]
-
-    model_filename = f"{base_dir}/_1hr_nnSPYA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_2hr_nnSPYA3(new_data_df):
-    features =   ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'AwesomeOsc']
-    model_filename = f"{base_dir}/_2hr_nnSPYA3/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_2hr_nnSPYA3(new_data_df):
-    features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'AwesomeOsc']
-    model_filename = f"{base_dir}/_2hr_nnSPYA3/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_2hr_nnSPYA2(new_data_df):
-    features =   ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14']
-    model_filename = f"{base_dir}/_2hr_nnSPYA2/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_2hr_nnSPYA2(new_data_df):
-    features =     ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14']
-    model_filename = f"{base_dir}/_2hr_nnSPYA2/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_2hr_nnSPYA1(new_data_df):
-    features =   [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnSPYA1/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_2hr_nnSPYA1(new_data_df):
-    features =     [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnSPYA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_2hr_nnTSLA1(new_data_df):
-    features =   [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnTSLA1/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_2hr_nnTSLA1(new_data_df):
-    features =     [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnTSLA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_90min_nnA2(new_data_df):
-    features =[
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-
-    model_filename = f"{base_dir}/_90min_nnA2/target_up"
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_90min_nnA2(new_data_df):
-    features = [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-
-    model_filename = f"{base_dir}/_90min_nnA2/target_down"
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_90min_nnA1(new_data_df):
-    features =[
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-
-    model_filename = f"{base_dir}/_90min_nnA1/target_up"
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_90min_nnA1(new_data_df):
-    features = [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-
-    model_filename = f"{base_dir}/_90min_nnA1/target_down"
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-###TODO could make features = modle.info "features"
-# percent_up=.1
 def Buy_90min_A5(new_data_df):
     features =['Bonsai Ratio', 'PCRv Up3', 'PCRv Down3', 'PCRv Up4', 'ITM PCRv Down3',
        'ITM PCRv Down4']
@@ -492,215 +46,110 @@ def Sell_90min_A5(new_data_df):
         prediction_series.index, "Predictions"
     ] = prediction_series.values  # Assign predictions to corresponding rows
     return result["Predictions"]
-def Buy_1hr_nnA1(new_data_df):
-    features =[
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_1hr_nnA1/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
 
-def Sell_1hr_nnA1(new_data_df):
-    features = [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_1hr_nnA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Buy_2hr_nnA1(new_data_df):
-    features =    ["Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc"]
-    model_filename = f"{base_dir}/_2hr_nnA1/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_2hr_nnA1(new_data_df):
-    features =     ["Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-def Buy_2hr_nnA2(new_data_df):
-    features =[
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnA2/target_up"
-    loaded_model  = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    print(tempdf[features])
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[
-        prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
-
-def Sell_2hr_nnA2(new_data_df):
-    features = [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    "ITM PCRv Down4",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-    "RSI2",
-    "AwesomeOsc",
-]
-    model_filename = f"{base_dir}/_2hr_nnA2/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    print(tempdf[features])
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
+# def Sell_2hr_nnA1(new_data_df):
+#     features =     ["Bonsai Ratio",
+#     "Bonsai Ratio 2",
+#     "B1/B2",
+#     "PCRv Up3", "PCRv Up2",
+#     "PCRv Down3", "PCRv Down2",
+#     "PCRv Up4",
+#     "PCRv Down4",
+#     "ITM PCRv Up3",
+#     "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+#     "ITM PCRv Down4",
+#     "RSI14",
+#     "AwesomeOsc5_34",
+#     "RSI",
+#     "RSI2",
+#     "AwesomeOsc",
+# ]
+#     model_filename = f"{base_dir}/_2hr_nnA1/target_down/"
+#     print(model_filename)
+#     loaded_model = load_model(model_filename)
+#     tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+#     tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+#     threshold = 1e10
+#     print(tempdf[features])
+#     tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+#     predictions = loaded_model.predict(tempdf[features])
+#     print(predictions)
+#     # Create a new Series with the predictions and align it with the original DataFrame
+#     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
+#     result = new_data_df.copy()  # Create a copy of the original DataFrame
+#     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+#     result.loc[  prediction_series.index, "Predictions"
+#     ] = prediction_series.values  # Assign predictions to corresponding rows
+#     return result["Predictions"]
+# def Buy_2hr_nnA2(new_data_df):
+#     features =[
+#     "Bonsai Ratio",
+#     "Bonsai Ratio 2",
+#     "B1/B2",
+#     "PCRv Up3", "PCRv Up2",
+#     "PCRv Down3", "PCRv Down2",
+# 'ITM PCRoi Up1','ITM PCRoi Down1',
+#     "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
+#     "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+#     "ITM PCRv Down4",
+#     "RSI14",
+#     "AwesomeOsc5_34",
+#     "RSI",
+#     "RSI2",
+#     "AwesomeOsc",
+# ]
+#     model_filename = f"{base_dir}/_2hr_nnA2/target_up"
+#     loaded_model  = load_model(model_filename)
+#     tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+#     tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+#     threshold = 1e10
+#     tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+#     print(tempdf[features])
+#     predictions = loaded_model.predict(tempdf[features])
+#     print(predictions)
+#     # Create a new Series with the predictions and align it with the original DataFrame
+#     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
+#     result = new_data_df.copy()  # Create a copy of the original DataFrame
+#     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+#     result.loc[
+#         prediction_series.index, "Predictions"
+#     ] = prediction_series.values  # Assign predictions to corresponding rows
+#     return result["Predictions"]
+#
+# def Sell_2hr_nnA2(new_data_df):
+#     features = [
+#     "Bonsai Ratio",
+#     "Bonsai Ratio 2",
+#     "B1/B2",
+#     "PCRv Up3", "PCRv Up2",
+#     "PCRv Down3", "PCRv Down2",
+# 'ITM PCRoi Up1','ITM PCRoi Down1',
+#     "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
+#     "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+#     "ITM PCRv Down4",
+#     "RSI14",
+#     "AwesomeOsc5_34",
+#     "RSI",
+#     "RSI2",
+#     "AwesomeOsc",
+# ]
+#     model_filename = f"{base_dir}/_2hr_nnA2/target_down/"
+#     print(model_filename)
+#     loaded_model = load_model(model_filename)
+#     tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+#     tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+#     threshold = 1e10
+#     print(tempdf[features])
+#     tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+#     predictions = loaded_model.predict(tempdf[features])
+#     print(predictions)
+#     # Create a new Series with the predictions and align it with the original DataFrame
+#     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
+#     result = new_data_df.copy()  # Create a copy of the original DataFrame
+#     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+#     result.loc[  prediction_series.index, "Predictions"
+#     ] = prediction_series.values  # Assign predictions to corresponding rows
+#     return result["Predictions"]
 
 def Buy_90min_A4(new_data_df):
     features =['Bonsai Ratio', 'B1/B2', 'PCRv Down4', 'ITM PCRv Up3']
