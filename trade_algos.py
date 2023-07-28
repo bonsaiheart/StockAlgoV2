@@ -280,7 +280,10 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
             print(f"Invalid model function name: {model.__name__}")
             continue
         result = model(dailyminutes_df)
-        dailyminutes_df[model_name], takeprofit, stoploss = result,None,None
+        if isinstance(result, tuple):
+            dailyminutes_df[model_name], takeprofit, stoploss = result
+        else:
+            dailyminutes_df[model_name], takeprofit, stoploss = result, None, None
         dailyminutes_df.to_csv("testdailyminutes.csv")
         if dailyminutes_df[model_name].iloc[-1]>.5:
         # x=1
