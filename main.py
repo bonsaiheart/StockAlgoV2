@@ -32,7 +32,7 @@ async def main():
         start_time = datetime.now()
         print(start_time)
         try:
-            if check_Market_Conditions.is_market_open_now():  # TODO change back
+            if not check_Market_Conditions.is_market_open_now():  # TODO change back
                 await ibAPI.ib_connect()
                 with open("UTILITIES/tickerlist.txt", "r") as f:
                     tickerlist = [line.strip().upper() for line in f.readlines()]

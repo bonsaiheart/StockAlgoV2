@@ -16,6 +16,12 @@ import joblib
 import os
 
 DF_filename = r"../../../data/historical_multiday_minute_DF/Copy of SPY_historical_multiday_min.csv"
+#TODO add early stop or no?
+# from tensorflow.keras.callbacks import EarlyStopping
+#
+# early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
+#
+# model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[early_stopping])
 
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
@@ -26,18 +32,18 @@ Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2", 'ITM PCR-Vol',
-#     "PCRv Up3", "PCRv Up2",
-#     "PCRv Down3", "PCRv Down2",
-# 'ITM PCRoi Up1','ITM PCRoi Down1',
+    "PCRv Up3", "PCRv Up2",
+    "PCRv Down3", "PCRv Down2",
+'ITM PCRoi Up1','ITM PCRoi Down1',
     "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
     "ITM PCRv Down3",
-    # "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-#     "ITM PCRv Down4",
+    "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+    "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
-#     "RSI",
-#     "RSI2",
-#     "AwesomeOsc",
+    "RSI",
+    "RSI2",
+    "AwesomeOsc",
 ]
 # Chosen_Predictor = [ 'Current Stock Price',
 #         'Maximum Pain', 'Bonsai Ratio',
@@ -58,20 +64,20 @@ Chosen_Predictor = [
 #        'Net ITM_IV/ITM_OI', 'RSI', 'AwesomeOsc',
 #        'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##changed from %change LAC to factoring in % change of stock price.
-cells_forward_to_check = 60
-threshold_cells_up = cells_forward_to_check * 0.5
-threshold_cells_down = cells_forward_to_check * 0.5
-percent_up = .005
-percent_down = .005
-anticondition_threshold_cells_up = cells_forward_to_check * .7   #was .7
-anticondition_threshold_cells_down = cells_forward_to_check * .7
+cells_forward_to_check = 4*60
+threshold_cells_up = cells_forward_to_check * 0.1
+threshold_cells_down = cells_forward_to_check * 0.1
+percent_up = .01  #.01 = 1%
+percent_down = .01
+anticondition_threshold_cells_up = cells_forward_to_check * 1  #was .7
+anticondition_threshold_cells_down = cells_forward_to_check * 1
 positivecase_weight_up = 20  #was 20 and 18
 positivecase_weight_down = 20
 
 # num_features_up = '8'
 # num_features_down = '8'
-threshold_up = 0.7
-threshold_down = 0.7
+threshold_up = 0.9
+threshold_down = 0.9
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -138,10 +144,12 @@ custom_weights_down = {0: weight_negative_down, 1: weight_positive_down}
 model_up_nn = Sequential([
     Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
     Dense(32, activation='relu'),
+    Dense(32, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
 model_down_nn = Sequential([
     Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(32, activation='relu'),
     Dense(32, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
