@@ -57,15 +57,16 @@ Chosen_Predictor = [
     "RSI2",
     "AwesomeOsc",
 ]
-
+tuner_checkpoint_dir = 'tunerA1'
 num_features_to_select = "all"
 sequence_length = 1000  # up to 500 I've tried.
 # how many cells forward the target "current price" is.
 cells_forward_to_predict = 60
-ml_dataframe[f'Price {cells_forward_to_predict}min Later'] = ml_dataframe["Current Stock Price"].shift(-cells_forward_to_predict).values
-ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price {cells_forward_to_predict}min Later'], inplace=True)
-target_column = ml_dataframe[f'Price {cells_forward_to_predict}min Later']
-ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price {cells_forward_to_predict}min Later'], inplace=True)
+ml_dataframe[f'Price % change {cells_forward_to_predict}min Later'] = (
+    ml_dataframe["Current Stock Price"].pct_change(periods=-cells_forward_to_predict) * 100 )
+ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price % change {cells_forward_to_predict}min Later'], inplace=True)
+target_column = ml_dataframe[f'Price % change {cells_forward_to_predict}min Later']
+ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price % change {cells_forward_to_predict}min Later'], inplace=True)
 
 # Preprocess the data
 data = ml_dataframe[Chosen_Predictor].values
@@ -137,7 +138,7 @@ for train_index, test_index in tscv.split(data_scaled):
         objective='val_loss',
         max_trials=10,
         directory='ITSM_Regression_Models',
-        project_name='Project_1A'
+        project_name=tuner_checkpoint_dir
     )
 
     tuner.search(X_train, y_train, epochs=100, validation_data=(X_test, y_test), callbacks=[EarlyStopping(patience=10)])

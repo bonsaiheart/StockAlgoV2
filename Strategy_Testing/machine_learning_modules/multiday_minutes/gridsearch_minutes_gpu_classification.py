@@ -15,21 +15,29 @@ import numpy as np
 import joblib
 import os
 
-DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = r"../../../data/historical_multiday_minute_DF/Copy of SPY_historical_multiday_min.csv"
+#TODO add early stop or no?
+# from tensorflow.keras.callbacks import EarlyStopping
+#
+# early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
+#
+# model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[early_stopping])
+
 ml_dataframe = pd.read_csv(DF_filename)
+print(ml_dataframe.columns)
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV LAC']
 
 Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
-    "B1/B2",
+    "B1/B2", 'ITM PCR-Vol',
     "PCRv Up3", "PCRv Up2",
     "PCRv Down3", "PCRv Down2",
-    "PCRv Up4",
-    "PCRv Down4",
-    "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+'ITM PCRoi Up1','ITM PCRoi Down1',
+    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
+    "ITM PCRv Down3",
+    "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -37,22 +45,39 @@ Chosen_Predictor = [
     "RSI2",
     "AwesomeOsc",
 ]
-
+# Chosen_Predictor = [ 'Current Stock Price',
+#         'Maximum Pain', 'Bonsai Ratio',
+#        'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol',
+#          'PCRv Up1', 'PCRv Up2',
+#        'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+#        'PCRv Down4', 'PCRoi Up1',
+#        'PCRoi Down1',     'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up2',
+#        'ITM PCRv Up3', 'ITM PCRv Up4',  'ITM PCRv Down2',
+#        'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up2',
+#        'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down2',
+#        'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI',
+#        'ITM Contracts %', 'Net_IV', 'Net ITM IV',
+#        'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+#        'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+#        'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+#        'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+#        'Net ITM_IV/ITM_OI', 'RSI', 'AwesomeOsc',
+#        'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##changed from %change LAC to factoring in % change of stock price.
-cells_forward_to_check = 90
-threshold_cells_up = cells_forward_to_check * 0.7
-threshold_cells_down = cells_forward_to_check * 0.7
-percent_up = .005
-percent_down = .005
-anticondition_threshold_cells_up = cells_forward_to_check * 1   #was .7
+cells_forward_to_check = 4*60
+threshold_cells_up = cells_forward_to_check * 0.1
+threshold_cells_down = cells_forward_to_check * 0.1
+percent_up = .01  #.01 = 1%
+percent_down = .01
+anticondition_threshold_cells_up = cells_forward_to_check * 1  #was .7
 anticondition_threshold_cells_down = cells_forward_to_check * 1
-positivecase_weight_up = 10  #was 20 and 18
-positivecase_weight_down = 10
+positivecase_weight_up = 20  #was 20 and 18
+positivecase_weight_down = 20
 
-num_features_up = 'all'
-num_features_down = 'all'
-threshold_up = 0.7
-threshold_down = 0.7
+# num_features_up = '8'
+# num_features_down = '8'
+threshold_up = 0.9
+threshold_down = 0.9
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -119,10 +144,12 @@ custom_weights_down = {0: weight_negative_down, 1: weight_positive_down}
 model_up_nn = Sequential([
     Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
     Dense(32, activation='relu'),
+    Dense(32, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
 model_down_nn = Sequential([
     Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    Dense(32, activation='relu'),
     Dense(32, activation='relu'),
     Dense(1, activation='sigmoid')
 ])
