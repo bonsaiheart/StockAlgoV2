@@ -1,0 +1,52 @@
+This file contains information about the model.
+
+File analyzed: ../../../data/historical_multiday_minute_DF/TSLA_historical_multiday_min.csv
+Cells_Foward_to_check: 120
+
+Metrics for Target_Up:
+Precision: 0.8402777777777778
+Accuracy: 0.9357484620642516
+Recall: 0.6302083333333334
+F1-Score: 0.7202380952380953
+Metrics for Target_Down:
+Precision: 0.9710144927536232
+Accuracy: 0.9432672590567327
+Recall: 0.4527027027027027
+F1-Score: 0.6175115207373271
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+
+
+Number of Positive Samples (Target_Up): 755
+Number of Negative Samples (Target_Up): 5096
+Number of Positive Samples (Target_Down): 634
+Number of Negative Samples (Target_Down): 5217
+Threshold Up (sensitivity): 0.7
+Threshold Down (sensitivity): 0.7
+Target Underlying Percentage Up: 0.01
+Target Underlying Percentage Down: 0.01
+Anticondition Up: 200     62
+201     60
+202     59
+203     60
+204     59
+        ..
+7509     3
+7510     3
+7511     2
+7512     1
+7513     0
+Name: Current Stock Price, Length: 7314, dtype: int32
+Anticondition Down: 200     58
+201     61
+202     61
+203     60
+204     61
+        ..
+7509     1
+7510     0
+7511     0
+7512     0
+7513     0
+Name: Current Stock Price, Length: 7314, dtype: int32
+Weight multiplier Up: 20
+Weight multiplier Down: 20

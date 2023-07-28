@@ -1,0 +1,52 @@
+This file contains information about the model.
+
+File analyzed: ../../../data/historical_multiday_minute_DF/Copy of SPY_historical_multiday_min.csv
+Cells_Foward_to_check: 60
+
+Metrics for Target_Up:
+Precision: 0.6666666666666666
+Accuracy: 0.989938080495356
+Recall: 0.14285714285714285
+F1-Score: 0.23529411764705882
+Metrics for Target_Down:
+Precision: 1.0
+Accuracy: 0.9806501547987616
+Recall: 0.07407407407407407
+F1-Score: 0.13793103448275862
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'RSI14', 'AwesomeOsc5_34']
+
+
+Number of Positive Samples (Target_Up): 65
+Number of Negative Samples (Target_Up): 5100
+Number of Positive Samples (Target_Down): 92
+Number of Negative Samples (Target_Down): 5073
+Threshold Up (sensitivity): 0.7
+Threshold Down (sensitivity): 0.7
+Target Underlying Percentage Up: 0.005
+Target Underlying Percentage Down: 0.005
+Anticondition Up: 253     24
+254     26
+255     28
+256     26
+257     25
+        ..
+6706     1
+6707     3
+6708     2
+6709     0
+6710     0
+Name: Current Stock Price, Length: 6457, dtype: int32
+Anticondition Down: 253     37
+254     34
+255     32
+256     34
+257     35
+        ..
+6706     4
+6707     0
+6708     0
+6709     1
+6710     0
+Name: Current Stock Price, Length: 6457, dtype: int32
+Weight multiplier Up: 20
+Weight multiplier Down: 20
