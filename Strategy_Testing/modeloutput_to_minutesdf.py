@@ -28,9 +28,12 @@ def apply_predictions_to_df(model_names, df, filename):
     for model_name in model_names:
         print(model_name)
         model_func = getattr(Trained_Models.trained_minute_models, model_name)
-        prediction = model_func(df)
-        df[model_name] = prediction
+        result = model_func(df)
 
+        if isinstance(result, tuple):
+            df[model_name], takeprofit, stoploss = result
+        else:
+            df[model_name], takeprofit, stoploss = result, None, None
     df_filtered = df[columns_to_keep]
     df_filtered.to_csv(f"algooutput_{filename}")
 

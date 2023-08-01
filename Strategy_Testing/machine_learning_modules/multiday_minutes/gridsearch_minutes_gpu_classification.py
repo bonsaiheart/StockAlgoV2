@@ -64,7 +64,7 @@ Chosen_Predictor = [
 #        'Net ITM_IV/ITM_OI', 'RSI', 'AwesomeOsc',
 #        'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##changed from %change LAC to factoring in % change of stock price.
-cells_forward_to_check = 4*60
+cells_forward_to_check = 2*60
 threshold_cells_up = cells_forward_to_check * 0.1
 threshold_cells_down = cells_forward_to_check * 0.1
 percent_up = .01  #.01 = 1%

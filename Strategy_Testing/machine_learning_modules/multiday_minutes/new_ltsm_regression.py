@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit, cross_val_score
 from tensorflow.keras.models import Sequential
@@ -20,11 +20,11 @@ print(ml_dataframe.columns)
 
 Chosen_Predictor = [
     "Bonsai Ratio",
+
     "Bonsai Ratio 2",
     "B1/B2", 'ITM PCR-Vol',
     "PCRv Up3", "PCRv Up2",
     "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
     "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
     "ITM PCRv Down3",
     "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
@@ -32,16 +32,14 @@ Chosen_Predictor = [
     "RSI14",
     "AwesomeOsc5_34",
     "RSI",
-    "RSI2",
-    "AwesomeOsc",
 ]
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
 
-ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(-60)
-ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(-60)
+ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(-5)
+ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(-5)
 
 
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
@@ -81,12 +79,22 @@ predicted_values_up = model_up_nn.predict(X_test)
 predicted_values_down = model_down_nn.predict(X_test)
 
 # Calculate MSE for both models
+
 mse_up = mean_squared_error(y_up_test, predicted_values_up)
+mae_up = mean_absolute_error(y_up_test, predicted_values_up)
+r2_up = r2_score(y_up_test, predicted_values_up)
+
 mse_down = mean_squared_error(y_down_test, predicted_values_down)
+mae_down = mean_absolute_error(y_down_test, predicted_values_down)
+r2_down = r2_score(y_down_test, predicted_values_down)
 
 print("MSE for Up Model:", mse_up)
-print("MSE for Down Model:", mse_down)
+print("MAE for Up Model:", mae_up)
+print("R^2 for Up Model:", r2_up)
 
+print("MSE for Down Model:", mse_down)
+print("MAE for Down Model:", mae_down)
+print("R^2 for Down Model:", r2_down)
 # Save the models using joblib
 input_val = input("Would you like to save these models? y/n: ").upper()
 if input_val == "Y":
@@ -102,7 +110,7 @@ if input_val == "Y":
 with open(f"../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
     info_txt.write("This file contains information about the model.\n\n")
     info_txt.write(
-        f"File analyzed: {DF_filename}\nMSE for Up Model: {mse_up}\nMSE for Down Model: {mse_down}\n"
+        f"File analyzed: {DF_filename}\nMSE for Up Model: {mse_up}\nMSE for Down Model: {mse_down}\n\MAE for Up Model: {mae_up}\nMAE for Down Model: {mae_down}\n\nR^2 for Up Model: {r2_up}\nR^2 for Down Model: {r2_down}"
     )
     info_txt.write(
         f"Predictors: {Chosen_Predictor}\n"
