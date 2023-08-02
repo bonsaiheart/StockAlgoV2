@@ -56,7 +56,7 @@ X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_s
 
 def create_model(learning_rate, dropout_rate, optimizer):
     model = Sequential()
-    model.add(Dense(256, activation='relu', input_shape=(X_train.shape[1],)))
+    model.add(Dense(128, activation='relu', input_shape=(X_train.shape[1],)))
     model.add(Dropout(dropout_rate))
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(dropout_rate))
@@ -87,11 +87,11 @@ def create_model(learning_rate, dropout_rate, optimizer):
 model = KerasRegressor(build_fn=create_model, verbose=0)
 
 # define the grid search parameters
-batch_size = [16,32,64 ]               #128
-epochs = [50,100]
+batch_size = [16,64 ]               #128
+epochs = [50]
 learning_rate = [.01, 0.1]
 dropout_rate = [0.0,.2,.5]
-optimizer = [Adam, Nadam, RMSprop]
+optimizer = [ Nadam, RMSprop]
 # optimizer = [RMSprop]
 
 param_grid = dict(batch_size=batch_size,

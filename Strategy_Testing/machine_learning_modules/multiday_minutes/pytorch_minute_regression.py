@@ -30,44 +30,52 @@ torch.tensor(new_data_scaled, dtype=torch.float32) converts the scaled data to a
 model_up_nn(new_data_tensor).detach().numpy() makes predictions with the model.
 y_up_scaler.inverse_transform(predicted_values_new_scaled) transforms the predictions back to the original scale.
 Remember that X_scaler and y_up_scaler should be saved along with the trained model, because they contain information about the mean and standard deviation of the training data, which are needed for scaling ne"""
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
 DF_filename = r"../../../data/historical_multiday_minute_DF/Copy of SPY_historical_multiday_min.csv"
+
+frames_to_lookahead = -60  #must be negative to look forwards.
 
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 
-Chosen_Predictor = [
-    "Bonsai Ratio",
-    "Bonsai Ratio 2",
-    "B1/B2",
-    'ITM PCR-Vol',
-    "PCRv Up3",
-    "PCRv Up2",
-    "PCRv Down3",
-    "PCRv Down2",
-    'Net_IV',
-    'Net ITM IV',
-    "ITM PCRv Up3",
-    "ITM PCRv Down3",
-    "ITM PCRv Up2",
-    "ITM PCRv Down2",
-    "RSI14",
-    "AwesomeOsc5_34",
-    "RSI",
-]
+Chosen_Predictor = ['Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
+       'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
+       'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+       'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+       'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
+       'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+       'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
+       'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
+       'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
+       'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
+       'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
+       'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
+       'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
+       'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+       'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+       'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+       'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+       'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+       'RSI14', 'RSI2', 'AwesomeOsc5_34']
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
 
-ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(-5)
-ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(-5)
-
+ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(frames_to_lookahead)
+ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(frames_to_lookahead)
+print(ml_dataframe["Target_Up"])
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
 ml_dataframe.reset_index(drop=True,inplace=True)
 X = ml_dataframe[Chosen_Predictor]
 # X.reset_index(drop=True, inplace=True)
 print()
 y_up = ml_dataframe["Target_Up"].values.reshape(-1,1)
+print(y_up)
 y_down = ml_dataframe["Target_Down"]
 # Sequentially split the data into train, validation, and test sets
 train_ratio = 0.7
@@ -122,6 +130,13 @@ y_up_val_unscaled = y_up_scaler.inverse_transform(y_up_val_scaled)
 y_up_test_unscaled = y_up_scaler.inverse_transform(y_up_test_scaled)
 y_up_train_unscaled = y_up_scaler.inverse_transform(y_up_train_scaled)
 
+def save_training_info(model_summary, best_params, mse, mae, r2):
+    with open(model_summary + '_info.txt', 'w') as f:
+        f.write(f"Best Model - Hyperparameters: {best_params}\n")
+        f.write(f"MSE for Best Model: {mse}\n")
+        f.write(f"MAE for Best Model: {mae}\n")
+        f.write(f"R^2 for Best Model: {r2}\n")
+        f.write(f"Chosen Predictors: {Chosen_Predictor}\n")
 
 class RegressionModel(nn.Module):
     def __init__(self, input_size, hidden_size, dropout_rate):
@@ -156,25 +171,33 @@ def create_model(input_size, learning_rate, hidden_size, dropout_rate):
     return model, optimizer, criterion
 
 
-def evaluate_model(model, X_test_tensor, y_test_unscaled, y_scaler):
+def evaluate_model(model, X_test_tensor, y_up_test_unscaled, y_up_scaler):
     model.eval()
     with torch.no_grad():
-        predicted_values_scaled = model(X_test_tensor).detach().numpy()
-        predicted_values = y_scaler.inverse_transform(predicted_values_scaled)
+        X_test_tensor = X_test_tensor.to(device)  # Move the test data to the device
+        predicted_values_scaled = model(X_test_tensor).detach().cpu().numpy()
+        # Move the predictions back to CPU (if needed for further processing)
     # Unsqueeze the y_test_unscaled tensor to match the shape of predicted_values
 
     # y_test_unscaled = torch.tensor(y_test_unscaled, dtype=torch.float32)
+    predicted_values = y_up_scaler.inverse_transform(predicted_values_scaled)
 
-    mse = mean_squared_error(y_test_unscaled, predicted_values)
-    mae = mean_absolute_error(y_test_unscaled, predicted_values)
-    r2 = r2_score(y_test_unscaled, predicted_values)
+    # Calculate error metrics
+    mse = mean_squared_error(y_up_test_unscaled, predicted_values)
+    mae = mean_absolute_error(y_up_test_unscaled, predicted_values)
+    r2 = r2_score(y_up_test_unscaled, predicted_values)
 
     return mse, mae, r2
 # Add scaling for y_val in the training loop and X_test for prediction
 def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor,
                 batch_size, num_epochs):
+    # Inside the training loop
+    model.to(device)
+    X_train_tensor = X_train_tensor.to(device)
+    y_up_train_tensor = y_up_train_tensor.to(device)
     train_dataset = TensorDataset(X_train_tensor, y_up_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
 
     best_loss = float('inf')
     patience = 10
@@ -189,6 +212,8 @@ def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, 
     for epoch in range(num_epochs):
         for X_batch, y_batch in train_loader:
             optimizer.zero_grad()
+            X_batch = X_batch.to(device)  # Move the batch data to the device
+            y_batch = y_batch.to(device)  # Move the batch data to the device
             outputs = model(X_batch)
             loss = criterion(outputs, y_batch)
             loss.backward()
@@ -219,7 +244,8 @@ def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, 
         last_average_loss = average_loss  # Update the last average loss
         model.train()
 def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor):
-    # Define the validation data loader
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     val_batch_size = 32
     y_up_val_tensor = y_up_val_tensor.view(-1, 1)
     val_dataset = TensorDataset(X_val_tensor, y_up_val_tensor)
@@ -228,9 +254,9 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
     # Grid Search for Hyperparameter Optimization
     input_size = X_train.shape[1]
     print(input_size)
-    learning_rates = [0.01, 0.001]
-    hidden_sizes = [128, 256]
-    dropout_rates = [0.2, 0.3]
+    learning_rates = [0.001]
+    hidden_sizes = [32, 64]
+    dropout_rates = [0.3]
 
     param_grid = {
         'learning_rate': learning_rates,
@@ -249,11 +275,19 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
                                                    hidden_size=params['hidden_size'],
                                                    dropout_rate=params['dropout_rate'])
 
+        # Move the model, optimizer, and criterion to the appropriate device
+        model.to(device)
+        X_train_tensor = X_train_tensor.to(device)
+        y_up_train_tensor = y_up_train_tensor.to(device)
+        X_val_tensor = X_val_tensor.to(device)
+        y_up_val_tensor = y_up_val_tensor.to(device)
+
         train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor,
                     batch_size=params['batch_size'], num_epochs=params['num_epochs'])
 
         # Transform the validation data back to the original scale
-        y_up_val_unscaled = y_up_scaler.inverse_transform(y_up_val_tensor.detach().numpy())
+        # Transform the validation data back to the original scale on the CPU
+        y_up_val_unscaled = y_up_scaler.inverse_transform(y_up_val_tensor.detach().cpu().numpy())
         mse, mae, r2 = evaluate_model(model, X_val_tensor, y_up_val_unscaled, y_up_scaler)
 
         grid_search_results.append({
@@ -288,13 +322,22 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
     if input_val == "Y":
         model_summary = input("Save this best model as: ")
         model_directory = os.path.join("../../Trained_Models", f"{model_summary}")
-        scaler_filename = os.path.join(model_directory, "scalers.pkl")
-        joblib.dump({'X_scaler': X_scaler, 'y_up_scaler': y_up_scaler, 'y_down_scaler': y_down_scaler}, scaler_filename)
+        if not os.path.exists(model_directory):
+            os.makedirs(model_directory)
+        info = {
+            'feature_columns': Chosen_Predictor,
+            'X_scaler': X_scaler,
+            'y_up_scaler': y_up_scaler,
+            'y_down_scaler': y_down_scaler
+        }
+        info_filename = os.path.join(model_directory, "info.pkl")
+        joblib.dump(info, info_filename)
 
         if not os.path.exists(model_directory):
             os.makedirs(model_directory)
         model_filename_up = os.path.join(model_directory, "target_up.pt")
         torch.save(best_model.state_dict(), model_filename_up)
+        save_training_info(model_summary, best_params, mse, mae, r2)
 
 # Call the function for grid search and model training
 train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor)

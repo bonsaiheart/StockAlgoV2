@@ -2,6 +2,7 @@ import inspect
 import os
 import pandas as pd
 import Trained_Models.trained_minute_models  # Import your module
+import Trained_Models.trained_PT_models  # Import your module
 
 
 def get_model_names(module):
@@ -12,7 +13,10 @@ def get_model_names(module):
     return model_names
 
 
-module_name = Trained_Models.trained_minute_models  # Provide the correct module name
+
+# module_name = Trained_Models.trained_minute_models  # Provide the correct module name
+module_name = Trained_Models.trained_PT_models  # Provide the correct module name
+
 model_names = get_model_names(module_name)
 print(model_names)
 
@@ -21,7 +25,7 @@ def apply_predictions_to_df(model_names, df, filename):
     df.dropna(axis=1, how="all", inplace=True)
 
     # Columns to keep
-    columns_to_keep = ["LastTradeTime", "Current Stock Price"] + model_names
+    columns_to_keep = ["LastTradeTime", "Current Stock Price"]
 
     # Filter the DataFrame to keep only the desired columns
 
@@ -34,8 +38,9 @@ def apply_predictions_to_df(model_names, df, filename):
             df[model_name], takeprofit, stoploss = result
         else:
             df[model_name], takeprofit, stoploss = result, None, None
-    df_filtered = df[columns_to_keep]
-    df_filtered.to_csv(f"algooutput_{filename}")
+    # df_filtered = df[columns_to_keep]
+    # df_filtered.to_csv(f"algooutput_{filename}")
+    df.to_csv(f"algooutput_{filename}")
 
 
 dir = "../data/historical_multiday_minute_DF"

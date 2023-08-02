@@ -1,7 +1,3 @@
-# import pandas as pd
-#
-# spy = '../data/ProcessedData/SPY'
-
-# for date in spy:
-#     df = pd.DataFrame
-#     for csv in date:
+import torch
+print(torch.cuda.is_available())
+print(torch.version.cuda)
