@@ -24,6 +24,29 @@ async def ib_connect_and_main():
 
 async def run_program():
     await asyncio.gather(ib_connect_and_main(), main())
+async def handle_ticker(session, ticker):
+    ticker = ticker.upper()
+    LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
+
+    print(f"{ticker} OptionData complete at {datetime.now()}.")
+
+    (optionchain,
+        dailyminutes,
+        processeddata,
+        ticker,
+    ) = tradierAPI_marketdata.perform_operations(
+        ticker,
+        LAC,
+        current_price,
+        price_change_percent,
+        StockLastTradeTime,
+        this_minute_ta_frame,
+        closest_exp_date,
+    )
+    print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+    if ticker == "SPY":
+        await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
+        print(f"{ticker} Actions complete at {datetime.now()}.")
 
 async def main():
     if not os.path.exists(log_dir):
@@ -40,32 +63,7 @@ async def main():
                 with open("UTILITIES/tickerlist.txt", "r") as f:
                     tickerlist = [line.strip().upper() for line in f.readlines()]
                 async with aiohttp.ClientSession() as session:
-
-                    for ticker in tickerlist:
-                        ticker = ticker.upper()
-                        # print(ticker)
-
-                        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
-
-                        print(f"{ticker} OptionData complete at {datetime.now()}.")
-
-                        (optionchain,
-                            dailyminutes,
-                            processeddata,
-                            ticker,
-                        ) = tradierAPI_marketdata.perform_operations(
-                            ticker,
-                            LAC,
-                            current_price,
-                            price_change_percent,
-                            StockLastTradeTime,
-                            this_minute_ta_frame,
-                            closest_exp_date,
-                        )
-                        print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-                        if ticker == "SPY":
-                            await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
-                            print(f"{ticker} Actions complete at {datetime.now()}.")
+                    await asyncio.gather(*(handle_ticker(session, ticker) for ticker in tickerlist))
             else:
                 with open(log_path, "a") as f:
                     f.write(f"Ran at {datetime.now()}. Market was closed today.\n")
