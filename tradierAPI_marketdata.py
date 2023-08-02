@@ -5,11 +5,9 @@ import ta
 from pathlib import Path
 import numpy as np
 import PrivateData.tradier_info
-
+concurrency_limit=2
 # import webullAPI
-# Add a small constant to denominators to avoid division by zero
-epsilon = 1e-6
-paper_acc = PrivateData.tradier_info.paper_acc
+# Add a small constant to denominators taper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
@@ -33,51 +31,43 @@ async def get_option_chain(session, ticker, exp_date, headers):
     optionchain_df = pd.DataFrame(json_response["options"]["option"])
     return optionchain_df
 
-async def get_option_chains_concurrently(ticker, expiration_dates, headers):
-    connector = aiohttp.TCPConnector(limit=10)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        tasks = []
-        for exp_date in expiration_dates:
-            tasks.append(get_option_chain(session, ticker, exp_date, headers))
-        all_option_chains = await asyncio.gather(*tasks)
+async def get_option_chains_concurrently(session,ticker, expiration_dates, headers):
+    tasks = []
+    for exp_date in expiration_dates:
+        tasks.append(get_option_chain(session, ticker, exp_date, headers))
+    all_option_chains = await asyncio.gather(*tasks)
     return all_option_chains
 async def fetch(session, url, params, headers):
     async with session.get(url, params=params, headers=headers) as response:
-        print("Rate Limit Headers:")
-        print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
-        print("Used:", response.headers.get("X-Ratelimit-Used"))
-        print("Available:", response.headers.get("X-Ratelimit-Available"))
-        print("Expiry:", response.headers.get("X-Ratelimit-Expiry"))
-
+        # print("Rate Limit Headers:")
+        # print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
+        # print("Used:", response.headers.get("X-Ratelimit-Used"))
         return await response.json()
 
 
-async def get_options_data(ticker):
+async def get_options_data(session,ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
+    tasks = []
+    # Add tasks to tasks list
+    tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
+                       params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
+                               "session_filter": "all"}, headers=headers))
 
-    connector = aiohttp.TCPConnector(limit=10)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        tasks = []
-        # Add tasks to tasks list
-        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
-                           params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
-                                   "session_filter": "all"}, headers=headers))
+    tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
+                       params={"symbols": ticker, "greeks": "false"}, headers=headers))
 
-        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
-                           params={"symbols": ticker, "greeks": "false"}, headers=headers))
+    tasks.append(fetch(session, "https://api.tradier.com/v1/markets/options/expirations",
+                       params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"}, headers=headers))
 
-        tasks.append(fetch(session, "https://api.tradier.com/v1/markets/options/expirations",
-                           params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"}, headers=headers))
-
-        # Wait for all tasks to complete
-        responses = await asyncio.gather(*tasks)
-        # Process responses
-        time_sale_response = responses[0]
-        quotes_response = responses[1]
-        expirations_response = responses[2]
+    # Wait for all tasks to complete
+    responses = await asyncio.gather(*tasks)
+    # Process responses
+    time_sale_response = responses[0]
+    quotes_response = responses[1]
+    expirations_response = responses[2]
 
     json_response = time_sale_response
     # print(response.status_code)
@@ -114,15 +104,15 @@ async def get_options_data(ticker):
     StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
     StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
     print(f"${ticker} last Trade Time: {StockLastTradeTime}")
-    print(f"LAC: ${LAC}")
-    print(f"Current Price: ${CurrentPrice}")
+    # print(f"LAC: ${LAC}")
+    # print(f"{ticker} Current Price: ${CurrentPrice}")
 
     expirations = expirations_response["expirations"]["expiration"]
     expiration_dates = [expiration["date"] for expiration in expirations]
 
     callsChain = []
     putsChain = []
-    all_option_chains = await get_option_chains_concurrently(ticker, expiration_dates, headers)
+    all_option_chains = await get_option_chains_concurrently(session,ticker, expiration_dates, headers)
 
     for optionchain_df in all_option_chains:
         grouped = optionchain_df.groupby("option_type")
@@ -651,7 +641,6 @@ def perform_operations(
     except FileExistsError:
         print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
         # exit()
-    print('perform ops complete')
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
         f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
