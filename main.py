@@ -7,10 +7,15 @@ import trade_algos
 from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
+import aiohttp
 
 log_dir = "errorlog"
 log_file = "error.log"
 ###7/27 taking 51.3 seconds currently.
+#8.2 same thing is down to about 45 seconds because im now sharing the aiohttp session per ticker.  might try sharing session per minutes instead.
+#after sharing session with all tickers, its completing in close to 35 sec.
+
+#TODO actions is taking 16 of the 35 seconds.
 async def ib_connect_and_main():
     while True:
         await ibAPI.ib_connect()  # Connect to IB here
@@ -19,6 +24,29 @@ async def ib_connect_and_main():
 
 async def run_program():
     await asyncio.gather(ib_connect_and_main(), main())
+async def handle_ticker(session, ticker):
+    ticker = ticker.upper()
+    LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
+
+    print(f"{ticker} OptionData complete at {datetime.now()}.")
+
+    (optionchain,
+        dailyminutes,
+        processeddata,
+        ticker,
+    ) = tradierAPI_marketdata.perform_operations(
+        ticker,
+        LAC,
+        current_price,
+        price_change_percent,
+        StockLastTradeTime,
+        this_minute_ta_frame,
+        closest_exp_date,
+    )
+    print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+    if ticker == "SPY":
+        await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
+        print(f"{ticker} Actions complete at {datetime.now()}.")
 
 async def main():
     if not os.path.exists(log_dir):
@@ -31,34 +59,11 @@ async def main():
         start_time = datetime.now()
         print(start_time)
         try:
-            if check_Market_Conditions.is_market_open_now():
+            if  check_Market_Conditions.is_market_open_now():
                 with open("UTILITIES/tickerlist.txt", "r") as f:
                     tickerlist = [line.strip().upper() for line in f.readlines()]
-
-                for ticker in tickerlist:
-                    ticker = ticker.upper()
-                    print(ticker)
-                    LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(ticker)
-
-                    print("getoptindata complete")
-                    (
-                        optionchain,
-                        dailyminutes,
-                        processeddata,
-                        ticker,
-                    ) = tradierAPI_marketdata.perform_operations(
-                        ticker,
-                        LAC,
-                        current_price,
-                        price_change_percent,
-                        StockLastTradeTime,
-                        this_minute_ta_frame,
-                        closest_exp_date,
-                    )
-                    print(current_price)
-                    if ticker == "SPY":
-                        await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
-
+                async with aiohttp.ClientSession() as session:
+                    await asyncio.gather(*(handle_ticker(session, ticker) for ticker in tickerlist))
             else:
                 with open(log_path, "a") as f:
                     f.write(f"Ran at {datetime.now()}. Market was closed today.\n")

@@ -6,7 +6,8 @@ from datetime import datetime
 import numpy as np
 from Strategy_Testing.Trained_Models import trained_minute_models
 import re
-
+import asyncio
+import threading
 import IB.ibAPI
 from UTILITIES.Send_Notifications import send_notifications as send_notifications
 
@@ -20,7 +21,6 @@ logging.basicConfig(
 
 now = datetime.now()
 formatted_time = now.strftime("%y%m%d %H:%M EST")
-import threading
 
 def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
     print(CorP, ticker, exp, strike,contract_current_price, quantity, orderRef)
@@ -57,7 +57,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
     optionchain = pd.read_csv(optionchain)
     dailyminutes_df = pd.read_csv(dailyminutes)
-    print(ticker, current_price)
+    # print(ticker, current_price)
     date_string = str(closest_exp_date)
     date_object = datetime.strptime(date_string, "%y%m%d")
     new_date_string = date_object.strftime("%y%m%d")
@@ -180,6 +180,9 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         print(e)
         traceback.print_exc()
         pass
+
+    """These Models are classifications and only need a single frame(current frame)"""
+
     model_list = [
         trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
         trained_minute_models.Sell_4hr_nnSPYA1,
@@ -199,8 +202,8 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Buy_90min_A2,
         trained_minute_models.Sell_90min_A2,
 
-        trained_minute_models.Buy_90min_A1,
-        trained_minute_models.Sell_90min_A1,
+        # trained_minute_models.Buy_90min_A1,
+        # trained_minute_models.Sell_90min_A1,
         trained_minute_models.Buy_90min_A2,
         trained_minute_models.Sell_90min_A2,
         trained_minute_models.Buy_90min_A3,
@@ -211,19 +214,19 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Sell_90min_A5,
         trained_minute_models.Buy_1hr_A9,
         trained_minute_models.Sell_1hr_A9,
-        trained_minute_models.Buy_1hr_A8,
-        trained_minute_models.Sell_1hr_A8,
+        # trained_minute_models.Buy_1hr_A8,
+        # trained_minute_models.Sell_1hr_A8,
         trained_minute_models.Buy_1hr_A7,
         trained_minute_models.Sell_1hr_A7,#got 2 outt of 3, and when it works its >.1%
 
         trained_minute_models.Buy_1hr_A6,
         trained_minute_models.Sell_1hr_A6,
 
-        trained_minute_models.Buy_1hr_A5,
-        trained_minute_models.Sell_1hr_A5,
+        # trained_minute_models.Buy_1hr_A5,
+        # trained_minute_models.Sell_1hr_A5,
 
-        trained_minute_models.Buy_1hr_A4,
-        trained_minute_models.Sell_1hr_A4,
+        # trained_minute_models.Buy_1hr_A4,
+        # trained_minute_models.Sell_1hr_A4,
 
         trained_minute_models.Buy_1hr_A3,
         trained_minute_models.Sell_1hr_A3,
@@ -248,7 +251,24 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
         trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
     ]
-#TODO add logic so that if close is <x hours, use next day strike.
+#TODO convert to tensorobject here, instead of for each model definition.
+    #TODO add logic so that if close is <x hours, use next day strike.
+    # Convert input data to tensor
+
+    # Store results in a dictionary for easy access
+    results = {}
+
+    # Perform prediction on each model
+    for model in model_list:
+        model_name = model.__name__
+        result = model(dailyminutes_df)
+        if isinstance(result, tuple):
+            dailyminutes_df[model_name], takeprofit, stoploss = result
+        else:
+            dailyminutes_df[model_name], takeprofit, stoploss = result, None, None
+        results[model_name] = dailyminutes_df[model_name].iloc[-1]
+    # Now you can use your results
+    pattern = re.compile(r"\d+(min|hr)")
     for model in model_list:
         model_name = model.__name__
         if model_name.startswith("Buy"):
@@ -267,7 +287,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
             contractStrike = ib_one_strike_above
             contract_price = UpOne_Put_Price
 
-        interval_match = re.search(r"\d+(min|hr)", model.__name__)
+        interval_match = re.search(pattern, model_name)
 
         if interval_match:
             timetill_expectedprofit = interval_match.group()
@@ -277,15 +297,12 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
                 else int(timetill_expectedprofit[:-2]) * 3600
             )
         else:
-            print(f"Invalid model function name: {model.__name__}")
+            print(f"Invalid model function name: {model_name}")
             continue
-        result = model(dailyminutes_df)
-        if isinstance(result, tuple):
-            dailyminutes_df[model_name], takeprofit, stoploss = result
-        else:
-            dailyminutes_df[model_name], takeprofit, stoploss = result, None, None
-        dailyminutes_df.to_csv("testdailyminutes.csv")
-        if dailyminutes_df[model_name].iloc[-1]>.5:
+
+        # Access result from the dictionary
+        result = results[model_name]
+        if result > 0.5:
         # x=1
         # if x ==1:
             send_notifications.email_me_string(model_name, CorP, ticker)
@@ -293,7 +310,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
             # Add more function calls and corresponding parameters here
             try:
                 # Place order or perform other actions specific to the action
-                import asyncio
                 loop = asyncio.get_event_loop()
 
                 loop.run_in_executor(None, place_order_sync, CorP, ticker, IB_option_date, contractStrike,

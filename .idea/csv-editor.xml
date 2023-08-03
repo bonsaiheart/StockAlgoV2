@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Strategy_Testing/algooutput_ROKU_historical_multiday_min.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Strategy_Testing/algooutput_SPY_historical_multiday_min.csv">
           <value>
             <Attribute>
@@ -123,6 +130,20 @@
           </value>
         </entry>
         <entry key="/data/ProcessedData/SPY/230707/SPY_230707_1449.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230728/SPY_230728_1610.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/ProcessedData/SPY/230731/SPY_230728_2000.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

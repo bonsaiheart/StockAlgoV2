@@ -138,11 +138,11 @@ def placeOptionBracketOrder(
     print("Placing order:")
 
     try:
-        print(ticker, exp, strike, contract_current_price)
-        print(type(ticker))
-        print(type(exp))
-        print(type(strike))
-        print(type(contract_current_price))
+        # print(ticker, exp, strike, contract_current_price)
+        # print(type(ticker))
+        # print(type(exp))
+        # print(type(strike))
+        # print(type(contract_current_price))
         ## needed to remove 'USD' for option
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         # ib.qualifyContracts(ticker_contract)
@@ -217,8 +217,6 @@ def placeOptionBracketOrder(
             print(o.orderId)
 ##changed this 7.25
             ib.sleep(0)
-        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
@@ -367,11 +365,11 @@ def placeCallBracketOrder(
 ):
     try:
         ticker_symbol = ticker
-        print(ticker, exp, strike, current_price)
-        print(type(ticker))
-        print(type(exp))
-        print(type(strike))
-        print(type(current_price))
+        # print(ticker, exp, strike, current_price)
+        # print(type(ticker))
+        # print(type(exp))
+        # print(type(strike))
+        # print(type(current_price))
         ## needed to remove 'USD' for option
         ticker_contract = Option(ticker, exp, strike, "C", "SMART")
         ib.qualifyContracts(ticker_contract)
