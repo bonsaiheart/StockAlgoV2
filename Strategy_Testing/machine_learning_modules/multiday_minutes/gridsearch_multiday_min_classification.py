@@ -72,8 +72,8 @@ positivecase_weight_down = 10
 ###changed these from 20 7/12
 
 
-num_features_up = 'all'
-num_features_down = 'all'
+num_features_up = 7
+num_features_down = 7
 ##probablility threshhold.
 threshold_up = 0.8
 threshold_down = 0.8

@@ -42,8 +42,7 @@ def load_model_and_predict(new_data_df, model_folder_name):
     model_filename_up = os.path.join(model_folder, "target_up.pt")
     info_filename = os.path.join(model_folder, "info.pkl")
     info = joblib.load(info_filename)
-    # feature_columns = info['feature_columns']
-    feature_columns = ['Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
+    feature_columns=['Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
        'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
        'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
        'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
@@ -112,13 +111,15 @@ print("Current working directory:", os.getcwd())
 # Get the absolute path to the current Python script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Define the relative path to the data file from the script directory
-relative_data_path = "..\..\data\historical_multiday_minute_DF\TSLA_historical_multiday_min.csv"
+relative_data_path = "..\\algooutput_TSLA_historical_multiday_min.csv"
+# relative_data_path = "..\..\data\historical_multiday_minute_DF\ROKU_historical_multiday_min.csv"
 # Construct the absolute file path
 data_file_path = os.path.join(script_dir, relative_data_path)
 # Now you can use the `data_file_path` variable to load the data
 ml_dataframe = pd.read_csv(data_file_path)
 new_data = pd.read_csv(data_file_path)  # Replace ... with the new data in the format of your DataFrame
-print(new_data.columns)
+print(new_data.columns[-50:] )
+
 columnstokeep = new_data[["LastTradeTime", "Current Stock Price"]]
 
 result = load_model_and_predict(new_data,'_1hr_ptnnSPYA1')
@@ -130,4 +131,4 @@ else:
     print(new_data['_1hr_ptnnSPYA1'])
 new_data[["LastTradeTime", "Current Stock Price"]] = columnstokeep[["LastTradeTime", "Current Stock Price"]]
 # df_filtered.to_csv(f"algooutput_{filename}")
-new_data.to_csv(f"algooutput_TSLA2.csv")
+new_data.to_csv(f"algooutput_ROKU.csv")

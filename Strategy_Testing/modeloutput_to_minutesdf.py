@@ -2,7 +2,7 @@ import inspect
 import os
 import pandas as pd
 import Trained_Models.trained_minute_models  # Import your module
-import Trained_Models.trained_PT_models  # Import your module
+# import Trained_Models.trained_PT_models  # Import your module
 
 
 def get_model_names(module):
@@ -14,8 +14,8 @@ def get_model_names(module):
 
 
 
-# module_name = Trained_Models.trained_minute_models  # Provide the correct module name
-module_name = Trained_Models.trained_PT_models  # Provide the correct module name
+module_name = Trained_Models.trained_minute_models  # Provide the correct module name
+# module_name = Trained_Models.trained_PT_models  # Provide the correct module name
 
 model_names = get_model_names(module_name)
 print(model_names)
