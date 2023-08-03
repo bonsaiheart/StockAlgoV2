@@ -21,7 +21,7 @@ def Buy_4hr_nnSPYA1(new_data_df):
     # tensorobject = tensorflow.convert_to_tensor(tempdf[features].values, dtype=tensorflow.float32)
 
     predictions = loaded_model.predict(tempdf[features] )
-    print(predictions)
+    # print(predictions)
     # Create a new Series with the predictions and align it with the original DataFrame
     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
     result = new_data_df.copy()  # Create a copy of the original DataFrame
@@ -41,7 +41,7 @@ def Sell_4hr_nnSPYA1(new_data_df):
     threshold = 1e10
     tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
     predictions = loaded_model.predict(tempdf[features])
-    print(predictions)
+    # print(predictions)
     # Create a new Series with the predictions and align it with the original DataFrame
     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
     result = new_data_df.copy()  # Create a copy of the original DataFrame
