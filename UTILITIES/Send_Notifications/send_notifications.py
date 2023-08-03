@@ -14,6 +14,8 @@ min_tweet_interval = datetime.timedelta(minutes=20)  # Minimum interval between 
 
 
 def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds,modelname):
+    global last_tweet_time
+
     directory = "last_tweet_timestamps"  # Directory for storing timestamp files
     os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
     timestamp_file_path = os.path.join(directory,f"last_tweet_timestamp_{modelname}.txt")  # File path inside the directory    global last_tweet_time

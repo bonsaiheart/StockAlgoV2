@@ -8,14 +8,22 @@ from ib_insync import *
 import signal
 from Task_Queue.task_queue_cellery_bossman import app as app
 
+project_dir = os.path.dirname(os.path.abspath(__file__))  # Gets the directory where the script is
+log_dir = os.path.join(project_dir, "errorlog")  # Builds the path to the errorlog directory
+
+# Create the directory if it doesn't exist
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+log_file = os.path.join(log_dir, "error_ib.log")  # Builds the path to the log file
+
 # Set up logging
 logging.basicConfig(
-    filename="error_ib.log",
+    filename=log_file,
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M",
 )
-
 # Initialize IB object
 ib = IB()
 
