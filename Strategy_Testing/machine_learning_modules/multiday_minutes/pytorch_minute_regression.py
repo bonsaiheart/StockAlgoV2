@@ -3,7 +3,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import ParameterGrid
+from sklearn.model_selection import ParameterGrid, TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from torch.utils.data import DataLoader, TensorDataset
 import os
@@ -83,10 +83,23 @@ idx_train = int(train_ratio * X.shape[0])
 idx_val = int((train_ratio + val_ratio)* X.shape[0])
 print('y_up_shape: ',y_up.shape,idx_val,idx_train)
 #split data sequentially
-X_train, X_val,X_test  = X[:idx_train], X[idx_train:idx_val], X[idx_val:]
-print("XTRAIN",X_train.shape,"Xtest", X_test.shape,"xval:",X_val.shape)
-y_up_train,  y_up_val,y_up_test = y_up[:idx_train], y_up[idx_train:idx_val], y_up[idx_val:]
-y_down_train, y_down_val, y_down_test = y_down[:idx_train], y_down[idx_train:idx_val], y_down[idx_val:]
+tscv = TimeSeriesSplit(n_splits=5)  # You can adjust the number of splits (folds) as needed
+
+for train_val_index, test_index in tscv.split(X):
+    X_train_val, X_test = X.iloc[train_val_index], X.iloc[test_index]
+    y_up_train_val, y_up_test = y_up[train_val_index], y_up[test_index]
+    y_down_train_val, y_down_test = y_down[train_val_index], y_down[test_index]
+
+    # Further split the training and validation sets
+    num_train_val_splits = 4  # You can adjust the number of splits for training and validation
+
+    tscv_train_val = TimeSeriesSplit(n_splits=num_train_val_splits)
+
+    for train_index, val_index in tscv_train_val.split(X_train_val):
+        X_train, X_val = X_train_val.iloc[train_index], X_train_val.iloc[val_index]
+        y_up_train, y_up_val = y_up_train_val[train_index], y_up_train_val[val_index]
+        y_down_train, y_down_val = y_down_train_val[train_index], y_down_train_val[val_index]
+
 X_scaler = StandardScaler()
 y_up_scaler = StandardScaler()
 y_down_scaler = StandardScaler()
@@ -265,11 +278,11 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
 # """
 
     param_grid = {
-        'learning_rate': [.001],
-        'hidden_size': [1700,2500],#chose 1500 out of 1250/1500/2000
-        'dropout_rate': [.1],  #chosen most times, safe number. .2 was also close.
-        'num_epochs': [75,100],  # Change this to a specific value for the number of epochs #chose 50 out of 50/100/250
-        'batch_size': [500,1024,2048,16*40*60,]  # 38400 over 56400
+        'learning_rate': [.001,.0001,.01],
+        'hidden_size': [1500,2500,5000],#chose 1500 out of 1250/1500/2000
+        'dropout_rate': [0,.1,.3,.5],  #chosen most times, safe number. .2 was also close.
+        'num_epochs': [75,150],  # Change this to a specific value for the number of epochs #chose 50 out of 50/100/250
+        'batch_size': [1000,2048,10000,38000]  # 38400 over 56400
     }
 
     grid_search_results = []

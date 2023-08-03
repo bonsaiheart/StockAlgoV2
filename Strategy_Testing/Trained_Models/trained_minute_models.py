@@ -8,6 +8,41 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 base_dir = os.path.dirname(__file__)
+def Buy_2hr_gsmmcA1(new_data_df):
+    features =['Bonsai Ratio', 'PCRv Down3', 'PCRv Down2', 'PCRv Down4', 'ITM PCRv Up3', 'ITM PCRv Down3', 'ITM PCRv Up4']
+    model_filename = f"{base_dir}/_2hr_gsmmcA1/target_up.joblib"
+    loaded_model = joblib.load(model_filename)
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    threshold = 1e10
+    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+    predictions = loaded_model.predict(tempdf[features])
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions, index=tempdf.index)
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"
+    ] = prediction_series.values  # Assign predictions to corresponding rows
+    return result["Predictions"]
+
+def Sell_2hr_gsmmcA1(new_data_df):
+    features = ['Bonsai Ratio', 'PCRv Down3', 'PCRv Down2', 'PCRv Down4', 'ITM PCRv Down3', 'ITM PCRv Down2', 'ITM PCRv Down4']
+    model_filename = f"{base_dir}/_2hr_gsmmcA1/target_down.joblib"
+    loaded_model = joblib.load(model_filename)
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    threshold = 1e10
+    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+    predictions = loaded_model.predict(tempdf[features])
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions, index=tempdf.index)
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"
+    ] = prediction_series.values  # Assign predictions to corresponding rows
+    return result["Predictions"]
 def Buy_4hr_nnSPYA1(new_data_df):
     features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
 

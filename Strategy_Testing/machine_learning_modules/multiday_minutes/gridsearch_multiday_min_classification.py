@@ -58,8 +58,8 @@ cells_forward_to_check = 120
 threshold_cells_up = cells_forward_to_check * 0.7
 threshold_cells_down = cells_forward_to_check * 0.7
 #TODO add Beta to the percent, to make it more applicable across tickers.
-percent_up = 0.7
-percent_down = -0.7
+percent_up = 0.7 /100
+percent_down = 0.7 /100
 ###this many cells cannot be < current price for up, >
 # current price for down.
 anticondition_threshold_cells_up = cells_forward_to_check * 0.7
@@ -112,14 +112,14 @@ targetDownCounter = 0
 anticondition_UpCounter = 0
 anticondition_DownCounter = 0
 for i in range(1, cells_forward_to_check + 1):
-    shifted_values = ml_dataframe["Current SP % Change(LAC)"].shift(-i)
-    condition_met_up = shifted_values > ml_dataframe["Current SP % Change(LAC)"] + percent_up
-    anticondition_up = shifted_values <= ml_dataframe["Current SP % Change(LAC)"]
+    shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
+    condition_met_up = shifted_values > (ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"]*percent_up))
+    anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
 
     condition_met_down = (
-        ml_dataframe["Current SP % Change(LAC)"].shift(-i) < ml_dataframe["Current SP % Change(LAC)"] + percent_down
+        ml_dataframe["Current Stock Price"].shift(-i) < (ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"]*percent_down))
     )
-    anticondition_down = shifted_values >= ml_dataframe["Current SP % Change(LAC)"]
+    anticondition_down = shifted_values >= ml_dataframe["Current Stock Price"]
 
     targetUpCounter += condition_met_up.astype(int)
     targetDownCounter += condition_met_down.astype(int)
@@ -152,6 +152,7 @@ feature_selector_up = SelectKBest(score_func=mutual_info_classif,k=num_features_
 # Calculate class weights
 num_positive_up = sum(y_up_train)  # Number of positive cases in the training set
 num_negative_up = len(y_up_train) - num_positive_up  # Number of negative cases in the training set
+print(num_positive_up)
 weight_negative_up = 1.0
 weight_positive_up = (num_negative_up / num_positive_up) * positivecase_weight_up
 
