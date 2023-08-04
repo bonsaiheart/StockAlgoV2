@@ -12,6 +12,8 @@ import IB.ibAPI
 from UTILITIES.Send_Notifications import send_notifications as send_notifications
 
 # logging.basicConfig(filename='error.log', level=logging.ERROR)
+# logging.getLogger(__name__).info("other_script is running")
+
 logging.basicConfig(
     filename="trade_algos_error.log",
     level=logging.ERROR,
@@ -186,6 +188,8 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     model_list = [
         trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
         trained_minute_models.Sell_4hr_nnSPYA1,
+        trained_minute_models.Buy_2hr_gsmmcA1,
+        trained_minute_models.Sell_2hr_gsmmcA1,
         # trained_minute_models.Buy_2hr_nnA2,  ##made 3 out of 3, >.25% change! wow
         # trained_minute_models.Sell_2hr_nnA2,
         # trained_minute_models.Buy_90min_nnA2,  # WORKS GREAT?

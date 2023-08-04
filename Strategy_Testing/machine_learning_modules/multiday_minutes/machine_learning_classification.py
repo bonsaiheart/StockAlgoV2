@@ -107,41 +107,30 @@ X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_s
 
 
 # Feature selection for Target_Up
-feature_selector_up = RFECV(
-    estimator=model,
-    scoring="precision",
-    step=1,
-    min_features_to_select=num_features_up,
-)
+feature_selector_up = RFECV(estimator=model,scoring="precision",step=1,min_features_to_select=num_features_up)
 X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
 X_test_selected_up = feature_selector_up.transform(X_test)
+
+#Convert numpy array back to pandas DataFrame with selected feature names.
+selected_features_up = feature_selector_up.get_support(indices=True)
+feature_names_up = X_train.columns[selected_features_up]
+X_train_selected_up = pd.DataFrame(X_train_selected_up, columns=feature_names_up)
+# Convert X_test_selected_up to DataFrame
+X_test_selected_up = pd.DataFrame(X_test_selected_up, columns=feature_names_up)
 
 # Feature selection for Target_Down
 feature_selector_down = RFECV(estimator=model, scoring="precision", step=1, min_features_to_select=num_features_down)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
+selected_features_down = feature_selector_down.get_support(indices=True)
+feature_names_down = X_train.columns[selected_features_down]
+X_train_selected_down = pd.DataFrame(X_train_selected_down, columns=feature_names_down)
+
+# Convert X_test_selected_down to DataFrame
+X_test_selected_down = pd.DataFrame(X_test_selected_down, columns=feature_names_down)
 
 tscv = TimeSeriesSplit(n_splits=3)
-#
-# bayes_search_up = BayesSearchCV(
-#     estimator=model,
-#     search_spaces=parameters,
-#     scoring='precision',
-#     cv=tscv,
-#     n_iter=40,# Number of iterations for the Bayesian optimization
-#     # n_points=10,
-#     random_state=None
-# )
-# bayes_search_down = BayesSearchCV(
-#     estimator=model,
-#     search_spaces=parameters,
-#     scoring='precision',
-#     cv=tscv,
-#     n_iter=40,
-#     # n_points=10,
-# # Number of iterations for the Bayesian optimization
-#     random_state=None
-# )
+
 selected_features_up = feature_selector_up.get_support(indices=True)
 feature_names_up = X_train.columns[selected_features_up]
 
@@ -160,24 +149,6 @@ best_param_up = (
 )
 model_up = grid_search_up.best_estimator_
 
-# X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up > 0)] = sys.float_info.max
-# X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up < 0)] = -sys.float_info.max
-
-
-# bayes_search_up.fit(X_train_selected_up, y_up_train)
-# best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
-# print("Best features for Target_Up:", best_features_up)
-# print("Best parameters for Target_Up:", bayes_search_up.best_params_)
-# print("Best score for Target_Up:", bayes_search_up.best_score_)
-# best_param_up = f"Best parameters for Target_Up: {bayes_search_up.best_params_}. Best precision: {bayes_search_up.best_score_}"
-# model_up = bayes_search_up.best_estimator_
-# importance_tuples = [(feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)]
-# importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
-# print(importance_tuples)
-# for feature, importance in importance_tuples:
-#     print(f"{feature}: {importance}")
-
-...
 
 grid_search_down = GridSearchCV(estimator=model, param_grid=parameters, cv=tscv, scoring="precision")
 print("Performing GridSearchCV DOWN...")
@@ -195,12 +166,10 @@ model_down = grid_search_down.best_estimator_
 selected_features_down = feature_selector_down.get_support(indices=True)
 feature_names_down = X_train.columns[selected_features_down]
 
-
 grid_search_down.fit(X_train_selected_down, y_down_train)
 best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
 print("Selected Features Down:", feature_names_down)
 print("Best features for Target_Down:", best_features_down)
-
 print("Best parameters for Target_Down:", grid_search_down.best_params_)
 print("Best score for Target_Down:", grid_search_down.best_score_)
 best_param_down = (
@@ -221,12 +190,9 @@ X_test_selected_up = X_test_selected_up.astype("float64")
 X_test_selected_down = X_test_selected_down.astype("float64")
 # Use the selected features for prediction
 
-
 predicted_probabilities_up = model_up.predict_proba(X_test_selected_up)
 predicted_probabilities_down = model_down.predict_proba(X_test_selected_down)
 ...
-
-
 ###predict
 predicted_up = (predicted_probabilities_up[:, 1] > threshold_up).astype("float64")
 predicted_down = (predicted_probabilities_down[:, 1] > threshold_down).astype("float64")
