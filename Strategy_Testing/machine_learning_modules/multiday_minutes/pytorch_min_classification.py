@@ -60,15 +60,15 @@ Chosen_Predictor = [
 #        'Net ITM_IV/ITM_OI', 'RSI', 'AwesomeOsc',
 #        'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##changed from %change LAC to factoring in % change of stock price.
-cells_forward_to_check = 2*60
-threshold_cells_up = cells_forward_to_check * 0.1
-threshold_cells_down = cells_forward_to_check * 0.1
-percent_up =   .5   /100
-percent_down = .5  /100
-anticondition_threshold_cells_up = cells_forward_to_check * 1  #was .7
-anticondition_threshold_cells_down = cells_forward_to_check * 1
-positivecase_weight_up = 20  #was 20 and 18
-positivecase_weight_down = 20
+cells_forward_to_check = 1*60
+threshold_cells_up = cells_forward_to_check * 0.2
+threshold_cells_down = cells_forward_to_check * 0.2
+percent_up =   .4  #as percent
+percent_down = .4  #as percent
+anticondition_threshold_cells_up = cells_forward_to_check * .7  #was .7
+anticondition_threshold_cells_down = cells_forward_to_check * .7
+positivecase_weight_up = 10  #was 20 and 18
+positivecase_weight_down = 10
 
 # num_features_up = '8'
 # num_features_down = '8'
@@ -87,11 +87,11 @@ anticondition_UpCounter = 0
 anticondition_DownCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
-    condition_met_up = shifted_values > (ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"]*percent_up))
+    condition_met_up = shifted_values > (ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"]*(percent_up/100)))
     anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
 
     condition_met_down = (
-        ml_dataframe["Current Stock Price"].shift(-i) < (ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"]*percent_down))
+        ml_dataframe["Current Stock Price"].shift(-i) < (ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"]*(percent_down/100)))
     )
     anticondition_down = shifted_values >= ml_dataframe["Current Stock Price"]
 
@@ -120,7 +120,7 @@ y_up_tensor = torch.tensor(y_up.values, dtype=torch.float32).to(device)
 y_down_tensor = torch.tensor(y_down.values, dtype=torch.float32).to(device)
 
 train_size = int(len(X_tensor) * 0.7)  # Let's say we'll use 70% of data for training
-val_size = train_size + int(len(X_tensor) * 0.15)  # And 15% for validation
+val_size = train_size + int(len(X_tensor) * 0.10)  # And 15% for validation
 
 X_train_tensor = X_tensor[:train_size]
 X_val_tensor = X_tensor[train_size:val_size]
@@ -194,8 +194,10 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
     num_epochs = hparams["num_epochs"]
     batch_size = hparams["batch_size"]
     f1 = torchmetrics.F1Score(num_classes=2, average='macro', task='binary').to(device)
+    prec = torchmetrics.Precision(num_classes=2, average='macro', task='binary').to(device)
 
     best_f1_score = 0.0  # Track the best F1 score
+    best_prec_score = 0.0  # Track the best F1 score
 
     for epoch in range(num_epochs):
         # Training step
@@ -219,25 +221,37 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             # Compute F1 score
             val_predictions = (val_outputs > 0.5).float()  # thresholding
             F1Score = f1(y_val, val_predictions)  # computing F1 score
+            PrecisionScore = prec(y_val, val_predictions)  # computing F1 score
+        # print(F1Score,best_f1_score,"that was F1Score,best_f1_score.")
         if F1Score > best_f1_score:
-            best_f1_score = F1Score
 
-        print(
-            f"Epoch: {epoch + 1}, Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()}")
+            best_f1_score = F1Score.item()
+        if PrecisionScore > best_prec_score:
 
-    return best_f1_score  # Return the best F1 score after all epochs
+            best_prec_score = PrecisionScore.item()
+
+
+        print( f"Epoch: {epoch + 1}, PrecisionScore: {PrecisionScore}Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()}")
+
+    return best_prec_score  # Return the best F1 score after all epochs
 # Define Optuna Objective
 def objective(trial):
     # Define the hyperparameter search space
-    learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-1)
-    num_epochs = trial.suggest_int("num_epochs", 10, 3800)
-    batch_size = trial.suggest_int("batch_size", 16, 10240)
+    learning_rate = trial.suggest_loguniform("learning_rate",  3.1839682972478313e-05,0.0001)#0003034075497582067
+    num_epochs = trial.suggest_int("num_epochs", 180, 320)#3800 #230  291
+    batch_size = trial.suggest_int("batch_size", 2500, 4000)#10240  3437
     # Add more parameters as needed
-    dropout_rate = trial.suggest_float("dropout_rate", 0.0, 0.5)
-    num_hidden_units = trial.suggest_int("num_hidden_units", 16, 2560)
+    dropout_rate = trial.suggest_float("dropout_rate", 0.2,.3)# 30311980533100547  16372372692286732
+    num_hidden_units = trial.suggest_int("num_hidden_units", 100, 500)#2560 #83 125 63
+#Best Hyperparameters: {'learning_rate': 3.6620502192811457e-05, 'num_epochs': 189, 'batch_size': 83, 'dropout_rate': 0.30311980533100547, 'num_hidden_units': 125}
+# Best Hyperparameters: {'learning_rate': 0.0003034075497582067, 'num_epochs': 291 , 'batch_size': 3437, 'dropout_rate': 0.16372372692286732, 'num_hidden_units': 63}
+#Best Hyperparameters: {'learning_rate': 3.1839682972478313e-05, 'num_epochs': 264, 'batch_size': 2372, 'dropout_rate': 0.2746085482997296, 'num_hidden_units': 487}
+#1h4 .4%. Best Hyperparameters: {'learning_rate': 3.2948293353814504e-05, 'num_epochs': 300, 'batch_size': 3070, 'dropout_rate': 0.25704385354888537, 'num_hidden_units': 227}
 
     # Call the train_model function with the current hyperparameters
-    f1_score = train_model(
+    # f1_score = train_model(
+    prec_score = train_model(
+
         {
             "learning_rate": learning_rate,
             "num_epochs": num_epochs,
@@ -248,21 +262,31 @@ def objective(trial):
         },
         X_train_tensor, y_up_train_tensor, X_test_tensor, y_up_test_tensor
     )
+    # return f1_score  # Optuna will try to maximize this value
 
-    return f1_score  # Optuna will try to maximize this value
+    return prec_score  # Optuna will try to maximize this value
 
 study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
 study.optimize(objective, n_trials=100)  # You can change the number of trials as needed
 # Access the best hyperparameters found by Optuna
 best_params = study.best_params
+# best_params = {'learning_rate': 3.6620502192811457e-05, 'num_epochs': 189, 'batch_size': 83, 'dropout_rate': 0.30311980533100547, 'num_hidden_units': 125}
+#Best Hyperparameters: {'learning_rate': 0.0003034075497582067, 'num_epochs': 291, 'batch_size': 3437, 'dropout_rate': 0.16372372692286732, 'num_hidden_units': 63}
+
 print("Best Hyperparameters:", best_params)
 
 
+## Train the model with the best hyperparameters
+# best_f1_score = train_model(
+#     best_params, X_train_tensor, y_up_train_tensor, X_test_tensor, y_up_test_tensor
+# )
 # Train the model with the best hyperparameters
-best_f1_score = train_model(
+best_prec_score = train_model(
     best_params, X_train_tensor, y_up_train_tensor, X_test_tensor, y_up_test_tensor
 )
-print("Best F1-Score:", best_f1_score)
+# print("Best F1-Score:", best_f1_score)
+print("Best Precision-Score:", best_prec_score)
+
 model_up_nn = BinaryClassificationNN(X_train_tensor.shape[1]).to(device)
 model_down_nn = BinaryClassificationNN(X_train_tensor.shape[1]).to(device)
 
@@ -280,22 +304,20 @@ predicted_probabilities_down = model_down_nn(X_test_tensor).detach().cpu().numpy
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 
-predicted_up = model_up_nn(X_test_tensor).detach().cpu().numpy()
-predicted_up_tensor = torch.tensor(predicted_up, dtype=torch.float32).squeeze().to(device)
-predicted_down = model_down_nn(X_test_tensor).detach().cpu().numpy()
-predicted_down_tensor = torch.tensor(predicted_down, dtype=torch.float32).squeeze().to(device)
+predicted_up_tensor = torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
+predicted_down_tensor = torch.tensor(predicted_probabilities_down, dtype=torch.float32).squeeze().to(device)
 
 
 task = "binary"
-precision_up = Precision(num_classes=2, average='micro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)  # move metric to same device as tensors
-accuracy_up = Accuracy(num_classes=2, average='micro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
-recall_up = Recall(num_classes=2, average='micro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
-f1_up = F1Score(num_classes=2, average='micro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
+precision_up = Precision(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)  # move metric to same device as tensors
+accuracy_up = Accuracy(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
+recall_up = Recall(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
+f1_up = F1Score(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
 
-precision_down = Precision(num_classes=2, average='micro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
-accuracy_down = Accuracy(num_classes=2, average='micro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
-recall_down = Recall(num_classes=2, average='micro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
-f1_down = F1Score(num_classes=2, average='micro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
+precision_down = Precision(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
+accuracy_down = Accuracy(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
+recall_down = Recall(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
+f1_down = F1Score(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
 
 # Print Number of Positive and Negative Samples
 num_positive_samples_up = sum(y_up_train_tensor)
@@ -323,6 +345,7 @@ print("F1-Score:", f1_down, "\n")
 # loss_down, accuracy_down, precision_down, recall_down, f1_down = evaluate_model(model_down_nn, X_test_tensor, y_down_test_tensor)
 #
 # print(f"Loss up: {loss_up}, Loss down: {loss_down}, metric up: {metric_up}, metric down: {metric_down}")
+print("Best Hyperparameters:", best_params)
 
 # Save the models using joblib
 input_val = input("Would you like to save these models? y/n: ").upper()
@@ -348,7 +371,8 @@ with open(f"../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Metrics for Target_Down:\nPrecision: {precision_down}\nAccuracy: {accuracy_down}\nRecall: {recall_down}\nF1-Score: {f1_down}\n"
     )
     info_txt.write(
-        f"Predictors: {Chosen_Predictor}\n\n\n"
+        f"Predictors: {Chosen_Predictor}\n\n\n"     
+        f"Best Params: {best_params}\n\n\n"
         f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
         f"Number of Positive Samples (Target_Down): {num_positive_samples_down}\nNumber of Negative Samples (Target_Down): {num_negative_samples_down}\n"
         f"Threshold Up (sensitivity): {threshold_up}\nThreshold Down (sensitivity): {threshold_down}\n"
