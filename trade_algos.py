@@ -89,7 +89,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     ib_one_strike_above = ib_values["one_strike_above"]
 
     one_strike_above_closest_cp_strike_int_num = strike_values["one_strike_above"]
-    one_strike_below_closest_cp_strike_int_num = strike_values["one_strike_above"]
+    one_strike_below_closest_cp_strike_int_num = strike_values["one_strike_below"]
     # two_strike_above_closest_cp_strike_int_num = strike_values["two_strike_above"]
     # two_strike_below_closest_cp_strike_int_num = strike_values["two_strike_above"]
     # three_strike_above_closest_cp_strike_int_num = strike_values["three_strike_above"]
@@ -182,7 +182,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         print(e)
         traceback.print_exc()
         pass
-
     """These Models are classifications and only need a single frame(current frame)"""
 
     model_list = [
