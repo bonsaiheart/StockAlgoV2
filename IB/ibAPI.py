@@ -244,7 +244,7 @@ def placeBuyBracketOrder(ticker, current_price,
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
         ib.qualifyContracts(ticker_contract)
-
+        print("damn/")
         current_price = current_price
         quantity = quantity
         limit_price = current_price
@@ -288,24 +288,26 @@ def placeBuyBracketOrder(ticker, current_price,
         stopLoss.transmit = True
 
         bracketOrder = [parent, takeProfit, stopLoss]
-
         parentOrderId = parent.orderId
-        takeProfitOrderID = takeProfit.orderId
-        stopLossOrderID = stopLoss.orderId
-        parentOrders[parentOrderId] = []  # Create an empty dictionary for child orders of this parent order
-        takeProfitOrderID.append(parentOrders[parentOrderId])
-        stopLossOrderID.append(parentOrders[parentOrderId])
+        parentOrders[parentOrderId] = {"parent": parentOrderId}  # Create an entry for the parent order ID
+
+        childOrderId = [takeProfit.orderId, stopLoss.orderId]
+        parentOrders[parentOrderId] = childOrderId  # Assign child order IDs to parent order ID key
+        ##TODO change ref back
         for o in bracketOrder:
-            childOrderId = ib.placeOrder(ticker_contract, o)
-            parentOrders[parentOrderId][childOrderId] = o
-
-            ib.placeOrder(ticker_contract, o)
+            if orderRef is not None:
+                o.orderRef = orderRef
+            print(ib.placeOrder(ticker_contract, o))
+            print(o.orderId)
+            ##changed this 7.25
             ib.sleep(0)
-
+        print(
+            "ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
-    except (Exception, asyncio.exceptionsTimeoutError) as e:
-        logging.error("BuyBracketOrder error: %s", e)
+    except (Exception, asyncio.exceptions.TimeoutError) as e:
+        logging.exception("PlaceBuyOrder error.")
+        logging.getLogger().error("PlaceBuyOrder error: %s", e)
 
 
 def placeSellBracketOrder(ticker, current_price):
