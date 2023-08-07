@@ -123,7 +123,8 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
 
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
-    print("printorderstatus.filled:",orderStatus.filled)
+
+    print("printorderstatus.filled:", orderStatus.filled)
     if orderStatus.status == "filled":
         parentOrderId = orderStatus.orderStatus.parentId
         childOrderId = orderStatus.orderStatus.orderId
@@ -221,6 +222,8 @@ def placeOptionBracketOrder(
             if orderRef is not None:
                 o.orderRef = orderRef
             print(ib.placeOrder(ticker_contract, o))
+            ib.sleep(0)
+
             print(o.orderId)
 ##changed this 7.25
             ib.sleep(0)
