@@ -239,12 +239,12 @@ def placeBuyBracketOrder(ticker, current_price,
     orderRef=None,
     custom_takeprofit=None,
     custom_trailamount=None):
-    print("Placeing BuyBracket order")
+    print(f"Placing {ticker} BuyBracket order")
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
-        ib.qualifyContracts(ticker_contract)
-        print("damn/")
+        # ib.qualifyContracts(ticker_contract)
+
         current_price = current_price
         quantity = quantity
         limit_price = current_price
@@ -298,11 +298,9 @@ def placeBuyBracketOrder(ticker, current_price,
             if orderRef is not None:
                 o.orderRef = orderRef
             print(ib.placeOrder(ticker_contract, o))
-            print(o.orderId)
             ##changed this 7.25
             ib.sleep(0)
-        print(
-            "ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
