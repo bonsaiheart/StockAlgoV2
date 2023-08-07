@@ -109,7 +109,7 @@ def retrieveOrderIdFromFile(file_path):
                 }
     return order_ids
 
-def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
+def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
     try:
         ib.placeOptionBracketOrder(corP=CorP,
                                    ticker=ticker,
@@ -235,7 +235,11 @@ def placeOptionBracketOrder(
         # ib.disconnect()
 
 
-def placeBuyBracketOrder(ticker, current_price):
+def placeBuyBracketOrder(ticker, current_price,
+    quantity=None,
+    orderRef=None,
+    custom_takeprofit=None,
+    custom_trailamount=None):
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")

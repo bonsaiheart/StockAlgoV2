@@ -21,35 +21,56 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-now = datetime.now()
-formatted_time = now.strftime("%y%m%d %H:%M EST")
 
-def place_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
-    print(CorP, ticker, exp, strike,contract_current_price, quantity, orderRef)
+def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity=None, orderRef=None,
+                            custom_takeprofit=None,
+                            custom_trailamount=None):
+    print(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef)
     loop = asyncio.new_event_loop()
     # Set the new event loop as the current one
     asyncio.set_event_loop(loop)
 
     try:
+
         IB.ibAPI.placeOptionBracketOrder(CorP=CorP,
-                                   ticker=ticker,
-                                   exp=exp,
-                                   strike=strike,
-                                   contract_current_price=contract_current_price,
-                                   quantity=quantity,
-                                   orderRef=orderRef, custom_takeprofit=None,
-    custom_trailamount=None)
+                                         ticker=ticker,
+                                         exp=exp,
+                                         strike=strike,
+                                         contract_current_price=contract_current_price,
+                                         quantity=quantity,
+                                         orderRef=orderRef, custom_takeprofit=custom_takeprofit,
+                                         custom_trailamount=custom_trailamount)
     finally:
         loop.close()
+
+
+def place_buy_order_sync(ticker, current_price,
+                         quantity=None,
+                         orderRef=None,
+                         custom_takeprofit=None,
+                         custom_trailamount=None):
+    loop = asyncio.new_event_loop()
+    # Set the new event loop as the current one
+    asyncio.set_event_loop(loop)
+    if quantity == None:
+        quantity = 10
+    try:
+        IB.ibAPI.placeBuyBracketOrder(ticker, current_price, quantity=quantity, orderRef=orderRef,
+                                      custom_takeprofit=custom_takeprofit, custom_trailamount=custom_trailamount)
+    finally:
+        loop.close()
+
+
 # Then use it in your main code like this:
 
 # loop = asyncio.get_event_loop()
 # loop.run_in_executor(None, place_order_sync, corP, ticker, exp, strike, contract_current_price, quantity, orderRef)
 #
 
-async def actions(optionchain, dailyminutes,  processeddata, ticker, current_price):
+async def actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
-
+    now = datetime.now()
+    formatted_time = now.strftime("%y%m%d %H:%M EST")
     expdates_strikes_dict = {}
     for exp_date, row in processeddata.iterrows():
         exp_date = row['ExpDate']
@@ -69,7 +90,6 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     varnames = ["four_strike_below", "three_strike_below", "two_strike_below",
                 "one_strike_below", "closest_strike", "one_strike_above",
                 "two_strike_above", "three_strike_above", "four_strike_above"]
-
 
     # Initialize your dictionaries
 
@@ -198,7 +218,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         # trained_minute_models.Sell_90min_nnA1,
         # trained_minute_models.Buy_1hr_nnA1,  # WORKS GREAT?
         # trained_minute_models.Sell_1hr_nnA1,
-        trained_minute_models.Buy_2hr_A1, ##made 3 out of 3, >.25% change! wow
+        trained_minute_models.Buy_2hr_A1,  ##made 3 out of 3, >.25% change! wow
         trained_minute_models.Sell_2hr_A1,
         trained_minute_models.Buy_2hr_A2,  ##made 3 out of 3, >.25% change! wow
         trained_minute_models.Sell_2hr_A2,
@@ -221,7 +241,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         # trained_minute_models.Buy_1hr_A8,
         # trained_minute_models.Sell_1hr_A8,
         trained_minute_models.Buy_1hr_A7,
-        trained_minute_models.Sell_1hr_A7,#got 2 outt of 3, and when it works its >.1%
+        trained_minute_models.Sell_1hr_A7,  # got 2 outt of 3, and when it works its >.1%
 
         trained_minute_models.Buy_1hr_A6,
         trained_minute_models.Sell_1hr_A6,
@@ -239,7 +259,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         trained_minute_models.Sell_1hr_A2,
 
         trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
-        trained_minute_models.Sell_1hr_A1,   ###didn't seem to work accurately enough
+        trained_minute_models.Sell_1hr_A1,  ###didn't seem to work accurately enough
         # WORKS GREAT?
         # trained_minute_models.Buy_45min_A1,
         # trained_minute_models.Sell_45min_A1,# only works ~50%?
@@ -250,13 +270,13 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         # trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
         # trained_minute_models.Sell_20min_A1,
         # WORKS GREAT?
-        trained_minute_models.Buy_15min_A2,  #works well?
-        trained_minute_models.Sell_15min_A2,  #not sure
+        trained_minute_models.Buy_15min_A2,  # works well?
+        trained_minute_models.Sell_15min_A2,  # not sure
         trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
         trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
     ]
-#TODO convert to tensorobject here, instead of for each model definition.
-    #TODO add logic so that if close is <x hours, use next day strike.
+    # TODO convert to tensorobject here, instead of for each model definition.
+    # TODO add logic so that if close is <x hours, use next day strike.
     # Convert input data to tensor
 
     # Store results in a dictionary for easy access
@@ -264,13 +284,16 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
 
     # Perform prediction on each model
     for model in model_list:
+
         model_name = model.__name__
         result = model(dailyminutes_df)
+
         if isinstance(result, tuple):
-            dailyminutes_df[model_name], takeprofit, stoploss = result
+            dailyminutes_df[model_name], custom_takeprofit, custom_stoploss = result
         else:
-            dailyminutes_df[model_name], takeprofit, stoploss = result, None, None
+            dailyminutes_df[model_name], custom_takeprofit, custom_stoploss = result, None, None
         results[model_name] = dailyminutes_df[model_name].iloc[-1]
+        print(model_name, results[model_name])
     # Now you can use your results
     pattern = re.compile(r"\d+(min|hr)")
     for model in model_list:
@@ -307,18 +330,17 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
         # Access result from the dictionary
         result = results[model_name]
         if result > 0.5:
-        # x=1
-        # if x ==1:
             send_notifications.email_me_string(model_name, CorP, ticker)
-            # Other actions based on the model_name and signal
-            # Add more function calls and corresponding parameters here
             try:
                 # Place order or perform other actions specific to the action
+                print(f"(options)Sending {model_name} to IB.")
                 loop = asyncio.get_event_loop()
 
-                loop.run_in_executor(None, place_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, 5, f"{model_name}")
-
+                loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
+                                     contract_price, quantity=10, model_name=f"{model_name}")
+                print(f"(stock)Sending {model_name} to IB.")
+                loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, quantity=10,
+                                     orderRef=model_name, custom_takeprofit=None, custom_trailamount=None)
 
             except Exception as e:
                 logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
@@ -330,9 +352,8 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
                 current_price,
                 upordown,
                 f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                seconds,model_name
+                seconds, model_name
             )
-
 
     Algo1 = int(
         (dailyminutes_df["B2/B1"].iloc[-1] > 500)
@@ -343,7 +364,8 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     )
     if Algo1:
         send_notifications.email_me_string(
-            "B2/B1> 500 and B1 < 0.0001 and ITM PCRv Up2 < 0.01 and ITM PCRv Down2 < 5 and NIV 1-2 % from mean > NIV 1-4 % from mean", "Notsure", ticker
+            "B2/B1> 500 and B1 < 0.0001 and ITM PCRv Up2 < 0.01 and ITM PCRv Down2 < 5 and NIV 1-2 % from mean > NIV 1-4 % from mean",
+            "Notsure", ticker
         )
     # 1.15-(hold until) 0 and <0.0, hold call until .3   (hold them until the b1/b2 doubles/halves?) with conditions to make sure its profitable.
     Algo2 = int(
@@ -352,7 +374,7 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     if Algo2:
         send_notifications.email_me_string(
             "B1/B2 > 1.15) and RSI < 30", "Call", ticker
-        )    ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
+        )  ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
     if dailyminutes_df["B1/B2"].iloc[-1] < 0.25 and dailyminutes_df["RSI"].iloc[-1] > 70:
         send_notifications.email_me_string(
             "dailyminutes_df['B1/B2'][-1] < 0.25 and dailyminutes_df['RSI'][-1]>77:", "Put", ticker
@@ -360,43 +382,41 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
 
 #
 
-    #         ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-    #     if dailyminutes_df['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14'].iloc[-1]>75:
+#         ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
+#     if dailyminutes_df['RSI'].iloc[-1] > 80 and dailyminutes_df['RSI14'].iloc[-1]>75:
 
-    ###JUST b1/b2
-    # if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 :
+###JUST b1/b2
+# if dailyminutes_df['B1/B2'].iloc[-1] > 1.15 :
 
-    # ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
-    # if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 :
-    #
-    # dailyminutes_df["NIV 1-2 % from mean & NIV 1-4 % from mean"] = (
-    #     (dailyminutes_df["NIV 1-2 % from mean"] < -100) & (dailyminutes_df["NIV 1-4 % from mean"] < -200)
-    # ).astype(int)
-    #
-    # dailyminutes_df["NIV 1-2 % from mean & NIV 1-4 % from mean"] = (
-    #     (dailyminutes_df["NIV 1-2 % from mean"] > 100) & (dailyminutes_df["NIV 1-4 % from mean"] > 200)
-    # ).astype(int)
-    #
-    # dailyminutes_df["NIV highers(-)lowers1-4"] = (dailyminutes_df["NIV highers(-)lowers1-4"] < -20).astype(int)
-    #
-    # dailyminutes_df["NIV highers(-)lowers1-4"] = (dailyminutes_df["NIV highers(-)lowers1-4"] > 20).astype(int)
-    #
-    # dailyminutes_df["ITM PCR-Vol & RSI"] = (
-    #     (dailyminutes_df["ITM PCR-Vol"] > 1.3) & (dailyminutes_df["RSI"] > 70)
-    # ).astype(int)
-    #
-    # dailyminutes_df["Bonsai Ratio & ITM PCR-Vol & RSI"] = (
-    #     (dailyminutes_df["Bonsai Ratio"] < 0.8) & (dailyminutes_df["ITM PCR-Vol"] < 0.8) & (dailyminutes_df["RSI"] < 30)
-    # ).astype(int)
-    #
-    # dailyminutes_df["Bonsai Ratio & ITM PCR-Vol & RSI"] = (
-    #     (dailyminutes_df["Bonsai Ratio"] > 1.5) & (dailyminutes_df["ITM PCR-Vol"] > 1.2) & (dailyminutes_df["RSI"] > 70)
-    # ).astype(int)
-    #
-    # dailyminutes_df["Bonsai Ratio < 0.7 & Net_IV < -50 & Net ITM IV > -41"] = (
-    #     (dailyminutes_df["Bonsai Ratio"] < 0.7)
-    #     & (dailyminutes_df["Net_IV"] < -50)
-    #     & (dailyminutes_df["Net ITM IV"] > -41)
-    # ).astype(int)
-
-
+# ####THis one is good for a very short term peak before drop.  Maybe tighter profit/loss
+# if dailyminutes_df['B1/B2'].iloc[-1] < 0.25 :
+#
+# dailyminutes_df["NIV 1-2 % from mean & NIV 1-4 % from mean"] = (
+#     (dailyminutes_df["NIV 1-2 % from mean"] < -100) & (dailyminutes_df["NIV 1-4 % from mean"] < -200)
+# ).astype(int)
+#
+# dailyminutes_df["NIV 1-2 % from mean & NIV 1-4 % from mean"] = (
+#     (dailyminutes_df["NIV 1-2 % from mean"] > 100) & (dailyminutes_df["NIV 1-4 % from mean"] > 200)
+# ).astype(int)
+#
+# dailyminutes_df["NIV highers(-)lowers1-4"] = (dailyminutes_df["NIV highers(-)lowers1-4"] < -20).astype(int)
+#
+# dailyminutes_df["NIV highers(-)lowers1-4"] = (dailyminutes_df["NIV highers(-)lowers1-4"] > 20).astype(int)
+#
+# dailyminutes_df["ITM PCR-Vol & RSI"] = (
+#     (dailyminutes_df["ITM PCR-Vol"] > 1.3) & (dailyminutes_df["RSI"] > 70)
+# ).astype(int)
+#
+# dailyminutes_df["Bonsai Ratio & ITM PCR-Vol & RSI"] = (
+#     (dailyminutes_df["Bonsai Ratio"] < 0.8) & (dailyminutes_df["ITM PCR-Vol"] < 0.8) & (dailyminutes_df["RSI"] < 30)
+# ).astype(int)
+#
+# dailyminutes_df["Bonsai Ratio & ITM PCR-Vol & RSI"] = (
+#     (dailyminutes_df["Bonsai Ratio"] > 1.5) & (dailyminutes_df["ITM PCR-Vol"] > 1.2) & (dailyminutes_df["RSI"] > 70)
+# ).astype(int)
+#
+# dailyminutes_df["Bonsai Ratio < 0.7 & Net_IV < -50 & Net ITM IV > -41"] = (
+#     (dailyminutes_df["Bonsai Ratio"] < 0.7)
+#     & (dailyminutes_df["Net_IV"] < -50)
+#     & (dailyminutes_df["Net ITM IV"] > -41)
+# ).astype(int)

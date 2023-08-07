@@ -44,7 +44,7 @@ async def handle_ticker(session, ticker):
         closest_exp_date,
     )
     print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-    if ticker == "SPY":
+    if ticker in ["SPY", "TSLA" ,"CHWY" ,"GOOG"]:
         await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
         print(f"{ticker} Actions complete at {datetime.now()}.")
 
@@ -60,15 +60,15 @@ async def main():
             start_time = datetime.now()
             print(start_time)
             try:
-                if check_Market_Conditions.is_market_open_now():
-                    with open("UTILITIES/tickerlist.txt", "r") as f:
-                        tickerlist = [line.strip().upper() for line in f.readlines()]
+                # if check_Market_Conditions.is_market_open_now() == True or False:
+                with open("UTILITIES/tickerlist.txt", "r") as f:
+                    tickerlist = [line.strip().upper() for line in f.readlines()]
 
-                    # Use session in loop
-                    await asyncio.gather(*(handle_ticker(session, ticker) for ticker in tickerlist))
-                else:
-                    with open(log_path, "a") as f:
-                        f.write(f"Ran at {datetime.now()}. Market was closed today.\n")
+                # Use session in loop
+                await asyncio.gather(*(handle_ticker(session, ticker) for ticker in tickerlist))
+            # else:
+            #     with open(log_path, "a") as f:
+            #         f.write(f"Ran at {datetime.now()}. Market was closed today.\n")
 
             except Exception as e:
                 with open(log_path, "a") as f:

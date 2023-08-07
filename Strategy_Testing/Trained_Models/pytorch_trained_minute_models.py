@@ -23,12 +23,13 @@ class BinaryClassificationNN(nn.Module):
         return x
 
 def Buy_1hr_ptmin1A1(new_data_df):
+    print("Making PT Preditction")
     features =  [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2"]
 
-    checkpoint = torch.load(f'{base_dir}/_1hr_ptmin1A1/target_up.pth')
+    checkpoint = torch.load(f'{base_dir}/_1hr_ptmin1A1/target_up.pth', map_location=torch.device('cpu'))
     input_dim = checkpoint['input_dim']
     num_hidden_units = checkpoint['num_hidden_units']
     loaded_model = BinaryClassificationNN(input_dim, num_hidden_units)
@@ -56,8 +57,7 @@ def Buy_1hr_ptmin1A1(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
-
-    return result["Predictions"]
+    return (result["Predictions"],.6,.3)
 # current_directory = os.getcwd()
 # print("Current Directory:", current_directory)
 # df = pd.read_csv("../../data/DailyMinutes/SPY/SPY_230721.csv")

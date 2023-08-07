@@ -129,6 +129,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/optionchain/SPY/230804/SPY_230804_1209.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/testdailyminutes.csv">
           <value>
             <Attribute>

@@ -60,16 +60,16 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             print(last_tweet_time, "last tweet time")
 
 
-def email_me_string(strat, callorput, ticker):
+def email_me_string(model_name, callorput, ticker):
     # Email configuration
-    message = strat
+    message = model_name
     smtp_host = "bonsaiheart.com"
     smtp_port = 587
     smtp_user = "bot@bonsaiheart.com"
     smtp_password = "P3ruv!4nT0rch"
     from_email = "bot@bonsaiheart.com"
     to_email = "bot@bonsaiheart.com"
-    subject = f"{str(callorput)} Ticker:{str(ticker)}"
+    subject = f"{message} {str(ticker)}"
 
     # Create the email message
     msg = MIMEMultipart()
