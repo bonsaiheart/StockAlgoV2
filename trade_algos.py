@@ -4,7 +4,7 @@ import traceback
 import pandas as pd
 from datetime import datetime
 import numpy as np
-from Strategy_Testing.Trained_Models import trained_minute_models
+from Strategy_Testing.Trained_Models import trained_minute_models, pytorch_trained_minute_models
 import re
 import asyncio
 import threading
@@ -185,8 +185,9 @@ async def actions(optionchain, dailyminutes,  processeddata, ticker, current_pri
     """These Models are classifications and only need a single frame(current frame)"""
 
     model_list = [
-        trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
-        trained_minute_models.Sell_4hr_nnSPYA1,
+        pytorch_trained_minute_models.Buy_1hr_ptmin1A1,
+        # trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
+        # trained_minute_models.Sell_4hr_nnSPYA1,
         trained_minute_models.Buy_2hr_gsmmcA1,
         trained_minute_models.Sell_2hr_gsmmcA1,
         # trained_minute_models.Buy_2hr_nnA2,  ##made 3 out of 3, >.25% change! wow
