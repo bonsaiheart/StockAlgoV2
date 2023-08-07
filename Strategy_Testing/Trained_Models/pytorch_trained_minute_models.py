@@ -26,7 +26,7 @@ def Buy_2hr_ptminclassSPYA1(new_data_df):
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2"]
-    checkpoint = torch.load(f'{base_dir}/_2hr_ptminclassSPYA1/target_up.pth')
+    checkpoint = torch.load(f'{base_dir}/_2hr_ptminclassSPYA1/target_up.pth', map_location=torch.device('cpu'))
     input_dim = checkpoint['input_dim']
     num_hidden_units = checkpoint['num_hidden_units']
     loaded_model = BinaryClassificationNN(input_dim, num_hidden_units)
@@ -55,7 +55,8 @@ def Buy_1hr_ptmin1A1(new_data_df):
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2"]
-    checkpoint = torch.load(f'{base_dir}/_1hr_ptmin1A1/target_up.pth')
+
+    checkpoint = torch.load(f'{base_dir}/_1hr_ptmin1A1/target_up.pth', map_location=torch.device('cpu'))
     input_dim = checkpoint['input_dim']
     num_hidden_units = checkpoint['num_hidden_units']
     loaded_model = BinaryClassificationNN(input_dim, num_hidden_units)
@@ -73,7 +74,8 @@ def Buy_1hr_ptmin1A1(new_data_df):
 
     # Pass the tensor through the model to get predictions
     predictions = loaded_model(input_tensor)
-    # Convrt predictions to a NumPy array
+
+    # Convert predictions to a NumPy array
     predictions_numpy = predictions.detach().numpy()
 
     # Create a new Series with the predictions and align it with the original DataFrame

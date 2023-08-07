@@ -123,9 +123,8 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
 
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
-    print("printorderStatus.status:",orderStatus.status)
     print("printorderstatus.filled:",orderStatus.filled)
-    if orderStatus.status == "Filled":
+    if orderStatus.status == "filled":
         parentOrderId = orderStatus.orderStatus.parentId
         childOrderId = orderStatus.orderStatus.orderId
         if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
@@ -236,17 +235,18 @@ def placeOptionBracketOrder(
 
 
 def placeBuyBracketOrder(ticker, current_price,
-    quantity=None,
+    quantity=1,
     orderRef=None,
     custom_takeprofit=None,
     custom_trailamount=None):
+    print("Placeing BuyBracket order")
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
         ib.qualifyContracts(ticker_contract)
 
         current_price = current_price
-        quantity = 3
+        quantity = quantity
         limit_price = current_price
         take_profit_price = round(current_price * 1.003, 2)
         stop_loss_price = current_price * 0.9
