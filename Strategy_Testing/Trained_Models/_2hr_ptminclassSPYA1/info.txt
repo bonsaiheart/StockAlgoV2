@@ -1,0 +1,33 @@
+This file contains information about the model.
+
+File analyzed: ../../../data/historical_multiday_minute_DF/Copy of SPY_historical_multiday_min.csv
+Cells_Foward_to_check: 120
+
+Metrics for Target_Up:
+Precision: 0.9090909361839294
+Accuracy: 0.8987090587615967
+Recall: 0.3401360511779785
+F1-Score: 0.49504950642585754
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2']
+
+
+Best Params: {'learning_rate': 0.00013822073436538758, 'num_epochs': 367, 'batch_size': 1212, 'optimizer': 'SGD', 'dropout_rate': 0.2883333060035687, 'num_hidden_units': 2271}
+
+
+Number of Positive Samples (Target_Up): 147.0
+Number of Negative Samples (Target_Up): 860.0
+Threshold Up (sensitivity): 0.5
+Target Underlying Percentage Up: 0.3
+Anticondition: 1       1
+2       0
+3       0
+4       0
+5       0
+       ..
+6706    1
+6707    3
+6708    2
+6709    0
+6710    0
+Name: Current Stock Price, Length: 6710, dtype: int32
+Weight multiplier: 1

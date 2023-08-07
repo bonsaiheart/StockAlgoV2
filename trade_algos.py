@@ -205,6 +205,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
     """These Models are classifications and only need a single frame(current frame)"""
 
     model_list = [
+        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_1hr_ptmin1A1,
         # trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
         # trained_minute_models.Sell_4hr_nnSPYA1,

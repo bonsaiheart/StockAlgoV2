@@ -26,26 +26,20 @@ ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2']
+#Best Hyperparameters: {'learning_rate': 0.0005126011887041005, 'num_epochs': 264, 'batch_size': 2562, 'dropout_rate': 0.2142708085032501, 'num_hidden_units': 1239}
 
-# set_best_params_manually = {'learning_rate': 0.00114, 'num_epochs': 100, 'batch_size': 30, 'dropout_rate': 0.30311980533100547, 'num_hidden_units': 1000}
+set_best_params_manually = {'learning_rate': 0.00114, 'num_epochs': 260, 'batch_size': 2500, 'dropout_rate': 0.30311980533100547, 'num_hidden_units': 1000}
 # Best Hyperparameters: {'learning_rate': 0.0003034075497582067, 'num_epochs': 291, 'batch_size': 3437, 'dropout_rate': 0.16372372692286732, 'num_hidden_units': 63}
 #{'learning_rate': 0.0004, 'num_epochs': 150, 'batch_size': 3000, 'dropout_rate': 0.30311980533100547, 'num_hidden_units': 2250}
 Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2",
-    # "PCRv Up3", "PCRv Up2",
-    # "PCRv Down3", "PCRv Down2",
-    #
-    #  'ITM PCR-Vol',"ITM PCRv Up3",'ITM PCRoi Up1','ITM PCRoi Down1', 'Net_IV', 'Net ITM IV',
-    # "ITM PCRv Down3",
-    # "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
-    # "ITM PCRv Down4",
-    # "RSI14",
-    # "AwesomeOsc5_34",
-    # "RSI",
-    # "RSI2",
-    # "AwesomeOsc",
+#  "PCRv Up2"
+# , "PCRv Down2",
+#      'ITM PCR-Vol',"ITM PCRv Up3",'ITM PCRoi Up1','ITM PCRoi Down1', 'Net_IV', 'Net ITM IV',
+#     "ITM PCRv Down3",
+#   "ITM PCRv Down2", "ITM PCRv Up2",
 ]
 # Chosen_Predictor = [ 'Current Stock Price',
 #         'Maximum Pain', 'Bonsai Ratio',
@@ -66,21 +60,21 @@ Chosen_Predictor = [
 #        'Net ITM_IV/ITM_OI', 'RSI', 'AwesomeOsc',
 #        'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##changed from %change LAC to factoring in % change of stock price.
-cells_forward_to_check = 1*60
+cells_forward_to_check = 2*60
 threshold_cells_up = cells_forward_to_check * 0.15
 threshold_cells_down = cells_forward_to_check * 0.15
-percent_up =   .1  #as percent
+percent_up =   .3  #as percent
 percent_down = .15 #as percent
 anticondition_threshold_cells_up = cells_forward_to_check * 1 #was .7
 anticondition_threshold_cells_down = cells_forward_to_check * 1
 
 #TODO these do nothing?.
-positivecase_weight_up = .8 #1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
+positivecase_weight_up = 1 #1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
 positivecase_weight_down = 1
 # num_features_up = '8'
 # num_features_down = '8'
 #TODO look at validation, i was printing all of the val data sizes just like the test nad train.
-threshold_up = 0.0 ###TODO these dont do anything...
+theshhold_up = 0.5 ###TODO these dont do anything...
 threshold_down = 0.8
 """test F1-Score: 0.05271317809820175
 Number of Positive Samples (Target_Up): tensor(34., device='cuda:0')
@@ -138,8 +132,8 @@ X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
 y_up_tensor = torch.tensor(y_up.values, dtype=torch.float32).to(device)
 y_down_tensor = torch.tensor(y_down.values, dtype=torch.float32).to(device)
 
-train_size = int(len(X_tensor) * 0.8)  # Let's say we'll use 70% of data for training
-val_size = train_size + int(len(X_tensor) * 0.1)  # And 15% for validation
+train_size = int(len(X_tensor) * 0.7)  # Let's say we'll use 70% of data for training
+val_size = train_size + int(len(X_tensor) * 0.15)  # And 15% for validation
 
 X_train_tensor = X_tensor[:train_size]
 X_val_tensor = X_tensor[train_size:val_size]
@@ -148,7 +142,7 @@ X_test_tensor = X_tensor[val_size:]
 y_up_train_tensor = y_up_tensor[:train_size]
 y_up_val_tensor = y_up_tensor[train_size:val_size]
 y_up_test_tensor = y_up_tensor[val_size:]
-
+print("yuptesttensor",y_up_test_tensor)
 y_down_train_tensor = y_down_tensor[:train_size]
 y_down_val_tensor = y_down_tensor[train_size:val_size]
 y_down_test_tensor = y_down_tensor[val_size:]
@@ -219,22 +213,23 @@ class BinaryClassificationNN(nn.Module):
 # print(f"Loss down: {loss_down}, Accuracy down: {accuracy_down}, Precision down: {precision_down}, Recall down: {recall_down}, F1 down: {f1_down}")
 
 def train_model(hparams, X_train, y_train, X_val, y_val):
-    model = BinaryClassificationNN(X_train.shape[1],hparams["num_hidden_units"]).to(device)
+    model = BinaryClassificationNN(X_train.shape[1], hparams["num_hidden_units"]).to(device)
+    model.train()
+    weight = torch.Tensor([weight_positive_up]).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=weight)
 
-    #NOTE - swap this criterion with the weight and criterion below it to use the custom weights.
-    criterion = nn.BCELoss()
-    # weight = torch.Tensor([weight_positive_up]).to(device)
-    # criterion = nn.BCEWithLogitsLoss(pos_weight=weight)
+    optimizer_name = hparams["optimizer"]
+    learning_rate = hparams["learning_rate"]
 
-   ## # criterion = nn.BCELoss(weight=weight)
-   ## # Create tensors for the weights
-   ## # weight_positive_up_tensor = torch.tensor([weight_positive_up]).to(device)
-   ## # weight_positive_down_tensor = torch.tensor([weight_positive_down]).to(device)
+    if optimizer_name == "SGD":
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    elif optimizer_name == "Adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    elif optimizer_name == "RMSprop":
+        optimizer = torch.optim.RMSprop(model.parameters(), lr=learning_rate)
+    elif optimizer_name == "Adagrad":
+        optimizer = torch.optim.Adagrad(model.parameters(), lr=learning_rate)
 
-   ## # Create loss functions
-   ## # criterion_down = nn.BCEWithLogitsLoss(pos_weight=weight_positive_down_tensor)
-
-    optimizer = optim.Adagrad(model.parameters(), lr=hparams["learning_rate"])
     num_epochs = hparams["num_epochs"]
     batch_size = hparams["batch_size"]
     f1 = torchmetrics.F1Score(num_classes=2, average='macro', task='binary').to(device)
@@ -257,7 +252,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             optimizer.step()
 
             # Compute F1 score and Precision score
-            output_predictions = (outputs > 0.5).float()  # thresholding
+            output_predictions = (outputs > theshhold_up).float()  # thresholding
             TrainF1Score = f1(y_batch, output_predictions)  # computing F1 score
             TrainPrecisionScore = prec(y_batch, output_predictions)  # computing Precision score
 
@@ -276,7 +271,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             # Print the precision score for each epoch
 
         # print(F1Score,best_f1_score,"that was F1Score,best_f1_score.")
-        if F1Score >= best_f1_score:
+        if F1Score > best_f1_score:
 
             best_f1_score = F1Score.item()
             torch.save(model.state_dict(), 'best_model.pth')
@@ -284,7 +279,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
         if PrecisionScore > best_prec_score:
 
             best_prec_score = PrecisionScore.item()
-
+        model.train()
 
 
         print( f"VALIDATION Epoch: {epoch + 1}, PrecisionScore: {PrecisionScore}, Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()} ")
@@ -293,10 +288,11 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
 # Define Optuna Objective
 def objective(trial):
     # Define the hyperparameter search space
-    learning_rate = trial.suggest_loguniform("learning_rate",  1e-05,0.01)#0003034075497582067
+    learning_rate = trial.suggest_float("learning_rate",  1e-05,0.01,log=True)#0003034075497582067
     num_epochs = trial.suggest_int("num_epochs", 100, 500)#3800 #230  291
     batch_size = trial.suggest_int("batch_size", 20,3000)#10240  3437
     # Add more parameters as needed
+    optimizer_name = trial.suggest_categorical("optimizer", ["SGD", "Adam", "RMSprop", "Adagrad"])
     dropout_rate = trial.suggest_float("dropout_rate", 0,.4)# 30311980533100547  16372372692286732
     num_hidden_units = trial.suggest_int("num_hidden_units", 500, 2500)#2560 #83 125 63
 #Best Hyperparameters: {'learning_rate': 3.6620502192811457e-05, 'num_epochs': 189, 'batch_size': 83, 'dropout_rate': 0.30311980533100547, 'num_hidden_units': 125}
@@ -307,12 +303,12 @@ def objective(trial):
 #4hr Best Hyperparameters: {'learning_rate': 0.0003391103649807255, 'num_epochs': 449, 'batch_size': 1238, 'dropout_rate': 0.2521489441443193, 'num_hidden_units': 120}
 #Best Hyperparameters: {'learning_rate': 7.782115520036349e-05, 'num_epochs': 100, 'batch_size': 1622, 'dropout_rate': 0.2589106386785677, 'num_hidden_units': 985}
 
-    # Call the train_model function with the current hyperparameters
-    f1_score,prec_score = train_model(
-    # prec_score = train_model(
 
+    # Call the train_model function with the current hyperparameters
+    f1_score, prec_score = train_model(
         {
             "learning_rate": learning_rate,
+            "optimizer": optimizer_name,  # Include optimizer name here
             "num_epochs": num_epochs,
             "batch_size": batch_size,
             "dropout_rate": dropout_rate,
@@ -321,17 +317,17 @@ def objective(trial):
         },
         X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
     )
-    return f1_score  # Optuna will try to maximize this value
+    return prec_score
     #
     # return prec_score  # Optuna will try to maximize this value
 
 ##Comment out to skip the hyperparameter selection.  Swap "best_params".
 study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
 #TODO changed trials from 100
-study.optimize(objective, n_trials=1)  # You can change the number of trials as needed
+study.optimize(objective, n_trials=20)  # You can change the number of trials as needed
+# best_params = set_best_params_manually
 best_params = study.best_params
 
-# best_params = set_best_params_manually
 # if exists best_params:
     # best_params = best_params.
     # else best_params = study.best_params
@@ -347,39 +343,30 @@ print("val F1-Score:", best_f1_score)
 print("val Precision-Score:", best_prec_score)
 
 model_up_nn = BinaryClassificationNN(X_train_tensor.shape[1],best_params["num_hidden_units"]).to(device)
-model_down_nn = BinaryClassificationNN(X_train_tensor.shape[1],best_params["num_hidden_units"]).to(device)
 # Load the saved state_dict into the model
 model_up_nn.load_state_dict(torch.load('best_model.pth'))
-model_down_nn.load_state_dict(torch.load('best_model.pth'))
 
 
 
 
 
 model_up_nn.eval()
-model_down_nn.eval()
+
 
 predicted_probabilities_up = model_up_nn(X_test_tensor).detach().cpu().numpy()
-predicted_probabilities_down = model_down_nn(X_test_tensor).detach().cpu().numpy()
 print("predicted_prob up:",predicted_probabilities_up)
-threshold_up_formatted = int(threshold_up * 10)
-threshold_down_formatted = int(threshold_down * 10)
+
+predicted_probabilities_up = (predicted_probabilities_up > theshhold_up).astype(int)
+print("predicted_prob up:",predicted_probabilities_up)
 
 predicted_up_tensor = torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
-print("predicted up tensor",predicted_up_tensor)
-predicted_down_tensor = torch.tensor(predicted_probabilities_down, dtype=torch.float32).squeeze().to(device)
 #####################################################################################################################################################
 # Get binary predictions by applying threshold
 
-predicted_up = (predicted_probabilities_up > threshold_up_formatted).astype(int)
-predicted_down = (predicted_probabilities_down > threshold_down_formatted).astype(int)
-print(predicted_probabilities_up)
+# print("predictedd rpob up",predicted_probabilities_up,"\npredicted_up",predicted_probabilities_up)
 # Count the number of positive predictions
-num_positives_up = np.sum(predicted_up)
-num_positives_down = np.sum(predicted_down)
-
-print(f"Number of positive predictions for 'up': {sum(x[0] for x in predicted_up)}")
-print(f"Number of positive predictions for 'down': {num_positives_down}")
+num_positives_up = np.sum(predicted_probabilities_up)
+print(f"Number of positive predictions for 'up': {sum(x[0] for x in predicted_probabilities_up)}")
 ######################################################################################################################################################
 task = "binary"
 precision_up = Precision(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)  # move metric to same device as tensors
@@ -387,10 +374,6 @@ accuracy_up = Accuracy(num_classes=2, average='macro', task=task).to(device)(pre
 recall_up = Recall(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
 f1_up = F1Score(num_classes=2, average='macro', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
 
-precision_down = Precision(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
-accuracy_down = Accuracy(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
-recall_down = Recall(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
-f1_down = F1Score(num_classes=2, average='macro', task=task).to(device)(predicted_down_tensor, y_down_test_tensor)
 
 # Print Number of Positive and Negative Samples
 num_positive_samples_up = sum(y_up_test_tensor)
@@ -419,9 +402,9 @@ print("F1-Score:", f1_up, "\n")
 #
 # print(f"Loss up: {loss_up}, Loss down: {loss_down}, metric up: {metric_up}, metric down: {metric_down}")
 print("Best Hyperparameters:", best_params)
-print("num test positive up:", num_positive_up_test)
+print("total test positive:", num_positive_up_test)
+print("total test :", num_positive_up_test+num_negative_up_test)
 
-print("num test positive down:", num_positive_down_test)
 #TODO figure out why
 # Number of positive predictions for 'up': 0
 # Number of positive predictions for 'down': 0
@@ -463,10 +446,10 @@ with open(f"../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Predictors: {Chosen_Predictor}\n\n\n"
         f"Best Params: {best_params}\n\n\n"
         f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
-        f"Threshold Up (sensitivity): {threshold_up}\nThreshold Down (sensitivity): {threshold_down}\n"
-        f"Target Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n"
-        f"Anticondition Up: {anticondition_UpCounter}\nAnticondition Down: {anticondition_DownCounter}\n"
-        f"Weight multiplier Up: {positivecase_weight_up}\nWeight multiplier Down: {positivecase_weight_down}\n")
+        f"Threshold Up (sensitivity): {theshhold_up}\n"
+        f"Target Underlying Percentage Up: {percent_up}\n"
+        f"Anticondition: {anticondition_UpCounter}\n"
+        f"Weight multiplier: {positivecase_weight_up}")
 """# Load the model on CPU if it was trained on a GPU
 model.load_state_dict(torch.load('best_model.pth', map_location=torch.device('cpu')))
 """
