@@ -31,8 +31,9 @@ ib = IB()
 parentOrderIdFile = "IB/parent_order_ids.txt"
 
 # Global variables
-gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 parentOrders = {}
+gtddeltaoutsicescope = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
 #TODO order handling for "cannot both sides of ordr" error
 
 # ...
@@ -124,12 +125,12 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
 
-    print("printorderstatus.filled:", orderStatus.filled)
-    if orderStatus.status == "filled":
-        parentOrderId = orderStatus.orderStatus.parentId
-        childOrderId = orderStatus.orderStatus.orderId
-        if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
-            parentOrders[parentOrderId].pop(childOrderId, None)
+    # print("printorderstatus.filled:", orderStatus.filled)
+    # if orderStatus.filled == "filled":
+    #     parentOrderId = orderStatus.orderStatus.parentId
+    #     childOrderId = orderStatus.orderStatus.orderId
+    #     if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
+    #         parentOrders[parentOrderId].pop(childOrderId, None)
 
 
 def placeOptionBracketOrder(
@@ -144,7 +145,9 @@ def placeOptionBracketOrder(
     custom_trailamount=None,
 ):
     print("Placing order:")
-
+    print("OUtside gtddelta:", gtddeltaoutsicescope)
+    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+    print("IN FUNCTION gtddelta:",gtddelta)
     try:
         # print(ticker, exp, strike, contract_current_price)
         # print(type(ticker))
@@ -222,8 +225,6 @@ def placeOptionBracketOrder(
             if orderRef is not None:
                 o.orderRef = orderRef
             print(ib.placeOrder(ticker_contract, o))
-            ib.sleep(0)
-
             print(o.orderId)
 ##changed this 7.25
             ib.sleep(0)

@@ -343,9 +343,9 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
 #TODO get custom tp and ts to work
                 loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
                                      contract_price, 10, f"{model_name}")
-                print(f"(stock)Sending {model_name} to IB.")
-                loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
-                                     model_name)
+                # print(f"(stock)Sending {model_name} to IB.")
+                # loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
+                #                      model_name)
 
             except Exception as e:
                 logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
