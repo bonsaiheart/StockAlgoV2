@@ -1,0 +1,33 @@
+This file contains information about the model.
+
+File analyzed: ../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv
+Cells_Foward_to_check: 180
+
+Metrics for Target_Up:
+Precision: 1.0
+Accuracy: 0.9339622855186462
+Recall: 0.4166666567325592
+F1-Score: 0.5882353186607361
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCRoi Up1', 'PCRoi Down1', 'ITM PCR-OI', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM Contracts %', 'Net ITM IV', 'NIV highers(-)lowers1-4', 'Net_IV/OI', 'Net ITM_IV/ITM_OI']
+
+
+Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
+
+
+Number of Positive Samples (Target_Up): 48.0
+Number of Negative Samples (Target_Up): 376.0
+Threshold Up (sensitivity): 0.5
+Target Underlying Percentage Up: 0.4
+Anticondition: 1       1
+2       0
+3       0
+4       0
+5       0
+       ..
+8471    0
+8472    0
+8473    0
+8474    0
+8475    0
+Name: Current Stock Price, Length: 8475, dtype: int32
+Weight multiplier: 1

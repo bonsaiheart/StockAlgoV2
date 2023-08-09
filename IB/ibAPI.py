@@ -31,8 +31,9 @@ ib = IB()
 parentOrderIdFile = "IB/parent_order_ids.txt"
 
 # Global variables
-gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 parentOrders = {}
+gtddeltaoutsicescope = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
 #TODO order handling for "cannot both sides of ordr" error
 
 # ...
@@ -123,13 +124,13 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
 
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
-    print("printorderStatus.status:",orderStatus.status)
-    print("printorderstatus.filled:",orderStatus.filled)
-    if orderStatus.status == "Filled":
-        parentOrderId = orderStatus.orderStatus.parentId
-        childOrderId = orderStatus.orderStatus.orderId
-        if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
-            parentOrders[parentOrderId].pop(childOrderId, None)
+
+    # print("printorderstatus.filled:", orderStatus.filled)
+    # if orderStatus.filled == "filled":
+    #     parentOrderId = orderStatus.orderStatus.parentId
+    #     childOrderId = orderStatus.orderStatus.orderId
+    #     if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
+    #         parentOrders[parentOrderId].pop(childOrderId, None)
 
 
 def placeOptionBracketOrder(
@@ -144,7 +145,9 @@ def placeOptionBracketOrder(
     custom_trailamount=None,
 ):
     print("Placing order:")
-
+    print("OUtside gtddelta:", gtddeltaoutsicescope)
+    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+    print("IN FUNCTION gtddelta:",gtddelta)
     try:
         # print(ticker, exp, strike, contract_current_price)
         # print(type(ticker))
@@ -236,17 +239,18 @@ def placeOptionBracketOrder(
 
 
 def placeBuyBracketOrder(ticker, current_price,
-    quantity=None,
+    quantity=1,
     orderRef=None,
     custom_takeprofit=None,
     custom_trailamount=None):
+    print(f"Placing {ticker} BuyBracket order")
     try:
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
-        ib.qualifyContracts(ticker_contract)
+        # ib.qualifyContracts(ticker_contract)
 
         current_price = current_price
-        quantity = 3
+        quantity = quantity
         limit_price = current_price
         take_profit_price = round(current_price * 1.003, 2)
         stop_loss_price = current_price * 0.9
@@ -288,24 +292,24 @@ def placeBuyBracketOrder(ticker, current_price,
         stopLoss.transmit = True
 
         bracketOrder = [parent, takeProfit, stopLoss]
-
         parentOrderId = parent.orderId
-        takeProfitOrderID = takeProfit.orderId
-        stopLossOrderID = stopLoss.orderId
-        parentOrders[parentOrderId] = []  # Create an empty dictionary for child orders of this parent order
-        takeProfitOrderID.append(parentOrders[parentOrderId])
-        stopLossOrderID.append(parentOrders[parentOrderId])
+        parentOrders[parentOrderId] = {"parent": parentOrderId}  # Create an entry for the parent order ID
+
+        childOrderId = [takeProfit.orderId, stopLoss.orderId]
+        parentOrders[parentOrderId] = childOrderId  # Assign child order IDs to parent order ID key
+        ##TODO change ref back
         for o in bracketOrder:
-            childOrderId = ib.placeOrder(ticker_contract, o)
-            parentOrders[parentOrderId][childOrderId] = o
-
-            ib.placeOrder(ticker_contract, o)
+            if orderRef is not None:
+                o.orderRef = orderRef
+            print(ib.placeOrder(ticker_contract, o))
+            ##changed this 7.25
             ib.sleep(0)
-
+        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
-    except (Exception, asyncio.exceptionsTimeoutError) as e:
-        logging.error("BuyBracketOrder error: %s", e)
+    except (Exception, asyncio.exceptions.TimeoutError) as e:
+        logging.exception("PlaceBuyOrder error.")
+        logging.getLogger().error("PlaceBuyOrder error: %s", e)
 
 
 def placeSellBracketOrder(ticker, current_price):

@@ -22,14 +22,17 @@ logging.basicConfig(
 )
 
 
-def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity=None, orderRef=None,
+
+
+def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                             custom_takeprofit=None,
                             custom_trailamount=None):
     print(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef)
     loop = asyncio.new_event_loop()
     # Set the new event loop as the current one
     asyncio.set_event_loop(loop)
-
+    if quantity == None:
+        quantity = 10
     try:
 
         IB.ibAPI.placeOptionBracketOrder(CorP=CorP,
@@ -45,18 +48,19 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
 
 
 def place_buy_order_sync(ticker, current_price,
-                         quantity=None,
-                         orderRef=None,
+                         quantity,
+                         orderRef,
                          custom_takeprofit=None,
                          custom_trailamount=None):
     loop = asyncio.new_event_loop()
+    print("buying stocks")
     # Set the new event loop as the current one
     asyncio.set_event_loop(loop)
     if quantity == None:
         quantity = 10
     try:
         IB.ibAPI.placeBuyBracketOrder(ticker, current_price, quantity=quantity, orderRef=orderRef,
-                                      custom_takeprofit=custom_takeprofit, custom_trailamount=custom_trailamount)
+                                      custom_takeprofit=None, custom_trailamount=None)
     finally:
         loop.close()
 
@@ -230,14 +234,14 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
 
         # trained_minute_models.Buy_90min_A1,
         # trained_minute_models.Sell_90min_A1,
-        trained_minute_models.Buy_90min_A2,
-        trained_minute_models.Sell_90min_A2,
+        # trained_minute_models.Buy_90min_A2,
+        # trained_minute_models.Sell_90min_A2,
         trained_minute_models.Buy_90min_A3,
         trained_minute_models.Sell_90min_A3,
         trained_minute_models.Buy_90min_A4,
         trained_minute_models.Sell_90min_A4,
-        trained_minute_models.Buy_90min_A5,
-        trained_minute_models.Sell_90min_A5,
+        # trained_minute_models.Buy_90min_A5,
+        # trained_minute_models.Sell_90min_A5,
         trained_minute_models.Buy_1hr_A9,
         trained_minute_models.Sell_1hr_A9,
         # trained_minute_models.Buy_1hr_A8,
@@ -245,8 +249,8 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         trained_minute_models.Buy_1hr_A7,
         trained_minute_models.Sell_1hr_A7,  # got 2 outt of 3, and when it works its >.1%
 
-        trained_minute_models.Buy_1hr_A6,
-        trained_minute_models.Sell_1hr_A6,
+        # trained_minute_models.Buy_1hr_A6,
+        # trained_minute_models.Sell_1hr_A6,
 
         # trained_minute_models.Buy_1hr_A5,
         # trained_minute_models.Sell_1hr_A5,
@@ -266,8 +270,8 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         # trained_minute_models.Buy_45min_A1,
         # trained_minute_models.Sell_45min_A1,# only works ~50%?
 
-        trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
-        trained_minute_models.Sell_30min_A1,  # seems to work well, expect .03-.1 drop.
+        # trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
+        # trained_minute_models.Sell_30min_A1,  # seems to work well, expect .03-.1 drop.
 
         # trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
         # trained_minute_models.Sell_20min_A1,
@@ -337,12 +341,12 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                 # Place order or perform other actions specific to the action
                 print(f"(options)Sending {model_name} to IB.")
                 loop = asyncio.get_event_loop()
-
+#TODO get custom tp and ts to work
                 loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, quantity=10, model_name=f"{model_name}")
-                print(f"(stock)Sending {model_name} to IB.")
-                loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, quantity=10,
-                                     orderRef=model_name, custom_takeprofit=None, custom_trailamount=None)
+                                     contract_price, 10, f"{model_name}")
+                # print(f"(stock)Sending {model_name} to IB.")
+                # loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
+                #                      model_name)
 
             except Exception as e:
                 logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
