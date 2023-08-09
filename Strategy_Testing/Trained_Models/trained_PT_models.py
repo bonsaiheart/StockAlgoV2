@@ -6,6 +6,26 @@ import torch.nn as nn
 import torch
 import pandas as pd
 from joblib import load
+class BinaryClassificationNNwithDropout(nn.Module):
+    def __init__(self, input_dim, num_hidden_units, dropout_rate):
+        super(BinaryClassificationNNwithDropout, self).__init__()
+        self.layer1 = nn.Linear(input_dim, num_hidden_units)
+        self.layer2 = nn.Linear(num_hidden_units, int(num_hidden_units/2))
+        self.layer3 = nn.Linear(int(num_hidden_units/2), int(num_hidden_units/4))
+        self.output_layer = nn.Linear(int(num_hidden_units/4), 1)
+        self.activation = nn.ReLU()
+        self.dropout = nn.Dropout(p=dropout_rate) # Dropout layer
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.activation(self.layer1(x))
+        x = self.dropout(x) # Apply dropout after the activation
+        x = self.activation(self.layer2(x))
+        x = self.dropout(x) # Apply dropout after the activation
+        x = self.activation(self.layer3(x))
+        x = self.dropout(x) # Apply dropout after the activation
+        x = self.sigmoid(self.output_layer(x))
+        return x
 
 class RegressionModel(nn.Module):
     def __init__(self, input_size, hidden_size, dropout_rate):
