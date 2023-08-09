@@ -310,6 +310,7 @@ if input_val == "Y":
 
     torch.save({'features':Chosen_Predictor,
         'input_dim': X_train_tensor.shape[1],
+                'dropout_rate':best_params["dropout_rate"],
         'num_hidden_units': best_params["num_hidden_units"],
         'model_state_dict': model_up_nn.state_dict(),
     }, model_filename_up)
