@@ -41,13 +41,39 @@ class BinaryClassificationNN(nn.Module):
         x = self.activation(self.layer3(x))
         x = self.sigmoid(self.output_layer(x))
         return x
-
 def Buy_3hr_PTminClassSPYA1(new_data_df):
-    checkpoint = torch.load(f'{base_dir}/_3hr_ptclassA1/target_up.pth')
+    checkpoint = torch.load(f'{base_dir}/_3hr_ptclassA1/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
     num_hidden_units = checkpoint['num_hidden_units']
-    loaded_model = BinaryClassificationNNwithDropout(input_dim, num_hidden_units)
+    loaded_model = BinaryClassificationNNwithDropout(input_dim, num_hidden_units,dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()  # Set the model to evaluation mode
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    threshold = 1e10
+    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+    # Convert DataFrame to a PyTorch tensor
+    input_tensor = torch.tensor(tempdf[features].values, dtype=torch.float32)
+    # Pass the tensor through the model to get predictions
+    predictions = loaded_model(input_tensor)
+    # Convrt predictions to a NumPy array
+    predictions_numpy = predictions.detach().numpy()
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
+    return result["Predictions"]
+def Buy_3hr_PTminClassSPYA1(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/_3hr_ptclassA1/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = .05
+    input_dim = checkpoint['input_dim']
+    num_hidden_units = checkpoint['num_hidden_units']
+    loaded_model = BinaryClassificationNNwithDropout(input_dim, num_hidden_units,dropout_rate)
     loaded_model.load_state_dict(checkpoint['model_state_dict'])
     loaded_model.eval()  # Set the model to evaluation mode
     tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
@@ -68,7 +94,7 @@ def Buy_3hr_PTminClassSPYA1(new_data_df):
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
     return result["Predictions"]
 def Buy_2hr_ptminclassSPYA2(new_data_df):
-    checkpoint = torch.load(f'{base_dir}/_2hr_ptminclassSPYA2/target_up.pth')
+    checkpoint = torch.load(f'{base_dir}/_2hr_ptminclassSPYA2/target_up.pth', map_location=torch.device('cpu'))
     features =  ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV LAC']
     input_dim = checkpoint['input_dim']
     num_hidden_units = checkpoint['num_hidden_units']
