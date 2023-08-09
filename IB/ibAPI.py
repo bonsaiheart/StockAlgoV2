@@ -171,7 +171,7 @@ def placeOptionBracketOrder(
             )  # Replace with your desired trailing stop percentage
 
         else:
-            trailAmount = round(contract_current_price * 0.3, 2)  # Replace with your desired trailing stop percentage
+            trailAmount = round(contract_current_price * 0.1, 2)  # Replace with your desired trailing stop percentage
 
         triggerPrice = limit_price
 
