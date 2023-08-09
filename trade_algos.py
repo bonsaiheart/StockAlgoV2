@@ -21,6 +21,9 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
+
+
+
 def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                             custom_takeprofit=None,
                             custom_trailamount=None):
@@ -206,6 +209,8 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
     """These Models are classifications and only need a single frame(current frame)"""
 
     model_list = [
+        pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
+        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
         pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_1hr_ptmin1A1,
         # trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
@@ -339,7 +344,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                 loop = asyncio.get_event_loop()
 #TODO get custom tp and ts to work
                 loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, 10, f"{model_name}",custom_takeprofit,custom_stoploss)
+                                     contract_price, 10, f"{model_name}")
                 print(f"(stock)Sending {model_name} to IB.")
                 loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
                                      model_name)
