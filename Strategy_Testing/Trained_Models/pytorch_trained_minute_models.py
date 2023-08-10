@@ -181,7 +181,7 @@ def Buy_1hr_ptmin1A1(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
-    return (result["Predictions"],.6,.3)
+    return (result["Predictions"],.6,.5)
 # current_directory = os.getcwd()
 # print("Current Directory:", current_directory)
 # df = pd.read_csv("../../data/DailyMinutes/SPY/SPY_230721.csv")
