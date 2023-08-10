@@ -22,13 +22,12 @@ logging.basicConfig(
 )
 
 
-
-
 def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                             custom_takeprofit=None,
                             custom_trailamount=None):
     print(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef)
     loop = asyncio.new_event_loop()
+    print("placeoptionordersync", custom_trailamount, custom_takeprofit)
     # Set the new event loop as the current one
     asyncio.set_event_loop(loop)
     if quantity == None:
@@ -288,23 +287,19 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
 
     # Store results in a dictionary for easy access
     results = {}
+    pattern = re.compile(r"\d+(min|hr)")
 
-    # Perform prediction on each model
     for model in model_list:
-
         model_name = model.__name__
-        result = model(dailyminutes_df)
+        model_output = model(dailyminutes_df)
 
-        if isinstance(result, tuple):
-            dailyminutes_df[model_name], custom_takeprofit, custom_stoploss = result
+        if isinstance(model_output, tuple):
+            (dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop) = model_output
+            print(custom_takeprofit, custom_trailingstop, "istuple!!!!!!!!!!!!!!!!!!!!!1")
         else:
-            dailyminutes_df[model_name], custom_takeprofit, custom_stoploss = result, None, None
+            dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop = model_output, None, None
         results[model_name] = dailyminutes_df[model_name].iloc[-1]
         print(model_name, results[model_name])
-    # Now you can use your results
-    pattern = re.compile(r"\d+(min|hr)")
-    for model in model_list:
-        model_name = model.__name__
         if model_name.startswith("Buy"):
             CorP = "C"
         elif model_name.startswith("Sell"):
@@ -342,9 +337,9 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                 # Place order or perform other actions specific to the action
                 print(f"(options)Sending {model_name} to IB.")
                 loop = asyncio.get_event_loop()
-#TODO get custom tp and ts to work
+                # TODO get custom tp and ts to work
                 loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, 10, f"{model_name}")
+                                     contract_price, 10, f"{model_name}", custom_takeprofit, custom_trailingstop)
                 print(f"(stock)Sending {model_name} to IB.")
                 loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
                                      model_name)

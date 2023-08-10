@@ -3,10 +3,7 @@ import datetime
 import logging
 import os
 import random
-import signal
 from ib_insync import *
-import signal
-from Task_Queue.task_queue_cellery_bossman import app as app
 
 project_dir = os.path.dirname(os.path.abspath(__file__))  # Gets the directory where the script is
 log_dir = os.path.join(project_dir, "errorlog")  # Builds the path to the errorlog directory
@@ -144,9 +141,11 @@ def placeOptionBracketOrder(
     custom_takeprofit=None,
     custom_trailamount=None,
 ):
+    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
+    print(custom_takeprofit,custom_trailamount,"IN PLACEOPTIONBRACKETORDER IBAPI")
     print("Placing order:")
     print("OUtside gtddelta:", gtddeltaoutsicescope)
-    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
     print("IN FUNCTION gtddelta:",gtddelta)
     try:
         # print(ticker, exp, strike, contract_current_price)
@@ -160,9 +159,10 @@ def placeOptionBracketOrder(
         contract_current_price = round(contract_current_price, 2)
         quantity = quantity  # Replace with the desired order quantity
         limit_price = contract_current_price  # Replace with your desired limit price
+        print(custom_takeprofit,custom_trailamount,"CUSTOMSSSS")
         if custom_takeprofit is not None:
             take_profit_price = round(
-                contract_current_price * custom_takeprofit, 2
+                contract_current_price+(contract_current_price * custom_takeprofit), 2
             )  # Replace with your desired take profit price
 
         else:
@@ -245,6 +245,8 @@ def placeBuyBracketOrder(ticker, current_price,
     custom_trailamount=None):
     print(f"Placing {ticker} BuyBracket order")
     try:
+        gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
         # ib.qualifyContracts(ticker_contract)
@@ -314,6 +316,8 @@ def placeBuyBracketOrder(ticker, current_price,
 
 def placeSellBracketOrder(ticker, current_price):
     try:
+        gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
         ticker_symbol = ticker
         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
         ib.qualifyContracts(ticker_contract)
@@ -387,6 +391,8 @@ def placeCallBracketOrder(
         # print(type(strike))
         # print(type(current_price))
         ## needed to remove 'USD' for option
+        gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
         ticker_contract = Option(ticker, exp, strike, "C", "SMART")
         ib.qualifyContracts(ticker_contract)
         current_price = round(current_price, 2)

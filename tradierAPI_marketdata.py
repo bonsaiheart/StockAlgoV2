@@ -38,12 +38,14 @@ async def get_option_chains_concurrently(session,ticker, expiration_dates, heade
     all_option_chains = await asyncio.gather(*tasks)
     return all_option_chains
 async def fetch(session, url, params, headers):
-    async with session.get(url, params=params, headers=headers) as response:
-        # print("Rate Limit Headers:")
-        # print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
-        # print("Used:", response.headers.get("X-Ratelimit-Used"))
-        return await response.json()
-
+    try:
+        async with session.get(url, params=params, headers=headers) as response:
+            # print("Rate Limit Headers:")
+            # print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
+            # print("Used:", response.headers.get("X-Ratelimit-Used"))
+            return await response.json()
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        print(f"Connection error to {url}: {e}. Retrying...")
 
 async def get_options_data(session,ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")

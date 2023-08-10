@@ -19,35 +19,40 @@ log_file = "error.log"
 async def ib_connect_and_main():
     while True:
         await ibAPI.ib_connect()  # Connect to IB here
-        await asyncio.sleep(15 * 60)
+        await asyncio.sleep(5 * 60)
         print('running ib_connect_and_main again.')
 
 async def run_program():
     await asyncio.gather(ib_connect_and_main(), main())
 async def handle_ticker(session, ticker):
     ticker = ticker.upper()
-    LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
+    try:
+        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
 
-    print(f"{ticker} OptionData complete at {datetime.now()}.")
+        print(f"{ticker} OptionData complete at {datetime.now()}.")
 
-    (optionchain,
-        dailyminutes,
-        processeddata,
-        ticker,
-    ) = tradierAPI_marketdata.perform_operations(
-        ticker,
-        LAC,
-        current_price,
-        price_change_percent,
-        StockLastTradeTime,
-        this_minute_ta_frame,
-        closest_exp_date,
-    )
-    print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-    if ticker in ["SPY", "TSLA"  ,"GOOG"]:
-        await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
-        print(f"{ticker} Actions complete at {datetime.now()}.")
-
+        (optionchain,
+            dailyminutes,
+            processeddata,
+            ticker,
+        ) = tradierAPI_marketdata.perform_operations(
+            ticker,
+            LAC,
+            current_price,
+            price_change_percent,
+            StockLastTradeTime,
+            this_minute_ta_frame,
+            closest_exp_date,
+        )
+        print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+        if ticker in ["SPY", "TSLA", "GOOG"]:
+            await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
+            print(f"{ticker} Actions complete at {datetime.now()}.")
+    except Exception as e:
+        print(f"An error occurred while handling ticker {ticker}: {e}")
+        # If you want, you can log the traceback
+        traceback.print_exc()
+        # Optionally, you may w
 async def main():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
