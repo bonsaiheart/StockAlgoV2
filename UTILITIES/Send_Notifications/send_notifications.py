@@ -10,7 +10,7 @@ import PrivateData.twitter_info
 from Task_Queue import celery_client
 
 last_tweet_time = None
-min_tweet_interval = datetime.timedelta(minutes=20)  # Minimum interval between tweets (5 minutes)
+min_tweet_interval = datetime.timedelta(minutes=30)  # Minimum interval between tweets (5 minutes)
 
 
 def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds,modelname):

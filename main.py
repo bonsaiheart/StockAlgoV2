@@ -44,9 +44,9 @@ async def handle_ticker(session, ticker):
         closest_exp_date,
     )
     print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-    # if ticker in ["SPY", "TSLA"  ,"GOOG"]:
-    #     await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
-    #     print(f"{ticker} Actions complete at {datetime.now()}.")
+    if ticker in ["SPY", "TSLA"  ,"GOOG"]:
+        await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
+        print(f"{ticker} Actions complete at {datetime.now()}.")
 
 async def main():
     if not os.path.exists(log_dir):
