@@ -43,25 +43,26 @@ ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
 
-Chosen_Predictor = [ 'Bonsai Ratio',
-       'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCR-OI',
-      'PCRv Up1', 'PCRv Up2',
-       'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-       'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-       'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
-       'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-       'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-       'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-       'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-       'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
-       'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
-       'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-       'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-       'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-       'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-       'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
-       'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
-       'RSI14', 'RSI2', 'AwesomeOsc5_34']
+# Chosen_Predictor = [ 'Bonsai Ratio',
+#        'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCR-OI',
+#       'PCRv Up1', 'PCRv Up2',
+#        'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+#        'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
+#        'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+#        'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
+#        'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
+#        'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
+#        'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
+#        'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
+#        'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
+#        'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
+#        'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+#        'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+#        'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+#        'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+#        'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+#        'RSI14', 'RSI2', 'AwesomeOsc5_34']
+Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCRoi Up1','PCRoi Down1','ITM PCR-OI','ITM PCRoi Up1','ITM PCRoi Down1','ITM Contracts %','Net ITM IV','NIV highers(-)lowers1-4']
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -77,8 +78,8 @@ y_up = ml_dataframe["Target_Up"].values.reshape(-1,1)
 y_down = ml_dataframe["Target_Down"]
 # Sequentially split the data into train, validation, and test sets
 train_ratio = 0.7
-val_ratio = 0.1
-test_ratio = 0.2
+val_ratio = 0.15
+test_ratio = 0.15
 idx_train = int(train_ratio * X.shape[0])
 idx_val = int((train_ratio + val_ratio)* X.shape[0])
 print('y_up_shape: ',y_up.shape,idx_val,idx_train)
@@ -183,9 +184,25 @@ class RegressionModel(nn.Module):
         return x  # Reshape predictions to 1D tensor
 
 
-def create_model(input_size, learning_rate, hidden_size, dropout_rate):
+def create_model(input_size, learning_rate, hidden_size, dropout_rate, optimizer_type='Adam', momentum=0):
     model = RegressionModel(input_size, hidden_size, dropout_rate)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = None
+    if optimizer_type == 'SGD':
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+    elif optimizer_type == 'Adam':
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    elif optimizer_type == 'Adagrad':
+        optimizer = optim.Adagrad(model.parameters(), lr=learning_rate)
+    elif optimizer_type == 'RMSprop':
+        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
+    elif optimizer_type == 'Adamax':
+        optimizer = optim.Adamax(model.parameters(), lr=learning_rate)
+    elif optimizer_type == 'Adadelta':
+        optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
+    elif optimizer_type == 'LBFGS':
+        optimizer = optim.LBFGS(model.parameters(), lr=learning_rate)
+    else:
+        raise ValueError("Optimizer type not recognized")
     criterion = nn.MSELoss()
     return model, optimizer, criterion
 
@@ -278,11 +295,13 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
 # """
 
     param_grid = {
-        'learning_rate': [.001,.0001,.01],
-        'hidden_size': [1500,2500,5000],#chose 1500 out of 1250/1500/2000
-        'dropout_rate': [0,.1,.3,.5],  #chosen most times, safe number. .2 was also close.
-        'num_epochs': [75,150],  # Change this to a specific value for the number of epochs #chose 50 out of 50/100/250
-        'batch_size': [1000,2048,10000,38000]  # 38400 over 56400
+        'learning_rate': [.001, .0001, .00001],
+        'hidden_size': [1500, 2500, 5000],
+        'dropout_rate': [0, .1, .2, .3],
+        'num_epochs': [75, 150, 300],
+        'batch_size': [1000, 2048, 3000, 5000],  # Add a comma here
+        'optimizer': ["SGD", "Adam", "Adagrad", "RMSprop", "Adamax", "Adadelta", "LBFGS"],
+        'momentum': [0, 0.9]
     }
 
     grid_search_results = []
@@ -292,6 +311,7 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
         print("Training model with parameters:", params)
 
         model, optimizer, criterion = create_model(input_size, learning_rate=params['learning_rate'],
+                                                   optimizer=params['optimizer'],
                                                    hidden_size=params['hidden_size'],
                                                    dropout_rate=params['dropout_rate'])
 
