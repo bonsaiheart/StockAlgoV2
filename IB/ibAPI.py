@@ -216,11 +216,10 @@ def placeOptionBracketOrder(
 
         bracketOrder = [parent, takeProfit, stopLoss]
         parentOrderId = parent.orderId
-        parentOrders[parentOrderId] = {"parent": parentOrderId}  # Create an entry for the parent order ID
+        childOrderIds = [takeProfit.orderId, stopLoss.orderId]
+        parentOrders[parentOrderId] = childOrderIds  # Assign child order IDs to parent order ID key
 
-        childOrderId = [takeProfit.orderId, stopLoss.orderId]
-        parentOrders[parentOrderId] = childOrderId  # Assign child order IDs to parent order ID key
-##TODO change ref back
+        ##TODO change ref back
         for o in bracketOrder:
             if orderRef is not None:
                 o.orderRef = orderRef
@@ -228,8 +227,9 @@ def placeOptionBracketOrder(
             print(o.orderId)
 ##changed this 7.25
             ib.sleep(0)
+        ib.sleep(0)
         print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        saveOrderIdToFile(parentOrderIdFile, parentOrders)
+        # saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
         logging.exception("PlaceCallBracketOrder error.")
@@ -295,10 +295,9 @@ def placeBuyBracketOrder(ticker, current_price,
 
         bracketOrder = [parent, takeProfit, stopLoss]
         parentOrderId = parent.orderId
-        parentOrders[parentOrderId] = {"parent": parentOrderId}  # Create an entry for the parent order ID
+        childOrderIds = [takeProfit.orderId, stopLoss.orderId]
+        parentOrders[parentOrderId] = childOrderIds  # Assign child order IDs to parent order ID key
 
-        childOrderId = [takeProfit.orderId, stopLoss.orderId]
-        parentOrders[parentOrderId] = childOrderId  # Assign child order IDs to parent order ID key
         ##TODO change ref back
         for o in bracketOrder:
             if orderRef is not None:
@@ -308,7 +307,7 @@ def placeBuyBracketOrder(ticker, current_price,
             ib.sleep(0)
         print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
-
+        ib.sleep(0)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
         logging.exception("PlaceBuyOrder error.")
         logging.getLogger().error("PlaceBuyOrder error: %s", e)
@@ -367,13 +366,15 @@ def placeSellBracketOrder(ticker, current_price):
         bracketOrder = [parent, takeProfit, stopLoss]
 
         parentOrderId = ib.placeOrder(ticker_contract, parent)
-        parentOrders[parentOrderId] = {}  # Create an empty dictionary for child orders of this parent order
-        saveOrderIdToFile(parentOrderIdFile, parentOrders)
+        # parentOrders[parentOrderId] = {}  # Create an empty dictionary for child orders of this parent order
+        # saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
         for o in bracketOrder:
-            childOrderId = ib.placeOrder(ticker_contract, o)
-            parentOrders[parentOrderId][childOrderId] = o
-
+            # if orderRef is not None:
+            #     o.orderRef = orderRef
+            print(ib.placeOrder(ticker_contract, o))
+            ##changed this 7.25
+            ib.sleep(0)
         ib.sleep(0)
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
@@ -446,14 +447,14 @@ def placeCallBracketOrder(
         bracketOrder = [parent, takeProfit, stopLoss]
 
         parentOrderId = ib.placeOrder(ticker_contract, parent)
-        parentOrders[parentOrderId] = {}  # Create an empty dictionary for child orders of this parent order
-        saveOrderIdToFile(parentOrderIdFile, parentOrders)
+        # parentOrders[parentOrderId] = {}  # Create an empty dictionary for child orders of this parent order
+        # saveOrderIdToFile(parentOrderIdFile, parentOrders)
 
         for o in bracketOrder:
             if orderRef != None:
                 o.orderRef = orderRef
-            childOrderId = ib.placeOrder(ticker_contract, o)
-            parentOrders[parentOrderId][childOrderId] = o
+            # childOrderId = ib.placeOrder(ticker_contract, o)
+            # parentOrders[parentOrderId][childOrderId] = o
 
         ib.sleep(0)
 
