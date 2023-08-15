@@ -31,14 +31,14 @@ set_best_params_manually={'learning_rate': 1.6814691444050638e-05, 'num_epochs':
 # set_best_params_manually={'learning_rate': 0.00007, 'num_epochs':400, 'batch_size': 2500, 'optimizer': 'SGD', 'dropout_rate': 0., 'num_hidden_units': 2000}
 #This one was 3pm on thursaday .. just now.l.  Best Hyperparameters: {'learning_rate': .00003675, 'num_epochs': 491, 'batch_size': 217, 'optimizer': 'SGD', 'dropout_rate': 0.013450201970485055, 'num_hidden_units': 909}
 ##and this one was 6pm thurs.[I 2023-08-10 15:56:29,987] Trial 6 finished with value: 0.4555555582046509 {'learning_rate': .00003114800348955, 'num_epochs': 652, 'batch_size': 223, 'optimizer': 'Adam', 'dropout_rate': 0.2404677645508084, 'num_hidden_units': 3971}. Best is trial 6 with value: 0.4555555582046509.
-trainsizepercent = .7
-valsizepercent = .15  #test is leftovers
+trainsizepercent = .79
+valsizepercent = .2  #test is leftovers
 cells_forward_to_check =1*60  #rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5 #how many rows must achieve target %
 percent_up =   .25  #target percetage.
 anticondition_threshold_cells_up = cells_forward_to_check * 1#was .7
 positivecase_weight_up = 1
-theshhold_up = 0.5 ###At positive prediction = >X
+threshold_up = 0.5 ###At positive prediction = >X
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
@@ -194,11 +194,13 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
                 loss = criterion(outputs, y_batch)
                 loss.backward()
                 optimizer.step()
-        # model.eval()
+        model.eval()
         # Validation step
         val_loss_accum = 0
         F1Score_accum = 0
         PrecisionScore_accum = 0
+        num_batches_processed = 0  # Counter for the actual number of batches processed
+
         for i in range(0, len(X_val), batch_size):
             X_val_batch = X_val[i: i + batch_size]
             y_val_batch = y_val[i: i + batch_size]
@@ -206,20 +208,20 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             with torch.no_grad():
                 val_outputs = model(X_val_batch)
                 val_loss = criterion(val_outputs, y_val_batch)
-                val_predictions = (val_outputs > theshhold_up).float()
+                val_predictions = (val_outputs > threshold_up).float()
                 F1Score_batch = f1(val_predictions, y_val_batch)  # computing F1 score for the batch
                 PrecisionScore_batch = prec(val_predictions, y_val_batch)  # computing Precision score for the batch
 
+                # Accumulate the loss and metrics over the validation set
+                val_loss_accum += val_loss.item()
+                F1Score_accum += F1Score_batch.item()
+                PrecisionScore_accum += PrecisionScore_batch.item()
+                num_batches_processed += 1  # Increment the counter
 
-                # You might want to accumulate the loss and metrics over the validation set
-            val_loss_accum += val_loss.item()
-            F1Score_accum += F1Score_batch.item()
-            PrecisionScore_accum += PrecisionScore_batch.item()
-        # print(len(X_val))
-        # You can then compute the average loss and metrics over the validation set
-        val_loss_avg = val_loss_accum / (len(X_val) // batch_size)
-        F1Score_avg = F1Score_accum / (len(X_val) // batch_size)
-        PrecisionScore_avg = PrecisionScore_accum / (len(X_val) // batch_size)
+        # Compute the average loss and metrics over the validation set using the actual number of batches processed
+        val_loss_avg = val_loss_accum / num_batches_processed
+        F1Score_avg = F1Score_accum / num_batches_processed
+        PrecisionScore_avg = PrecisionScore_accum / num_batches_processed
         # You can then use these averages for further processing
 
         # Validation step
@@ -252,23 +254,23 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
     return best_f1_score,best_prec_score,best_model_state_dict,smallest_custom_loss # Return the best F1 score after all epochs
 # Define Optuna Objective
 def objective(trial):
-    # Define the hyperparameter search space
     print(datetime.datetime.now())
     # print(len(X_val_tensor))
-    learning_rate = trial.suggest_float("learning_rate",  1e-05,0.001,log=True)#0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 250, 700)#3800 #230  291
+    learning_rate = trial.suggest_float("learning_rate",  .0001,0.01,log=False)#0003034075497582067
+    num_epochs = trial.suggest_int("num_epochs", 320
+                                   , 700)#3800 #230  291
     # batch_size = trial.suggest_int("batch_size", 200,5000)#10240  3437
-    batch_size = trial.suggest_int('batch_size', 200, len(X_val_tensor) - 1)
-    optimizer_name = trial.suggest_categorical("optimizer",
-                                               ["SGD", "Adam", "Adagrad", "RMSprop", "Adamax", "Adadelta", "LBFGS"])
+    batch_size = trial.suggest_int('batch_size', 900, len(X_val_tensor) - 1)
+    optimizer_name = trial.suggest_categorical("optimizer",["SGD", "Adam",   "Adadelta"])
+    #"Adamax", "Adagrad",, "LBFGS""RMSprop",
     if optimizer_name == "SGD":
         momentum = trial.suggest_float('momentum', 0, 0.9)  # Only applicable if using SGD with momentum
     else:
 
         momentum = 0  # Default value if not using SGD
 
-    dropout_rate = trial.suggest_float("dropout_rate", 0,.3)# 30311980533100547  16372372692286732
-    num_hidden_units = trial.suggest_int("num_hidden_units", 700, 8000)#2560 #83 125 63
+    dropout_rate = trial.suggest_float("dropout_rate", 0.05,.5)# 30311980533100547  16372372692286732
+    num_hidden_units = trial.suggest_int("num_hidden_units", 2000,7000)#2560 #83 125 63
     # Call the train_model function with the current hyperparameters
     f1_score, prec_score,best_model_state_dict,smallest_custom_loss = train_model(
         {
@@ -301,7 +303,7 @@ model_up_nn = BinaryClassificationNNwithDropout(X_train_tensor.shape[1],best_par
 model_up_nn.load_state_dict(best_model_state_dict)
 model_up_nn.eval()
 predicted_probabilities_up = model_up_nn(X_test_tensor).detach().cpu().numpy()
-predicted_probabilities_up = (predicted_probabilities_up > theshhold_up).astype(int)
+predicted_probabilities_up = (predicted_probabilities_up > threshold_up).astype(int)
 predicted_up_tensor = torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
 num_positives_up = np.sum(predicted_probabilities_up)
 
@@ -321,7 +323,8 @@ print("Accuracy:", accuracy_up)
 print("Recall:", recall_up)
 print("F1-Score:", f1_up, "\n")
 print("Best Hyperparameters:", best_params)
-print(f"Number of positive predictions for 'up': {sum(x[0] for x in predicted_probabilities_up)}")
+print(f"Number of positive predictions"
+      f" for 'up': {sum(x[0] for x in predicted_probabilities_up)}")
 print("Number of Positive Samples(Target_Up):", num_positive_samples_up)
 print("Number of Total Samples(Target_Up):", num_positive_samples_up+num_negative_samples_up)
 
@@ -333,7 +336,8 @@ if input_val == "Y":
         os.makedirs(model_directory)
     model_filename_up = os.path.join(model_directory, "target_up.pth")
 
-    torch.save({'features':Chosen_Predictor,
+    torch.save({        'model_class': model_up_nn.__class__.__name__, # Save the class name
+'features':Chosen_Predictor,
         'input_dim': X_train_tensor.shape[1],
                 'dropout_rate':best_params["dropout_rate"],
         'num_hidden_units': best_params["num_hidden_units"],
@@ -352,7 +356,7 @@ with open(f"../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Predictors: {Chosen_Predictor}\n\n\n"
         f"Best Params: {best_params}\n\n\n"
         f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
-        f"Threshold Up (sensitivity): {theshhold_up}\n"
+        f"Threshold Up (sensitivity): {threshold_up}\n"
         f"Target Underlying Percentage Up: {percent_up}\n"
         f"Anticondition: {anticondition_UpCounter}\n"
         f"Weight multiplier: {positivecase_weight_up}")

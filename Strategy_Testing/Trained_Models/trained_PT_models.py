@@ -16,7 +16,6 @@ class BinaryClassificationNNwithDropout(nn.Module):
         self.activation = nn.ReLU()
         self.dropout = nn.Dropout(p=dropout_rate) # Dropout layer
         self.sigmoid = nn.Sigmoid()
-
     def forward(self, x):
         x = self.activation(self.layer1(x))
         x = self.dropout(x) # Apply dropout after the activation
