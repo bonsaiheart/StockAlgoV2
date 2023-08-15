@@ -2,6 +2,7 @@ import requests
 from datetime import datetime, timedelta
 import pandas as pd
 import ta
+from UTILITIES.logger_config import logger
 from pathlib import Path
 import numpy as np
 import PrivateData.tradier_info
@@ -45,7 +46,9 @@ async def fetch(session, url, params, headers):
             # print("Used:", response.headers.get("X-Ratelimit-Used"))
             return await response.json()
     except aiohttp.client_exceptions.ClientConnectorError as e:
-        print(f"Connection error to {url}: {e}. Retrying...")
+        print(f"Connection error to {url}: {e}.")
+        logger.error(f"An error occurred while fetching data: {e}", exc_info=True)
+
 
 async def get_options_data(session,ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
@@ -74,7 +77,11 @@ async def get_options_data(session,ticker):
     json_response = time_sale_response
     # print(response.status_code)
     # print(json_response)
-    df = pd.DataFrame(json_response["series"]["data"]).set_index("time")
+    if json_response and "series" in json_response and "data" in json_response["series"]:
+        df = pd.DataFrame(json_response["series"]["data"]).set_index("time")
+    else:
+        print(f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
+        return None # Or another appropriate response to indicate failure
     # df.set_index('time', inplace=True)
     ##change index to datetimeindex
     df.index = pd.to_datetime(df.index)

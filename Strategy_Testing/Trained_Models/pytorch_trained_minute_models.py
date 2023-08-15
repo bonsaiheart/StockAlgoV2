@@ -45,8 +45,8 @@ class BinaryClassificationNN(nn.Module):
 def Buy_1hr_ptminclassSPYA1(new_data_df):
     checkpoint = torch.load(f'{base_dir}/_1hr_ptminclassSPYA1/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
-    class_name_str = checkpoint['class_name']
-
+    # class_name_str = checkpoint['class_name']
+    class_name_str = 'BinaryClassificationNNwithDropout'
     dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
     num_hidden_units = checkpoint['num_hidden_units']

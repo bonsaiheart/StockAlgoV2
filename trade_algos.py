@@ -1,5 +1,5 @@
 import asyncio
-import logging
+from UTILITIES.logger_config import logger
 import traceback
 import pandas as pd
 from datetime import datetime
@@ -11,15 +11,7 @@ import threading
 import IB.ibAPI
 from UTILITIES.Send_Notifications import send_notifications as send_notifications
 
-# logging.basicConfig(filename='error.log', level=logging.ERROR)
-# logging.getLogger(__name__).info("other_script is running")
 
-logging.basicConfig(
-    filename="trade_algos_error.log",
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
 
 
 def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
@@ -42,6 +34,11 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
                                          quantity=quantity,
                                          orderRef=orderRef, custom_takeprofit=custom_takeprofit,
                                          custom_trailamount=custom_trailamount)
+    except Exception as e:
+        print(f"Error in placeoptionordersync: {traceback.format_exc()}")
+
+        logger.error(f"An error occurred in trade_algos palceoptionordersync. {ticker} : {e}", exc_info=True)
+
     finally:
         loop.close()
 
@@ -60,6 +57,10 @@ def place_buy_order_sync(ticker, current_price,
     try:
         IB.ibAPI.placeBuyBracketOrder(ticker, current_price, quantity=quantity, orderRef=orderRef,
                                       custom_takeprofit=None, custom_trailamount=None)
+    except Exception as e:
+        print(f"Error in placebuyordersync: {traceback.format_exc()}")
+        logger.error(f"An error occurred in place_buy_order_sync. {ticker}: {e}", exc_info=True)
+
     finally:
         loop.close()
 
@@ -203,6 +204,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         # ].values[0]
     except Exception as e:
         print(e)
+        logger.error(f"An error occurred while getting options prices.{ticker},: {e}", exc_info=True)
         traceback.print_exc()
         pass
     """These Models are classifications and only need a single frame(current frame)"""
@@ -346,8 +348,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                                      model_name)
 
             except Exception as e:
-                logging.basicConfig(filename='order_errors.log', level=logging.ERROR)
-                logging.error("Error occurred while placing order:", exc_info=True)
+                logger.error(f"An error occurred after recieving positive result. {ticker}, {model_name}: {e}", exc_info=True)
                 print("Error occurred while placing order:", str(e))
             print("sending tweet")
             send_notifications.send_tweet_w_countdown_followup(

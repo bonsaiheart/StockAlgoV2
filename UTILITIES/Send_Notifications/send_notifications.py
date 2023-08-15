@@ -8,9 +8,9 @@ from email import encoders
 import tweepy
 import PrivateData.twitter_info
 from Task_Queue import celery_client
-
+from UTILITIES.logger_config import logger
 last_tweet_time = None
-min_tweet_interval = datetime.timedelta(minutes=30)  # Minimum interval between tweets (5 minutes)
+min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
 
 
 def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds,modelname):
@@ -57,7 +57,8 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             print(e)
-            print(last_tweet_time, "last tweet time")
+            logger.error(f"An error occurred while tryin to tweet. {ticker}: {e}", exc_info=True)
+            print(last_tweet_time, "too close to last tweet time")
 
 
 def email_me_string(model_name, callorput, ticker):

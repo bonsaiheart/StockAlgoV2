@@ -1,4 +1,4 @@
-
+import logging
 from datetime import datetime, timedelta
 import asyncio
 import os
@@ -8,12 +8,12 @@ from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 import aiohttp
+from UTILITIES.logger_config import logger
 
-log_dir = "errorlog"
-log_file = "error.log"
-###7/27 taking 51.3 seconds currently.
-#8.2 same thing is down to about 45 seconds because im now sharing the aiohttp session per ticker.  might try sharing session per minutes instead.
-#after sharing session with all tickers, its completing in close to 35 sec.
+
+
+
+
 
 #TODO actions is taking 16 of the 35 seconds.
 async def ib_connect_and_main():
@@ -49,14 +49,11 @@ async def handle_ticker(session, ticker):
             await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
             print(f"{ticker} Actions complete at {datetime.now()}.")
     except Exception as e:
-        print(f"An error occurred while handling ticker {ticker}: {e}")
-        # If you want, you can log the traceback
-        traceback.print_exc()
-        # Optionally, you may w
+        print(f"Error occurred: {traceback.format_exc()}")
+        logger.error(f"An error occurred while handling ticker {ticker}: {e}", exc_info=True)
+
+
 async def main():
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    log_path = os.path.join(log_dir, log_file)
     max_retries = 4
     retry_delay = 5  # seconds
 
@@ -76,12 +73,9 @@ async def main():
             #         f.write(f"Ran at {datetime.now()}. Market was closed today.\n")
 
             except Exception as e:
-                with open(log_path, "a") as f:
-                    print(traceback.format_exc())
-                    print(f"Error occurred: {traceback.format_exc()}. Retrying in {retry_delay} seconds...")
-                    f.write(
-                        f"Ran at {datetime.now()}. Occurred on attempt: {traceback.format_exc()}. Retrying in {retry_delay} seconds... \n"
-                    )
+                print(f"Error occurred in aio session: {traceback.format_exc()}")
+                logger.error(f"Error occurred in aio session: {traceback.format_exc()}.",exc_info=True)
+
             current_time = datetime.now()
             next_iteration_time = start_time + timedelta(seconds=60)
             _60sec_countdown = (next_iteration_time - current_time).total_seconds()
