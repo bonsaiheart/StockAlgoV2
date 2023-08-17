@@ -2,9 +2,10 @@ import asyncio
 import datetime
 import logging
 import os
-import random
+# import random
 from ib_insync import *
-
+from UTILITIES.logger_config import logger
+#TODO set up logger
 project_dir = os.path.dirname(os.path.abspath(__file__))  # Gets the directory where the script is
 log_dir = os.path.join(project_dir, "errorlog")  # Builds the path to the errorlog directory
 
@@ -15,12 +16,12 @@ if not os.path.exists(log_dir):
 log_file = os.path.join(log_dir, "error_ib.log")  # Builds the path to the log file
 
 # Set up logging
-logging.basicConfig(
-    filename=log_file,
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M",
-)
+# logging.basicConfig(
+#     filename=log_file,
+#     level=logging.INFO,
+#     format="%(asctime)s - %(levelname)s - %(message)s",
+#     datefmt="%Y-%m-%d %H:%M",
+# )
 # Initialize IB object
 ib = IB()
 
@@ -29,7 +30,6 @@ parentOrderIdFile = "IB/parent_order_ids.txt"
 
 # Global variables
 parentOrders = {}
-gtddeltaoutsicescope = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
 #TODO order handling for "cannot both sides of ordr" error
 
@@ -71,15 +71,15 @@ loop.set_exception_handler(handle_exception)
 # ib.disconnect()
 async def ib_connect():
     if not ib.isConnected():
-        print("Connecting")
-        randomclientID = random.randint(0, 999)
+        print("~~~ Connecting ~~~")
+        # randomclientID = random.randint(0, 999)
         try:
             await ib.connectAsync("192.168.1.119", 7497, clientId=1)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
-            print("Connection error:", e)
+            print("~~Connection error:", e)
     else:
-        print("IB already connected.")
+        print("~~~IB already connected.~~~")
 
 
 def ib_disconnect():
@@ -111,12 +111,12 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
     try:
         ib.placeOptionBracketOrder(corP=CorP,
                                    ticker=ticker,
-                                   exp=exp,
                                    strike=strike,
                                    contract_current_price=contract_current_price,
                                    quantity=quantity,
                                    orderRef=orderRef)
     except Exception as e:
+        logger.debug(f"placeoptionordersync {e}")
         print(f'Error occurred while placing order: {e}')
 
 def orderStatusHandler(orderStatus: OrderStatus):
@@ -143,10 +143,8 @@ def placeOptionBracketOrder(
 ):
     gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
-    print(custom_takeprofit,custom_trailamount,"IN PLACEOPTIONBRACKETORDER IBAPI")
-    print("Placing order:")
-    print("OUtside gtddelta:", gtddeltaoutsicescope)
-    print("IN FUNCTION gtddelta:",gtddelta)
+    print("~~~Placing order~~~:")
+    print("~~~gtddelta:",gtddelta)
     try:
         # print(ticker, exp, strike, contract_current_price)
         # print(type(ticker))
@@ -201,6 +199,7 @@ def placeOptionBracketOrder(
         takeProfit.parentId = parent.orderId
         takeProfit.outsideRth = True
         takeProfit.transmit = False
+        takeProfit.tif = "GTC"
 
         stopLoss = Order()
         stopLoss.orderId = ib.client.getReqId()
@@ -213,6 +212,7 @@ def placeOptionBracketOrder(
         stopLoss.parentId = parent.orderId
         stopLoss.outsideRth = True
         stopLoss.transmit = True
+        stopLoss.tif = "GTC"
 
         bracketOrder = [parent, takeProfit, stopLoss]
         parentOrderId = parent.orderId
@@ -220,20 +220,20 @@ def placeOptionBracketOrder(
         parentOrders[parentOrderId] = childOrderIds  # Assign child order IDs to parent order ID key
 
         ##TODO change ref back
+        print(f"~~~~Placing Order: {parent.orderRef} ~~~~~")
         for o in bracketOrder:
             if orderRef is not None:
                 o.orderRef = orderRef
-            print(ib.placeOrder(ticker_contract, o))
-            print(o.orderId)
+            # ib.sleep(1)
+            ib.placeOrder(ticker_contract, o)
 ##changed this 7.25
-            ib.sleep(0)
-        ib.sleep(0)
-        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            # ib.sleep(0)
+        # ib.sleep(0)
         # saveOrderIdToFile(parentOrderIdFile, parentOrders)
+        print(f"~~~~Order Placed: {parent.orderRef} ~~~~~")
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.exception("PlaceCallBracketOrder error.")
-        logging.getLogger().error("Placeoptionbracket error: %s", e)
+        logger.debug("Placeoptionbracket error: %s", e)
 
         # ib.disconnect()
 
@@ -280,6 +280,7 @@ def placeBuyBracketOrder(ticker, current_price,
         takeProfit.lmtPrice = take_profit_price
         takeProfit.parentId = parent.orderId
         takeProfit.transmit = False
+        takeProfit.tif = "GTC"
 
         stopLoss = Order()
         stopLoss.orderId = ib.client.getReqId()
@@ -292,6 +293,7 @@ def placeBuyBracketOrder(ticker, current_price,
         stopLoss.totalQuantity = quantity
         stopLoss.parentId = parent.orderId
         stopLoss.transmit = True
+        stopLoss.tif = "GTC"
 
         bracketOrder = [parent, takeProfit, stopLoss]
         parentOrderId = parent.orderId
@@ -302,15 +304,13 @@ def placeBuyBracketOrder(ticker, current_price,
         for o in bracketOrder:
             if orderRef is not None:
                 o.orderRef = orderRef
-            print(ib.placeOrder(ticker_contract, o))
+            ib.placeOrder(ticker_contract, o)
             ##changed this 7.25
-            ib.sleep(0)
-        print("ORDERPLACED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            # ib.sleep(0)
+        print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
-        ib.sleep(0)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.exception("PlaceBuyOrder error.")
-        logging.getLogger().error("PlaceBuyOrder error: %s", e)
+        logger.debug("PlaceBuyOrder error: %s", e)
 
 
 def placeSellBracketOrder(ticker, current_price):
@@ -372,13 +372,14 @@ def placeSellBracketOrder(ticker, current_price):
         for o in bracketOrder:
             # if orderRef is not None:
             #     o.orderRef = orderRef
-            print(ib.placeOrder(ticker_contract, o))
+            ib.placeOrder(ticker_contract, o)
             ##changed this 7.25
-            ib.sleep(0)
-        ib.sleep(0)
+            # ib.sleep(0)
+        print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
+        # ib.sleep(0)
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logging.error("SellBracketOrder error: %s", e)
+        logger.error("SellBracketOrder error: %s", e)
 
 
 def placeCallBracketOrder(
@@ -456,7 +457,7 @@ def placeCallBracketOrder(
             # childOrderId = ib.placeOrder(ticker_contract, o)
             # parentOrders[parentOrderId][childOrderId] = o
 
-        ib.sleep(0)
+        # ib.sleep(0)
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
         logging.error("PlaceCallBracketOrder error: %s", e)

@@ -46,7 +46,9 @@ async def handle_ticker(session, ticker):
         )
         print(f"{ticker} PerformOptions complete at {datetime.now()}.")
         if ticker in ["SPY", "TSLA", "GOOG"]:
-            await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
+            # loop = asyncio.get_event_loop()
+            # loop.run_in_executor(None, trade_algos.actions,optionchain, dailyminutes, processeddata, ticker, current_price)
+            asyncio.create_task(trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
             print(f"{ticker} Actions complete at {datetime.now()}.")
     except Exception as e:
         print(f"Error occurred: {traceback.format_exc()}")

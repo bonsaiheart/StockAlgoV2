@@ -192,7 +192,6 @@ def Buy_2hr_ptminclassSPYA1(new_data_df):
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
     return result["Predictions"]
 def Buy_1hr_ptmin1A1(new_data_df):
-    print("Making PT Preditction")
     features =  [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
