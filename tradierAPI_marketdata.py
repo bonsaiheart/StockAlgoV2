@@ -4,6 +4,8 @@ import pandas as pd
 import ta
 from UTILITIES.logger_config import logger
 from pathlib import Path
+import aiohttp
+import asyncio
 import numpy as np
 import PrivateData.tradier_info
 concurrency_limit=2
@@ -15,8 +17,7 @@ real_auth = PrivateData.tradier_info.real_auth
 
 ###TODO time and sales (will be used for awesome ind. and ta.
 YYMMDD = datetime.today().strftime("%y%m%d")
-import aiohttp
-import asyncio
+
 
 #TODO for now this ignores the divede by zero warnings.
 np.seterr(divide='ignore', invalid='ignore')
