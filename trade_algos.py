@@ -14,55 +14,65 @@ from UTILITIES.Send_Notifications import send_notifications as send_notification
 
 
 
-def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
+async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                             custom_takeprofit=None,
-                            custom_trailamount=None):
+                            custom_trailamount=None, loop=None):
     print(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef)
-    loop = asyncio.new_event_loop()
+    # loop = asyncio.new_event_loop()
     print("placeoptionordersync", custom_trailamount, custom_takeprofit)
     # Set the new event loop as the current one
-    asyncio.set_event_loop(loop)
+    # asyncio.set_event_loop(loop)
     if quantity == None:
         quantity = 10
     try:
-
-        IB.ibAPI.placeOptionBracketOrder(CorP=CorP,
-                                         ticker=ticker,
-                                         exp=exp,
-                                         strike=strike,
-                                         contract_current_price=contract_current_price,
-                                         quantity=quantity,
-                                         orderRef=orderRef, custom_takeprofit=custom_takeprofit,
-                                         custom_trailamount=custom_trailamount)
+        #awiat?
+        IB.ibAPI.placeOptionBracketOrder(CorP,
+                             ticker,
+                             exp,
+                             strike,
+                             contract_current_price,
+                             quantity,
+                             orderRef, custom_takeprofit,
+                             custom_trailamount)
+        # loop.run_in_executor(None, IB.ibAPI.placeOptionBracketOrder, CorP,
+        #                      ticker,
+        #                      exp,
+        #                      strike,
+        #                      contract_current_price,
+        #                      quantity,
+        #                      orderRef, custom_takeprofit,
+        #                      custom_trailamount)
     except Exception as e:
         print(f"Error in placeoptionordersync: {traceback.format_exc()}")
-
-        logger.error(f"An error occurred in trade_algos palceoptionordersync. {ticker} : {e}", exc_info=True)
-
-    finally:
-        loop.close()
+        logger.debug(f"An error occurred in trade_algos palceoptionordersync. {ticker} : {e}", exc_info=True)
+    # finally:
+    #     loop.close()
 
 
-def place_buy_order_sync(ticker, current_price,
+async def place_buy_order_sync(ticker, current_price,
                          quantity,
                          orderRef,
                          custom_takeprofit=None,
-                         custom_trailamount=None):
-    loop = asyncio.new_event_loop()
+                         custom_trailamount=None,loop=None):
+    # loop = asyncio.get_event_loop()
     print("buying stocks")
+
+    # asyncio.set_event_loop(loop)
+
     # Set the new event loop as the current one
-    asyncio.set_event_loop(loop)
     if quantity == None:
         quantity = 10
     try:
-        IB.ibAPI.placeBuyBracketOrder(ticker, current_price, quantity=quantity, orderRef=orderRef,
-                                      custom_takeprofit=None, custom_trailamount=None)
+        IB.ibAPI.placeBuyBracketOrder( ticker, current_price, quantity, orderRef,
+                             None, None)
+        # loop.run_in_executor(None, IB.ibAPI.placeBuyBracketOrder, ticker, current_price, quantity, orderRef,
+        #                      None, None)
     except Exception as e:
         print(f"Error in placebuyordersync: {traceback.format_exc()}")
-        logger.error(f"An error occurred in place_buy_order_sync. {ticker}: {e}", exc_info=True)
+        logger.debug(f"An error occurred in place_buy_order_sync. {ticker}: {e}", exc_info=True)
 
-    finally:
-        loop.close()
+    # finally:
+    #     loop.close()
 
 
 # Then use it in your main code like this:
@@ -279,7 +289,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         # trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
         # trained_minute_models.Sell_20min_A1,
         # WORKS GREAT?
-        trained_minute_models.Buy_15min_A2,  # works well?
+        # trained_minute_models.Buy_15min_A2,  # works well?
         trained_minute_models.Sell_15min_A2,  # not sure
         trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
         trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
@@ -341,14 +351,19 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                 print(f"(options)Sending {model_name} to IB.")
                 loop = asyncio.get_event_loop()
                 # TODO get custom tp and ts to work
-                loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
-                                     contract_price, 10, f"{model_name}", custom_takeprofit, custom_trailingstop)
+                # loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
+                #                      contract_price, 10, f"{model_name}", custom_takeprofit, custom_trailingstop, loop)
+                asyncio.gather(place_option_order_sync(CorP, ticker, IB_option_date, contractStrike,    contract_price, 10, f"{model_name}", custom_takeprofit, custom_trailingstop, loop),
+                place_buy_order_sync(ticker, current_price, 10,
+                                     model_name, None, None, loop))
+                # await asyncio.sleep(0)
                 print(f"(stock)Sending {model_name} to IB.")
-                loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
-                                     model_name)
+                # loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
+                #                       model_name, None, None, loop)
 
             except Exception as e:
-                logger.error(f"An error occurred after recieving positive result. {ticker}, {model_name}: {e}", exc_info=True)
+                logger.error(f"An error occurred after recieving positive result. {ticker}, {model_name}: {e}",
+                             exc_info=True)
                 print("Error occurred while placing order:", str(e))
             print("sending tweet")
             send_notifications.send_tweet_w_countdown_followup(
