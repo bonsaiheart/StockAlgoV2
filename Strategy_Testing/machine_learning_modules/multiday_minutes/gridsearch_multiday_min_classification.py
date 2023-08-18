@@ -201,7 +201,7 @@ print("Shape of X_train_selected_down:", X_train_selected_down.shape, "\n")
 tscv = TimeSeriesSplit(n_splits=5)
 
 # scoring = 'precision'
-grid_search_up = GridSearchCV(estimator=model_up, param_grid=parameters, cv=tscv, scoring="precision")
+grid_search_up = GridSearchCV(estimator=model_up, param_grid=parameters, cv=tscv, scoring="f1")
 
 print("Performing GridSearchCV UP...\n")
 grid_search_up.fit(X_train_selected_up, y_up_train)

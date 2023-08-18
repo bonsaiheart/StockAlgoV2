@@ -31,6 +31,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="$APPLICATION_CONFIG_DIR$/scratches/market_schedule.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/data/DailyMinutes/SPY/SPY_230626.csv">
           <value>
             <Attribute>
@@ -130,6 +137,13 @@
           </value>
         </entry>
         <entry key="/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/historical_multiday_minute_corr/230816_spy.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
