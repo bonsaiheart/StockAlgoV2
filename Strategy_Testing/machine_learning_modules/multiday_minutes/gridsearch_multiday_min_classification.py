@@ -138,6 +138,8 @@ ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
 y_up = ml_dataframe["Target_Up"]
 y_down = ml_dataframe["Target_Down"]
 X = ml_dataframe[Chosen_Predictor]
+X= X.replace([np.inf, 1e8])
+
 # Reset the index of your DataFrame
 X.reset_index(drop=True, inplace=True)
 
