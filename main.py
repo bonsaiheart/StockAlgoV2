@@ -81,7 +81,7 @@ async def main():
             current_time = datetime.now()
             next_iteration_time = start_time + timedelta(seconds=60)
             _60sec_countdown = (next_iteration_time - current_time).total_seconds()
-            print(start_time, next_iteration_time, current_time, _60sec_countdown)
+            print("~~~~~~~~",start_time, next_iteration_time, current_time, _60sec_countdown,"~~~~~~~~")
             await asyncio.sleep(_60sec_countdown)  # Delay for 60 seconds before the next iteration
 
 if __name__ == "__main__":

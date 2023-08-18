@@ -16,12 +16,12 @@ if not os.path.exists(log_dir):
 log_file = os.path.join(log_dir, "error_ib.log")  # Builds the path to the log file
 
 # Set up logging
-# logging.basicConfig(
-#     filename=log_file,
-#     level=logging.INFO,
-#     format="%(asctime)s - %(levelname)s - %(message)s",
-#     datefmt="%Y-%m-%d %H:%M",
-# )
+logging.basicConfig(
+    filename=log_file,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
+)
 # Initialize IB object
 ib = IB()
 
@@ -233,7 +233,8 @@ def placeOptionBracketOrder(
         print(f"~~~~Order Placed: {parent.orderRef} ~~~~~")
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.debug("Placeoptionbracket error: %s", e)
+        logging.exception("PlaceCallBracketOrder error.")
+        logging.getLogger().error("Placeoptionbracket error: %s", e)
 
         # ib.disconnect()
 
@@ -243,7 +244,7 @@ def placeBuyBracketOrder(ticker, current_price,
     orderRef=None,
     custom_takeprofit=None,
     custom_trailamount=None):
-    print(f"Placing {ticker} BuyBracket order")
+    print(f"~~~~~Placing {ticker} BuyBracket order~~~~~")
     try:
         gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
@@ -310,7 +311,8 @@ def placeBuyBracketOrder(ticker, current_price,
         print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.debug("PlaceBuyOrder error: %s", e)
+        logging.exception("PlaceBuyOrder error.")
+        logging.getLogger().error("PlaceBuyOrder error: %s", e)
 
 
 def placeSellBracketOrder(ticker, current_price):

@@ -55,7 +55,7 @@ async def place_buy_order_sync(ticker, current_price,
                          custom_takeprofit=None,
                          custom_trailamount=None,loop=None):
     # loop = asyncio.get_event_loop()
-    print("buying stocks")
+    print(f"~~~~Entering place_buy_order_sync for {ticker}~~~~")
 
     # asyncio.set_event_loop(loop)
 
@@ -220,6 +220,11 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
     """These Models are classifications and only need a single frame(current frame)"""
 
     model_list = [
+        trained_minute_models.Buy_2hr_RFSPYA2,
+        trained_minute_models.Sell_2hr_RFSPYA2,
+        trained_minute_models.Buy_2hr_RFSPYA1,
+        trained_minute_models.Sell_2hr_RFSPYA1,
+
         pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
@@ -308,11 +313,10 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
 
         if isinstance(model_output, tuple):
             (dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop) = model_output
-            print(custom_takeprofit, custom_trailingstop, "istuple!!!!!!!!!!!!!!!!!!!!!1")
         else:
             dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop = model_output, None, None
         results[model_name] = dailyminutes_df[model_name].iloc[-1]
-        print(model_name, results[model_name])
+        print(model_name, ": [",results[model_name],"]")
         if model_name.startswith("Buy"):
             CorP = "C"
         elif model_name.startswith("Sell"):
@@ -348,7 +352,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
             send_notifications.email_me_string(model_name, CorP, ticker)
             try:
                 # Place order or perform other actions specific to the action
-                print(f"(options)Sending {model_name} to IB.")
+                print(f"~~~~(options)Sending {model_name} to IB.~~~~")
                 loop = asyncio.get_event_loop()
                 # TODO get custom tp and ts to work
                 # loop.run_in_executor(None, place_option_order_sync, CorP, ticker, IB_option_date, contractStrike,
@@ -357,7 +361,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                 place_buy_order_sync(ticker, current_price, 10,
                                      model_name, None, None, loop))
                 # await asyncio.sleep(0)
-                print(f"(stock)Sending {model_name} to IB.")
+                print(f"~~~~(stock)Sending {model_name} to IB.~~~~")
                 # loop.run_in_executor(None, place_buy_order_sync, ticker, current_price, 10,
                 #                       model_name, None, None, loop)
 
@@ -365,7 +369,6 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                 logger.error(f"An error occurred after recieving positive result. {ticker}, {model_name}: {e}",
                              exc_info=True)
                 print("Error occurred while placing order:", str(e))
-            print("sending tweet")
             send_notifications.send_tweet_w_countdown_followup(
                 ticker,
                 current_price,

@@ -10,16 +10,17 @@ import PrivateData.twitter_info
 from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
 last_tweet_time = None
-min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
+# min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
 
 
 def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds,modelname):
     global last_tweet_time
+    min_tweet_interval = datetime.timedelta(minutes=countdownseconds*60)
     print("~~~Sending Tweet~~~")
 
     directory = "last_tweet_timestamps"  # Directory for storing timestamp files
     os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
-    timestamp_file_path = os.path.join(directory,f"last_tweet_timestamp_{modelname}.txt")  # File path inside the directory    global last_tweet_time
+    timestamp_file_path = os.path.join(directory,f"last_tweet_timestamp_{modelname}_{ticker}.txt")  # File path inside the directory    global last_tweet_time
     current_time = datetime.datetime.now()
     bearer_token = PrivateData.twitter_info.bearer_token
     consumer_key = PrivateData.twitter_info.consumer_key
