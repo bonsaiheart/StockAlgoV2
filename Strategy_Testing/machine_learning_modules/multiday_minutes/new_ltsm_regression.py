@@ -38,8 +38,8 @@ ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
 
-ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(-5)
-ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(-5)
+ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(-30)
+ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(-30)
 
 
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)

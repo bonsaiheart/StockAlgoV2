@@ -2,7 +2,7 @@ import inspect
 import os
 import pandas as pd
 import Trained_Models.trained_minute_models  # Import your module
-# import Trained_Models.trained_PT_models  # Import your module
+import Trained_Models.pytorch_trained_minute_models  # Import your module
 
 
 def get_model_names(module):
@@ -14,12 +14,11 @@ def get_model_names(module):
 
 
 
-module_name = Trained_Models.trained_minute_models  # Provide the correct module name
-# module_name = Trained_Models.trained_PT_models  # Provide the correct module name
+# module_name = Trained_Models.trained_minute_models  # Provide the correct module name
+module_name = Trained_Models.pytorch_trained_minute_models  # Provide the correct module name
 
 model_names = get_model_names(module_name)
 print(model_names)
-
 
 def apply_predictions_to_df(model_names, df, filename):
     df.dropna(axis=1, how="all", inplace=True)
@@ -28,20 +27,22 @@ def apply_predictions_to_df(model_names, df, filename):
     columns_to_keep = ["LastTradeTime", "Current Stock Price"]
 
     # Filter the DataFrame to keep only the desired columns
-
     for model_name in model_names:
         print(model_name)
-        model_func = getattr(Trained_Models.trained_minute_models, model_name)
+        model_func = getattr(module_name, model_name)
         result = model_func(df)
 
         if isinstance(result, tuple):
             df[model_name], takeprofit, stoploss = result
         else:
             df[model_name], takeprofit, stoploss = result, None, None
-    # df_filtered = df[columns_to_keep]
-    # df_filtered.to_csv(f"algooutput_{filename}")
-    df.to_csv(f"algooutput_{filename}")
 
+        # Adding the new model name column to the list of columns to keep
+        columns_to_keep.append(model_name)
+
+    # Filtering DataFrame to keep only the specified columns
+    df_filtered = df[columns_to_keep]
+    df_filtered.to_csv(f"algooutput_{filename}")
 
 dir = "../data/historical_multiday_minute_DF"
 for filename in os.listdir(dir):
