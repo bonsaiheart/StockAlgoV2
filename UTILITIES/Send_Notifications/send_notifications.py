@@ -18,7 +18,7 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
     min_tweet_interval = datetime.timedelta(minutes=countdownseconds*60)
     print("~~~Sending Tweet~~~")
 
-    directory = "last_tweet_timestamps"  # Directory for storing timestamp files
+    directory = "UTILITIES/Send_Notifications/last_tweet_timestamps"  # Directory for storing timestamp files
     os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
     timestamp_file_path = os.path.join(directory,f"last_tweet_timestamp_{modelname}_{ticker}.txt")  # File path inside the directory    global last_tweet_time
     current_time = datetime.datetime.now()
@@ -40,7 +40,7 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             if timestamp_str:
                 last_tweet_time = datetime.datetime.fromisoformat(timestamp_str)
     except FileNotFoundError:
-        pass
+        last_tweet_time = None
 
     if last_tweet_time is None or (current_time - last_tweet_time) >= min_tweet_interval:
         # Send the tweet

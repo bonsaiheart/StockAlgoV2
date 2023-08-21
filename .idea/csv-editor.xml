@@ -31,10 +31,59 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="$APPLICATION_CONFIG_DIR$/scratches/market_schedule.csv">
+        <entry key="/data/DailyMinutes/BA/BA_230821.csv">
           <value>
             <Attribute>
-              <option name="separator" value=":" />
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/CHWY/CHWY_230807.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/CHWY/CHWY_230821.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/CMPS/CMPS_230720.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/CMPS/CMPS_230821.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/GOEV/GOEV_230810.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/GOEV/GOEV_230815.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/GOEV/GOEV_230821.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>
