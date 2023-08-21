@@ -9,13 +9,11 @@ import tweepy
 import PrivateData.twitter_info
 from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
-last_tweet_time = None
 # min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
 
 
 def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds,modelname):
-    global last_tweet_time
-    min_tweet_interval = datetime.timedelta(minutes=countdownseconds*60)
+    min_tweet_interval = datetime.timedelta(minutes=countdownseconds//60)
     print("~~~Sending Tweet~~~")
 
     directory = "UTILITIES/Send_Notifications/last_tweet_timestamps"  # Directory for storing timestamp files

@@ -332,7 +332,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
             callorput = "put"
             contractStrike = ib_one_strike_above
             contract_price = UpOne_Put_Price
-
+#TODO add logic that keeps track of the last purchase per model/ticker, like last tweet time.  BUt it will only trigger again if the price goes agaisnt it?
         interval_match = re.search(pattern, model_name)
 
         if interval_match:
