@@ -400,11 +400,16 @@ if input_val == "Y":
     model_filename_up = os.path.join(model_directory, "target_up.pth")
 
     torch.save({'model_class': model_up_nn.__class__.__name__,  # Save the class name
-                'features': Chosen_Predictor,
-                'input_dim': X_train_tensor.shape[1],
-                'dropout_rate': best_params["dropout_rate"],
-                'num_hidden_units': best_params[
-                    "num_hidden_units"],
+                "l1_lambda":  best_params['l1_lambda'],
+                "learning_rate": best_params['learning_rate'],
+                "optimizer":  best_params['optimizer_name'],
+                "num_layers":  best_params['num_layers'],
+                "momentum":  best_params['momentum'],  # Include optimizer name here
+                "num_epochs":  best_params['num_epochs'],
+                "batch_size":  best_params['batch_size'],
+                "dropout_rate":  best_params['dropout_rate'],
+                "num_hidden_units":  best_params['num_hidden_units'],
+                "weight_decay":  best_params['weight_decay'],
                 'model_state_dict': model_up_nn.state_dict(),
                 }, model_filename_up)
 

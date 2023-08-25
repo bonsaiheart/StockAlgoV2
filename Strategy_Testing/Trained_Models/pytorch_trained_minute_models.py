@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import pandas as pd
 import torch.nn as nn
+from sklearn.preprocessing import StandardScaler
+
 base_dir = os.path.dirname(__file__)
 class BinaryClassificationNNwithDropout(nn.Module):
     def __init__(self, input_dim, num_hidden_units, dropout_rate):
@@ -41,6 +43,65 @@ class BinaryClassificationNN(nn.Module):
         x = self.activation(self.layer3(x))
         x = self.sigmoid(self.output_layer(x))
         return x
+class RegressionNN(nn.Module):
+    def __init__(self, input_dim, num_hidden_units, dropout_rate, num_layers=1):
+        super(RegressionNN, self).__init__()
+
+        self.layers = nn.ModuleList()  # Create a ModuleList to hold the layers
+
+        # Add the first linear layer
+        self.layers.append(nn.Linear(input_dim, num_hidden_units))
+        self.layers.append(nn.BatchNorm1d(num_hidden_units))
+        self.layers.append(nn.ReLU())
+        self.layers.append(nn.Dropout(dropout_rate))
+
+        # Add intermediate hidden layers if num_layers > 1
+        for _ in range(num_layers - 1):
+            self.layers.append(nn.Linear(num_hidden_units, num_hidden_units))
+            self.layers.append(nn.BatchNorm1d(num_hidden_units))
+            self.layers.append(nn.ReLU())
+            self.layers.append(nn.Dropout(dropout_rate))
+
+        # Add the final linear layer
+        self.layers.append(nn.Linear(num_hidden_units, 1))
+
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+def Buy_1hr_FFNNRegSPYA1(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/_1hr_FFNNRegSPYA1/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    # class_name_str = checkpoint['class_name']
+    class_name_str = 'RegressionNN'
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    num_hidden_units = checkpoint['num_hidden_units']
+    # num_layers= checkpoint['num_layers']
+    num_layers =3
+    loaded_model = RegressionNN(input_dim, num_hidden_units, dropout_rate,num_layers)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()  # Set the model to evaluation mode
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    threshold = 1e10
+    X = np.clip(tempdf[features], -threshold, threshold)
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+    # Convert DataFrame to a PyTorch tensor
+    input_tensor = torch.tensor(X, dtype=torch.float32)
+
+    # Pass the tensor through the model to get predictions
+    predictions = loaded_model(input_tensor)
+    # Convrt predictions to a NumPy array
+    predictions_numpy = predictions.detach().numpy()
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
+    return result["Predictions"]
 
 def Buy_1hr_ptminclassSPYA1(new_data_df):
     checkpoint = torch.load(f'{base_dir}/_1hr_ptminclassSPYA1/target_up.pth', map_location=torch.device('cpu'))
