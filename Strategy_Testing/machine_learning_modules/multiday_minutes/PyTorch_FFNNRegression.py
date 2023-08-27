@@ -6,13 +6,12 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torchmetrics
-from sklearn.model_selection import train_test_split, TimeSeriesSplit
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
-from torch.utils.data import Dataset, TensorDataset, DataLoader
-from UTILITIES.logger_config import logger
+from torch.utils.data import  TensorDataset, DataLoader
 
-DF_filename = r"../../../data/historical_multiday_minute_DF/TSLA_historical_multiday_min230817.csv"
+DF_filename = r"../../../data/historical_multiday_minute_DF/TSLA_historical_multiday_min.csv"
 Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
                     'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
                     'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
@@ -34,16 +33,15 @@ Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
                     'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
                     'RSI14', 'RSI2', 'AwesomeOsc5_34']
 # ##had highest corr for 3-5 hours with these:
-cells_forward_to_check = 240  # rows to check (minutes in this case)
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 ml_dataframe = pd.read_csv(DF_filename).copy()
 # ml_dataframe['Target_Change'] = ml_dataframe['Current Stock Price'].pct_change(
 #     periods=cells_forward_to_check * -1) * 100
 # ml_dataframe.dropna(subset=Chosen_Predictor + ["Target_Change"],inplace=True)
 print('Columns in Data:', ml_dataframe.columns)
-# ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
-#     lambda x: datetime.strptime(x, '%y%m%d_%H%M'))
-# ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
+    lambda x: datetime.strptime(x, '%y%m%d_%H%M'))
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('Device:', device)
@@ -52,18 +50,14 @@ mae_metric = torchmetrics.MeanAbsoluteError().to(device)
 mse_metric = torchmetrics.MeanSquaredError().to(device)
 # Target Calculation
 
-
 # Calculate rolling mean for the window between 180 to 240 minutes
 ml_dataframe['Rolling_Mean_60'] = ml_dataframe['Current Stock Price'].rolling(window=61, min_periods=1).mean()
 # Drop NaNs before training
 ml_dataframe.dropna(subset=Chosen_Predictor + ['Rolling_Mean_60'], inplace=True)
 ml_dataframe.reset_index(drop=True, inplace=True)
 # Now, use this as your target variable
-y_change = ml_dataframe['Rolling_Mean_60'].values.reshape(-1, 1)
-
-
-
-########################
+Y = ml_dataframe['Rolling_Mean_60'].values.reshape(-1, 1)
+print(Y)
 # ml_dataframe['Target_Change'] = ml_dataframe['Current Stock Price'].pct_change(
 #     periods=cells_forward_to_check * -1) * 100
 # ml_dataframe.dropna(subset=Chosen_Predictor + ["Target_Change"], inplace=True)
@@ -78,48 +72,18 @@ small_number = -1e100
 
 X = X.replace([np.inf], large_number)
 X = X.replace([-np.inf], small_number)
+n_splits = 5
+scaler_X = RobustScaler()
+# scaler_y = MinMaxScaler()
 
-trainsizepercent = .7
-valsizepercent = .15
-tscv = TimeSeriesSplit(n_splits=5)  # You can change the number of splits
+# Apply log transformation to entire target variable y
 
-
-# Scale the predictors
-scaler_X = MinMaxScaler(feature_range=(-1, 1))
-X_train_scaled = scaler_X.fit_transform(X_train)
-X_test_scaled = scaler_X.transform(X_test)
-
-# Scale the target
-scaler_y = MinMaxScaler(feature_range=(-1, 1))
-y_train_scaled = scaler_y.fit_transform(y_train)
-y_test_scaled = scaler_y.transform(y_test)
-#todo CHANGED THIS.
-
-
-print(min(y_train))
-print(min(y_test))
-print("X_train_scaled shape:", X_train_scaled.shape)
-print("X_test_scaled shape:", X_test_scaled.shape)
-
-print("y_train_scaled shape:", y_train_scaled.shape)
-print("y_test_scaled shape:", y_test_scaled.shape)
-# Convert to PyTorch tensors
-X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
-X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float).to(
-    device)  # Convert to tensor and move to the same device
-
-y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32).to(device)
-y_test_tensor = torch.tensor(y_test_scaled, dtype=torch.float).to(device)
+# Y = np.log1p(Y)
 
 # nan_indices = np.argwhere(np.isnan(X))
 # inf_indices = np.argwhere(np.isinf(X))
 # print("NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found.")
 # print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infinite values found.")
-
-
-
-
-
 class RegressionNN(nn.Module):
     def __init__(self, input_dim, num_hidden_units, dropout_rate, num_layers=1):
         super(RegressionNN, self).__init__()
@@ -148,30 +112,24 @@ class RegressionNN(nn.Module):
         return x
 
 
-def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_tensor):
+def train_model(hparams, X, Y):
     # rest of the code remains the same, remove the optimizer creation part inside this function
     batch_size = hparams["batch_size"]
     # print(X_train_tensor.shape)
     # print(y_train_tensor.shape)
 
-    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size)
     patience = 5  # Number of epochs with no improvement to wait before stopping
     lr_scheduler = hparams.get("lr_scheduler")  # Get the lr_scheduler from the hyperparameters
-
     patience_counter = 0
     num_layers = hparams["num_layers"]
-    model = RegressionNN(X_train.shape[1], hparams["num_hidden_units"], hparams['dropout_rate'], num_layers).to(device)
-    optimizer = create_optimizer(hparams["optimizer"], hparams["learning_rate"], hparams.get("momentum", 0),
-                                 hparams.get("weight_decay"), model.parameters())
+    model = RegressionNN(X.shape[1], hparams["num_hidden_units"], hparams['dropout_rate'], num_layers).to(device)
 
     model.train()
     #TODO ALSO CHANGED FROM L1 TO MSE ON 08/26/23
     criterion = nn.MSELoss()
     # criterion = nn.L1Loss()  # mae
-    optimizer_name = hparams["optimizer"]
+    optimizer = hparams["optimizer"]
+    optimizer_name = hparams['optimizer_name']
     num_epochs = hparams["num_epochs"]
 
     best_model_state_dict = None
@@ -180,19 +138,38 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
     total_mse_score = 0
     total_val_loss = 0
     total_r2_score = 0
-    n_splits = 5
-    for train_idx, val_idx in TimeSeriesSplit(n_splits=5).split(X_train_tensor):
-        model.train()
-        smallest_val_loss = float('inf')  # Initialize the variable for the smallest MSE loss
-        best_mae_score = float('inf')  # Initialize the variable for the best MAE score
-        best_mse_score = float('inf')  # Initialize the variable for the best MAE score
+    smallest_val_loss = float('inf')  # Initialize to a large value
 
-        # Data splitting for this fold
-        X_train_fold = X_train_tensor[train_idx]
-        y_train_fold = y_train_tensor[train_idx]
-        X_val_fold = X_train_tensor[val_idx]
-        y_val_fold = y_train_tensor[val_idx]
+    for train_idx, val_idx in TimeSeriesSplit(n_splits=n_splits).split(X):
+        # Data splitting for this fold  y is numpy, x is df.
+        X_train_fold = X.iloc[train_idx].values
+        X_train_fold = torch.tensor(X_train_fold, dtype=torch.float32).to(device)
 
+        y_train_fold = Y[train_idx]
+        X_val_fold = X.iloc[val_idx].values
+        X_val_fold = torch.tensor(X_val_fold, dtype=torch.float32).to(device)
+
+        y_val_fold = Y[val_idx]
+
+        # Fit the scaler on the training data for this fold
+        # scaler_X.fit(X_train_fold.cpu().numpy())
+        scaler_X.fit(X_train_fold)
+
+        # scaler_y.fit(y_train_fold.cpu().numpy().reshape(-1, 1))
+
+        # Transform both training and validation data
+        # X_train_fold = torch.tensor(scaler_X.transform(X_train_fold), dtype=torch.float32).to(device)
+        y_train_fold = torch.tensor(y_train_fold.reshape(-1, 1),
+                                    dtype=torch.float32).to(device)
+        # X_val_fold = torch.tensor(scaler_X.transform(X_val_fold), dtype=torch.float32).to(device)
+        y_val_fold = torch.tensor(y_val_fold.reshape(-1, 1), dtype=torch.float32).to(
+            device)
+        print(type(X_train_fold),"hello",type(y_train_fold))
+        print(X_train_fold.shape, y_train_fold.shape)
+        train_dataset = TensorDataset(X_train_fold, y_train_fold)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+        val_dataset = TensorDataset(X_val_fold, y_val_fold)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
         for epoch in range(num_epochs):
             # print(patience_counter)
             # Training step
@@ -204,6 +181,7 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
                         nonlocal loss  # Refer to the outer scope's loss variable
                         optimizer.zero_grad()
                         outputs = model(X_batch)
+                        print('closureoutputs: ',outputs[0],'~~~ybatch: ',y_batch[0])
                         # outputs_scaled = scaler_y.transform(outputs.detach().cpu().numpy())
                         # outputs_tensor = torch.tensor(outputs_scaled, dtype=torch.float32).to(device)
                         # outputs = outputs.squeeze(1)
@@ -217,23 +195,28 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
                         return loss
 
                     optimizer.step(closure)
+
                 else:
                     optimizer.zero_grad()
+
                     outputs = model(X_batch)
                     # outputs_scaled = scaler_y.transform(outputs.detach().cpu().numpy())
                     # outputs_tensor = torch.tensor(outputs_scaled, dtype=torch.float32).to(device)
-
+                    print('closureoutputs: ', outputs[-1], '~~~ybatch: ', y_batch[-1])
                     loss = criterion(outputs, y_batch)
                     # Add L1 regularization to loss
-                    l1_reg = torch.tensor(0., requires_grad=True).to(device)
+                    l1_reg = 0
                     for param in model.parameters():
-                        l1_reg += torch.norm(param, 1)
+                        l1_reg += torch.norm(param.detach(), 1)
+
                     loss += l1_lambda * l1_reg
+
                     loss.backward()
                     optimizer.step()
-            if lr_scheduler is not None:
-                if isinstance(lr_scheduler, StepLR) or isinstance(lr_scheduler, ExponentialLR):
-                    lr_scheduler.step()
+                if lr_scheduler is not None:
+                    if isinstance(lr_scheduler, StepLR) or isinstance(lr_scheduler, ExponentialLR):
+                        lr_scheduler.step()
+
             model.eval()
             # Validation step
             val_loss_accum = 0
@@ -247,13 +230,11 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
                 with torch.no_grad():
                     val_outputs = model(X_val_batch)
                     val_loss = criterion(val_outputs, y_val_batch)
-
                     # Add L1 regularization to validation loss
                     l1_val_reg = torch.tensor(0.).to(device)
                     for param in model.parameters():
                         l1_val_reg += torch.norm(param, 1)
                     val_loss += l1_lambda * l1_val_reg
-
                     val_loss_accum += val_loss.item()
                     # print(min(y_val_batch),max(y_val_batch))
                     mae_score = mae_metric(val_outputs, y_val_batch)  # Calculate MAE
@@ -263,7 +244,7 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
                     mse_accum += mse_score.item()
 
                     if len(y_val_batch) < 2:
-                        logger.warning('Fewer than two samples. Skipping R² calculation.')
+                        # logger.warning('Fewer than two samples. Skipping R² calculation.')
                         r2_score = None  # or some default value
                     else:
                         r2_score = r2_metric(val_outputs, y_val_batch)
@@ -302,14 +283,13 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
         total_mse_score += best_mse_score
         total_val_loss += smallest_val_loss
         total_r2_score += r2_avg
+        print(f"VALIDATION Epoch: {epoch + 1}, Training Loss: {loss}, Validation Loss: {val_loss_avg} ")
     best_mae_score = total_mae_score / n_splits
     best_mse_score = total_mse_score / n_splits
     smallest_val_loss = total_val_loss / n_splits#average best val loss
     avg_r2_score = total_r2_score / n_splits
 
-        # print(f"VALIDATION Epoch: {epoch + 1}, Training Loss: {loss}, Validation Loss: {val_loss_avg} ")
-        # if r2_avg > 0:
-        #     play_sound()
+
 
     return best_mae_score, best_mse_score, best_model_state_dict, smallest_val_loss, avg_r2_score
 
@@ -336,15 +316,15 @@ def create_optimizer(optimizer_name, learning_rate, momentum, weight_decay, mode
 
 
 def objective(trial):
-    print(
-
-        datetime.now())
-
-    # print(len(X_val_tensor))
+    print(datetime.now())
     learning_rate = trial.suggest_float("learning_rate", .00001, 0.01, log=True)  # 0003034075497582067
     num_epochs = trial.suggest_int("num_epochs", 5, 1000)  # 3800 #230  291  400-700
     # batch_size = trial.suggest_int("batch_size", 20, 3000)  # 10240  3437
-    batch_size = trial.suggest_int('batch_size', 20, len(X_test) - 1)
+    total_samples = len(X)  # Replace X with your actual data
+    print(type(X),len(X))
+    smallest_fold_size = np.floor(total_samples / n_splits)
+
+    batch_size = trial.suggest_int('batch_size', 20, min(smallest_fold_size, 3000))
     dropout_rate = trial.suggest_float("dropout_rate", 0, .5)  # 30311980533100547  16372372692286732
     num_hidden_units = trial.suggest_int("num_hidden_units", 100, 4000)  # 2560 #83 125 63  #7000
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1)  # Adding L2 regularization parameter
@@ -363,13 +343,9 @@ def objective(trial):
     step_size = None  # Define a default value for step_size as well
     gamma = None
     # Inside the objective function, create the model first
-    model = RegressionNN(X_train.shape[1], num_hidden_units, dropout_rate, num_layers).to(device)
-
+    model = RegressionNN(X.shape[1], num_hidden_units, dropout_rate, num_layers).to(device)
     # Then pass the model's parameters to create_optimizer
     optimizer = create_optimizer(optimizer_name, learning_rate, momentum, weight_decay, model.parameters())
-
-    ...
-
     if lr_scheduler_name == 'StepLR':
         step_size = trial.suggest_int('step_size', 5, 50)
         gamma = trial.suggest_float('gamma', 0.1, 1)
@@ -381,15 +357,13 @@ def objective(trial):
     elif lr_scheduler_name == 'ReduceLROnPlateau':
         patience = trial.suggest_int('patience', 5, 20)
         scheduler = ReduceLROnPlateau(optimizer, patience=patience, mode='min')  # Use optimizer
-
-    # Call the train_model function with the current hyperparameters
-
     best_mae_score, best_mse_score, best_model_state_dict, smallest_val_loss, r2_avg = train_model(
 
         {
             "l1_lambda": l1_lambda,
             "learning_rate": learning_rate,
-            "optimizer": optimizer_name,
+            "optimizer": optimizer,
+            "optimizer_name":optimizer_name,
             "num_layers": num_layers,
             "momentum": momentum,  # Include optimizer name here
             "num_epochs": num_epochs,
@@ -403,58 +377,28 @@ def objective(trial):
             "step_size": step_size,  # Add step_size parameter for StepLR
             # Add more hyperparameters as needed
         },
-        X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor
+        X, Y
     )
     print("best mae score: ", best_mae_score, "best mse score: ", best_mse_score, "smallest val loss: ",
           smallest_val_loss, "best r2 avg:", r2_avg)
 ##todo chnaged this from r2
 
     return smallest_val_loss  # Note this is actually criterion, which is currently mae.
-    #    # return prec_score  # Optuna will
-    #    try to maximize this value
-
-
 ######################################################################################################################
 # #TODO Comment out to skip the hyperparameter selection.  Swap "best_params".
-
 #TODO oh yeah.. gotta minimise this instead of max
 study = optuna.create_study(direction="minimize")
 study.optimize(objective, n_trials=1000)
 best_params = study.best_params
 print(best_params)
-# TODO
-# for spy and all chosens.
-#best_params = {'learning_rate': 1.1292399886886521e-05, 'num_epochs': 969, 'batch_size': 2905,
-##              'l1_lambda': 0.0017721772314088363, 'lr_scheduler': 'ReduceLROnPlateau', 'optimizer': 'Adam',
-  #             'num_layers': 5, 'patience': 20}
-#best_params = {'learning_rate': 3.27916199914973e-05, 'num_epochs': 974, 'batch_size': 1925, 'dropout_rate': 0.41417835551570886, 'num_hidden_units': 728, 'weight_decay': 0.06782663557163043, 'l1_lambda': 0.0002569789049939055, 'lr_scheduler': 'ExponentialLR', 'optimizer': 'AdamW', 'num_layers': 5, 'gamma': 0.3344920633569385}
-# Train the model with the best hyperparameters
-# best_params={'learning_rate': 0.0033189866779338266, 'num_epochs': 849, 'batch_size': 58, 'dropout_rate': 0.314223721251083, 'num_hidden_units': 1992, 'weight_decay': 0.054569973923662876, 'l1_lambda': 0.004433002462296307, 'lr_scheduler': 'ReduceLROnPlateau', 'optimizer': 'Adam', 'num_layers': 4, 'patience': 12}
-
 print("~~~~training model using best params.~~~~")
 best_mae_score, best_mse_score, best_model_state_dict, smallest_val_loss, r2_avg = train_model(
-    best_params, X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor)
-model_up_nn = RegressionNN(X_train.shape[1], best_params["num_hidden_units"],
+    best_params, X, Y)
+model_up_nn = RegressionNN(X.shape[1], best_params["num_hidden_units"],
                            best_params["dropout_rate"], best_params["num_layers"]).to(device)
 # Load the saved state_dict into the model
 model_up_nn.load_state_dict(best_model_state_dict)
 model_up_nn.eval()
-
-predicted_values = model_up_nn(X_test_tensor)
-
-# predicted_values_scaled = scaler_y.transform(predicted_values.detach().cpu().numpy())
-# predicted_values_tensor = torch.tensor(predicted_values_scaled, dtype=torch.float).to(device)
-
-print("MIN YTEST: ", min(y_test_tensor), " MAX YTEST: ", max(y_test_tensor))
-print("MIN pred: ", min(predicted_values), " MAX pred: ", max(predicted_values))
-print(predicted_values, y_test_tensor)
-
-# Calculate R2 score
-test_r2 = r2_metric(predicted_values, y_test_tensor)
-test_mse= mse_metric(predicted_values, y_test_tensor)
-test_mae = mae_metric(predicted_values, y_test_tensor)
-print(f"R2 Score: {test_r2}", f"mae Score: {test_mae}",f"mse Score: {test_mse}")
-# print('selected features: ',selected_features)
 
 input_val = input("Would you like to save these models? y/n: ").upper()
 if input_val == "Y":
@@ -466,7 +410,7 @@ if input_val == "Y":
     save_dict = {
         'model_class': model_up_nn.__class__.__name__,
         'features': Chosen_Predictor,
-        'input_dim': X_train.shape[1],
+        'input_dim': X.shape[1],
         "l1_lambda": best_params.get('l1_lambda'),
         "learning_rate": best_params.get('learning_rate'),
         "optimizer": best_params.get('optimizer'),
@@ -483,8 +427,8 @@ if input_val == "Y":
         "step_size": best_params.get('step_size'),
         'scaler_X_min': scaler_X.min_,
         'scaler_X_scale': scaler_X.scale_,
-        'scaler_y_min': scaler_y.min_,
-        'scaler_y_scale': scaler_y.scale_,
+        # 'scaler_y_min': scaler_y.min_,
+        # 'scaler_y_scale': scaler_y.scale_,
         'model_state_dict': model_up_nn.state_dict(),
     }
 
@@ -497,9 +441,6 @@ if input_val == "Y":
 
 with open(f"../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
     info_txt.write("This file contains information about the model.\n\n")
-    info_txt.write(
-        f"File analyzed: {DF_filename}\nCells_Foward_to_check: {cells_forward_to_check}\n\n"
-    )
     info_txt.write(
         f"Metrics for Target_Up:best mae score:  {best_mae_score} best mse score:  {best_mse_score} smallest val loss: {smallest_val_loss} best r2 avg: {r2_avg}")
     info_txt.write(
