@@ -158,17 +158,25 @@ def train_model(hparams, X, Y):
         # scaler_y.fit(y_train_fold.cpu().numpy().reshape(-1, 1))
 
         # Transform both training and validation data
-        # X_train_fold = torch.tensor(scaler_X.transform(X_train_fold), dtype=torch.float32).to(device)
+        X_train_fold = torch.tensor(scaler_X.transform(X_train_fold), dtype=torch.float32).to(device)
         y_train_fold = torch.tensor(y_train_fold.reshape(-1, 1),
                                     dtype=torch.float32).to(device)
-        # X_val_fold = torch.tensor(scaler_X.transform(X_val_fold), dtype=torch.float32).to(device)
+        scaler_y = RobustScaler()
+        scaler_y.fit(y_train_fold.cpu().numpy().reshape(-1, 1))
+        y_train_fold_scaled = torch.tensor(scaler_y.transform(y_train_fold.cpu().numpy().reshape(-1, 1)),
+                                           dtype=torch.float32).to(device)
+
+
+        X_val_fold = torch.tensor(scaler_X.transform(X_val_fold), dtype=torch.float32).to(device)
         y_val_fold = torch.tensor(y_val_fold.reshape(-1, 1), dtype=torch.float32).to(
             device)
+        y_val_fold_scaled = torch.tensor(scaler_y.transform(y_val_fold.cpu().numpy().reshape(-1, 1)),
+                                         dtype=torch.float32).to(device)
         print(type(X_train_fold),"hello",type(y_train_fold))
         print(X_train_fold.shape, y_train_fold.shape)
-        train_dataset = TensorDataset(X_train_fold, y_train_fold)
+        train_dataset = TensorDataset(X_train_fold, y_train_fold_scaled)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
-        val_dataset = TensorDataset(X_val_fold, y_val_fold)
+        val_dataset = TensorDataset(X_val_fold, y_val_fold_scaled)
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
         for epoch in range(num_epochs):
             # print(patience_counter)
@@ -181,7 +189,7 @@ def train_model(hparams, X, Y):
                         nonlocal loss  # Refer to the outer scope's loss variable
                         optimizer.zero_grad()
                         outputs = model(X_batch)
-                        print('closureoutputs: ',outputs[0],'~~~ybatch: ',y_batch[0])
+                        print('closureoutputs: ',outputs[0].item(),'~~~ybatch: ',y_batch[0].item())
                         # outputs_scaled = scaler_y.transform(outputs.detach().cpu().numpy())
                         # outputs_tensor = torch.tensor(outputs_scaled, dtype=torch.float32).to(device)
                         # outputs = outputs.squeeze(1)
@@ -202,7 +210,7 @@ def train_model(hparams, X, Y):
                     outputs = model(X_batch)
                     # outputs_scaled = scaler_y.transform(outputs.detach().cpu().numpy())
                     # outputs_tensor = torch.tensor(outputs_scaled, dtype=torch.float32).to(device)
-                    print('closureoutputs: ', outputs[-1], '~~~ybatch: ', y_batch[-1])
+                    print('closureoutputs: ', outputs[-1].item(), '~~~ybatch: ', y_batch[-1].item())
                     loss = criterion(outputs, y_batch)
                     # Add L1 regularization to loss
                     l1_reg = 0

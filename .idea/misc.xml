@@ -4,7 +4,7 @@
     <option name="executionMode" value="BINARY" />
     <option name="sdkUUID" value="453d9394-494f-47a5-bb73-7b5173fc964d" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (StockAlgoV2)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (StockAlgoV2)" project-jdk-type="Python SDK" />
   <component name="PyPackaging">
     <option name="earlyReleasesAsUpgrades" value="true" />
   </component>
