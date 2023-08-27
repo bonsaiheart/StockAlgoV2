@@ -247,19 +247,19 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         trained_minute_models.Buy_2hr_A2,  ##made 3 out of 3, >.25% change! wow
         trained_minute_models.Sell_2hr_A2,
 
-        trained_minute_models.Buy_90min_A2,
+        # trained_minute_models.Buy_90min_A2,
         trained_minute_models.Sell_90min_A2,
 
         # trained_minute_models.Buy_90min_A1,
         # trained_minute_models.Sell_90min_A1,
         # trained_minute_models.Buy_90min_A2,
-        # trained_minute_models.Sell_90min_A2,
+        trained_minute_models.Sell_90min_A2,
         trained_minute_models.Buy_90min_A3,
         trained_minute_models.Sell_90min_A3,
         trained_minute_models.Buy_90min_A4,
         trained_minute_models.Sell_90min_A4,
         # trained_minute_models.Buy_90min_A5,
-        # trained_minute_models.Sell_90min_A5,
+        trained_minute_models.Sell_90min_A5,
         trained_minute_models.Buy_1hr_A9,
         trained_minute_models.Sell_1hr_A9,
         # trained_minute_models.Buy_1hr_A8,
