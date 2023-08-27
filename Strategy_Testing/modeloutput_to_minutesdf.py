@@ -24,7 +24,9 @@ def apply_predictions_to_df(model_names, df, filename):
     df.dropna(axis=1, how="all", inplace=True)
 
     # Columns to keep
-    columns_to_keep = ["LastTradeTime", "Current Stock Price"]
+    columns_to_keep = ["LastTradeTime", "Current Stock Price",'Rolling_Mean_180_240']
+    df['Rolling_Mean_180_240'] = df['Current Stock Price'].rolling(window=61,
+                                                                                       min_periods=1).mean().shift(-120)
 
     # Filter the DataFrame to keep only the desired columns
     for model_name in model_names:
@@ -42,7 +44,7 @@ def apply_predictions_to_df(model_names, df, filename):
 
     # Filtering DataFrame to keep only the specified columns
     df_filtered = df[columns_to_keep]
-    df_filtered.to_csv(f"algooutput_{filename}")
+    df_filtered.to_csv(f"algooutput_C_{filename}")
 
 dir = "../data/historical_multiday_minute_DF"
 for filename in os.listdir(dir):
