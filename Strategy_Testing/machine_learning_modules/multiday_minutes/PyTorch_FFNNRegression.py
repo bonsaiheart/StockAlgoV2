@@ -136,7 +136,7 @@ def train_model(hparams, X, y_change, trial=None):
     num_folds = 0
     best_total_avg_val_loss = 1000000
     total_avg_val_loss =0
-    for train_index, val_index in tscv.split(X):
+    for fold, (train_index, val_index) in enumerate(tscv.split(X)):
         X_train, X_val = X_np[train_index], X_np[val_index]
         y_train, y_val = y_change[train_index], y_change[val_index]
         # Scale the predictors
@@ -267,7 +267,8 @@ def train_model(hparams, X, y_change, trial=None):
             sum_val_loss += epoch_avg_val_loss
             num_epochs_processed += 1
             # After an epoch or batch, report intermediate result to Optuna
-            trial.report(total_avg_val_loss, step=epoch)
+            unique_step = fold * num_epochs + epoch
+            trial.report(epoch_avg_val_loss, step=unique_step)
             # Prune trials that are unlikely to result in a good solution
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
