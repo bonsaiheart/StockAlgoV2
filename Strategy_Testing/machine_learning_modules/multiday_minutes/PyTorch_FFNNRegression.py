@@ -15,7 +15,7 @@ from optuna.pruners import _successive_halving, SuccessiveHalvingPruner
 
 from UTILITIES.logger_config import logger
 
-DF_filename = r"../../../data/historical_multiday_minute_DF/TSLA_historical_multiday_min230817.csv"
+DF_filename = r"../../../data/historical_multiday_minute_DF/TSLA_historical_multiday_min.csv"
 Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
                     'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
                     'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
@@ -50,7 +50,8 @@ mse_metric = torchmetrics.MeanSquaredError().to(device)
 cells_forward_to_check = 240  # rows to check (minutes in this case)
 # Target Calculation
 ml_dataframe['Target_Change'] = ml_dataframe['Current Stock Price'].pct_change(
-    periods=cells_forward_to_check * -1) * 100
+    periods=cells_forward_to_check - 10 * -1) * 100
+ml_dataframe['Target_Change'] = ml_dataframe['Target_Change'].rolling(window=10,min_periods=1).mean()
 ml_dataframe.dropna(subset=Chosen_Predictor + ["Target_Change"], inplace=True)
 ml_dataframe.reset_index(drop=True, inplace=True)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
@@ -58,15 +59,20 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 
 y_change = ml_dataframe["Target_Change"].values.reshape(-1, 1)
-X = ml_dataframe[Chosen_Predictor]
-large_number = 1e100
-small_number = -1e100
-nan_indices = np.argwhere(np.isnan(X))
-inf_indices = np.argwhere(np.isinf(X))
+for col in ml_dataframe.columns:
+    finite_max = ml_dataframe.loc[ml_dataframe[col] != np.inf, col].max()
+    ml_dataframe.loc[ml_dataframe[col] == np.inf, col] = finite_max
+X = ml_dataframe[Chosen_Predictor].copy()
+
+nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
+inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
+neginf_indices = np.argwhere(np.isneginf(X.to_numpy()))  # Convert DataFrame to NumPy array
+
 print("NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found.")
 print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infinite values found.")
-X = X.replace([np.inf], large_number)
-X = X.replace([-np.inf], small_number)
+print("Negative Infinite values found at indices:" if len(neginf_indices) > 0 else "No negative infinite values found.")
+
+# Replace infinite values with large_number, -infinite values with small_number
 
 
 test_set_percentage = 0.1  # Specify the percentage of the data to use as a test set
@@ -132,9 +138,11 @@ def train_model(hparams, X, y_change, trial=None):
     tscv = TimeSeriesSplit(n_splits=5)  # You can specify the number of splits
     total_mae = 0
     total_mse = 0
+    best_model_state_dict = None  # Initialize the variable before the loop
+
     total_r2 = 0
     num_folds = 0
-    best_total_avg_val_loss = 1000000
+    best_total_avg_val_loss = 10000000
     total_avg_val_loss =0
     for fold, (train_index, val_index) in enumerate(tscv.split(X)):
         X_train, X_val = X_np[train_index], X_np[val_index]
@@ -147,19 +155,19 @@ def train_model(hparams, X, y_change, trial=None):
         global scaler_y    # Scale the target
         # scaler_y = MinMaxScaler(feature_range=(-1, 1))
         scaler_y = RobustScaler()
-        # y_train_scaled = scaler_y.fit_transform(y_train)
-        # y_val_scaled = scaler_y.transform(y_val)
-        # y_test_scaled = scaler_y.transform(y_test)
+        y_train_scaled = scaler_y.fit_transform(y_train)
+        y_val_scaled = scaler_y.transform(y_val)
+        y_test_scaled = scaler_y.transform(y_test)
         # TODO scaled or unscaled y?
-        y_train_scaled = y_train
-        y_val_scaled = y_val
+        y_train_scaled = y_train_scaled
+        y_val_scaled = y_val_scaled
         X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
         X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
         y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32).to(device)
         y_val_tensor = torch.tensor(y_val_scaled, dtype=torch.float32).to(device)
         batch_size = hparams["batch_size"]
         train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
         val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
         patience = 5  # Number of epochs with no improvement to wait before stopping
@@ -189,10 +197,6 @@ def train_model(hparams, X, y_change, trial=None):
         l1_lambda = hparams.get("l1_lambda", 0)  # L1 regularization coefficient
         for epoch in range(num_epochs):
 
-            epoch_sum_val_loss = 0.0
-            epoch_total_samples = 0
-            mae_accum = 0
-            mse_accum = 0
             model.train()
             # Training step
             loss = None  # Define loss outside the inner loop
@@ -206,6 +210,17 @@ def train_model(hparams, X, y_change, trial=None):
                         # outputs_tensor = torch.tensor(outputs_scaled, dtype=torch.float32).to(device)
                         # outputs = outputs.squeeze(1)
                         loss = criterion(outputs, y_batch)
+                        # if torch.isnan(y_batch).any():
+                        #     print("y_batch contains NaN values.")
+                        # print("Max value in y_batch:", torch.max(y_batch))
+                        # print("Min value in y_batch:", torch.min(y_batch))
+                        #
+                        # print("Max value in outputs:", torch.max(outputs))
+                        # print("Min value in outputs:", torch.min(outputs))
+                        #
+                        # if torch.isnan(outputs).any():
+                        #     print("outputs contain NaN values.")
+
                         # Add L1 regularization to loss
                         l1_reg = torch.tensor(0., requires_grad=True).to(device)
                         for param in model.parameters():
@@ -233,13 +248,17 @@ def train_model(hparams, X, y_change, trial=None):
             model.eval()
             # Validation step
 
-
+            epoch_sum_val_loss = 0.0
+            epoch_total_samples = 0
+            mae_accum = 0
+            mse_accum = 0
             r2_accum = 0  # Initialize the variable for accumulating R² values
 
             for X_val_batch, y_val_batch in val_loader:
                 with torch.no_grad():
                     val_outputs = model(X_val_batch)
                     val_loss = criterion(val_outputs, y_val_batch)
+
                     # print("Outputs: ",val_outputs[-5:].tolist())
                     # print("Truth: ",y_val_batch[-5:].tolist())
                     mae_score = mae_metric(val_outputs, y_val_batch)  # Assuming you have mae_metric defined
@@ -249,7 +268,7 @@ def train_model(hparams, X, y_change, trial=None):
 
                     mae_accum += mae_score.item() * len(y_val_batch)
                     mse_accum += mse_score.item() * len(y_val_batch)
-
+                    # print(r2_accum,mae_accum,mse_accum)
                     # Add L1 regularization to validation loss
                     l1_val_reg = torch.tensor(0.).to(device)
                     for param in model.parameters():
@@ -259,11 +278,14 @@ def train_model(hparams, X, y_change, trial=None):
                     epoch_sum_val_loss += val_loss.item() * len(y_val_batch)  # Multiply by batch size
                     epoch_total_samples += len(y_val_batch)
             epoch_avg_r2 = r2_accum / epoch_total_samples  # Calculate average R² for the epoch
-
+            # print(epoch_avg_r2)
                 # Calculate average validation loss for this epoch
             epoch_avg_val_loss = epoch_sum_val_loss / epoch_total_samples
             epoch_avg_mae = mae_accum / epoch_total_samples
+            # print(epoch_avg_mae)
+            # print(epoch_avg_val_loss)
             epoch_avg_mse = mse_accum / epoch_total_samples
+            # print(epoch_avg_mse)
             sum_val_loss += epoch_avg_val_loss
             num_epochs_processed += 1
             # After an epoch or batch, report intermediate result to Optuna
@@ -282,7 +304,6 @@ def train_model(hparams, X, y_change, trial=None):
                 patience_counter = 0  # Reset the early stopping counter
             else:
                 patience_counter += 1
-#TODO the overall...
             # After your epoch loop, return both the best_model_state_dict and overall_avg_val_loss
             fold_avg_val_loss = sum_val_loss / num_epochs_processed
             if isinstance(lr_scheduler, ReduceLROnPlateau):
@@ -298,7 +319,8 @@ def train_model(hparams, X, y_change, trial=None):
                 patience_counter = 0  # Reset patience counter if validation loss improves
 
             if patience_counter >= patience:
-                print(f"Early stopping triggered at epoch {epoch + 1}")
+                print(f"Early stop"
+                      f"ping triggered at epoch {epoch + 1}")
                 break
         total_avg_val_loss += fold_avg_val_loss
         total_mae += fold_bestmodel_avg_mae_score
@@ -311,11 +333,12 @@ def train_model(hparams, X, y_change, trial=None):
     bestmodel_avg_val_loss = total_avg_val_loss/num_folds
     # print(f"VALIDATION Epoch: {epoch + 1}, Training Loss: {loss}, Validation Loss: {val_loss_avg} ")
     # if r2_avg > 0:
-    #     play_sound()
-    if total_avg_val_loss<best_total_avg_val_loss:
+    if total_avg_val_loss < best_total_avg_val_loss:
         best_total_avg_val_loss = total_avg_val_loss
-        print(best_total_avg_val_loss)
         best_model_state_dict = copy.deepcopy(model.state_dict())
+    #     play_sound()
+    print(bestmodel_avg_mae, bestmodel_avg_mse, best_model_state_dict, bestmodel_avg_val_loss, bestmodel_avg_r2)
+
     return bestmodel_avg_mae, bestmodel_avg_mse, best_model_state_dict, bestmodel_avg_val_loss, bestmodel_avg_r2
 
 
@@ -352,7 +375,6 @@ def objective(trial):
     num_hidden_units = trial.suggest_int("num_hidden_units", 100, 4000)  # 2560 #83 125 63  #7000
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1)  # Adding L2 regularization parameter
     l1_lambda = trial.suggest_float("l1_lambda", 1e-5, 1e-1)  # l1 regssss
-    lr_scheduler_name = trial.suggest_categorical('lr_scheduler', ['StepLR', 'ExponentialLR', 'ReduceLROnPlateau'])
 
     optimizer_name = trial.suggest_categorical("optimizer", ["SGD", "Adam", "AdamW", "RMSprop"])
     num_layers = trial.suggest_int("num_layers", 1, 5)  # example
@@ -414,11 +436,20 @@ def objective(trial):
 
 
 # #TODO Comment out to skip the hyperparameter selection.  Swap "best_params".
-# study = optuna.create_study(direction="minimize")
-study = optuna.create_study(direction="minimize",pruner = SuccessiveHalvingPruner(min_resource=1, reduction_factor=4)
-)
-study.optimize(objective, n_trials=1)
+study = optuna.create_study(direction="minimize")
+# study = optuna.create_study(direction="minimize",pruner = Success
+# iveHalvingPruner(min_resource=1, reduction_factor=4)
+# )
 
+study.optimize(objective, n_trials=100)
+# completed_trials = [trial for trial in study.trials if trial.state == optuna.trial.TrialState.COMPLETE]
+#
+# if completed_trials:
+#     # Retrieve and print the best parameters
+#     best_params = completed_trials[0].params
+#     print("Best parameters:", best_params)
+# else:
+#     print("No completed trials yet.")
 best_params = study.best_params
 print(best_params)
 ##TODO

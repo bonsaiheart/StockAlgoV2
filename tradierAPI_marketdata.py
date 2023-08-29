@@ -636,14 +636,27 @@ def perform_operations(
     output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
+
+    def replace_inf(df):
+        if df.isin([np.inf, -np.inf]).values.any():
+            epsilon = 1e-7  # small value
+            for col in df.columns:
+                finite_max = df.loc[df[col] != np.inf, col].max() + epsilon
+                finite_min = df.loc[df[col] != -np.inf, col].min() - epsilon
+                df.loc[df[col] == np.inf, col] = finite_max
+                df.loc[df[col] == -np.inf, col] = finite_min
+
+    # Use the function
     if output_file_dailyminutes.exists():
         dailyminutes = pd.read_csv(output_file_dailyminutes)
         dailyminutes = dailyminutes.dropna().drop_duplicates(subset="LastTradeTime")
         dailyminutes = pd.concat([dailyminutes, df.head(1)], ignore_index=True)
-        dailyminutes.to_csv(output_file_dailyminutes, index=False)
+        replace_inf(dailyminutes)  # It will only run if inf or -inf values are present
     else:
         dailyminutes = pd.concat([df.head(1)], ignore_index=True)
-        dailyminutes.to_csv(output_file_dailyminutes, index=False)
+        replace_inf(dailyminutes)  # It will only run if inf or -inf values are present
+
+    dailyminutes.to_csv(output_file_dailyminutes, index=False)
 
     try:
         df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
