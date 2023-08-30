@@ -157,6 +157,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_230825.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/data/ProcessedData/SPY/230707/SPY_230707_1444.csv">
           <value>
             <Attribute>

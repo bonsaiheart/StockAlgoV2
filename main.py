@@ -25,6 +25,47 @@ async def ib_connect_and_main():
 async def run_program():
     await asyncio.gather(ib_connect_and_main(), main())
 async def handle_ticker(session, ticker):
+    max_retries=2
+    retry_delay=5
+    for attempt in range(max_retries):
+        ticker = ticker.upper()
+        try:
+            LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(
+                session, ticker)
+
+            print(f"{ticker} OptionData complete at {datetime.now()}.")
+
+            (optionchain,
+             dailyminutes,
+             processeddata,
+             ticker,
+             ) = tradierAPI_marketdata.perform_operations(
+                ticker,
+                LAC,
+                current_price,
+                price_change_percent,
+                StockLastTradeTime,
+                this_minute_ta_frame,
+                closest_exp_date,
+            )
+            print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+            if ticker in ["SPY", "TSLA", "GOOG"]:
+                # loop = asyncio.get_event_loop()
+                # loop.run_in_executor(None, trade_algos.actions,optionchain, dailyminutes, processeddata, ticker, current_price)
+                asyncio.create_task(
+                    trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+                print(f"{ticker} Actions complete at {datetime.now()}.")
+        except Exception as e:
+            print(f"Error occurred: {traceback.format_exc()}")
+            logger.error(f"An error occurred while handling ticker {ticker}: {e}", exc_info=True)
+        # Your existing code here...
+        except Exception as e:
+            print(f"Error occurred on attempt {attempt}: {traceback.format_exc()}")
+            logger.error(f"An error occurred while handling ticker {ticker}: {e}", exc_info=True)
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay)  # Wait before retrying
+            else:
+                print(f"Max retries reached for {ticker}. Skipping.")
     ticker = ticker.upper()
     try:
         LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)

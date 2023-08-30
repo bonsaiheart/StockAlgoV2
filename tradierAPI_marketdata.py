@@ -638,9 +638,9 @@ def perform_operations(
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
 
     def replace_inf(df):
-        if df.isin([np.inf, -np.inf]).values.any():
+        if df.select_dtypes(include=[np.number]).isin([np.inf, -np.inf]).values.any():
             epsilon = 1e-7  # small value
-            for col in df.columns:
+            for col in df.select_dtypes(include=[np.number]).columns:
                 finite_max = df.loc[df[col] != np.inf, col].max() + epsilon
                 finite_min = df.loc[df[col] != -np.inf, col].min() - epsilon
                 df.loc[df[col] == np.inf, col] = finite_max
