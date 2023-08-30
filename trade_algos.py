@@ -83,6 +83,7 @@ async def place_buy_order_sync(ticker, current_price,
 
 async def actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
+    dailyminutes_df = pd.read_csv(dailyminutes)
     model_list = [
         trained_minute_models.Buy_2hr_RFSPYA2,
         trained_minute_models.Sell_2hr_RFSPYA2,
@@ -172,47 +173,48 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
     pattern = re.compile(r"\d+(min|hr)")
 
     for model in model_list:
-        model_name = model.__name__
-        model_output = model(dailyminutes_df)
-
-        if isinstance(model_output, tuple):
-            (dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop) = model_output
-        else:
-            dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop = model_output, None, None
-        results[model_name] = dailyminutes_df[model_name].iloc[-1]
-        print(model_name, ": [", results[model_name], "]")
-        if model_name.startswith("Buy"):
-            CorP = "C"
-        elif model_name.startswith("Sell"):
-            CorP = "P"
-
-        if CorP == "C":
-            upordown = "up"
-            callorput = "call"
-            contractStrike = ib_one_strike_below
-            contract_price = DownOne_Call_Price
-        else:
-            upordown = "down"
-            callorput = "put"
-            contractStrike = ib_one_strike_above
-            contract_price = UpOne_Put_Price
-        # TODO add logic that keeps track of the last purchase per model/ticker, like last tweet time.  BUt it will only trigger again if the price goes agaisnt it?
-        interval_match = re.search(pattern, model_name)
-
-        if interval_match:
-            timetill_expectedprofit = interval_match.group()
-            seconds = (
-                int(timetill_expectedprofit[:-3]) * 60
-                if timetill_expectedprofit.endswith("min")
-                else int(timetill_expectedprofit[:-2]) * 3600
-            )
-        else:
-            print(f"Invalid model function name: {model_name}")
-            continue
-
-        # Access result from the dictionary
         result = results[model_name]
         if result > 0.5:
+            model_name = model.__name__
+            model_output = model(dailyminutes_df)
+
+            if isinstance(model_output, tuple):
+                (dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop) = model_output
+            else:
+                dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop = model_output, None, None
+            results[model_name] = dailyminutes_df[model_name].iloc[-1]
+            print(model_name, ": [", results[model_name], "]")
+            if model_name.startswith("Buy"):
+                CorP = "C"
+            elif model_name.startswith("Sell"):
+                CorP = "P"
+
+            if CorP == "C":
+                upordown = "up"
+                callorput = "call"
+                contractStrike = ib_one_strike_below
+                contract_price = DownOne_Call_Price
+            else:
+                upordown = "down"
+                callorput = "put"
+                contractStrike = ib_one_strike_above
+                contract_price = UpOne_Put_Price
+            # TODO add logic that keeps track of the last purchase per model/ticker, like last tweet time.  BUt it will only trigger again if the price goes agaisnt it?
+            interval_match = re.search(pattern, model_name)
+
+            if interval_match:
+                timetill_expectedprofit = interval_match.group()
+                seconds = (
+                    int(timetill_expectedprofit[:-3]) * 60
+                    if timetill_expectedprofit.endswith("min")
+                    else int(timetill_expectedprofit[:-2]) * 3600
+                )
+            else:
+                print(f"Invalid model function name: {model_name}")
+                continue
+
+        # Access result from the dictionary
+
             now = datetime.now()
             formatted_time = now.strftime("%y%m%d %H:%M EST")
             expdates_strikes_dict = {}
@@ -223,7 +225,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
             closest_exp_date = list(expdates_strikes_dict.keys())[0]
             strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
             optionchain = pd.read_csv(optionchain)
-            dailyminutes_df = pd.read_csv(dailyminutes)
+
             # print(ticker, current_price)
             date_string = str(closest_exp_date)
             date_object = datetime.strptime(date_string, "%y%m%d")
