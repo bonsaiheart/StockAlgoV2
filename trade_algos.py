@@ -83,142 +83,6 @@ async def place_buy_order_sync(ticker, current_price,
 
 async def actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     ###strikeindex_abovebelow is a list [lowest,3 lower,2 lower, 1 lower, 1 higher,2 higher,3 higher, 4 higher]
-    now = datetime.now()
-    formatted_time = now.strftime("%y%m%d %H:%M EST")
-    expdates_strikes_dict = {}
-    for exp_date, row in processeddata.iterrows():
-        exp_date = row['ExpDate']
-        closest_strikes_list = row["Closest Strike Above/Below(below to above,4 each) list"]
-        expdates_strikes_dict[exp_date] = closest_strikes_list
-    closest_exp_date = list(expdates_strikes_dict.keys())[0]
-    strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
-    optionchain = pd.read_csv(optionchain)
-    dailyminutes_df = pd.read_csv(dailyminutes)
-    # print(ticker, current_price)
-    date_string = str(closest_exp_date)
-    date_object = datetime.strptime(date_string, "%y%m%d")
-    new_date_string = date_object.strftime("%y%m%d")
-    IB_option_date = date_object.strftime("%Y%m%d")
-
-    # Create a list of your variable names for indexing
-    varnames = ["four_strike_below", "three_strike_below", "two_strike_below",
-                "one_strike_below", "closest_strike", "one_strike_above",
-                "two_strike_above", "three_strike_above", "four_strike_above"]
-
-    # Initialize your dictionaries
-
-    ##IB values for contract strikes is like 34.5 instead of 00034500
-    ib_values = {}
-
-    strike_values = {}
-
-    # Now loop through your indices
-    for idx, varname in enumerate(varnames):
-        if strikeindex_closest_expdate[idx] != np.nan:
-            ib_values[varname] = strikeindex_closest_expdate[idx]
-            strike_values[varname] = int(strikeindex_closest_expdate[idx] * 1000)
-
-    ###TODO add different exp date options in addition to diff strike optoins.
-    ib_one_strike_below = ib_values["one_strike_below"]
-    ib_one_strike_above = ib_values["one_strike_above"]
-
-    one_strike_above_closest_cp_strike_int_num = strike_values["one_strike_above"]
-    one_strike_below_closest_cp_strike_int_num = strike_values["one_strike_below"]
-    # two_strike_above_closest_cp_strike_int_num = strike_values["two_strike_above"]
-    # two_strike_below_closest_cp_strike_int_num = strike_values["two_strike_above"]
-    # three_strike_above_closest_cp_strike_int_num = strike_values["three_strike_above"]
-    # three_strike_below_closest_cp_strike_int_num = strike_values["three_strike_above"]
-    # four_strike_above_closest_cp_strike_int_num = strike_values["four_strike_above"]
-    # four_strike_below_closest_cp_strike_int_num = strike_values["four_strike_above"]
-    closest_strike_exp_int_num = strike_values["closest_strike"]
-
-    one_strike_above_CCPS = "{:08d}".format(one_strike_above_closest_cp_strike_int_num)
-    one_strike_below_CCPS = "{:08d}".format(one_strike_below_closest_cp_strike_int_num)
-    # two_strike_above_CCPS = "{:08d}".format(two_strike_above_closest_cp_strike_int_num)
-    # two_strike_below_CCPS = "{:08d}".format(two_strike_below_closest_cp_strike_int_num)
-    # three_strike_above_CCPS = "{:08d}".format(three_strike_above_closest_cp_strike_int_num)
-    # three_strike_below_CCPS = "{:08d}".format(three_strike_below_closest_cp_strike_int_num)
-    # four_strike_above_CCPS = "{:08d}".format(four_strike_above_closest_cp_strike_int_num)
-    # four_strike_below_CCPS = "{:08d}".format(four_strike_below_closest_cp_strike_int_num)
-    closest_contract_strike = "{:08d}".format(closest_strike_exp_int_num)
-    # CCP_upone_call_contract = f"{ticker}{new_date_string}C{one_strike_above_CCPS}"
-    CCP_upone_put_contract = f"{ticker}{new_date_string}P{one_strike_above_CCPS}"
-    CCP_downone_call_contract = f"{ticker}{new_date_string}C{one_strike_below_CCPS}"
-    # CCP_downone_put_contract = f"{ticker}{new_date_string}P{one_strike_below_CCPS}"
-    # CCP_uptwo_call_contract = f"{ticker}{new_date_string}C{two_strike_above_CCPS}"
-    # CCP_uptwo_put_contract = f"{ticker}{new_date_string}P{two_strike_above_CCPS}"
-    # CCP_downtwo_call_contract = f"{ticker}{new_date_string}C{two_strike_below_CCPS}"
-    # CCP_downtwo_put_contract = f"{ticker}{new_date_string}P{two_strike_below_CCPS}"
-    # CCP_upthree_call_contract = f"{ticker}{new_date_string}C{three_strike_above_CCPS}"
-    # CCP_upthree_put_contract = f"{ticker}{new_date_string}P{three_strike_above_CCPS}"
-    # CCP_downthree_call_contract = f"{ticker}{new_date_string}C{three_strike_below_CCPS}"
-    # CCP_downthree_put_contract = f"{ticker}{new_date_string}P{three_strike_below_CCPS}"
-    # CCP_upfour_call_contract = f"{ticker}{new_date_string}C{four_strike_above_CCPS}"
-    # CCP_upfour_put_contract = f"{ticker}{new_date_string}P{four_strike_above_CCPS}"
-    # CCP_downfour_call_contract = f"{ticker}{new_date_string}C{four_strike_below_CCPS}"
-    # CCP_downfour_put_contract = f"{ticker}{new_date_string}P{four_strike_below_CCPS}"
-    CCP_call_contract = f"{ticker}{new_date_string}C{closest_contract_strike}"
-    CCP_put_contract = f"{ticker}{new_date_string}P{closest_contract_strike}"
-
-    CCP_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_put_contract]["Put_LastPrice"].values[0]
-    CCP_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_call_contract]["Call_LastPrice"].values[0]
-    try:
-        DownOne_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downone_call_contract][
-            "Call_LastPrice"
-        ].values[0]
-        UpOne_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upone_put_contract][
-            "Put_LastPrice"
-        ].values[0]
-        # DownOne_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downone_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-        # UpOne_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_upone_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        # UpTwo_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_uptwo_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        # DownTwo_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downtwo_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-        # DownTwo_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downtwo_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        # UpTwo_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_uptwo_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-        # DownThree_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downthree_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-        # DownThree_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downthree_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        # DownFour_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downfour_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        # UpThree_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_upthree_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        # Upfour_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_upfour_call_contract][
-        #     "Call_LastPrice"
-        # ].values[0]
-        #
-        # DownFour_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downfour_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-        # UpThree_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upthree_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-        # Upfour_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upfour_put_contract][
-        #     "Put_LastPrice"
-        # ].values[0]
-    except Exception as e:
-        print(e)
-        logger.error(f"An error occurred while getting options prices.{ticker},: {e}", exc_info=True)
-        traceback.print_exc()
-        pass
-    """These Models are classifications and only need a single frame(current frame)"""
-
     model_list = [
         trained_minute_models.Buy_2hr_RFSPYA2,
         trained_minute_models.Sell_2hr_RFSPYA2,
@@ -316,7 +180,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         else:
             dailyminutes_df[model_name], custom_takeprofit, custom_trailingstop = model_output, None, None
         results[model_name] = dailyminutes_df[model_name].iloc[-1]
-        print(model_name, ": [",results[model_name],"]")
+        print(model_name, ": [", results[model_name], "]")
         if model_name.startswith("Buy"):
             CorP = "C"
         elif model_name.startswith("Sell"):
@@ -332,7 +196,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
             callorput = "put"
             contractStrike = ib_one_strike_above
             contract_price = UpOne_Put_Price
-#TODO add logic that keeps track of the last purchase per model/ticker, like last tweet time.  BUt it will only trigger again if the price goes agaisnt it?
+        # TODO add logic that keeps track of the last purchase per model/ticker, like last tweet time.  BUt it will only trigger again if the price goes agaisnt it?
         interval_match = re.search(pattern, model_name)
 
         if interval_match:
@@ -349,6 +213,143 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         # Access result from the dictionary
         result = results[model_name]
         if result > 0.5:
+            now = datetime.now()
+            formatted_time = now.strftime("%y%m%d %H:%M EST")
+            expdates_strikes_dict = {}
+            for exp_date, row in processeddata.iterrows():
+                exp_date = row['ExpDate']
+                closest_strikes_list = row["Closest Strike Above/Below(below to above,4 each) list"]
+                expdates_strikes_dict[exp_date] = closest_strikes_list
+            closest_exp_date = list(expdates_strikes_dict.keys())[0]
+            strikeindex_closest_expdate = expdates_strikes_dict[closest_exp_date]
+            optionchain = pd.read_csv(optionchain)
+            dailyminutes_df = pd.read_csv(dailyminutes)
+            # print(ticker, current_price)
+            date_string = str(closest_exp_date)
+            date_object = datetime.strptime(date_string, "%y%m%d")
+            new_date_string = date_object.strftime("%y%m%d")
+            IB_option_date = date_object.strftime("%Y%m%d")
+
+            # Create a list of your variable names for indexing
+            varnames = ["four_strike_below", "three_strike_below", "two_strike_below",
+                        "one_strike_below", "closest_strike", "one_strike_above",
+                        "two_strike_above", "three_strike_above", "four_strike_above"]
+
+            # Initialize your dictionaries
+
+            ##IB values for contract strikes is like 34.5 instead of 00034500
+            ib_values = {}
+
+            strike_values = {}
+
+            # Now loop through your indices
+            for idx, varname in enumerate(varnames):
+                if strikeindex_closest_expdate[idx] != np.nan:
+                    ib_values[varname] = strikeindex_closest_expdate[idx]
+                    strike_values[varname] = int(strikeindex_closest_expdate[idx] * 1000)
+
+            ###TODO add different exp date options in addition to diff strike optoins.
+            ib_one_strike_below = ib_values["one_strike_below"]
+            ib_one_strike_above = ib_values["one_strike_above"]
+
+            one_strike_above_closest_cp_strike_int_num = strike_values["one_strike_above"]
+            one_strike_below_closest_cp_strike_int_num = strike_values["one_strike_below"]
+            # two_strike_above_closest_cp_strike_int_num = strike_values["two_strike_above"]
+            # two_strike_below_closest_cp_strike_int_num = strike_values["two_strike_above"]
+            # three_strike_above_closest_cp_strike_int_num = strike_values["three_strike_above"]
+            # three_strike_below_closest_cp_strike_int_num = strike_values["three_strike_above"]
+            # four_strike_above_closest_cp_strike_int_num = strike_values["four_strike_above"]
+            # four_strike_below_closest_cp_strike_int_num = strike_values["four_strike_above"]
+            closest_strike_exp_int_num = strike_values["closest_strike"]
+
+            one_strike_above_CCPS = "{:08d}".format(one_strike_above_closest_cp_strike_int_num)
+            one_strike_below_CCPS = "{:08d}".format(one_strike_below_closest_cp_strike_int_num)
+            # two_strike_above_CCPS = "{:08d}".format(two_strike_above_closest_cp_strike_int_num)
+            # two_strike_below_CCPS = "{:08d}".format(two_strike_below_closest_cp_strike_int_num)
+            # three_strike_above_CCPS = "{:08d}".format(three_strike_above_closest_cp_strike_int_num)
+            # three_strike_below_CCPS = "{:08d}".format(three_strike_below_closest_cp_strike_int_num)
+            # four_strike_above_CCPS = "{:08d}".format(four_strike_above_closest_cp_strike_int_num)
+            # four_strike_below_CCPS = "{:08d}".format(four_strike_below_closest_cp_strike_int_num)
+            closest_contract_strike = "{:08d}".format(closest_strike_exp_int_num)
+            # CCP_upone_call_contract = f"{ticker}{new_date_string}C{one_strike_above_CCPS}"
+            CCP_upone_put_contract = f"{ticker}{new_date_string}P{one_strike_above_CCPS}"
+            CCP_downone_call_contract = f"{ticker}{new_date_string}C{one_strike_below_CCPS}"
+            # CCP_downone_put_contract = f"{ticker}{new_date_string}P{one_strike_below_CCPS}"
+            # CCP_uptwo_call_contract = f"{ticker}{new_date_string}C{two_strike_above_CCPS}"
+            # CCP_uptwo_put_contract = f"{ticker}{new_date_string}P{two_strike_above_CCPS}"
+            # CCP_downtwo_call_contract = f"{ticker}{new_date_string}C{two_strike_below_CCPS}"
+            # CCP_downtwo_put_contract = f"{ticker}{new_date_string}P{two_strike_below_CCPS}"
+            # CCP_upthree_call_contract = f"{ticker}{new_date_string}C{three_strike_above_CCPS}"
+            # CCP_upthree_put_contract = f"{ticker}{new_date_string}P{three_strike_above_CCPS}"
+            # CCP_downthree_call_contract = f"{ticker}{new_date_string}C{three_strike_below_CCPS}"
+            # CCP_downthree_put_contract = f"{ticker}{new_date_string}P{three_strike_below_CCPS}"
+            # CCP_upfour_call_contract = f"{ticker}{new_date_string}C{four_strike_above_CCPS}"
+            # CCP_upfour_put_contract = f"{ticker}{new_date_string}P{four_strike_above_CCPS}"
+            # CCP_downfour_call_contract = f"{ticker}{new_date_string}C{four_strike_below_CCPS}"
+            # CCP_downfour_put_contract = f"{ticker}{new_date_string}P{four_strike_below_CCPS}"
+            CCP_call_contract = f"{ticker}{new_date_string}C{closest_contract_strike}"
+            CCP_put_contract = f"{ticker}{new_date_string}P{closest_contract_strike}"
+
+            CCP_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_put_contract]["Put_LastPrice"].values[0]
+            CCP_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_call_contract]["Call_LastPrice"].values[0]
+            try:
+                DownOne_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downone_call_contract][
+                    "Call_LastPrice"
+                ].values[0]
+                UpOne_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upone_put_contract][
+                    "Put_LastPrice"
+                ].values[0]
+                # DownOne_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downone_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+                # UpOne_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_upone_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                # UpTwo_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_uptwo_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                # DownTwo_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downtwo_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+                # DownTwo_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downtwo_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                # UpTwo_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_uptwo_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+                # DownThree_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downthree_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+                # DownThree_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downthree_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                # DownFour_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_downfour_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                # UpThree_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_upthree_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                # Upfour_Call_Price = optionchain.loc[optionchain["c_contractSymbol"] == CCP_upfour_call_contract][
+                #     "Call_LastPrice"
+                # ].values[0]
+                #
+                # DownFour_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_downfour_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+                # UpThree_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upthree_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+                # Upfour_Put_Price = optionchain.loc[optionchain["p_contractSymbol"] == CCP_upfour_put_contract][
+                #     "Put_LastPrice"
+                # ].values[0]
+            except Exception as e:
+                print(e)
+                logger.error(f"An error occurred while getting options prices.{ticker},: {e}", exc_info=True)
+                traceback.print_exc()
+                pass
+            """These Models are classifications and only need a single frame(current frame)"""
+
+
             send_notifications.email_me_string(model_name, CorP, ticker)
             try:
                 # Place order or perform other actions specific to the action
