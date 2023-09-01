@@ -26,6 +26,7 @@ async def get_option_chain(session, ticker, exp_date, headers):
         "https://api.tradier.com/v1/markets/options/chains",
         params={"symbol": ticker, "expiration": exp_date, "greeks": "true"},
         headers=headers,
+        timeout=40#Set the timeout to 10 seconds
     )
     json_response = await response.json()
     # print(response.status_code)
@@ -46,9 +47,9 @@ async def fetch(session, url, params, headers):
             # print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
             # print("Used:", response.headers.get("X-Ratelimit-Used"))
             return await response.json()
-    except aiohttp.client_exceptions.ClientConnectorError as e:
+    except Exception  as e:
         print(f"Connection error to {url}: {e}.")
-        logger.error(f"An error occurred while fetching data: {e}", exc_info=True)
+        logger.exception(f"An error occurred while fetching data: {e}")
 
 
 async def get_options_data(session,ticker):

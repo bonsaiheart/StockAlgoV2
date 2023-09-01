@@ -116,7 +116,8 @@ def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, q
                                    quantity=quantity,
                                    orderRef=orderRef)
     except Exception as e:
-        logger.debug(f"placeoptionordersync {e}")
+        logger.exception(f"An error occurred while placeoptionordersync.{ticker},: {e}")
+
         print(f'Error occurred while placing order: {e}')
 
 def orderStatusHandler(orderStatus: OrderStatus):
@@ -233,7 +234,7 @@ def placeOptionBracketOrder(
         print(f"~~~~Order Placed: {parent.orderRef} ~~~~~")
 
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.info("Placeoptionbracket error: %s", e)
+        logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
 
         # ib.disconnect()
 
@@ -309,8 +310,8 @@ def placeBuyBracketOrder(ticker, current_price,
             # ib.sleep(0)
         print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
         saveOrderIdToFile(parentOrderIdFile, parentOrders)
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.debug("PlaceBuyOrder error: %s", e)
+    except (Exception) as e:
+        logger.exception(f"An error occurred while placeBuyBracketOrder.{ticker},: {e}")
 
 
 def placeSellBracketOrder(ticker, current_price):
@@ -378,8 +379,8 @@ def placeSellBracketOrder(ticker, current_price):
         print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
         # ib.sleep(0)
 
-    except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.error("SellBracketOrder error: %s", e)
+    except (Exception) as e:
+        logger.exception(f"An error occurred while placeoptionordersync.{ticker},: {e}")
 
 
 def placeCallBracketOrder(
