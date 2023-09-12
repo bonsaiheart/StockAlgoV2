@@ -78,6 +78,10 @@ print("Negative Infinite values found at indices:" if len(neginf_indices) > 0 el
 
 test_set_percentage = 0.1  # Specify the percentage of the data to use as a test set
 split_index = int(len(X) * (1 - test_set_percentage))
+entire_scaler_X = MinMaxScaler(feature_range=(-1, 1))
+entire_scaler_y = MinMaxScaler(feature_range=(-1, 1))
+entire_scaler_X = entire_scaler_X.transform(X)
+entire_scaler_y = entire_scaler_y.transform(y_change)
 
 X_test = X[split_index:]
 y_test = y_change[split_index:]
@@ -496,10 +500,10 @@ if input_val == "Y":
         "patience": best_params.get('patience'),
         "gamma": best_params.get('gamma'),
         "step_size": best_params.get('step_size'),
-        'scaler_X':scaler_X,
+        'scaler_X':entire_scaler_X,
         # 'scaler_X_min': scaler_X.min_,
         # 'scaler_X_scale': scaler_X.scale_,
-        'scaler_y':scaler_y,
+        'scaler_y':entire_scaler_y,
         # 'scaler_y_min': scaler_y.min_,
         # 'scaler_y_scale': scaler_y.scale_,
         'model_state_dict': model_up_nn.state_dict(),
