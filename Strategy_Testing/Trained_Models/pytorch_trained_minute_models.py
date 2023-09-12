@@ -77,7 +77,58 @@ class RegressionNN(nn.Module):
         for layer in self.layers:
             x = layer(x)
         return x
+def Buy_4hr_FFNNCVREGA1_SPY_230825(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/_4hr_FFNNCVREGA1_SPY_230825/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    scaler_X = checkpoint['scaler_X']
+    scaler_y = checkpoint['scaler_y']    # scaler_X = MinMaxScaler(feature_range=(-1, 1))
 
+    class_name_str = checkpoint['model_class']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    num_hidden_units = checkpoint['num_hidden_units']
+    num_layers = checkpoint['num_layers']
+    # Get the class object using the class name string
+    model_class = globals().get(class_name_str)
+
+    if model_class is None:
+        raise ValueError(f'Unknown class name: {class_name_str}')
+
+    # Make sure its using right model.
+    loaded_model = model_class(input_dim, num_hidden_units, dropout_rate, num_layers)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()  # Set the model to evaluation mode
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    tempdf['LastTradeTime'] = tempdf['LastTradeTime'].apply(
+        lambda x: datetime.strptime(x, '%y%m%d_%H%M'))
+    tempdf['LastTradeTime'] = tempdf['LastTradeTime'].apply(lambda x: x.timestamp())
+    # for col in tempdf.columns:
+    #     finite_max = tempdf.loc[tempdf[col] != np.inf, col].max()
+    #     tempdf.loc[tempdf[col] == np.inf, col] = finite_max
+    tempdf['ExpDate'] = tempdf['ExpDate'].astype(float)
+    threshold = 1e10
+    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+    scaled_features = scaler_X.transform(tempdf[features].values)  # Using the transform method
+
+    # Convert DataFrame to a PyTorch tensor
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    # Pass the tensor through the model to get predictions
+    predictions = loaded_model(input_tensor)
+
+    # Convert predictions to a NumPy array
+    predictions_numpy = predictions.detach().numpy()
+
+    # Unscale predictions to obtain final predictions in the original scale
+    unscaled_predictions = (predictions_numpy * scaler_y.scale_) + scaler_y.min_
+
+    # Create a new Series with the unscaled predictions and align it with the original DataFrame
+    prediction_series = pd.Series(unscaled_predictions.flatten(), index=tempdf.index)
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = unscaled_predictions
+
+    return result["Predictions"]
 def Buy_4hr_ffTSLA230817F(new_data_df):
     checkpoint = torch.load(f'{base_dir}/_4hr_ffTSLA230817F/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']

@@ -80,8 +80,8 @@ test_set_percentage = 0.1  # Specify the percentage of the data to use as a test
 split_index = int(len(X) * (1 - test_set_percentage))
 entire_scaler_X = MinMaxScaler(feature_range=(-1, 1))
 entire_scaler_y = MinMaxScaler(feature_range=(-1, 1))
-entire_scaler_X = entire_scaler_X.transform(X)
-entire_scaler_y = entire_scaler_y.transform(y_change)
+entire_scaler_X = entire_scaler_X.fit(X)
+entire_scaler_y = entire_scaler_y.fit(y_change)
 
 X_test = X[split_index:]
 y_test = y_change[split_index:]
@@ -89,10 +89,10 @@ X = X[:split_index]
 y_change = y_change[:split_index]
 test_scaler_X = MinMaxScaler(feature_range=(-1, 1))
 test_scaler_y = MinMaxScaler(feature_range=(-1, 1))
-X_train_scaled = test_scaler_X.fit(X)
+test_scaler_X.fit(X)
 X_test_scaled = test_scaler_X.transform(X_test)
-y_train_scaled = test_scaler_X.fit(y_change)
-y_test_scaled = test_scaler_X.transform(y_test)
+test_scaler_y.fit(y_change)
+y_test_scaled = test_scaler_y.transform(y_test)
 for column in Chosen_Predictor:
     print(f"The data type of column {column} is {ml_dataframe[column].dtype}")
 
@@ -146,17 +146,14 @@ def train_model(hparams, X, y_change, trial=None):
         X_train, X_val = X_np[train_index], X_np[val_index]
         y_train, y_val = y_change[train_index], y_change[val_index]
         # Scale the predictors
+        scaler_y = MinMaxScaler(feature_range=(-1, 1))
         scaler_X = MinMaxScaler(feature_range=(-1, 1))
         X_train_scaled = scaler_X.fit_transform(X_train)
-        X_val_scaled = scaler_X.transform(X_val)
-        scaler_y = MinMaxScaler(feature_range=(-1, 1))
-        # 8/31 swap scaler.
-        # scaler_y = RobustScaler()
         y_train_scaled = scaler_y.fit_transform(y_train)
+        X_val_scaled = scaler_X.transform(X_val)
         y_val_scaled = scaler_y.transform(y_val)
         # TODO scaled or unscaled y?
-        y_train_scaled = y_train_scaled
-        y_val_scaled = y_val_scaled
+
         X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
         X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
         y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32).to(device)
@@ -328,10 +325,8 @@ def train_model(hparams, X, y_change, trial=None):
         best_total_avg_val_loss = total_avg_val_loss
         best_model_state_dict = copy.deepcopy(model.state_dict())
     #     play_sound()
-
+    print('bestmodel_avg_val_loss',bestmodel_avg_val_loss,'bestmodel_avg_mse',bestmodel_avg_mse,'bestmodel_avg_mae',bestmodel_avg_mae,'bestmodel_avg_r2',bestmodel_avg_r2)
     return bestmodel_avg_mae, bestmodel_avg_mse, best_model_state_dict, bestmodel_avg_val_loss, bestmodel_avg_r2
-
-
 def create_optimizer(optimizer_name, learning_rate, momentum, weight_decay, model_parameters):
     if optimizer_name == "SGD":
         return torch.optim.SGD(model_parameters, lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
@@ -352,7 +347,6 @@ def create_optimizer(optimizer_name, learning_rate, momentum, weight_decay, mode
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
 
-
 def objective(trial):
     print(datetime.now())
 
@@ -372,7 +366,6 @@ def objective(trial):
     if optimizer_name == "SGD":
         momentum = trial.suggest_float('momentum', 0, 0.9)  # Only applicable if using SGD with momentum
     else:
-
         momentum = 0  # Default value if not using SGD
     patience = None  # Define a default value outside the conditional block
     step_size = None  # Define a default value for step_size as well
@@ -427,21 +420,21 @@ def objective(trial):
     #    # return prec_score  # Optuna will try to maximize this value
 
 ##TODO Comment out to skip the hyperparameter selection.  Swap "best_params".
-try:
-    study = optuna.load_study(study_name='SPY_FFNNRegressionCV_R2', storage='sqlite:///SPY_FFNNRegressionCV_R2.db')
-    print("Study Loaded.")
-except KeyError:
-    study = optuna.create_study(direction="maximize", study_name='SPY_FFNNRegressionCV_R2',
-                            storage='sqlite:///SPY_FFNNRegressionCV_R2.db')
-"Keyerror, new optuna study created."  #
-study.optimize(objective, n_trials=1000)
-best_params = study.best_params
-#
-##TODO#
-# best_params = {'batch_size': 442, 'dropout_rate': 0.23625354932872586, 'l1_lambda': 0.00829443884457374,
-#                'learning_rate': 0.000121861043679494, 'lr_scheduler': 'ReduceLROnPlateau', 'num_epochs': 245,
-#                'num_hidden_units': 2269, 'num_layers': 4, 'optimizer': 'Adam', 'patience': 9,
-#                'weight_decay': 0.040409278725667123}
+# try:
+#     study = optuna.load_study(study_name='SPY_FFNNRegressionCV_R2', storage='sqlite:///SPY_FFNNRegressionCV_R2.db')
+#     print("Study Loaded.")
+# except KeyError:
+#     study = optuna.create_study(direction="maximize", study_name='SPY_FFNNRegressionCV_R2',
+#                             storage='sqlite:///SPY_FFNNRegressionCV_R2.db')
+# "Keyerror, new optuna study created."  #
+# study.optimize(objective, n_trials=1000)
+# best_params = study.best_params
+# #
+# ##TODO#
+best_params = {'batch_size': 442, 'dropout_rate': 0.23625354932872586, 'l1_lambda': 0.00829443884457374,
+               'learning_rate': 0.000121861043679494, 'lr_scheduler': 'ReduceLROnPlateau', 'num_epochs': 245,
+               'num_hidden_units': 2269, 'num_layers': 4, 'optimizer': 'Adam', 'patience': 9,
+               'weight_decay': 0.040409278725667123}
 
 
 ## Train the model with the best hyperparameters
@@ -453,14 +446,12 @@ model_up_nn = RegressionNN(X.shape[1], best_params["num_hidden_units"],
 # Load the saved state_dict into the model
 model_up_nn.load_state_dict(best_model_state_dict)
 model_up_nn.eval()
-X_test_scaled = test_scaler_X.transform(X_test)
 
-y_test_scaled = test_scaler_y.transform(y_test)
 # TODO scaled or unscaled y?
 X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
 predicted_values = model_up_nn(X_test_tensor)
-y_test_tensor = torch.tensor(y_test_scaled, dtype=torch.float32).to(device)
 
+y_test_tensor = torch.tensor(y_test_scaled, dtype=torch.float32).to(device)
 # predicted_values_tensor = torch.tensor(predicted_values_scaled, dtype=torch.float).to(device)
 
 print("MIN YTEST: ", min(y_test_tensor), " MAX YTEST: ", max(y_test_tensor))

@@ -2,7 +2,6 @@ import datetime
 import os
 
 import numpy as np
-import optuna
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -10,45 +9,43 @@ import torchmetrics
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
-from torch.utils.data import Dataset, TensorDataset, DataLoader
-
-from UTILITIES.logger_config import logger
+from torch.utils.data import TensorDataset, DataLoader
 
 DF_filename = r"../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 # Chosen_Predictor = ['Bonsai Ratio',
 #                     'Bonsai Ratio 2']
 
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
-Chosen_Predictor = [ 'ExpDate', 'LastTradeTime', 'Current Stock Price',
-       'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
-       'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-       'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
-       'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-       'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-       'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
-       'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-       'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-       'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-       'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-       'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
-       'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
-       'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-       'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-       'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-       'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-       'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
-       'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
-       'RSI14', 'RSI2', 'AwesomeOsc5_34']
+Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
+                    'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
+                    'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
+                    'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+                    'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+                    'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
+                    'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+                    'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
+                    'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
+                    'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
+                    'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
+                    'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
+                    'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
+                    'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
+                    'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+                    'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+                    'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+                    'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+                    'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+                    'RSI14', 'RSI2', 'AwesomeOsc5_34']
 
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 ml_dataframe = pd.read_csv(DF_filename)
 print('Columns in Data:', ml_dataframe.columns)
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: datetime.datetime.strptime(x, '%y%m%d_%H%M'))
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
+    lambda x: datetime.datetime.strptime(x, '%y%m%d_%H%M'))
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-
 
 for column in Chosen_Predictor:
     print(f"The data type of column {column} is {ml_dataframe[column].dtype}")
@@ -123,18 +120,6 @@ print("NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values
 print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infinite values found.")
 
 
-class CustomDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def __len__(self):
-        return len(self.X)
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-
-
 def play_sound():
     # Play the sound file using the default audio player
     # os.system("aplay alert.wav")  # For Linux
@@ -197,7 +182,7 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
     smallest_val_loss = float('inf')  # Initialize the variable for the smallest MSE loss
     best_mae_score = float('inf')  # Initialize the variable for the best MAE score
     best_mse_score = float('inf')  # Initialize the variable for the best MAE score
-
+    best_r2_score = float('-inf')
     best_model_state_dict = None
     l1_lambda = hparams.get("l1_lambda", 0)  # L1 regularization coefficient
 
@@ -244,16 +229,20 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
                 lr_scheduler.step()
         model.eval()
         # Validation step
-        val_loss_accum = 0
-        mae_accum = 0
-        mse_accum = 0
+        total_val_loss = 0
+        total_mae_error = 0
+        total_mse_error = 0
+        total_samples = 0
 
         r2_accum = 0  # Initialize the variable for accumulating R² values
         num_batches_processed = 0
-
+        all_val_outputs = []
+        all_val_labels = []
         for X_val_batch, y_val_batch in val_loader:
             with torch.no_grad():
                 val_outputs = model(X_val_batch)
+                all_val_outputs.extend(val_outputs.tolist())
+                all_val_labels.extend(y_val_batch.tolist())
                 # val_outputs = scaler_y.transform(val_outputs)
                 # val_outputs_scaled = scaler_y.transform(val_outputs.detach().cpu().numpy())
                 # val_outputs_tensor = torch.tensor(val_outputs_scaled, dtype=torch.float32).to(device)
@@ -265,40 +254,32 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
                     l1_val_reg += torch.norm(param, 1)
                 val_loss += l1_lambda * l1_val_reg
 
-                val_loss_accum += val_loss.item()
                 # print(min(y_val_batch),max(y_val_batch))
 
                 mae_score = mae_metric(val_outputs, y_val_batch)  # Calculate MAE
                 mse_score = mse_metric(val_outputs, y_val_batch)  # Calculate MAE
+                batch_size = len(y_val_batch)
+                total_val_loss += val_loss.item() * batch_size
+                total_mae_error += mae_score.item() * batch_size
+                total_mse_error += mse_score.item() * batch_size
+                total_samples += batch_size
 
-                mae_accum += mae_score.item()
-                mse_accum += mse_score.item()
-
-                if len(y_val_batch) < 2:
-                    logger.warning('Fewer than two samples. Skipping R² calculation.')
-                    r2_score = None  # or some default value
-                else:
-                    r2_score = r2_metric(val_outputs, y_val_batch)
-                if r2_score is not None:
-                    r2_accum += r2_score.item()  # Accumulate R² values
-
-                num_batches_processed += 1
         # Calculate the average MSE loss for the epoch
-        val_loss_avg = val_loss_accum / num_batches_processed
-        mae_avg = mae_accum / num_batches_processed
-        mse_avg = mse_accum / num_batches_processed
+        val_loss_avg = total_val_loss / total_samples
+        mae_avg = total_mae_error / total_samples
+        mse_avg = total_mse_error / total_samples
 
         if isinstance(lr_scheduler, ReduceLROnPlateau):
             # Step the learning rate scheduler
             lr_scheduler.step(val_loss_avg)
-        try:
-            r2_avg = r2_accum / num_batches_processed  # Calculate the average R² for the epoch
-        except Exception as e:
-            r2_avg = f'r2avg {e}'
+
+        r2_avg = r2_metric(torch.tensor(all_val_outputs).to(device), torch.tensor(all_val_labels).to(device))
+
         # Update the smallest MSE loss if the current average loss is smaller
         if val_loss_avg < smallest_val_loss:
             smallest_val_loss = val_loss_avg
             # print(model.state_dict())
+            best_r2_score = r2_avg
             best_model_state_dict = model.state_dict()
             best_mae_score = mae_avg
             best_mse_score = mse_avg
@@ -315,7 +296,7 @@ def train_model(hparams, X_train_tensor, y_train_tensor, X_val_tensor, y_val_ten
     # if r2_avg > 0:
     #     play_sound()
 
-    return best_mae_score, best_mse_score, best_model_state_dict, smallest_val_loss, r2_avg
+    return best_mae_score, best_mse_score, best_model_state_dict, smallest_val_loss, best_r2_score
 
 
 def create_optimizer(optimizer_name, learning_rate, momentum, weight_decay, model_parameters):
@@ -414,13 +395,20 @@ def objective(trial):
     #    # return prec_score  # Optuna will try to maximize this value
 
 
+
 ######################################################################################################################
 # #TODO Comment out to skip the hyperparameter selection.  Swap "best_params".
-study = optuna.create_study(direction="maximize")
-study.optimize(objective, n_trials=1000)
-best_params = study.best_params
-print(best_params)
-#TODO
+# study = optuna.create_study(direction="maximize")
+# study.optimize(objective, n_trials=1000)
+# best_params = study.best_params
+# print(best_params)
+# TODO
+best_params = {'learning_rate': 3.0928729174797677e-05, 'num_epochs': 971, 'batch_size': 2021,
+               'dropout_rate': 0.3875633252260715, 'num_hidden_units': 321, 'weight_decay': 0.06356107108275695,
+               'l1_lambda': 0.001930392398006833, 'lr_scheduler': 'ExponentialLR', 'optimizer': 'AdamW',
+               'num_layers': 5, 'gamma': 0.34869273877896945}
+# {'learning_rate': 3.27916199914973e-05, 'num_epochs': 974, 'batch_size': 1925, 'dropout_rate': 0.41417835551570886, 'num_hidden_units': 728, 'weight_decay': 0.06782663557163043, 'l1_lambda': 0.0002569789049939055, 'lr_scheduler': 'ExponentialLR', 'optimizer': 'AdamW', 'num_layers': 5, 'gamma': 0.3344920633569385}
+# best_params = {'learning_rate': 4.293816217442058e-05, 'num_epochs': 965, 'batch_size': 1908, 'dropout_rate': 0.41304892470390975, 'num_hidden_units': 704, 'weight_decay': 0.06881544675402791, 'l1_lambda': 0.000884868846832974, 'lr_scheduler': 'ExponentialLR', 'optimizer': 'AdamW', 'num_layers': 5, 'gamma': 0.32349409173680616}
 # best_params =  {'learning_rate': 0.00070269180588398466, 'num_epochs': 514, 'batch_size': 2000, 'dropout_rate': 0.23014323686181, 'num_hidden_units': 3000, 'weight_decay': 0.06499640382078087, 'l1_lambda': 1.0084691533189402e-05, 'lr_scheduler': 'ExponentialLR', 'optimizer': 'Adam', 'num_layers': 3, 'gamma': 0.9257752067127661}
 ######################################################################################################################
 
@@ -444,6 +432,7 @@ print(predicted_values, y_test_tensor)
 
 # Calculate R2 score
 r2 = r2_metric(predicted_values, y_test_tensor)
+mse = mse_metric(predicted_values,y_test_tensor)
 mae = mae_metric(predicted_values, y_test_tensor)
 print(f"R2 Score: {r2}", f"mae Score: {mae}")
 # print('selected features: ',selected_features)

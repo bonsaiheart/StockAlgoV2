@@ -21,12 +21,14 @@ model_names = get_model_names(module_name)
 print(model_names)
 
 def apply_predictions_to_df(model_names, df, filename):
-    df.dropna(axis=1, how="all", inplace=True)
+    # df.dropna(axis=1, how="all", inplace=True)
 
     # Columns to keep
-    columns_to_keep = ["LastTradeTime", "Current Stock Price",'Rolling_Mean_180_240']
-    df['Rolling_Mean_180_240'] = df['Current Stock Price'].rolling(window=61,
-                                                                                       min_periods=1).mean().shift(-120)
+    columns_to_keep = ["LastTradeTime", "Current Stock Price","4hourslater% change"]
+    df['4hourslater% change'] = ((df['Current Stock Price'] - df['Current Stock Price'].shift(-240)) / df[
+        'Current Stock Price'].shift(-240)) * 100
+    # df['Rolling_Mean_180_240'] = df['Current Stock Price'].rolling(window=61,
+    #                                                                                    min_periods=1).mean().shift(-120)
 
     # Filter the DataFrame to keep only the desired columns
     for model_name in model_names:
@@ -37,7 +39,7 @@ def apply_predictions_to_df(model_names, df, filename):
         if isinstance(result, tuple):
             df[model_name], takeprofit, stoploss = result
         else:
-            df[model_name], takeprofit, stoploss = result, None, None
+            df[model_name] = result
 
         # Adding the new model name column to the list of columns to keep
         columns_to_keep.append(model_name)

@@ -40,7 +40,9 @@ Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 ml_dataframe = pd.read_csv(DF_filename)
 print('Columns in Data:', ml_dataframe.columns)
-
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
+    lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('Device:', device)
@@ -270,7 +272,13 @@ def train_model(hparams, X, y_change, trial=None):
 
                     mae_score = mae_metric(val_outputs, y_val_batch)  # Assuming you have mae_metric defined
                     mse_score = mse_metric(val_outputs, y_val_batch)  # Assuming you have mse_metric defined
-                    r2_score = r2_metric(val_outputs, y_val_batch)  # Assuming you have r2_metric defined
+                    try:
+                        r2_score = r2_metric(val_outputs, y_val_batch)  # Assuming you have r2_metric defined
+                    except ValueError as e:
+                        print(e)
+                        r2_score = float('-inf')  # or any other default value that makes sense in your context
+
+
                     r2_accum += r2_score.item() * len(y_val_batch)
 
                     mae_accum += mae_score.item() * len(y_val_batch)
@@ -450,7 +458,7 @@ def objective(trial):
           "smallest val loss: ",
           overall_avg_val_loss, "best r2 avg:", bestmodel_r2_score)
 
-    return overall_avg_val_loss  # Note this is actually criterion, which is currently mae.
+    return bestmodel_r2_score  # Note this is actually criterion, which is currently mae.
     #    # return prec_score  # Optuna will try to maximize this value
 
 
@@ -461,14 +469,14 @@ def objective(trial):
 # )
 
 try:
-    study = optuna.load_study(study_name='SPY_lstmseq_many2one_4hrs', storage='sqlite:///SPY_lstmseq_many2one_4hrs.db')
+    study = optuna.load_study(study_name='SPY_lstmseq_many2one_4hrs_R2', storage='sqlite:///SPY_lstmseq_many2one_4hrs_R2.db')
     print("Study Loaded.")
 except KeyError:
-    study = optuna.create_study(direction="minimize", study_name='SPY_lstmseq_many2one_4hrs', storage='sqlite:///SPY_lstmseq_many2one_4hrs.db')
+    study = optuna.create_study(direction="maximize", study_name='SPY_lstmseq_many2one_4hrs_R2', storage='sqlite:///SPY_lstmseq_many2one_4hrs_R2.db')
     "Keyerror, new optuna study created."
 
 # Continue with optimization
-study.optimize(objective, n_trials=10)
+study.optimize(objective, n_trials=250)
 
 # completed_trials = [trial for trial in study.trials if trial.state == optuna.trial.TrialState.COMPLETE]
 #
@@ -501,20 +509,39 @@ X_test_scaled = scaler_X.transform(X_test)
 X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
 X_test_sequences = to_sequences(X_test_tensor, best_params["sequence_length"])  # Convert to sequences
 predicted_values = model_up_nn(X_test_sequences)
+test_r2_accum = 0.0
+test_mae_accum = 0.0
+test_mse_accum = 0.0
+test_total_samples = 0
+batch_size = best_params.get('batch_size')
+hidden_size = best_params.get('num_hidden_units')
+with torch.no_grad():
+    for i in range(0, len(X_test_sequences), batch_size):
+        batch_X = X_test_sequences[i:i+batch_size]
 
-# predicted_values_scaled = scaler_y.transform(predicted_values.detach().cpu().numpy())
-# predicted_values_tensor = torch.tensor(predicted_values_scaled, dtype=torch.float).to(device)
+        # Initialize hidden state based on batch size
+        batch_size = batch_X.size(0)
+        h_0 = torch.zeros(best_params.get('num_layers'), batch_size, hidden_size).to(device)
+        c_0 = torch.zeros(best_params.get('num_layers'), batch_size, hidden_size).to(device)
 
-print("MIN YTEST: ", min(y_test), " MAX YTEST: ", max(y_test))
-print("MIN pred: ", min(predicted_values), " MAX pred: ", max(predicted_values))
-print(predicted_values, y_test)
-#
-# # Calculate R2 score
-r2 = r2_metric(predicted_values, y_test)
-mae = mae_metric(predicted_values, y_test)
-mse = mse_metric(predicted_values, y_test)
+        # Forward pass
+        batch_outputs = model_up_nn(batch_X, (h_0, c_0))
 
-print(f"Test R2 Score: {r2}", f"Test mae Score: {mae}", f"Test mse Score: {mse}")
+        # Calculate metrics for the batch
+        batch_r2 = r2_metric(batch_outputs, y_test[i:i+batch_size])
+        batch_mae = mae_metric(batch_outputs, y_test[i:i+batch_size])
+        batch_mse = mse_metric(batch_outputs, y_test[i:i+batch_size])
+
+        test_r2_accum += batch_r2.item() * batch_size
+        test_mae_accum += batch_mae.item() * batch_size
+        test_mse_accum += batch_mse.item() * batch_size
+        test_total_samples += batch_size
+
+# Calculate average metrics
+test_r2 = test_r2_accum / test_total_samples
+test_mae = test_mae_accum / test_total_samples
+test_mse = test_mse_accum / test_total_samples
+print(f"Test R2 Score: {test_r2}", f"Test mae Score: {test_mae}", f"Test mse Score: {test_mse}")
 
 input_val = input("Would you like to save these models? y/n: ").upper()
 if input_val == "Y":

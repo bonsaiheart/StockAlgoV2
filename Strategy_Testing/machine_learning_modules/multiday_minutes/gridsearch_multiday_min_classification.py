@@ -53,7 +53,7 @@ Chosen_Predictor = [
 ]
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-cells_forward_to_check = 120
+cells_forward_to_check = 180
 ##this many cells must meet the percentup/down requiremnet.
 threshold_cells_up = cells_forward_to_check * 0.7
 threshold_cells_down = cells_forward_to_check * 0.7
