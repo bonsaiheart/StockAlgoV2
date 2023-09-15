@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Historical_Data_Scraper/data/Historical_Processed_ChainData/SPY.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Strategy_Testing/algooutput_ROKU_historical_multiday_min.csv">
           <value>
             <Attribute>
@@ -200,6 +207,13 @@
           </value>
         </entry>
         <entry key="/data/historical_multiday_minute_corr/230816_spy.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/historical_multiday_minute_corr/230914_spy.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

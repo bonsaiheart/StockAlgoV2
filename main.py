@@ -12,6 +12,21 @@ import aiohttp
 from UTILITIES.logger_config import logger
 
 
+async def handle_ticker_cycle(session, ticker):
+    while True:
+        start_time = datetime.now()
+        try:
+            data = await get_options_data_for_ticker(session, ticker)
+            await handle_ticker( *data)
+
+            end_time = datetime.now()
+            elapsed_time = (end_time - start_time).total_seconds()
+            sleep_time = max(0, 60 - elapsed_time)
+            await asyncio.sleep(sleep_time)
+        except Exception as e:
+            print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
+            logger.exception(f"Error occurred for ticker {ticker}: {e}")
+            await asyncio.sleep(60)  # If there's an error, we can still wait for 60 seconds or handle it differently
 
 
 async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
@@ -36,60 +51,94 @@ async def ib_connect_and_main():
 
 async def run_program():
     await asyncio.gather(ib_connect_and_main(), main())
-async def handle_ticker(session, ticker):
+
+
+semaphore = asyncio.Semaphore(500)
+async def get_options_data_for_ticker(session, ticker):
     ticker = ticker.upper()
     try:
-        try:
-            LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
-            print(f"{ticker} OptionData complete at {datetime.now()}.")
-        except Exception as e:
-            logger.exception(f"Error in get_options_data for {ticker}: {e}")
-            raise
-
-        try:
-            (optionchain, dailyminutes, processeddata, ticker) = tradierAPI_marketdata.perform_operations(
-                ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
-            )
-            print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-        except Exception as e:
-            logger.exception(f"Error in perform_operations for {ticker}: {e}")
-            raise
-
-        if ticker in ["SPY", "TSLA", "GOOG"]:
-            try:
-                asyncio.create_task(trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
-                print(f"{ticker} Actions complete at {datetime.now()}.")
-            except Exception as e:
-                logger.exception(f"Error in actions for {ticker}: {e}")
-                raise
-
+        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session, ticker)
+        print(f"{ticker} OptionData complete at {datetime.now()}.")
+        return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
     except Exception as e:
-        print(f"Error occurred: {traceback.format_exc()}")
-        logger.exception(f"An error occurred while handling ticker {ticker}: {e}")
+        logger.exception(f"Error in get_options_data for {ticker}: {e}")
+        raise
+async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date):
+    try:
+        (optionchain, dailyminutes, processeddata, ticker) = tradierAPI_marketdata.perform_operations(
+            ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
+        )
+        print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+    except Exception as e:
+        logger.exception(f"Error in perform_operations for {ticker}: {e}")
+        raise
 
+    if ticker in ["SPY", "TSLA", "GOOG"]:
+        try:
+            asyncio.create_task(trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+            print(f"{ticker} Actions complete at {datetime.now()}.")
+        except Exception as e:
+            logger.exception(f"Error in actions for {ticker}: {e}")
+            raise
+# async def handle_ticker(session, ticker):
+#
+#     async with semaphore:
+#         ticker = ticker.upper()
+#         try:
+#             try:
+#                 LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
+#                 print(f"{ticker} OptionData complete at {datetime.now()}.")
+#             except Exception as e:
+#                 logger.exception(f"Error in get_options_data for {ticker}: {e}")
+#                 raise
+#
+#             try:
+#                 (optionchain, dailyminutes, processeddata, ticker) = tradierAPI_marketdata.perform_operations(
+#                     ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
+#                 )
+#                 print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+#             except Exception as e:
+#                 logger.exception(f"Error in perform_operations for {ticker}: {e}")
+#                 raise
+#
+#             if ticker in ["SPY", "TSLA", "GOOG"]:
+#                 try:
+#                     asyncio.create_task(trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+#                     print(f"{ticker} Actions complete at {datetime.now()}.")
+#                 except Exception as e:
+#                     logger.exception(f"Error in actions for {ticker}: {e}")
+#                     raise
+#
+#         except Exception as e:
+#             print(f"Error occurred: {traceback.format_exc()}")
+#             logger.exception(f"An error occurred while handling ticker {ticker}: {e}")
+
+
+# async def main():
+#     max_retries = 4
+#     retry_delay = 5  # seconds
 
 async def main():
-    max_retries = 4
-    retry_delay = 5  # seconds
-
     async with aiohttp.ClientSession() as session:
         while True:
             start_time = datetime.now()
             print(start_time)
+
             try:
-                # if check_Market_Conditions.is_market_open_now() == True or False:
                 with open("UTILITIES/tickerlist.txt", "r") as f:
                     tickerlist = [line.strip().upper() for line in f.readlines()]
 
+                # Compute the delay interval
+                delay_interval = 60.0 / len(tickerlist)
 
-                #JUST CHSANGED THIS 9.1.23
-                tasks = [asyncio.create_task(handle_ticker(session, ticker)) for ticker in tickerlist]
+                tasks = []
+                for i, ticker in enumerate(tickerlist):
+                    await asyncio.sleep(i * delay_interval)  # This will stagger the start times
+                    task = asyncio.create_task(handle_ticker_cycle(session, ticker))
+                    tasks.append(task)
+
+                # Wait for all ticker tasks (this will effectively never end unless there's an exception)
                 await asyncio.gather(*tasks)
-                # Use session in loop
-                # await asyncio.gather(*(handle_ticker(session, ticker) for ticker in tickerlist))
-            # else:
-            #     with open(log_path, "a") as f:
-            #         f.write(f"Ran at {datetime.now()}. Market was closed today.\n")
 
             except Exception as e:
                 print(f"Error occurred in aio session: {traceback.format_exc()}")
@@ -98,8 +147,8 @@ async def main():
             current_time = datetime.now()
             next_iteration_time = start_time + timedelta(seconds=60)
             _60sec_countdown = (next_iteration_time - current_time).total_seconds()
-            print(start_time, next_iteration_time, current_time,"Time Remaining in Loop: ", _60sec_countdown,"~~~~~~~~")
-            await asyncio.sleep(_60sec_countdown)  # Delay for 60 seconds before the next iteration
+            print(start_time, next_iteration_time, current_time, "Time Remaining in Loop:", _60sec_countdown,
+                  "~~~~~~~~")
 
 if __name__ == "__main__":
     try:

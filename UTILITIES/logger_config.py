@@ -17,4 +17,4 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(module)s
 logger.addHandler(file_handler)
 
 # Add a test log entry
-logger.info('This is a test log entry.')
+# logger.info('This is a test log entry.')

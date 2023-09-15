@@ -14,10 +14,10 @@ from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
 from torch.utils.data import TensorDataset, DataLoader
 
 DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
-Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
+Chosen_Predictor = [ 'LastTradeTime', 'Current Stock Price',
                     'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
                     'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-                    'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+                     'PCRv Up1', 'PCRv Up2',
                     'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
                     'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
                     'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
@@ -26,13 +26,12 @@ Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
                     'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
                     'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
                     'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
-                    'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
-                    'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-                    'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-                    'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+                    'ITM Contracts %', 'Net_IV', 'Net ITM IV',
+               'NIV 1Higher Strike', 'NIV 1Lower Strike',
+                    'NIV 2Higher Strike', 'NIV 2Lower Strike',
                     'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-                    'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
-                    'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+                    'NIV 1-2 % from mean', 'NIV 1-4 % from mean',
+                'RSI', 'AwesomeOsc',
                     'RSI14', 'RSI2', 'AwesomeOsc5_34']
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
@@ -56,7 +55,7 @@ ml_dataframe.reset_index(drop=True, inplace=True)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
-
+ml_dataframe['LastTradeTime'] =ml_dataframe['LastTradeTime']/ (60*60*24*7)
 y_change = ml_dataframe["Target_Change"].values.reshape(-1, 1)
 # for col in ml_dataframe.columns:
 #     finite_max = ml_dataframe.loc[ml_dataframe[col] != np.inf, col].max()
@@ -232,7 +231,8 @@ def train_model(hparams, X, y_change, trial=None):
                     loss = criterion(outputs, y_batch)
                     l1_reg = torch.tensor(0., requires_grad=True).to(device)
                     for param in model.parameters():
-                        l1_reg += torch.norm(param, 1)
+                        l1_reg = 0
+                        l1_reg = l1_reg + torch.norm(param, 1).item()
                     loss += l1_lambda * l1_reg
                     loss.backward()
                     optimizer.step()
@@ -411,11 +411,11 @@ def objective(trial):
 try:
 
     study = optuna.load_study(study_name='SPY_FFNNRegressionCV_R2_take2', storage='sqlite:///SPY_FFNNRegressionCV_R2_take2.db')
-    best_trial = study.best_trial
-
-    print("Study Loaded.")
-    print(f"Best trial was {best_trial.number} with value: {best_trial.value}.")
-    print(f"Best parameters were: {study.best_trial.params}")
+    # if study.best_trial :
+    #     best_trial = study.best_trial
+    # print("Study Loaded.")
+    #     print(f"Best trial was {best_trial.number} with value: {best_trial.value}.")
+    # print(f"Best parameters were: {study.best_trial.params}")
 
 except KeyError:
     study = optuna.create_study(direction="maximize", study_name='SPY_FFNNRegressionCV_R2_take2',

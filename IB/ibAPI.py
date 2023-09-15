@@ -12,6 +12,9 @@ log_dir = os.path.join(project_dir, "errorlog")  # Builds the path to the errorl
 # Create the directory if it doesn't exist
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
+logging.getLogger('ib_insync').setLevel(logging.WARNING)
+# Explicitly add the handler for ib_insync
+logging.getLogger('ib_insync').addHandler(logger.handlers[0])
 
 log_file = os.path.join(log_dir, "error_ib.log")  # Builds the path to the log file
 
@@ -107,18 +110,6 @@ def retrieveOrderIdFromFile(file_path):
                 }
     return order_ids
 
-def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef):
-    try:
-        ib.placeOptionBracketOrder(corP=CorP,
-                                   ticker=ticker,
-                                   strike=strike,
-                                   contract_current_price=contract_current_price,
-                                   quantity=quantity,
-                                   orderRef=orderRef)
-    except Exception as e:
-        logger.exception(f"An error occurred while placeoptionordersync.{ticker},: {e}")
-
-        print(f'Error occurred while placing order: {e}')
 
 def orderStatusHandler(orderStatus: OrderStatus):
     global parentOrders
@@ -126,12 +117,12 @@ def orderStatusHandler(orderStatus: OrderStatus):
     # print("printorderstatus.filled:", orderStatus.filled)
     # if orderStatus.filled == "filled":
     #     parentOrderId = orderStatus.orderStatus.parentId
-    #     childOrderId = orderStatus.orderStatus.orderId
+    #     childOrderId = orderStatus.orderSetatus.orderId
     #     if parentOrderId in parentOrders and childOrderId in parentOrders[parentOrderId]:
     #         parentOrders[parentOrderId].pop(childOrderId, None)
 
 
-def placeOptionBracketOrder(
+async def placeOptionBracketOrder(
     CorP,
     ticker,
     exp,
@@ -239,7 +230,7 @@ def placeOptionBracketOrder(
         # ib.disconnect()
 
 
-def placeBuyBracketOrder(ticker, current_price,
+async def placeBuyBracketOrder(ticker, current_price,
     quantity=1,
     orderRef=None,
     custom_takeprofit=None,

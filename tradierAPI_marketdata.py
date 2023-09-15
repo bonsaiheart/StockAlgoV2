@@ -98,6 +98,26 @@ async def get_options_data(session,ticker):
     df["RSI"] = ta.momentum.rsi(close=close, window=5, fillna=False)
     df["RSI2"] = ta.momentum.rsi(close=close, window=2, fillna=False)
     df["RSI14"] = ta.momentum.rsi(close=close, window=14, fillna=False)
+    # Calculate MACD (12, 26, 9)
+    macd_object = ta.trend.MACD(close=close, window_slow=26, window_fast=12, window_sign=9, fillna=False)
+
+    # Extract MACD values
+    macd = macd_object.macd()
+
+    # Calculate Signal Line (9-period EMA of MACD)
+    signal_line = ta.trend.ema_indicator(close=macd, window=9, fillna=False)
+
+    # Assign MACD and Signal Line values to the DataFrame
+    df["MACD"] = macd
+    df["Signal_Line"] = signal_line
+
+
+    # Calculate 50-Day EMA
+    df["EMA_50"] = ta.trend.ema_indicator(close=close, window=50, fillna=False)
+
+    # Calculate 200-Day EMA
+    df["EMA_200"] = ta.trend.ema_indicator(close=close, window=200, fillna=False)
+
     groups = df.groupby(df.index.date)
     group_dates = list(groups.groups.keys())
     lastgroup = group_dates[-1]
@@ -628,6 +648,14 @@ def perform_operations(
     df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
 
     df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
+    df["MACD"] = this_minute_ta_frame["MACD"]
+    df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
+
+    # Calculate 50-Day EMA
+    df["EMA_50"] = this_minute_ta_frame["EMA_50"]
+
+    # Calculate 200-Day EMA
+    df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
@@ -639,13 +667,25 @@ def perform_operations(
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
 
     def replace_inf(df):
-        if df.select_dtypes(include=[np.number]).isin([np.inf, -np.inf]).values.any():
-            epsilon = 1e-7  # small value
-            for col in df.select_dtypes(include=[np.number]).columns:
-                finite_max = df.loc[df[col] != np.inf, col].max() + epsilon
-                finite_min = df.loc[df[col] != -np.inf, col].min() - epsilon
-                df.loc[df[col] == np.inf, col] = finite_max
-                df.loc[df[col] == -np.inf, col] = finite_min
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+
+        if len(numeric_cols) == 0:
+            return  # No numeric columns to process
+
+        epsilon = 1e-7  # small value
+
+        for col in numeric_cols:
+            is_pos_inf = df[col] == np.inf
+            is_neg_inf = df[col] == -np.inf
+
+            if is_pos_inf.any():
+                finite_max = df.loc[~is_pos_inf, col].max() + epsilon
+                df.loc[is_pos_inf, col] = finite_max
+
+            if is_neg_inf.any():
+                finite_min = df.loc[~is_neg_inf, col].min() - epsilon
+                df.loc[is_neg_inf & (finite_min < 0), col] = finite_min * 1.5
+                df.loc[is_neg_inf & (finite_min >= 0), col] = finite_min
 
     # Use the function
     if output_file_dailyminutes.exists():

@@ -11,15 +11,16 @@ from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
 # min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
 
+def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds, modelname):
+    min_tweet_interval = datetime.timedelta(minutes=countdownseconds // 60)
+    print("~~~Attempt Sending Tweet~~~")
 
-def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds,modelname):
-    min_tweet_interval = datetime.timedelta(minutes=countdownseconds//60)
-    print("~~~Sending Tweet~~~")
-
-    directory = "UTILITIES/Send_Notifications/last_tweet_timestamps"  # Directory for storing timestamp files
-    os.makedirs(directory, exist_ok=True)  # Create the directory if it doesn't exist
-    timestamp_file_path = os.path.join(directory,f"last_tweet_timestamp_{modelname}_{ticker}.txt")  # File path inside the directory    global last_tweet_time
+    directory = "UTILITIES/Send_Notifications/last_tweet_timestamps"
+    os.makedirs(directory, exist_ok=True)
+    timestamp_file_path = os.path.join(directory, f"last_tweet_timestamp_{modelname}_{ticker}.txt")
     current_time = datetime.datetime.now()
+
+    # Setting up Twitter client
     bearer_token = PrivateData.twitter_info.bearer_token
     consumer_key = PrivateData.twitter_info.consumer_key
     consumer_secret = PrivateData.twitter_info.consumer_secret
@@ -32,6 +33,7 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
         access_token=access_token,
         access_token_secret=access_token_secret,
     )
+
     try:
         with open(timestamp_file_path, "r") as file:
             timestamp_str = file.read().strip()
@@ -41,24 +43,23 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
         last_tweet_time = None
 
     if last_tweet_time is None or (current_time - last_tweet_time) >= min_tweet_interval:
-        # Send the tweet
-
-        last_tweet_time = current_time
-        with open(timestamp_file_path, "w") as file:
-            file.write(last_tweet_time.isoformat())
+        print("~~~Sending Tweet~~~")
         try:
             response = client.create_tweet(text=message)
-
             tweet_id = response.data["id"]
-
             print("Tweet ID:", tweet_id)
-            # wait_60_minutes_and_send_tweet("test3")
 
+            # Write the last_tweet_time after the successful tweet
+            with open(timestamp_file_path, "w") as file:
+                file.write(current_time.isoformat())
+
+            # Trigger Celery task
             celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
-            print(e)
-            logger.error(f"An error occurred while tryin to tweet. {ticker}: {e}", exc_info=True)
-            print(last_tweet_time, "too close to last tweet time")
+            print(f"Error while sending tweet: {e}")
+            logger.error(f"An error occurred while trying to tweet for {ticker}: {e}", exc_info=True)
+    else:
+        print(last_tweet_time, "too close to last tweet time")
 
 
 def email_me_string(model_name, callorput, ticker):
