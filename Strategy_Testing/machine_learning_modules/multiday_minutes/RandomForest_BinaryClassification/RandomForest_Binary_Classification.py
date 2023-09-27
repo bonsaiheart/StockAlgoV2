@@ -136,7 +136,8 @@ def train_model(param_dict, X, y, final_classifier=None):
             'min_samples_split': min_samples_split,
             'min_samples_leaf': min_samples_leaf,
             'max_features': max_features,
-            'bootstrap': bootstrap
+            'bootstrap': bootstrap,
+        'class_weight': 'balanced'
         }
 
         if final_classifier is not None:
@@ -146,7 +147,7 @@ def train_model(param_dict, X, y, final_classifier=None):
             rf_classifier.fit(X_train, y_train)
 
         y_pred = rf_classifier.predict_proba(X_val)[:, 1]
-        y_pred_binary = (y_pred > 0.5).astype(int)
+        y_pred_binary = (y_pred > 0.4).astype(int)
         auc = roc_auc_score(y_val, y_pred)
         logloss = log_loss(y_val, y_pred)
 

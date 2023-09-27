@@ -43,47 +43,47 @@ def Sell_2hr_gsmmcA1(new_data_df):
         prediction_series.index, "Predictions"
     ] = prediction_series.values  # Assign predictions to corresponding rows
     return result["Predictions"]
-def Buy_4hr_nnSPYA1(new_data_df):
-    features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
-
-    model_filename = f"{base_dir}/_4hr_nnSPYA1/target_up/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    # tensorobject = tensorflow.convert_to_tensor(tempdf[features].values, dtype=tensorflow.float32)
-
-    predictions = loaded_model.predict(tempdf[features] )
-    # print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return (result["Predictions"], .6,.3)
-def Sell_4hr_nnSPYA1(new_data_df):
-    features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
-
-    model_filename = f"{base_dir}/_4hr_nnSPYA1/target_down/"
-    print(model_filename)
-    loaded_model = load_model(model_filename)
-    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
-    #TODO use tail?
-    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
-    threshold = 1e10
-    tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
-    predictions = loaded_model.predict(tempdf[features])
-    # print(predictions)
-    # Create a new Series with the predictions and align it with the original DataFrame
-    prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
-    result = new_data_df.copy()  # Create a copy of the original DataFrame
-    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
-    result.loc[  prediction_series.index, "Predictions"
-    ] = prediction_series.values  # Assign predictions to corresponding rows
-    return (result["Predictions"], .6,.3)
+# def Buy_4hr_nnSPYA1(new_data_df):
+#     features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+#
+#     model_filename = f"{base_dir}/_4hr_nnSPYA1/target_up/"
+#     print(model_filename)
+#     loaded_model = load_model(model_filename)
+#     tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+#     tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+#     threshold = 1e10
+#     tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+#     # tensorobject = tensorflow.convert_to_tensor(tempdf[features].values, dtype=tensorflow.float32)
+#
+#     predictions = loaded_model.predict(tempdf[features] )
+#     # print(predictions)
+#     # Create a new Series with the predictions and align it with the original DataFrame
+#     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
+#     result = new_data_df.copy()  # Create a copy of the original DataFrame
+#     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+#     result.loc[  prediction_series.index, "Predictions"
+#     ] = prediction_series.values  # Assign predictions to corresponding rows
+#     return (result["Predictions"], .6,.3)
+# def Sell_4hr_nnSPYA1(new_data_df):
+#     features =    ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'ITM PCR-Vol', 'PCRv Up3', 'PCRv Up2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRv Up3', 'Net_IV', 'Net ITM IV', 'ITM PCRv Down3', 'ITM PCRv Up4', 'ITM PCRv Down2', 'ITM PCRv Up2', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+#
+#     model_filename = f"{base_dir}/_4hr_nnSPYA1/target_down/"
+#     print(model_filename)
+#     loaded_model = load_model(model_filename)
+#     tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+#     #TODO use tail?
+#     tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+#     threshold = 1e10
+#     tempdf[features] = np.clip(tempdf[features], -threshold, threshold)
+#     predictions = loaded_model.predict(tempdf[features])
+#     # print(predictions)
+#     # Create a new Series with the predictions and align it with the original DataFrame
+#     prediction_series = pd.Series(predictions.flatten(), index=tempdf.index)
+#     result = new_data_df.copy()  # Create a copy of the original DataFrame
+#     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+#     result.loc[  prediction_series.index, "Predictions"
+#     ] = prediction_series.values  # Assign predictions to corresponding rows
+#     return (result["Predictions"], .6,.3)
 def Buy_2hr_RFSPYA2(new_data_df):
     features =['Bonsai Ratio', 'B1/B2', 'PCRv Down3', 'PCRv Down2', 'ITM PCRv Up3', 'ITM PCRv Down3', 'ITM PCRv Up4']
 

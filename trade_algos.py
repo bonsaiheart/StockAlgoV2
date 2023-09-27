@@ -172,7 +172,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         # trained_minute_models.Sell_2hr_RFSPYA2,
         # trained_minute_models.Buy_2hr_RFSPYA1,
         trained_minute_models.Sell_2hr_RFSPYA1,
-
+        pytorch_trained_minute_models.Buy_4hr_ffSPY230805,
         pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,

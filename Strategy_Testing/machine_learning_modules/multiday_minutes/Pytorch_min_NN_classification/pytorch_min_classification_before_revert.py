@@ -7,78 +7,55 @@ import optuna
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, TimeSeriesSplit
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
+from sklearn.utils import compute_class_weight
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
 from torch.utils.data import TensorDataset, DataLoader
 from torchmetrics import Accuracy, Precision, Recall, F1Score
 
 DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_min.csv"
-# TODO add early stop or no?
-# from tensorflow.keras.callbacks import EarlyStopping
-
-# Chosen_Predictor = [
-#     'Bonsai Ratio',
-#     'Bonsai Ratio 2',
-#     'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-#      'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
-#      'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-#      'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-#      'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
-#      'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-#      'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-#      'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-#      'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-#      'ITM PCRoi Down3', 'ITM PCRoi Down4',
-#     'Net_IV', 'Net ITM IV',
-#      'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-#      'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-#      'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-#      'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-#      'NIV 1-2 % from mean', 'NIV 1-4 % from mean',
-# 'RSI', 'AwesomeOsc',
-#      'RSI14', 'RSI2', 'AwesomeOsc5_34']
-Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
-                    'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
-                    'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-                    'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
-                    'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-                    'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-                    'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
-                    'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-                    'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-                    'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-                    'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-
-                    'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
-                    'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
-                    'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-                    'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-                    'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-                    'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-                    'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
-                    'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
-                    'RSI14', 'RSI2', 'AwesomeOsc5_34']
+# Chosen_Predictor = ['ExpDate', 'LastTradeTime', 'Current Stock Price',
+#                     'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
+#                     'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
+#                     'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+#                     'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+#                     'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
+#                     'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+#                     'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
+#                     'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
+#                     'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
+#                     'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
+#
+#                     'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
+#                     'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
+#                     'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
+#                     'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+#                     'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+#                     'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+#                     'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+#                     'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+#                     'RSI14', 'RSI2', 'AwesomeOsc5_34']
 # ##had highest corr for 3-5 hours with these:
-# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
+Chosen_Predictor = ['LastTradeTime', 'Current Stock Price', 'Current SP % Change(LAC)', 'Maximum Pain','Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('device: ', device)
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
-# ##had highest corr for 3-5 hours with these:
-# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
+
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-# TODO# do the above setiings. it was best 50 from 0-70 trials  [I 2023-08-10 08:09:18,938] Trial 72 finished with value: 0.674614429473877 and parameters: {'learning_rate': 0.0005948477674326639, 'num_epochs': 208, 'batch_size': 679, 'optimizer': 'Adam', 'dropout_rate': 0.16972190725289144, 'num_hidden_units': 749}. Best is trial 44 with value: 0.3507848083972931.
-set_best_params_manually = {'batch_size': 2454, 'dropout_rate': 0.23497234236258646, 'l1_lambda': 0.060447826084657486, 'learning_rate': 0.0002075166931095152, 'lr_scheduler': 'ReduceLROnPlateau', 'num_epochs': 300, 'num_hidden_units': 1938, 'num_layers': 5, 'optimizer': 'AdamW', 'lrpatience': 14, 'weight_decay': 0.05054688467780508}
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 
-cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
+ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+
+cells_forward_to_check = 1 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5  # how many rows must achieve target %
-percent_up = .35  # target percetage.
-anticondition_threshold_cells_up = cells_forward_to_check * .2  # was .7
-positivecase_weight = 1  #was 1.2 on 8/6
+percent_up = .25  # target percetage.
+anticondition_threshold_cells_up = cells_forward_to_check * .7  # was .7
+
+
 threshold_up = 0.5  ###At positive prediction = >X
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -101,8 +78,24 @@ X = ml_dataframe[Chosen_Predictor].copy()
 X.reset_index(drop=True, inplace=True)
 y.reset_index(drop=True, inplace=True)
 
-largenumber = 1e5
-X[Chosen_Predictor] = np.clip(X[Chosen_Predictor], -largenumber, largenumber)
+for column in X.columns:
+    # Handle positive infinite values
+    finite_max = X.loc[X[column] != np.inf, column].max()
+
+    # Multiply by 1.5, considering the sign of the finite_max
+    finite_max_adjusted = finite_max * 1.5 if finite_max > 0 else finite_max / 1.5
+
+    X.loc[X[column] == np.inf, column] = finite_max_adjusted
+
+    # Handle negative infinite values
+    finite_min = X.loc[X[column] != -np.inf, column].min()
+
+    # Multiply by 1.5, considering the sign of the finite_min
+    finite_min_adjusted = finite_min * 1.5 if finite_min < 0 else finite_min / 1.5
+
+    X.loc[X[column] == -np.inf, column] = finite_min_adjusted
+# largenumber = 1e5
+# X[Chosen_Predictor] = np.clip(X[Chosen_Predictor], -largenumber, largenumber)
 
 nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
 inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
@@ -123,7 +116,15 @@ y = y[:split_index]
 scaler_X_trainval = RobustScaler().fit(X)
 scaler_y_trainval = RobustScaler().fit(y.values.reshape(-1, 1))
 
+# Calculate class weights
+class_weights = compute_class_weight('balanced', classes=[0, 1], y=y)
 
+# Get the weight for the positive class (class 1)
+balanced_weight = class_weights[1]
+
+# Now, you can multiply this balanced weight by your desired multiplier (positivecase_weight)
+positivecase_weight = 1  # Your desired multiplier
+final_weight = balanced_weight * positivecase_weight
 
 class BinaryClassificationNNwithDropout(nn.Module):
     def __init__(self, input_dim, num_hidden_units, dropout_rate):
@@ -208,8 +209,11 @@ def custom_loss(outputs, targets, alpha=0.7):
     precision = TP / (TP + FP + epsilon)
     recall = TP / (TP + FN + epsilon)
     f1_score = 2 * (precision * recall) / (precision + recall + epsilon)
+    # print(f"Precision: {precision}, Recall: {recall}, F1 Score: {f1_score}")
+
     # Combine F1 Score and Precision with weight alpha
     loss = alpha * (1 - f1_score) + (1 - alpha) * (1 - precision)
+    # print(loss)
     return loss
 
 
@@ -231,6 +235,7 @@ def compute_metrics(outputs, labels, threshold=0.5):
 
 def train_model(hparams, X, y):
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    tscv = TimeSeriesSplit(n_splits=5)
     X_np = X.to_numpy()
     best_model_state_dict = None
 
@@ -238,7 +243,7 @@ def train_model(hparams, X, y):
     total_f1, total_precision, total_recall, total_val_loss = 0, 0, 0, 0
     num_folds = 0
     total_num_epochs = 0  # Initialize before entering the fold loop
-    for fold, (train_index, val_index) in enumerate(kf.split(X_np)):
+    for fold, (train_index, val_index) in enumerate(tscv.split(X_np)):
         X_train, X_val = X_np[train_index], X_np[val_index]
         y_train, y_val = y[train_index], y[val_index]
 
@@ -262,7 +267,7 @@ def train_model(hparams, X, y):
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
         val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
-        patience = 5  # Number of epochs with no improvement to wait before stopping
+        patience = 50  # Number of epochs with no improvement to wait before stopping
         patience_counter = 0
         num_layers = hparams["num_layers"]
         # print( hparams['dropout_rate'],num_layers)
@@ -272,10 +277,10 @@ def train_model(hparams, X, y):
         optimizer = create_optimizer(hparams["optimizer"], hparams["learning_rate"], hparams.get("momentum", 0),
                                       model.parameters(),hparams.get("weight_decay",0))
         model.train()
-        weight = torch.Tensor([positivecase_weight]).to(device)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=weight)
-        # criterion = nn.BCELoss(weight=weight)
-        # criterion = custom_loss()
+        weight = torch.Tensor([final_weight]).to(device)
+        # criterion = nn.BCEWithLogitsLoss(pos_weight=weight)
+        criterion = nn.BCELoss(weight=weight)
+        # criterion = custom_loss
         optimizer_name = hparams["optimizer"]
         num_epochs = hparams["num_epochs"]
 
@@ -303,16 +308,16 @@ def train_model(hparams, X, y):
                         nonlocal loss  # Refer to the outer scope's loss variable
                         optimizer.zero_grad()
                         outputs = model(X_batch)
-                        loss = criterion(outputs, y_batch)
-
-                        l1_reg = torch.tensor(0., requires_grad=True).to(device)
-                        for param in model.parameters():
-                            l1_reg += torch.norm(param, 1)
-                        loss += l1_lambda * l1_reg
-                        loss.backward()
-                        return loss
-
-                    optimizer.step(closure)
+                    #     loss = criterion(outputs, y_batch)
+                    #
+                    #     l1_reg = torch.tensor(0., requires_grad=True).to(device)
+                    #     for param in model.parameters():
+                    #         l1_reg += torch.norm(param, 1)
+                    #     loss += l1_lambda * l1_reg
+                    #     loss.backward()
+                    #     return loss
+                    #
+                    # optimizer.step(closure)
                 else:
                     optimizer.zero_grad()
                     outputs = model(X_batch)
@@ -325,9 +330,9 @@ def train_model(hparams, X, y):
                     loss += l1_lambda * l1_reg
                     loss.backward()
                     optimizer.step()
-            if lr_scheduler is not None:
-                if isinstance(lr_scheduler, StepLR) or isinstance(lr_scheduler, ExponentialLR):
-                    lr_scheduler.step()
+                    if lr_scheduler is not None:
+                        if isinstance(lr_scheduler, StepLR) or isinstance(lr_scheduler, ExponentialLR):
+                            lr_scheduler.step()
             model.eval()
             # Validation step
 
@@ -413,21 +418,19 @@ def train_model(hparams, X, y):
 def objective(trial):
     print(datetime.now())
 
-    # print(len(X_val_tensor))
     learning_rate = trial.suggest_float("learning_rate", .00001, 0.01, log=True)  # 0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 5, 3800) #230  291  400-700
-    # batch_size = trial.suggest_int("batch_size", 20, 3000)  # 10240  3437
+    num_epochs = trial.suggest_int("num_epochs", 5, 500) #230  291  400-700
     batch_size = trial.suggest_int('batch_size', 20, 2500)  # 2000
     num_hidden_units = trial.suggest_int("num_hidden_units", 800,4000)  # 2560 #83 125 63  #7000
-    # weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1,log=True)  # Adding L2 regularization parameter
-    l1_lambda = trial.suggest_float("l1_lambda", 1e-5, 1e-1,log=True)  # l1 regssss
+    weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1,log=True)  # Adding L2 regularization parameter
+    l1_lambda = trial.suggest_float("l1_lambda", 1e-2, 1e-1,log=True)  # l1 regssss
 
-    optimizer_name = trial.suggest_categorical("optimizer", ["Adam", "AdamW", "RMSprop","SGD"])  #
+    optimizer_name = trial.suggest_categorical("optimizer", ["Adam", ])  #"AdamW", "RMSprop","SGD"
     num_layers = trial.suggest_int("num_layers", 1, 5)  # example
     if num_layers == 1:
         dropout_rate = 0
     else:
-        dropout_rate = trial.suggest_float("dropout_rate", 0, 0.5)
+        dropout_rate = trial.suggest_float("dropout_rate", 0.4, 0.8)
 
     if optimizer_name == "SGD":
         momentum = trial.suggest_float('momentum', 0, 0.9)  # Only applicable if using SGD with momentum
@@ -464,7 +467,7 @@ def objective(trial):
             "dropout_rate": dropout_rate,
 
             "num_hidden_units": num_hidden_units,
-            # "weight_decay": weight_decay,
+            "weight_decay": weight_decay,
             "lr_scheduler": lr_scheduler_name,  # Pass the scheduler instance here
             "lrpatience": lrpatience,  # Pass the value directly
             "gamma": gamma,  # Pass the value directly
@@ -474,6 +477,7 @@ def objective(trial):
         X, y
     )
     best_f1 = result['best_f1']
+
     best_precision = result['best_precision']
     best_recall = result['best_recall']
     best_val_loss = result['best_val_loss']
@@ -482,7 +486,12 @@ def objective(trial):
     avg_recall = result['avg_recall']
     avg_val_loss = result['avg_val_loss']
     avg_val_loss_per_epoch_across_folds = result['avg_val_loss_per_epoch_across_folds']
-    best_model_state_dict = result['best_model_state_dict']
+    best_model_state_dict = result[('best_model_state_dict'
+                                    ''
+                                    ''
+                                    ''
+                                    ''
+                                    '')]
 
     print("best f1 score: ", best_f1, "best precision score: ", best_precision,
           "best val loss: ",
@@ -490,14 +499,16 @@ def objective(trial):
           best_val_loss)
     alpha = .3
     combined_metric = (alpha * (1 - best_f1)) + ((1 - alpha) * (1 - best_precision))
-    return best_val_loss  # Note this is actually criterion, which is currently mae.
+    return avg_val_loss  # Note this is actually criterion, which is currently mae.
     #    # return prec_score  # Optuna will try to maximize this value
 
 
 ##TODO Comment out to skip the hyperparameter selection.  Swap "best_params".
 try:
-    study = optuna.load_study(study_name='SPY_best_val_loss_allfeatures_l1ONLY_3hr35percent',
-                              storage='sqlite:///SPY_best_val_loss_allfeatures_l1ONLY_3hr35percent.db')
+
+
+    study = optuna.load_study(study_name='study1',
+                              storage='sqlite:///study1.db')
     print("Study Loaded.")
     try:
         best_params = study.best_params
@@ -511,13 +522,13 @@ try:
     except Exception as e:
         print(e)
 except KeyError:
-    study = optuna.create_study(direction="minimize", study_name='SPY_best_val_loss_allfeatures_l1ONLY_3hr35percent',
-                                storage='sqlite:///SPY_best_val_loss_allfeatures_l1ONLY_3hr35percent.db')
+    study = optuna.create_study(direction="minimize", study_name='study1',
+                                storage='sqlite:///study1.db')
 "Keyerror, new optuna study created."  #
 
 study.optimize(objective, n_trials=5000)
-best_params = study.best_params
-#
+# best_params = study.best_params_
+# best_params = {'batch_size': 2093, 'dropout_rate': 0.4, 'l1_lambda': 1.1395653305395154e-03, 'learning_rate': 4.2082589151726815e-03, 'lr_scheduler': 'ReduceLROnPlateau', 'lrpatience': 16, 'num_epochs': 375, 'num_hidden_units': 2714, 'num_layers': 2, 'optimizer': 'Adam', 'weight_decay': 0.03191238534096084}
 # best_params ={'batch_size': 1197, 'dropout_rate': 0.4608394623321738, 'l1_lambda': 0.01320220981011121, 'learning_rate': 1.1625919878731402e-05, 'lr_scheduler': 'ReduceLROnPlateau', 'lrpatience': 10, 'num_epochs': 211, 'num_hidden_units': 114, 'num_layers': 5, 'optimizer': 'RMSprop', 'weight_decay': 0.00013649093677743602}
 # best_params = {'batch_size': 972, 'dropout_rate': 0.23030333490770447, 'gamma': 0.3089135336987861, 'l1_lambda': 0.0950910207258489, 'learning_rate': 1.5716591458439578e-05, 'lr_scheduler': 'StepLR', 'num_epochs': 153, 'num_hidden_units': 2520, 'num_layers': 5, 'optimizer': 'Adam', 'step_size': 45, 'weight_decay': 0.09863209738072187}
 #####################################################################################################
@@ -544,7 +555,7 @@ best_model_state_dict = test_result['best_model_state_dict']
 model_up_nn.load_state_dict(best_model_state_dict)
 model_up_nn.eval()
 X_test_scaled = scaler_X_trainval.transform(X_test)
-
+print(test_best_f1,test_best_precision,test_avg_f1,test_avg_precision)
 y_test_scaled = scaler_y_trainval.transform(y_test.values.reshape(-1, 1))
 # TODO scaled or unscaled y?
 X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
@@ -556,8 +567,7 @@ predicted_up_tensor = torch.tensor(predicted_probabilities, dtype=torch.float32)
 num_positives_up = np.sum(predicted_probabilities)
 
 task = "binary"
-precision_up = Precision(num_classes=2, average='weighted', task='binary').to(device)(predicted_up_tensor,
-                                                                                      y_test_tensor)  # move metric to same device as tensors
+precision_up = prec(predicted_up_tensor,  y_test_tensor)  # move metric to same device as tensors
 accuracy_up = Accuracy(num_classes=2, average='weighted', task=task).to(device)(predicted_up_tensor, y_test_tensor)
 recall_up = Recall(num_classes=2, average='weighted', task=task).to(device)(predicted_up_tensor, y_test_tensor)
 f1_up = F1Score(num_classes=2, average='weighted', task=task).to(device)(predicted_up_tensor, y_test_tensor)
@@ -572,6 +582,7 @@ print("Test Recall:", recall_up)
 print("Test F1-Score:", f1_up, "\n")
 print("Best Hyperparameters:", best_params)
 print(f"Test Number of positive predictions: {num_positives_up}")
+print('lenthg of y', len(y_test))
 print("Number of Positive Samples(Target):", num_positive_samples)
 # print("Number of Total Samples(Target_Up):", num_positive_samples_up + num_negative_samples_up)
 # print('selected features: ',selected_features)

@@ -17,39 +17,6 @@ from sklearn.preprocessing import RobustScaler
 # Filter out specific warning messages
 warnings.filterwarnings("ignore", category=Warning)
 warnings.filterwarnings("ignore", category=Warning, message="No further splits with positive gain, best gain: -inf")
-OPTUNA_EARLY_STOPING = 10
-
-class EarlyStoppingExceeded(optuna.exceptions.OptunaError):
-    early_stop = OPTUNA_EARLY_STOPING
-    early_stop_count = 0
-    best_score = None
-
-def early_stopping_opt(study, trial):
-    # Determine if the study is maximizing or minimizing
-    is_maximize = study.direction == optuna.study.StudyDirection.MAXIMIZE
-
-    # Initialize best_score if it's None
-    if EarlyStoppingExceeded.best_score is None:
-        EarlyStoppingExceeded.best_score = study.best_value
-
-    # Check if the new value is better than the best score
-    if (is_maximize and study.best_value > EarlyStoppingExceeded.best_score) or \
-       (not is_maximize and study.best_value < EarlyStoppingExceeded.best_score):
-        EarlyStoppingExceeded.best_score = study.best_value
-        EarlyStoppingExceeded.early_stop_count = 0
-    else:
-        if EarlyStoppingExceeded.early_stop_count > EarlyStoppingExceeded.early_stop:
-            EarlyStoppingExceeded.early_stop_count = 0
-            EarlyStoppingExceeded.best_score = None
-            raise EarlyStoppingExceeded()
-        else:
-            EarlyStoppingExceeded.early_stop_count += 1
-
-    print(f'EarlyStop counter: {EarlyStoppingExceeded.early_stop_count}, Best score: {study.best_value} and {EarlyStoppingExceeded.best_score}')
-    return
-# This modification checks the study's direction and adjusts the comparison logic accordingly. If the study is maximizing, it checks if the new value is greater than the best score. If the study is minimizing, it checks if the new value is less than the best score.
-
-
 
 
 
@@ -80,44 +47,45 @@ selected_features = np.where(lasso.coef_ != 0)[0]
 # Train Random Forest on selected features
 rf = RandomForestClassifier()
 rf.fit(X[:, selected_features], y)'''
-# Chosen_Predictor = [
-#     'Bonsai Ratio',
-#     'Bonsai Ratio 2',
-#     'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-#      'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
-#      'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-#      'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-#      'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
-#      'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-#      'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-#      'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-#      'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-#      'ITM PCRoi Down3', 'ITM PCRoi Down4',
-#     'Net_IV', 'Net ITM IV',
-#      'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-#      'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-#      'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-#      'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-#      'NIV 1-2 % from mean', 'NIV 1-4 % from mean',
-# 'RSI', 'AwesomeOsc',
-#      'RSI14', 'RSI2', 'AwesomeOsc5_34']
-#
+Chosen_Predictor = [
+    'LastTradeTime', 'Current Stock Price',
+       'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',]
+       # 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
+       # 'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+       # 'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
+       # 'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
+       # 'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+       # 'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
+       # 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
+       # 'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
+       # 'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
+       # 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
+       # 'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
+       # 'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
+       # 'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
+       # 'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
+       # 'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
+       # 'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
+       # 'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+       # 'RSI14', 'RSI2', 'AwesomeOsc5_34']
+
 
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # ##had highest corr for 3-5 hours with these:
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
+# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 
 cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5  # how many rows must achieve target %
 percent_up = .35  # target percetage.
-anticondition_threshold_cells_up = cells_forward_to_check * .2  # was .7
+anticondition_threshold_cells_up = cells_forward_to_check * .5 # was .7
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 ml_dataframe["Target"] = 0
@@ -139,9 +107,22 @@ X = ml_dataframe[Chosen_Predictor].copy()
 X.reset_index(drop=True, inplace=True)
 y.reset_index(drop=True, inplace=True)
 
-largenumber = 1e5
-X[Chosen_Predictor] = np.clip(X[Chosen_Predictor], -largenumber, largenumber)
+for column in X.columns:
+    # Handle positive infinite values
+    finite_max = X.loc[X[column] != np.inf, column].max()
 
+    # Multiply by 1.5, considering the sign of the finite_max
+    finite_max_adjusted = finite_max * 1.5 if finite_max > 0 else finite_max / 1.5
+
+    X.loc[X[column] == np.inf, column] = finite_max_adjusted
+
+    # Handle negative infinite values
+    finite_min = X.loc[X[column] != -np.inf, column].min()
+
+    # Multiply by 1.5, considering the sign of the finite_min
+    finite_min_adjusted = finite_min * 1.5 if finite_min < 0 else finite_min / 1.5
+
+    X.loc[X[column] == -np.inf, column] = finite_min_adjusted
 nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
 inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
 neginf_indices = np.argwhere(np.isneginf(X.to_numpy()))  # Convert DataFrame to NumPy array
@@ -163,30 +144,41 @@ scaler_X_trainval = RobustScaler().fit(X)
 scaler_y_trainval = RobustScaler().fit(y.values.reshape(-1, 1))
 
 '''Metrics & Model Selection: You're storing the best model based on the F1 score. This is okay if F1 is the most important metric for your problem. If not, you might want to adjust this logic. Also, you could consider saving the models from all the folds and using a voting mechanism for predictions if you want to leverage the power of ensemble predictions'''
+def lgb_precision_score(y_hat, data):
+    y_true = data.get_label()
+    y_hat = np.round(y_hat)  # Convert probabilities to binary predictions
+    return 'precision', precision_score(y_true, y_hat), True
 
 
+def combined_precision_f1_score(y_hat, data):
+    y_true = data.get_label()
+    y_hat_binary = np.round(y_hat)  # Convert probabilities to binary predictions
+
+    precision_val = precision_score(y_true, y_hat_binary, zero_division=0
+)
+    f1_val = f1_score(y_true, y_hat_binary)
+
+    # Define weights
+    precision_weight = 0.8  # Assign higher weight to precision
+    f1_weight = 0.2  # Assign lower weight to F1
+
+    combined_score = (precision_weight * precision_val) + (f1_weight * f1_val)
+
+    return 'combined_score', combined_score, True
+
+
+def lgb_f1_score(y_hat, data):
+    y_true = data.get_label()
+    y_hat = np.round(y_hat)  # Convert probabilities to binary predictions
+    return 'f1', f1_score(y_true, y_hat), True
 def train_model(param_dict, X, y, final_classifier=None):
-    # Extract hyperparameters from param_dict
-    num_leaves = param_dict['num_leaves']
-    max_depth = param_dict['max_depth']
-    learning_rate = param_dict['learning_rate']
-    n_estimators = param_dict['n_estimators']
-    min_child_samples = param_dict['min_child_samples']
-    min_child_weight = param_dict['min_child_weight']
-    colsample_bytree = param_dict['colsample_bytree']
-    reg_alpha = param_dict['reg_alpha']
-    reg_lambda = param_dict['reg_lambda']
-    max_bin = param_dict['max_bin']
-    feature_fraction = param_dict['feature_fraction']
-    path_smooth = param_dict['path_smooth']
-    scale_pos_weight = param_dict['scale_pos_weight']
-    boosting_type = param_dict['boosting_type']
-    data_sample_strategy = param_dict['data_sample_strategy'],
-    extra_trees = param_dict['extra_trees'],
+
     # if param_dict['boosting_type'] != 'goss':
     #     # If boosting type is 'goss', remove bagging-related parameters
-    #     bagging_fraction = param_dict['bagging_fraction']
-    #     bagging_freq = param_dict['bagging_freq']
+
+
+
+    n_estimators = param_dict['n_estimators']
 
     device = "gpu"  # Use GPU
     best_model = None
@@ -196,7 +188,7 @@ def train_model(param_dict, X, y, final_classifier=None):
     auc_scores = []  # To store AUC scores for each fold
     log_loss_scores = []  # To store log loss scores for each fold
 
-    best_f1, best_precision, best_recall,best_accuracy,best_auc = 0, 0, 0, 0,0
+    best_avg_f1, best_avg_precision, best_avg_recall,best_avg_accuracy,best_avg_auc = 0, 0, 0, 0,0
     total_f1, total_precision, total_recall = 0, 0, 0
     num_folds = 0
     total_accuracy = 0
@@ -214,28 +206,9 @@ def train_model(param_dict, X, y, final_classifier=None):
         train_data = lgb.Dataset(X_train, label=y_train)
         valid_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
 
+        lgb_params = param_dict
 
-        lgb_params = {
-            'path_smooth': path_smooth,
-            'data_sample_strategy': data_sample_strategy,
-            'extra_trees': extra_trees,
-            'n_estimators': n_estimators,
-            # 'colsample_bytree': colsample_bytree,
-
-            'verbose': -1,  # Set verbose to -1 to suppress most LightGBM output
-            'num_leaves': num_leaves,
-            'max_depth': max_depth,
-            'learning_rate': learning_rate,
-            'min_child_samples': min_child_samples,
-            'min_child_weight': min_child_weight,
-            'reg_alpha': reg_alpha,
-            'reg_lambda': reg_lambda,
-            'max_bin': max_bin,
-            'feature_fraction': feature_fraction,
-            'scale_pos_weight': scale_pos_weight,
-            'boosting_type': boosting_type,
-            'device': device
-        }
+###THIS outputs somethign much better?
 
 
 
@@ -247,22 +220,27 @@ def train_model(param_dict, X, y, final_classifier=None):
 
                 params=lgb_params,
                 train_set=train_data,
-                num_boost_round=n_estimators,
                 valid_sets=[valid_data],
+                # feval=lgb_f1_score,  # Add this line
+                # feval=combined_precision_f1_score
             )
 
         # Predict on validation data
         y_pred = lgb_classifier.predict(X_val, num_iteration=lgb_classifier.best_iteration)
-        # print(y_pred[0],y_pred[10]
-        # y_pred[20],y_pred[-1])
-
+        # print(y_pred[0],y_pred[10],
+        # y_pred[20],y_pred[30], y_pred[40],
+        #       y_pred[50])
+        # print(y_val.iloc[0], y_val.iloc[10],
+        #       y_val.iloc[20],y_val.iloc[30], y_val.iloc[40],
+        #       y_val.iloc[50])
         # Convert predictions to binary values (0 or 1)
         y_pred_binary = (y_pred > 0.5).astype(int)
         auc = roc_auc_score(y_val, y_pred)
         logloss = log_loss(y_val, y_pred)
         # Compute metrics
         f1 = f1_score(y_val, y_pred_binary)
-        precision = precision_score(y_val, y_pred_binary)
+        precision = precision_score(y_val, y_pred_binary, zero_division=0
+)
         recall = recall_score(y_val, y_pred_binary)
         accuracy = accuracy_score(y_val, y_pred_binary)
 
@@ -270,7 +248,7 @@ def train_model(param_dict, X, y, final_classifier=None):
 
         log_loss_scores.append(logloss)
         # Update best scores
-
+        print('F1',f1, 'precision: ',precision)
         total_f1 += f1
         total_accuracy += accuracy_score(y_val, y_pred_binary)
 
@@ -283,24 +261,24 @@ def train_model(param_dict, X, y, final_classifier=None):
     avg_precision = total_precision / num_folds
     avg_recall = total_recall / num_folds
     avg_auc = sum(auc_scores) / num_folds
-    if avg_f1 >best_f1:
+    if avg_f1 >best_avg_f1:
         print("best model assigned")
-        best_f1 = avg_f1
-        best_precision = avg_precision
-        best_recall = avg_recall
-        best_accuracy = avg_accuracy
+        best_avg_f1 = avg_f1
+        best_avg_precision = avg_precision
+        best_avg_recall = avg_recall
+        best_avg_accuracy = avg_accuracy
         best_model = lgb_classifier
-    print(lgb_classifier.best_iteration)
+    # print(lgb_classifier.best_iteration)
     if lgb_classifier.best_iteration:
         print(f"Early stopping triggered after {lgb_classifier.best_iteration} rounds!")
 
-    print(f'avg_accuracy: {best_accuracy},avg_f1: {best_f1}, avg_precision: {best_precision}, avg_recall: {best_recall},avg_auc: {avg_auc},  avg_logloss: {avg_logloss} ')
+    print(f'avg_accuracy: {best_avg_accuracy},avg_f1: {best_avg_f1}, avg_precision: {best_avg_precision}, avg_recall: {best_avg_recall},avg_auc: {avg_auc},  avg_logloss: {avg_logloss} ')
     return {
-    'avg_accuracy': best_accuracy,  # Add avg_accuracy to your return dictionary
+    'avg_accuracy': best_avg_accuracy,  # Add avg_accuracy to your return dictionary
 
-        'avg_f1': best_f1,
-        'avg_precision': best_precision,
-        'avg_recall': best_recall,
+        'avg_f1': best_avg_f1,
+        'avg_precision': best_avg_precision,
+        'avg_recall': best_avg_recall,
         'avg_auc': avg_auc,
         'avg_logloss':avg_logloss,
         'best_model': best_model
@@ -309,37 +287,63 @@ def train_model(param_dict, X, y, final_classifier=None):
 # Define Optuna Objective
 def objective(trial):
     print(datetime.now())
+    num_positive_samples = y.sum()
+    num_total_samples = len(y)
+    num_negative_samples= num_total_samples - num_positive_samples
+    scale_pos_weight_upper_bound= num_negative_samples / num_positive_samples
+    # print(scale_pos_weight_upper_bound,"scale pos")
     try:
+        #Gave decent results right away
+        # params = {
+#           'num_leaves': 175,
+#           'feature_fraction': 0.5,
+#           'bagging_freq': 50,
+#           'bagging_fraction': 0.75,
+#           'min_data_in_leaf': 40,
+#           'objective': 'binary',
+#           'max_bin': 255,
+#           'max_depth': -1,
+#           'learning_rate': 0.02,
+#           'scale_pos_weight': 25,
+#           "boosting_type": "gbdt",
+#           "bagging_seed": 11,
+#           "metric": 'auc',
+#           "verbosity": -1,
+#           'random_state': 47
+# }
+        param_dict = {
+            'device':'GPU',
+            # 'early_stopping_rounds': 500,
+            'verbose': -1,
+            'num_leaves': trial.suggest_int("num_leaves", 100, 2550),
+                        'feature_fraction': trial.suggest_float("feature_fraction", 0.4, .8),
+            'bagging_fraction': trial.suggest_float("bagging_fraction", 0.3, .9),
+            'bagging_freq': trial.suggest_int("bagging_freq", 0, 100),
+            'min_data_in_leaf': trial.suggest_int('min_data_in_leaf', 10, 50),  # You can adjust the range as needed.
+            'max_bin': trial.suggest_int("max_bin", 127, 255),
 
-        num_leaves = trial.suggest_int("num_leaves", 25, 128)
-        max_depth = trial.suggest_int("max_depth", 5, 20)  # -1 means no limit
-        learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-1, log=True)
-        n_estimators = trial.suggest_int("n_estimators", 100, 2000)
-        min_child_samples = trial.suggest_int("min_child_samples", 5, 100)
-        min_child_weight = trial.suggest_float("min_child_weight", 1e-5, 1e-1, log=True)
-        # subsample = trial.suggest_float("subsample", 0.5, 1.0)
-        colsample_bytree = trial.suggest_float("colsample_bytree", 0.5, 1.0)
-        reg_alpha = trial.suggest_float("reg_alpha", 1e-5, 10.0, log=True)
-        reg_lambda = trial.suggest_float("reg_lambda", 1e-5, 10.0, log=True)
-        max_bin = trial.suggest_int("max_bin", 2, 128)
+            'max_depth': trial.suggest_int("max_depth", 5, 4000),  # -1 means no limit
+            'learning_rate': trial.suggest_float("learning_rate", 1e-3, 1e-1, log=True),
+             # 'scale_pos_weight': trial.suggest_float("scale_pos_weight", scale_pos_weight_upper_bound,
+             #                                        scale_pos_weight_upper_bound * 15),
+            'scale_pos_weight': trial.suggest_float("scale_pos_weight",15,100),
+             #    'class_weight':'balanced',
+            'boosting_type': trial.suggest_categorical("boosting_type", ["gbdt"]),
+            'bagging_seed': trial.suggest_int('bagging_seed', 0, 100),  # You can adjust the range as needed.
+            'objective': 'binary',
+            # "metric": 'auc',
+'n_estimators': trial.suggest_int("n_estimators", 20, 2000),
+            # 'min_child_samples': trial.suggest_int("min_child_samples", 5, 100),
+            # 'min_child_weight': trial.suggest_float("min_child_weight", 1e-5, 1e-1, log=True),
+            # 'subsample': trial.suggest_float("subsample", 0.5, 1.0),
+            # 'colsample_bytree': trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            # dsds'reg_alpha': trial.suggest_float("reg_alpha", 1e-5, 10.0, log=True),
+            # sdsd'reg_lambda': trial.suggest_float("reg_lambda", 1e-5, 10.0, log=True),
+            #   dsds                 'extra_trees': trial.suggest_categorical("extra_trees", [True, False]),
+            # 'path_smooth': trial.suggest_float("path_smooth", 1e-5, 10.0, log=True),
+            # 'data_sample_strategy': trial.suggest_categorical("data_sample_strategy", ["goss"]),
+        }
 
-        feature_fraction = trial.suggest_float("feature_fraction", 0.5, 1.0)
-        # bagging_fraction = trial.suggest_float("bagging_fraction", 0.5, 1.0)
-        # bagging_freq = trial.suggest_int("bagging_freq", 0, 10)
-        num_positive_samples = y.sum()
-        num_total_samples = len(y)
-        num_negative_samples = num_total_samples - num_positive_samples
-        print(type(num_positive_samples),type(num_negative_samples))
-
-        scale_pos_weight_upper_bound = num_negative_samples / num_positive_samples
-        scale_pos_weight = trial.suggest_float("scale_pos_weight", scale_pos_weight_upper_bound*.5, scale_pos_weight_upper_bound*2)
-        extra_trees = trial.suggest_categorical("extra_trees", [True, False])
-        path_smooth = trial.suggest_float("path_smooth", 1e-5, 10.0, log=True)
-
-        # scale_pos_weight = trial.suggest_float("scale_pos_weight", 0.1, 20.0)
-        # boosting_type = "gbdt"
-        boosting_type = trial.suggest_categorical("boosting_type", ["gbdt"])# "gbdt", "dart",
-        data_sample_strategy = trial.suggest_categorical("data_sample_strategy", ["goss"])# "gbdt", "dart",
         # if boosting_type == "dart":
         #     drop_rate = trial.suggest_float("drop_rate", 0.1, 0.5)
         #     param_dict = {
@@ -355,31 +359,13 @@ def objective(trial):
         #         'reg_lambda': reg_lambda,
         #         'max_bin': max_bin,
         #         'feature_fraction': feature_fraction,
-        #         'bagging_fraction': bagging_fraction,
-        #         'bagging_freq': bagging_freq,
+
         #         'scale_pos_weight': scale_pos_weight,
         #         'boosting_type': boosting_type,
         #         'drop_rate': drop_rate
         #
         #     }
 
-        param_dict = {
-            'path_smooth': path_smooth,
-            'data_sample_strategy': data_sample_strategy,
-            'extra_trees':extra_trees,
-            'num_leaves': num_leaves,
-            'max_depth': max_depth,
-            'learning_rate': learning_rate,
-            'n_estimators': n_estimators,
-            'min_child_samples': min_child_samples,
-            'min_child_weight': min_child_weight,
-            'colsample_bytree': colsample_bytree,
-            'reg_alpha': reg_alpha,
-            'reg_lambda': reg_lambda,
-            'max_bin': max_bin,
-            'feature_fraction': feature_fraction,
-            'scale_pos_weight': scale_pos_weight,
-            'boosting_type': boosting_type, }
         results = train_model(param_dict, X, y)
         avg_f1 = results['avg_f1']
         avg_precision = results['avg_precision']
@@ -387,9 +373,9 @@ def objective(trial):
         avg_auc = results['avg_auc']
 
 
-        alpha = .3
+        alpha = .2
         combined_metric = (alpha * (1 - avg_f1)) + ((1 - alpha) * (1 - avg_precision))
-        return avg_f1
+        return avg_precision
     except Exception as e:
         # Handle the exception (e.g., print an error message)
         print(f"Trial failed with exception: {str(e)}")
@@ -400,8 +386,8 @@ def objective(trial):
 ##TODO Comment out to skip the hyperparameter selection.  Swap "best_params".
 while True:
     try:
-        study = optuna.load_study(study_name='GOSS_f1_3hr35percentSPY',
-                                  storage='sqlite:///GOSS_f1_3hr35percentSPY.db')
+        study = optuna.load_study(study_name='prec_binarylogloss_3hr35percentSPY',
+                                  storage='sqlite:///prec_binarylogloss_3hr35percentSPY.db')
         print("Study Loaded.")
         try:
             best_params = study.best_params
@@ -415,8 +401,8 @@ while True:
         except Exception as e:
             print(e)
     except KeyError:
-        study = optuna.create_study(direction="maximize", study_name='GOSS_f1_3hr35percentSPY',
-                                    storage='sqlite:///GOSS_f1_3hr35percentSPY'
+        study = optuna.create_study(direction="maximize", study_name='prec_binarylogloss_3hr35percentSPY',
+                                    storage='sqlite:///prec_binarylogloss_3hr35percentSPY'
                                             '.db')
     "Keyerror, new optuna study created."  #
     #TODO add a second loop of test, wehre if it doesnt achieve x score, the trial fails.)
@@ -446,10 +432,16 @@ while True:
 
     final_lgb_classifier = lgb.train(
         params=best_params,  # These should be the best parameters you found
-        train_set=full_data,
-        num_boost_round=best_params['n_estimators'] # Or however many you deem fit
-    )
+        train_set=train_data,
+        num_boost_round=best_params['n_estimators'], # Or however many you deem fit
+        valid_sets = [valid_data],
+        feval=lgb_f1_score  # Add this line
 
+    )
+    params = lgb_params,
+    train_set = train_data,
+    num_boost_round = n_estimators,
+    valid_sets = [valid_data],
     print("~~~~training model using best params.~~~~")
     # best_params["boosting_type"] = "gbdt"#TODO remove this
 
@@ -481,7 +473,8 @@ while True:
 
         # Compute metrics
         f1 = f1_score(y_test, binary_predictions)
-        precision = precision_score(y_test, binary_predictions)
+        precision = precision_score(y_test, binary_predictions, zero_division=0
+)
         recall = recall_score(y_test, binary_predictions)
         accuracy = accuracy_score(y_test, binary_predictions)
         if f1 < 0.75 and precision < .75:

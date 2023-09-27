@@ -141,9 +141,40 @@ def daily_series_prep_for_backtest(ticker,df):
     # #combine bonsai # and itmpcrv,  then bonsai and niv?  hwat else
 # df = pd.read_csv(r"C:\Users\natha\PycharmProjects\StockAlgoV2\Historical_Data_Scraper\data\Historical_Processed_ChainData\SPY.csv")
 # daily_series_prep_for_backtest("SPY",df)
-tickers=['spy']
-for x in tickers:
-    print(x)
-    df=get_dailyminutes_make_single_multiday_df(x)
-    print("corr")
-    multiday_minutes_corr(x,df)
+
+
+# tickers=['spy']
+# for x in tickers:
+#     print(x)
+#     df=get_dailyminutes_make_single_multiday_df(x)
+#     print("corr")
+#     multiday_minutes_corr(x,df)
+def corr_a_df(df):
+
+    df["B1% Change"] = ((df["Bonsai Ratio"] - df["Bonsai Ratio"].shift(1)) / df["Bonsai Ratio"].shift(1)) * 100
+    df["B2% Change"] = (
+        (df["Bonsai Ratio 2"] - df["Bonsai Ratio 2"].shift(1)) / df["Bonsai Ratio 2"].shift(1)
+    ) * 100
+    # ###     # add later price data to check for corr.
+    df["6 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-360)
+    df["5 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-300)
+    df["4 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-240)
+    df["3 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-180)
+    df["2 hour later change %"] = df["Current SP % Change" "(LAC)"] - df["Current SP % Change(LAC)"].shift(-120)
+    df["1 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-60)
+    df["45 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-45)
+    df["30 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-30)
+    df["20 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-20)
+    df["15 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-15)
+    df["10 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-10)
+    df["5 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-5)
+
+    output_dir = Path("../data/historical_multiday_minute_corr/")
+    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    df.corr().to_csv(f"newcorr_checkitsista2.csv")
+
+
+
+df = pd.read_csv(
+    r'C:\Users\del_p\PycharmProjects\StockAlgoV2\Strategy_Testing\algooutput_NEW ALL COLUMNS2_SPY_historical_multiday_min.csv')
+corr_a_df(df)

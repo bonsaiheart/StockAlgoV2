@@ -1,4 +1,4 @@
-d
+
 import os
 import pandas as pd
 from Strategy_Testing.Trained_Models import trained_daily_models
@@ -27,10 +27,13 @@ for subdir in os.listdir(directory):
 
 # Concatenate all the DataFrames in the list
 result_df = pd.concat(df_list)
+SellHistA1 = trained_daily_models.A1_Sell_historical_prediction(result_df)
+result_df["SellHistA1"] = SellHistA1
 BuyHistA1 = trained_daily_models.A1_Buy_historical_prediction(result_df)
 result_df["BuyHistA1"] = BuyHistA1
 SellHistA1 = trained_daily_models.A1_Sell_historical_prediction(result_df)
 result_df["SellHistA1"] = SellHistA1
+
 
 # Save the concatenated DataFrame to a CSV file
 result_df.to_csv("overnight_Prediction.csv", index=False)
