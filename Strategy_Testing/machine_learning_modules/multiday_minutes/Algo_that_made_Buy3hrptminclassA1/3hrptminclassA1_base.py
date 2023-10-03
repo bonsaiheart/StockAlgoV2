@@ -24,7 +24,7 @@ ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCRv','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV']
-set_best_params_manually={'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
+# set_best_params_manually={'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2' ]
 # set_best_params_manually={'learning_rate': 1.4273231212290852e-04, 'num_epochs': 339, 'batch_size': 3000, 'optimizer': 'SGD', 'dropout_rate': 0.2, 'num_hidden_units': 2000}
 # set_best_params_manually={'learning_rate': 0.00007, 'num_epochs':400, 'batch_size': 2500, 'optimizer': 'SGD', 'dropout_rate': 0., 'num_hidden_units': 2000}
@@ -58,41 +58,68 @@ ml_dataframe["Target_Up"] = (
     )   .astype(int)
 ml_dataframe.dropna(subset=["Target_Up"], inplace=True)
 y_up = ml_dataframe["Target_Up"]
-X = ml_dataframe[Chosen_Predictor]
+X = ml_dataframe[Chosen_Predictor].copy()
 
 # Reset index
 X.reset_index(drop=True, inplace=True)
+# Split the data into training, validation, and test sets first
+trainsizepercent = .7
+valsizepercent = .15
+train_size = int(len(X) * trainsizepercent)
+val_size = train_size + int(len(X) * valsizepercent)
 
-# Convert to torch tensors
-X_tensor = torch.tensor(X.values, dtype=torch.float32).to(device)
-y_up_tensor = torch.tensor(y_up.values, dtype=torch.float32).to(device)
+X_train = X.iloc[:train_size].copy()
+X_val = X.iloc[train_size:val_size].copy()
+X_test = X.iloc[val_size:].copy()
 
-# Split into training, validation, and test sets
-train_size = int(len(X_tensor) * trainsizepercent)
-val_size = train_size + int(len(X_tensor) * valsizepercent)
-X_train_tensor = X_tensor[:train_size].cpu().numpy()
-X_val_tensor = X_tensor[train_size:val_size].cpu().numpy()
-X_test_tensor = X_tensor[val_size:].cpu().numpy()
+# Handle inf and -inf values based on training set
+for col in X_train.columns:
+    max_val = X_train[col].replace([np.inf, -np.inf], np.nan).max()
+    min_val = X_train[col].replace([np.inf, -np.inf], np.nan).min()
 
-# Create a scaler object
+    # Adjust max_val based on its sign
+    max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+
+    # Adjust min_val based on its sign
+    min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+
+    # Apply the same max_val and min_val to training, validation, and test sets
+    X_train[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+    X_val[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+    X_test[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+# Reset the index
+X_train.reset_index(drop=True, inplace=True)
+X_val.reset_index(drop=True, inplace=True)
+X_test.reset_index(drop=True, inplace=True)
 scaler = StandardScaler()
 
-# Fit the scaler to the training data and then transform both training and test data
-X_train_scaled = scaler.fit_transform(X_train_tensor)
-X_val_scaled = scaler.transform(X_val_tensor)
-X_test_scaled = scaler.transform(X_test_tensor)
+# Fit the scaler to the training data and transform all sets
+X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
+X_test_scaled = scaler.transform(X_test)
 
-# Converting the scaled data back to PyTorch tensors
-X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
-X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
-X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
+# Convert these scaled DataFrames back to DataFrames if needed
+X_train = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+X_val = pd.DataFrame(X_val_scaled, columns=X_val.columns)
+X_test = pd.DataFrame(X_test_scaled, columns=X_test.columns)
+
+# Now convert to torch tensors and move to device
+X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32).to(device)
+X_val_tensor = torch.tensor(X_val.values, dtype=torch.float32).to(device)
+X_test_tensor = torch.tensor(X_test.values, dtype=torch.float32).to(device)
 
 print("train length:",len(X_train_tensor),"val length:", len(X_val_tensor),"test length:",len(X_test_tensor))
 
 # Split target data
-y_up_train_tensor = y_up_tensor[:train_size]
-y_up_val_tensor = y_up_tensor[train_size:val_size]
-y_up_test_tensor = y_up_tensor[val_size:]
+y_up_train = y_up[:train_size]
+y_up_val = y_up[train_size:val_size]
+y_up_test = y_up[val_size:]
+
+# Convert to torch tensors and move to device
+y_up_train_tensor = torch.tensor(y_up_train.values, dtype=torch.float32).to(device)
+y_up_val_tensor = torch.tensor(y_up_val.values, dtype=torch.float32).to(device)
+y_up_test_tensor = torch.tensor(y_up_test.values, dtype=torch.float32).to(device)
 
 num_positive_up_train = sum(y_up_train_tensor)
 num_negative_up_train = len(y_up_train_tensor) - num_positive_up_train
@@ -163,8 +190,8 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
     f1 = torchmetrics.F1Score(num_classes=2, average='weighted', task='binary').to(device)
     prec = Precision(num_classes=2, average='weighted', task='binary').to(device)
 
-    best_f1_score = 0.0  # Track the best F1 score
-    best_prec_score = 0.0  # Track the best F1 score
+    best_val_f1_score = 0.0  # Track the best F1 score
+    best_val_prec_score = 0.0  # Track the best F1 score
 
     for epoch in range(num_epochs):
         # Training step
@@ -188,25 +215,39 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             val_loss = criterion(val_outputs, y_val)
             # Compute F1 score and Precision score
             # print(val_outputs.max,val_outputs.min)
-            print("Min:", val_outputs.min().item())
-            print("Max:", val_outputs.max().item())
+            # print("Min:", val_outputs.min().item())
+            # print("Max:", val_outputs.max().item())
             val_predictions = (val_outputs > theshhold_up).float()
-            F1Score = f1(val_predictions,y_val)  # computing F1 score
-            PrecisionScore = prec(val_predictions,y_val )  # computing Precision score
+            valF1Score = f1(val_predictions,y_val)  # computing F1 score
+            valPrecisionScore = prec(val_predictions,y_val )  # computing Precision score
             # PrecisionScore2 = (val_predictions * y_val).sum() / (val_predictions.sum() + 1e-7)
-        if F1Score > best_f1_score:
+        if valF1Score > best_val_f1_score:
             best_model_state_dict = model.state_dict()
-            best_f1_score = F1Score.item()
+            best_val_f1_score = valF1Score.item()
 
-        if PrecisionScore > best_prec_score:
+        if valPrecisionScore > best_val_prec_score:
             # torch.save(model.state_dict(), 'best_model.pth')
             # best_epoch_val_preds = val_predictions
-            best_prec_score = PrecisionScore.item()
+            best_val_prec_score = valPrecisionScore.item()
         # model.train()
+        test_predicted_probabilities_up = model(X_test_tensor).detach().cpu().numpy()
+        # print("predicted_prob up:",predicted_probabilities_up)
+        test_predicted_probabilities_up = (test_predicted_probabilities_up > theshhold_up).astype(int)
+        # print("predicted_prob up:",predicted_probabilities_up)
+        test_predicted_up_tensor = torch.tensor(test_predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
 
-        print( f"VALIDATION Epoch: {epoch + 1}, PrecisionScore: {PrecisionScore.item()}, Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()} ")
+        num_positives_up = np.sum(test_predicted_probabilities_up)
+        task = "binary"
+        test_precision_up = Precision(num_classes=2, average='weighted', task='binary').to(device)(test_predicted_up_tensor,
+                                                                                              y_up_test_tensor)  # move metric to same device as tensors
+        test_accuracy_up = Accuracy(num_classes=2, average='macro', task=task).to(device)(test_predicted_up_tensor,
+                                                                                     y_up_test_tensor)
+        test_recall_up = Recall(num_classes=2, average='macro', task=task).to(device)(test_predicted_up_tensor, y_up_test_tensor)
+        test_f1_up = F1Score(num_classes=2, average='macro', task=task).to(device)(test_predicted_up_tensor, y_up_test_tensor)
+
+        # print( f"VALIDATION Epoch: {epoch + 1}, PrecisionScore: {PrecisionScore.item()}, Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()} ")
     # print(best_epoch_val_preds.sum(),y_val.sum())
-    return best_f1_score,best_prec_score,best_model_state_dict # Return the best F1 score after all epochs
+    return best_val_f1_score,best_val_prec_score,best_model_state_dict,test_precision_up,test_f1_up # Return the best F1 score after all epochs
 # Define Optuna Objective
 def objective(trial):
     # Define the hyperparameter search space
@@ -220,7 +261,7 @@ def objective(trial):
 
 
     # Call the train_model function with the current hyperparameters
-    f1_score, prec_score,best_model_state_dict = train_model(
+    f1_score, prec_score,best_model_state_dict,test_precision_up,test_f1_up = train_model(
         {
             "learning_rate": learning_rate,
             "optimizer": optimizer_name,  # Include optimizer name here
@@ -232,21 +273,29 @@ def objective(trial):
         },
         X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
     )
-    return f1_score
+    alpha = .5
+    print("precision :",prec_score,' f1 :',f1_score,"test prec: ",test_precision_up,"test f1: ",test_f1_up)
+    # Blend the scores using alpha
+    blended_score = alpha * (1 - prec_score) + (1 - alpha) * f1_score
+    blended_test_score = alpha * (1 - test_precision_up) + (1 - alpha) * test_f1_up
+    print('Blended test score: ',blended_test_score)
+    return (blended_score+blended_test_score)/2
     #
     # return prec_score  # Optuna will try to maximize this value
-
-##Comment out to skip the hyperparameter selection.  Swap "best_params".
-# study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
-#TODO changed trials from 100
-# study.optimize(objective, n_trials=100)  # You can change the number of trials as needed
-# best_params = study.best_params
-best_params = set_best_params_manually
+# Precision:  1.0 F1 :  0.2857142857142857 AUC : 0.9978723404255319
+# [I 2023-10-02 16:26:55,124] Trial 47 finished with value: 0.7611955420466058 and parameters: {'max_depth': 21, 'min_samples_split': 5, 'n_estimators': 416, 'min_samples_leaf': 1}. Best is trial 47 with value: 0.7611955420466058.
+# Precision:  0.3333333333333333 F1 :  0.2222222222222222 AUC : 0.9848977889027951
+#Comment out to skip the hyperparameter selection.  Swap "best_params".
+study = optuna.create_study(direction="minimize")  # We want to maximize the F1-Score
+# TODO changed trials from 100
+study.optimize(objective, n_trials=100)  # You can change the number of trials as needed
+best_params = study.best_params
+# best_params = set_best_params_manually
 
 print("Best Hyperparameters:", best_params)
 
 ## Train the model with the best hyperparameters
-(best_f1_score,best_prec_score,best_model_state_dict) = train_model(
+(best_f1_score,best_prec_score,best_model_state_dict,test_precision_up,test_f1_up) = train_model(
     best_params, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor)
 
 print("val F1-Score:", best_f1_score)
