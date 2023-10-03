@@ -19,7 +19,7 @@ def get_model_names(module):
 # List of module names
 module_names = [
     trained_minute_models,
-    pytorch_trained_minute_models,
+    # pytorch_trained_minute_models,
 ]
 
 

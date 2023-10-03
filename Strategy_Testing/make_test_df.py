@@ -172,9 +172,15 @@ def corr_a_df(df):
     output_dir = Path("../data/historical_multiday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     df.corr().to_csv(f"newcorr_checkitsista2.csv")
+tickers=['spy']
+for x in tickers:
+    print(x)
+    df=get_dailyminutes_make_single_multiday_df(x)
+    print("corr")
+    multiday_minutes_corr(x,df)
 
 
-
-df = pd.read_csv(
-    r'C:\Users\del_p\PycharmProjects\StockAlgoV2\Strategy_Testing\algooutput_NEW ALL COLUMNS2_SPY_historical_multiday_min.csv')
-corr_a_df(df)
+#
+# df = pd.read_csv(
+#     r'C:\Users\del_p\PycharmProjects\StockAlgoV2\Strategy_Testing\algooutput_NEW ALL COLUMNS2_SPY_historical_multiday_min.csv')
+# corr_a_df(df)

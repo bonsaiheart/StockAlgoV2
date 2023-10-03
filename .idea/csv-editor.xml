@@ -31,6 +31,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/Strategy_Testing/corr/CMPS/230420.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/Strategy_Testing/tst.csv">
           <value>
             <Attribute>

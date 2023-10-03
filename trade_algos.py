@@ -168,11 +168,13 @@ def get_contract(optionchain, processeddata, ticker, model_name):
 
 async def actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     model_list = [
+        trained_minute_models.Buy_30min_15minA2SPY_A1_test,
+        trained_minute_models.Sell_30min_15minA2SPY_A1_test,
         # trained_minute_models.Buy_2hr_RFSPYA2,
         # trained_minute_models.Sell_2hr_RFSPYA2,
         # trained_minute_models.Buy_2hr_RFSPYA1,
-        trained_minute_models.Sell_2hr_RFSPYA1,
-        pytorch_trained_minute_models.Buy_4hr_ffSPY230805,
+        # trained_minute_models.Sell_2hr_RFSPYA1,
+        # pytorch_trained_minute_models.Buy_4hr_ffSPY230805,
         pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
@@ -269,7 +271,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
             if result > 0.5:
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
                 loop = asyncio.get_event_loop()
-                send_notifications.email_me_string(model_name, CorP, ticker)
+                # send_notifications.email_me_string(model_name, CorP, ticker)
                 asyncio.gather(place_option_order_sync(CorP, ticker, IB_option_date, contractStrike, contract_price, f"{model_name}",10
                                                        , custom_takeprofit, custom_trailingstop, loop),
                                place_buy_order_sync(ticker, current_price,
