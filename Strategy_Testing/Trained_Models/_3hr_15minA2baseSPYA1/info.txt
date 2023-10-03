@@ -1,0 +1,38 @@
+This file contains information about the model.
+
+File analyzed: ../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv
+Cells_Foward_to_check: 180
+
+Best parameters for Target_Up: {'max_depth': 15, 'min_samples_leaf': 1, 'min_samples_split': 4, 'n_estimators': 492}. 
+Best precision: 0.1709082780043747
+Best parameters for Target_Down: {'max_depth': 15, 'min_samples_leaf': 1, 'min_samples_split': 4, 'n_estimators': 492}. 
+Best precision: 0.1709082780043747
+
+Metrics for Target_Up:
+Precision: 0.9603174603174603
+Accuracy: 0.9971228935470613
+Recall: 0.9307692307692308
+F1-Score: 0.9453125000000001
+Cross-validation scores for Target_Up:(prec/f1) (array([0.875     , 0.95652174, 0.9375    ]), array([0.34782609, 0.73846154, 0.76190476]))
+Mean cross-validation score for Target_Up:(prec/f1) (0.9230072463768115, 0.6160641291076073)
+
+Metrics for Target_Down:
+Precision: 0.91
+Accuracy: 0.9919852034525277
+Recall: 0.896551724137931
+F1-Score: 0.9032258064516129
+Cross-validation scores for Target_Down:(prec/f1) (array([0.86363636, 0.96428571, 0.77419355]), array([0.475     , 0.72972973, 0.67532468]))
+Mean cross-validation score for Target_Down:(prec/f1) (0.8673718754363916, 0.6266848016848017)
+
+Min value//max value used for -inf/inf:(-1.5232499999999614, 2.1061799999999664)Predictors: ['LastTradeTime', 'Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRv Up4', 'ITM PCRv Down4', 'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2', 'AwesomeOsc']
+
+Selected Features Up:, [0 1 3 4 5 6 8 9]
+Selected Features Down:, [0 1 3 5 6 7 8 9]
+
+Best_Predictors_Selected Up: ['LastTradeTime', 'Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up2', 'ITM PCRv Up4', 'ITM PCRv Down4']
+Best_Predictors_Selected Down: ['LastTradeTime', 'Bonsai Ratio', 'B1/B2', 'PCRv Down4', 'ITM PCRv Up2', 'ITM PCRv Down2', 'ITM PCRv Up4', 'ITM PCRv Down4']
+
+Threshold Up(sensitivity): 0.5
+Threshold Down(sensitivity): 0.5
+Target Underlying Percentage Up: 0.4
+Target Underlying Percentage Down: -0.4

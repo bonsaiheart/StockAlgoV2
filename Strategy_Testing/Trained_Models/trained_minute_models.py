@@ -10,6 +10,51 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
 base_dir = os.path.dirname(__file__)
 
+def Buy_3hr_15minA2baseSPYA1(new_data_df):
+    with open(f"{base_dir}/_3hr_15minA2baseSPYA1/min_max_values.json", 'r') as f:
+        min_max_dict = json.load(f)
+    features = ['LastTradeTime', 'Bonsai Ratio', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up2', 'ITM PCRv Up4', 'ITM PCRv Down4']
+    for col in features:
+        min_val = min_max_dict[col]['min_val']
+        max_val = min_max_dict[col]['max_val']
+        new_data_df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    model_filename = f"{base_dir}/_3hr_15minA2baseSPYA1/target_up.joblib"
+    loaded_model = joblib.load(model_filename)
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    predictions = loaded_model.predict(tempdf[features])
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions, index=tempdf.index)
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"
+    ] = prediction_series.values  # Assign predictions to corresponding rows
+    return result["Predictions"]
+def Sell_3hr_15minA2baseSPYA1(new_data_df):
+    with open(f"{base_dir}/_3hr_15minA2baseSPYA1/min_max_values.json", 'r') as f:
+        min_max_dict = json.load(f)
+    features =['LastTradeTime', 'Bonsai Ratio', 'B1/B2', 'PCRv Down4', 'ITM PCRv Up2',
+       'ITM PCRv Down2', 'ITM PCRv Up4', 'ITM PCRv Down4']
+    for col in features:
+        min_val = min_max_dict[col]['min_val']
+        max_val = min_max_dict[col]['max_val']
+        new_data_df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    model_filename = f"{base_dir}/_3hr_15minA2baseSPYA1/target_down.joblib"
+    loaded_model = joblib.load(model_filename)
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    predictions = loaded_model.predict(tempdf[features])
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions, index=tempdf.index)
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"
+    ] = prediction_series.values  # Assign predictions to corresponding rows
+    return result["Predictions"]
 def Buy_30min_15minA2SPY_A1_test(new_data_df):
     with open(f"{base_dir}/_30min_15minA2SPY_A1_test/min_max_values.json", 'r') as f:
         min_max_dict = json.load(f)

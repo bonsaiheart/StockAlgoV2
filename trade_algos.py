@@ -168,6 +168,8 @@ def get_contract(optionchain, processeddata, ticker, model_name):
 
 async def actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     model_list = [
+        trained_minute_models.Buy_3hr_15minA2baseSPYA1,
+        trained_minute_models.Sell_3hr_15minA2baseSPYA1,
         trained_minute_models.Buy_30min_15minA2SPY_A1_test,
         trained_minute_models.Sell_30min_15minA2SPY_A1_test,
         # trained_minute_models.Buy_2hr_RFSPYA2,

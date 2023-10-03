@@ -32,16 +32,16 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-study_name = '30minutes'
-cells_forward_to_check = 30
+study_name = '3hours'
+cells_forward_to_check = 180
 threshold_cells_up = cells_forward_to_check * .7
 threshold_cells_down = cells_forward_to_check * .7
 # num_features_up = 3
 # num_features_down = 3
 threshold_up = 0.5
 threshold_down = 0.5
-percent_up = .2
-percent_down = -.2
+percent_up = .4
+percent_down = -.4
 num_features_to_select=8
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
 ml_dataframe.dropna(subset= Chosen_Predictor, inplace=True)
@@ -349,11 +349,12 @@ precision_down = precision_score(y_down_test, predicted_down)
 accuracy_down = accuracy_score(y_down_test, predicted_down)
 recall_down = recall_score(y_down_test, predicted_down)
 f1_down = f1_score(y_down_test, predicted_down)
+tscv1 = TimeSeriesSplit(n_splits=5)
 
-cv_prec_score_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv, scoring='precision')
-cv_prec_score_down = cross_val_score(model_down, X_test_selected_down, y_down_test, cv=tscv, scoring='precision')
-cv_f1_score_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv, scoring='f1')
-cv_f1_score_down = cross_val_score(model_down, X_test_selected_down, y_down_test, cv=tscv, scoring='f1')
+cv_prec_score_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv1, scoring='precision')
+cv_prec_score_down = cross_val_score(model_down, X_test_selected_down, y_down_test, cv=tscv1, scoring='precision')
+cv_f1_score_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv1, scoring='f1')
+cv_f1_score_down = cross_val_score(model_down, X_test_selected_down, y_down_test, cv=tscv1, scoring='f1')
 print("Metrics for Target_Up:",'\n')
 print("Precision:", precision_up)
 print("Accuracy:", accuracy_up)
