@@ -107,22 +107,23 @@ X = ml_dataframe[Chosen_Predictor].copy()
 X.reset_index(drop=True, inplace=True)
 y.reset_index(drop=True, inplace=True)
 
-for column in X.columns:
-    # Handle positive infinite values
-    finite_max = X.loc[X[column] != np.inf, column].max()
+for col in X_train.columns:
+    max_val = X_train[col].replace([np.inf, -np.inf], np.nan).max()
+    min_val = X_train[col].replace([np.inf, -np.inf], np.nan).min()
 
-    # Multiply by 1.5, considering the sign of the finite_max
-    finite_max_adjusted = finite_max * 1.5 if finite_max > 0 else finite_max / 1.5
+    # Adjust max_val based on its sign
+    max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
 
-    X.loc[X[column] == np.inf, column] = finite_max_adjusted
+    # Adjust min_val based on its sign
+    min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+    print("min/max values ", min_val, max_val)
+    # Apply the same max_val and min_val to training, validation, and test sets
+    # Apply the same max_val and min_val to training, validation, and test sets
+    X_train[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+    X_test[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
-    # Handle negative infinite values
-    finite_min = X.loc[X[column] != -np.inf, column].min()
 
-    # Multiply by 1.5, considering the sign of the finite_min
-    finite_min_adjusted = finite_min * 1.5 if finite_min < 0 else finite_min / 1.5
 
-    X.loc[X[column] == -np.inf, column] = finite_min_adjusted
 nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
 inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
 neginf_indices = np.argwhere(np.isneginf(X.to_numpy()))  # Convert DataFrame to NumPy array
@@ -138,6 +139,7 @@ X_test = X[split_index:].reset_index(drop=True)
 y_test = y[split_index:].reset_index(drop=True)
 X = X[:split_index].reset_index(drop=True)
 y = y[:split_index].reset_index(drop=True)
+
 print("Xlength: ",len(X), "XTestlen: ",len(X_test),"positive in y: ",y.sum(),"positive in ytest: ",y_test.sum())
 # Fit the scaler on the entire training data
 scaler_X_trainval = RobustScaler().fit(X)
@@ -198,6 +200,20 @@ def train_model(param_dict, X, y, final_classifier=None):
         y_train, y_val = y[train_index], y[val_index]
         scaler_X = RobustScaler().fit(X_train)
         # scaler_y = RobustScaler().fit(y_train.values.reshape(-1, 1))  # If you want to scale y
+        for col in X_train.columns:
+            max_val = X_train[col].replace([np.inf, -np.inf], np.nan).max()
+            min_val = X_train[col].replace([np.inf, -np.inf], np.nan).min()
+
+            # Adjust max_val based on its sign
+            max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+
+            # Adjust min_val based on its sign
+            min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+            print("min/max values ", min_val, max_val)
+            # Apply the same max_val and min_val to training, validation, and test sets
+            # Apply the same max_val and min_val to training, validation, and test sets
+            X_train[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+            X_val[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)  # Include this
 
         # Transform the training and validation data
         X_train = scaler_X.transform(X_train)

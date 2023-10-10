@@ -119,7 +119,7 @@ X = ml_dataframe[Chosen_Predictor]
 X.reset_index(drop=True, inplace=True)
 
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(
-    X, y_up, y_down, test_size=0.2, random_state=None
+    X, y_up, y_down, test_size=0.2, random_state=None,shuffle=False
 )
 
 num_positive_up = sum(y_up_train)

@@ -19,16 +19,24 @@ def get_model_names(module):
 # List of module names
 module_names = [
     trained_minute_models,
-    # pytorch_trained_minute_models,
+    pytorch_trained_minute_models,
 ]
 
 
 # Function to apply predictions to DataFrame
 def apply_predictions_to_df(module_name, df, filename):
-    columns_to_keep = ["LastTradeTime", "Current Stock Price", "4hourslater% change"]
+    columns_to_keep = ["LastTradeTime", "Current Stock Price", '1HR_later_Price',
+'2HR_later_Price',
+'3HR_later_Price',
+'4HR_later_Price',
+'5HR_later_Price']
     df['4hourslater% change'] = ((df['Current Stock Price'] - df['Current Stock Price'].shift(-240)) / df[
         'Current Stock Price'].shift(-240)) * 100
-
+    df['1HR_later_Price'] = df['Current Stock Price'].shift(-60)
+    df['2HR_later_Price'] = df['Current Stock Price'].shift(-120)
+    df['3HR_later_Price'] = df['Current Stock Price'].shift(-180)
+    df['4HR_later_Price'] = df['Current Stock Price'].shift(-240)
+    df['5HR_later_Price'] = df['Current Stock Price'].shift(-300)
     for module in module_name:
         model_names = get_model_names(module)
         for model_name in model_names:
@@ -43,19 +51,22 @@ def apply_predictions_to_df(module_name, df, filename):
 
             columns_to_keep.append(model_name)
 
-    df_filtered = df[columns_to_keep]
-    # df_filtered.to_csv(f"algooutput_C_{filename}")
-    df.to_csv(f"algooutput_NEW ALL COLUMNS2_{filename}")
+    df = df[columns_to_keep]
+    df.to_csv(f"algooutput_for_ptminclasss3hr_{filename}")
 
 # Directory containing CSV files
 dir = "../data/historical_multiday_minute_DF"
+prefixes_to_match = ["SPY","GOOG","TSLA"]  # Add your prefixes here
+
 for filename in os.listdir(dir):
     filepath = os.path.join(dir, filename)
 
-    if filename.endswith(".csv"):
+    # Check if the filename ends with ".csv" and starts with any of the specified prefixes
+    if filename.endswith(".csv") and any(filename.startswith(prefix) for prefix in prefixes_to_match):
         df = pd.read_csv(filepath)
         apply_predictions_to_df(module_names, df, filename)
-# threshold = 1e10  # Define a threshold value to limit the range
+# threshold = 1e10
+# Define a threshold value to limit the range
 
 # for feature in features:
 #     feature_values = prep_df[feature].values.astype(float)

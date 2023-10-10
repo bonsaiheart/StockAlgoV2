@@ -67,9 +67,9 @@ X = X.replace([np.inf], large_number)
 trainsizepercent = .6
 valsizepercent = .2
 
-X_train, X_temp, y_train, y_temp = train_test_split(X, y_change, test_size=1 - trainsizepercent, random_state=42)
+X_train, X_temp, y_train, y_temp = train_test_split(X, y_change, test_size=1 - trainsizepercent, random_state=42,shuffle=False)
 X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=1 - valsizepercent / (1 - trainsizepercent),
-                                                random_state=42)
+                                                random_state=42,shuffle=False)
 
 # Scale the Data
 scaler = StandardScaler()
