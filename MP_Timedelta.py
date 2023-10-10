@@ -10,7 +10,7 @@ with open("UTILITIES/tickerlist.txt", "r") as f:
     tickerlist = [line.strip().upper() for line in f.readlines()]
 
 
-processed_dir = "data\ProcessedData"
+processed_dir = "data/ProcessedData"
 
 
 for ticker in tickerlist:
@@ -41,10 +41,13 @@ for ticker in tickerlist:
 
     # Create a DataFrame with the combined ExpDate values
     exp_date_df = pd.DataFrame({"ExpDate": exp_date_list})
-
+    print(exp_date_df)
     # Concatenate the DataFrames and include the 'ExpDate' column on the far left
     combined_frame = pd.concat(
         [exp_date_df.reset_index(drop=True)] + [df.reset_index(drop=True) for df in list_of_df], axis=1
     )
+    sorted_columns = ['ExpDate'] + sorted([col for col in combined_frame.columns if col != 'ExpDate'])
+    combined_frame = combined_frame[sorted_columns]
+
     print(combined_frame)
-    combined_frame.to_csv("MP_EXP.csv", index=False)
+    combined_frame.to_csv(f"MP_EXP_{ticker}.csv", index=False)
