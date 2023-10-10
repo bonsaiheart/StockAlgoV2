@@ -39,16 +39,15 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCRv','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV']
-#from 3hrptmincassa1 set_best_params_manually={'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
+set_best_params_manually={'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
 
-study_name='recreating_3hrptminclassA1_6'
-cells_forward_to_check =3*60
+study_name='recreating_4hrptminclassA1_withweightmultipliler_unscaled_X'
+cells_forward_to_check =4*60
 threshold_cells_up = cells_forward_to_check * 0.1
 percent_up =   .4  #as percent
-anticondition_threshold_cells_up = cells_forward_to_check * .6 #was .7
+anticondition_threshold_cells_up = cells_forward_to_check * 1 #was .7
 
 #TODO th
-positivecase_weight_up = 1 #1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
 
 theshhold_up = 0.5 ###TODO these dont do any
 
@@ -77,7 +76,7 @@ X.reset_index(drop=True, inplace=True)
 
 # # # TODO#shuffle trur or false?
 X_train, X_temp, y_up_train, y_up_temp = train_test_split(
-    X, y_up, test_size=0.3, random_state=None, shuffle=False
+    X, y_up, test_size=0.9, random_state=None, shuffle=False
 )
 
 # Split the temp set into validation and test sets
@@ -133,9 +132,12 @@ for col in X_train.columns:
 # Create a scaler object
 scaler = RobustScaler()
 # Fit the scaler to the training data and then transform both training and test data
-X_train_scaled = scaler.fit_transform(X_train)
-X_val_scaled = scaler.transform(X_val)
-X_test_scaled = scaler.transform(X_test)
+# X_train_scaled = scaler.fit_transform(X_train)
+# X_val_scaled = scaler.transform(X_val)
+# X_test_scaled = scaler.transform(X_test)
+X_train_scaled = np.array(X_train.values)
+X_val_scaled = np.array(X_val.values)
+X_test_scaled = np.array(X_test.values)
 # Now convert them to torch tensors
 X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
 X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
@@ -158,7 +160,7 @@ num_negative_up_val = len(y_up_val_tensor) - num_positive_up_val
 num_positive_up_test = sum(y_up_test_tensor)
 num_negative_up_test = len(y_up_test_tensor) - num_positive_up_test
 weight_negative_up = 1.0
-weight_positive_up = (num_negative_up_train / num_positive_up_train) * positivecase_weight_up
+
 
 print("train ratio of pos/neg up:", num_positive_up_train/num_negative_up_train)
 print('train num_positive_up:', num_positive_up_train)
@@ -179,7 +181,6 @@ class BinaryClassificationNNwithDropout(nn.Module):
         self.output_layer = nn.Linear(int(num_hidden_units/4), 1)
         self.activation = nn.ReLU()
         self.dropout = nn.Dropout(p=dropout_rate) # Dropout layer
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.activation(self.layer1(x))
@@ -188,7 +189,7 @@ class BinaryClassificationNNwithDropout(nn.Module):
         x = self.dropout(x) # Apply dropout after the activation
         x = self.activation(self.layer3(x))
         x = self.dropout(x) # Apply dropout after the activation
-        x = self.sigmoid(self.output_layer(x))
+        x = self.output_layer(x)  # Removed sigmoid here
         return x
 
 
@@ -212,14 +213,16 @@ def feature_importance(model, X_val, y_val):
 
     return importances
 def train_model(hparams, X_train, y_train, X_val, y_val):
+    positivecase_weight_up = hparams["positivecase_weight_up"]
+    weight_positive_up = (num_negative_up_train / num_positive_up_train) * positivecase_weight_up
     best_model_state_dict = None
     # best_epoch_val_preds = None
     model = BinaryClassificationNNwithDropout(X_train.shape[1], hparams["num_hidden_units"], hparams['dropout_rate']).to(device)
     model.train()
 
     weight = torch.Tensor([weight_positive_up]).to(device)
-    # criterion = nn.BCEWithLogitsLoss(pos_weight=weight)
-    criterion = nn.BCELoss(weight=weight)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=weight)
+    # criterion = nn.BCELoss(weight=weight)
     optimizer_name = hparams["optimizer"]
     learning_rate = hparams["learning_rate"]
 
@@ -313,13 +316,13 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
 def objective(trial):
     # Define the hyperparameter search space
     learning_rate = trial.suggest_float("learning_rate",  1e-04,0.01,log=True)#0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 50, 500)#3800 #230  291
+    num_epochs = trial.suggest_int("num_epochs", 50, 3000)#3800 #230  291
     batch_size = trial.suggest_int("batch_size", 20,2500)#10240  3437
     # Add more parameters as needed
     optimizer_name = trial.suggest_categorical("optimizer", [ "Adam", ])#"SGD","RMSprop", "Adagrad"
     dropout_rate = trial.suggest_float("dropout_rate", 0,.4)# 30311980533100547  16372372692286732
     num_hidden_units = trial.suggest_int("num_hidden_units", 50, 3500)#2560 #83 125 63
-
+    positivecase_weight_up = trial.suggest_float("positivecase_weight_up", 1,10)  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
 
     # Call the train_model function with the current hyperparameters
     f1_score, prec_score,best_model_state_dict,testF1Score,testPrecisionScore = train_model(
@@ -330,6 +333,7 @@ def objective(trial):
             "batch_size": batch_size,
             "dropout_rate": dropout_rate,
             "num_hidden_units": num_hidden_units,
+            "positivecase_weight_up": positivecase_weight_up,
             # Add more hyperparameters as needed
         },
         X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
@@ -363,10 +367,10 @@ except KeyError:
 "Keyerror, new optuna study created."  #
 
 # TODO changed trials from 100
-# study.optimize(objective, n_trials=1000)  # You can change the number of trials as needed
-# best_params = study.best_params
+study.optimize(objective, n_trials=1000)  # You can change the number of trials as needed
+best_params = study.best_params
 # best_params = set_best_params_manually
-best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
+# best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
 print("Best Hyperparameters:", best_params)
 
 ## Train the model with the best hyperparameters
@@ -455,6 +459,5 @@ with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
         f"Threshold Up (sensitivity): {theshhold_up}\n"
         f"Target Underlying Percentage Up: {percent_up}\n"
-        f"Anticondition: {anticondition_UpCounter}\n"
-        f"Weight multiplier: {positivecase_weight_up}")
+        f"Anticondition: {anticondition_UpCounter}\n")
 

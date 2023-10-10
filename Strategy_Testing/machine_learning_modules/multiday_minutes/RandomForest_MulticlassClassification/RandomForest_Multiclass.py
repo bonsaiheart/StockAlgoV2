@@ -57,7 +57,7 @@ Chosen_Predictor = ['LastTradeTime', 'Current Stock Price' ,
  'PCRv Down3' ,'PCRoi Up4',
  'PCRoi Down2', 'PCRoi Down4' ,'ITM PCR-Vol' , 'ITM PCRv Up1',
  'ITM PCRv Up2' ,'ITM PCRv Up3',
- 'NIV highers(-)lowers1-4', 'NIV 1-4 % from mean']
+                    'NIV highers(-)lowers1-4', 'NIV 1-4 % from mean']
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
@@ -253,7 +253,6 @@ def train_model(param_dict, X, y, final_classifier=None):
         y_pred_binary = np.argmax(y_pred, axis=1)  # Get the class with the highest probability
         # print("truth: ", y_val.iloc[0], "binary_pred: ", y_pred_binary[0], "valprediction: ", y_pred[0])
         # print("truth: ", y_val.iloc[60], "binary_pred: ", y_pred_binary[60], "valprediction: ", y_pred[60])
-        print(1)
         try:
             auc = roc_auc_score(y_val, y_pred, multi_class="ovr", average="micro")
         except ValueError:
@@ -280,7 +279,6 @@ def train_model(param_dict, X, y, final_classifier=None):
         recall_class_1 = recall_score(y_val, y_pred_binary, average=None, labels=[1])
         recall_class_2 = recall_score(y_val, y_pred_binary, average=None, labels=[2])
         avg_recall_1_2 = recall_score(y_val, y_pred_binary, average='weighted', labels=[1, 2])
-        print(2)
         # Accuracy (specifically for classes 1 and 2)
         # For this, you'd need to filter out class 0 predictions and true values, then compute accuracy
         y_val_filtered_mask = (y_val == 1) | (y_val == 2)
@@ -301,7 +299,6 @@ def train_model(param_dict, X, y, final_classifier=None):
         # This will give you F1 and precision scores specifically for class 1 and class 2, without being influenced by other classes, and the scores are averaged equally.
         auc_scores.append(auc)
         log_loss_scores.append(logloss)
-        print(4)
         class1_total_f1 += f1_class_1
         class2_total_f1 += f1_class_2
         class1and2avg_total_f1 += avg_f1_1_2
@@ -359,7 +356,7 @@ def train_model(param_dict, X, y, final_classifier=None):
 
     # print("class report: ", avg_class_report)
     print(
-        f'class1and2avg_all_folds_avg_accuracy: {all_folds_avg_accuracy_1_2}, all_folds_avg_precision_1_2: {all_folds_avg_precision_1_2}, class1and2avg_all_folds_avg_recall: {all_folds_avg_recall_1_2}, , avg_auc: {avg_auc}, avg_logloss: {avg_logloss}')
+        f'class1and2avg_all_folds_avg_f1: {all_folds_avg_f1_1_2}, all_folds_avg_precision_1_2: {all_folds_avg_precision_1_2}, class1and2avg_all_folds_avg_recall: {all_folds_avg_recall_1_2}, , avg_auc: {avg_auc}, avg_logloss: {avg_logloss}')
     return {
         'class1and2avg_all_folds_avg_accuracy': all_folds_avg_accuracy_1_2,
         'class1and2avg_all_folds_avg_f1': all_folds_avg_f1_1_2,
@@ -374,10 +371,10 @@ def train_model(param_dict, X, y, final_classifier=None):
 # Define Optuna Objective for RandomForest
 def objective(trial):
     # ... Your objective function remains mostly the same ...
-    n_estimators = trial.suggest_int("n_estimators", 100, 4000)
-    max_depth = trial.suggest_int("max_depth", 2, 50)
-    min_samples_split = trial.suggest_int("min_samples_split", 2, 600)
-    min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 200)
+    n_estimators = trial.suggest_int("n_estimators", 100, 3000)
+    max_depth = trial.suggest_int("max_depth", 2, 20)
+    min_samples_split = trial.suggest_int("min_samples_split", 2, 800)
+    min_samples_leaf = trial.suggest_int("min_samples_leaf", 1, 100)
     # max_features = trial.suggest_categorical("max_features", ["auto", "sqrt"])
     bootstrap = trial.suggest_categorical("bootstrap", [True, False])
     n_jobs = trial.suggest_categorical("n_jobs", [-1])
@@ -386,24 +383,6 @@ def objective(trial):
     classes_to_control = [1, 2]
     class_weight_multiplier = trial.suggest_float("class_weight_multiplier", 1.0, 20.0)
 
-    # Initialize dictionaries to store class weights and multipliers
-    class_weights = {}
-    class_multipliers = {}
-
-    # Calculate class weights and set multipliers for each class
-    for class_label in classes_to_control:
-        # Create a binary mask for the current class
-        binary_mask = (y == class_label).astype(int)
-
-        # Calculate class weights for the binary problem (current class vs. all other classes)
-        weights = compute_class_weight('balanced', classes=[0, 1], y=binary_mask)
-
-        # Store the class weight for the current class
-        class_weights[class_label] = weights[1]  # Weight for the positive class
-
-        # Set the desired multiplier for the current class
-        # You can adjust this multiplier as needed
-        class_multipliers[class_label] = 10.0  # Example: Set a multiplier of 2.0 for class 1 and 2
 
     # class_weights = 'balanced'
     param_dict = {
@@ -426,7 +405,7 @@ def objective(trial):
     class1and2avg_all_folds_avg_recall = results['class1and2avg_all_folds_avg_recall'],
     avg_logloss = results['avg_logloss']
     avg_auc = results['avg_auc']
-
+    print(class1and2avg_all_folds_avg_f1)
     alpha = .3
     # combined_metric = (alpha * (1 - avg_f1)) + ((1 - alpha) * (1 - avg_precision))
     return class1and2avg_all_folds_avg_f1
@@ -465,15 +444,15 @@ while True:
     "Keyerror, new optuna study created."  #
     # TODO add a second loop of test, wehre if it doesnt achieve x score, the trial fails.)
 
-    # study.optimize(objective, n_trials=1000, )  # callbacks=[early_stopping_opt]
-
-    # best_params = study.best_params
-    best_params = {'bootstrap': False, 'class_weight_multiplier': 18.921505709138085,
-                                            'max_depth': 41, 'min_samples_leaf': 1, 'min_samples_split': 402,
-                                            'n_estimators': 1098, 'n_jobs': -1}
+    study.optimize(objective, n_trials=1000, )  # callbacks=[early_stopping_opt]
+    #
+    best_params = study.best_params
+    # best_params = {'bootstrap': False, 'class_weight_multiplier': 18.921505709138085,
+    #                                         'max_depth': 41, 'min_samples_leaf': 1, 'min_samples_split': 402,
+    #                                         'n_estimators': 1098, 'n_jobs': -1}
     # class1and2avg_all_folds_avg_accuracy: 0.49638774553537457, all_folds_avg_precision_1_2: [0.2768455 0.22699356], class1and2avg_all_folds_avg_recall: 0.49638774553537457, , avg_auc: 0.34794811385459534, avg_logloss: 1.4511769734738669
     #     0.2892100213808334.
-    final_rf_classifier = RandomForestClassifier(**best_params)
+    final_rf_classifier = RandomForestClassifier()
     final_rf_classifier.fit(X.to_numpy(), y.to_numpy())
 
     print("~~~~training model using best params.~~~~")

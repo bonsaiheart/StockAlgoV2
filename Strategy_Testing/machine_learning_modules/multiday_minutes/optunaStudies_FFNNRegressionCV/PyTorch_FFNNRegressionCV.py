@@ -14,25 +14,14 @@ from torch.optim.lr_scheduler import StepLR, ExponentialLR, ReduceLROnPlateau
 from torch.utils.data import TensorDataset, DataLoader
 
 DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
-Chosen_Predictor = [ 'LastTradeTime', 'Current Stock Price',
-                    'Current SP % Change(LAC)', 'Maximum Pain', 'Bonsai Ratio',
+Chosen_Predictor = [ 'ExpDate', 'Bonsai Ratio',
                     'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-                    'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
+                    'PCRv Up1', 'PCRv Up2',
                     'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-                    'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-                    'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
+                    'PCRv Down4',
                     'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-                    'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-                    'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-                    'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-                    'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
-                    'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
-                    'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-                    'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-                    'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-                    'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-                    'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
-                    'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
+                    'ITM PCRv Up3' 'ITM PCRv Down1', 'ITM PCRv Down2',
+                    'ITM PCRv Down3', 'RSI', 'AwesomeOsc',
                     'RSI14', 'RSI2', 'AwesomeOsc5_34']
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
@@ -57,6 +46,8 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] =ml_dataframe['LastTradeTime']/ (60*60*24*7)
+ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+
 y_change = ml_dataframe["Target_Change"].values.reshape(-1, 1)
 # for col in ml_dataframe.columns:
 #     finite_max = ml_dataframe.loc[ml_dataframe[col] != np.inf, col].max()

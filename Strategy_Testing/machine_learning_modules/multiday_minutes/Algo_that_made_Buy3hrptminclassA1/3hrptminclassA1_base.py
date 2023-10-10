@@ -30,11 +30,11 @@ print(ml_dataframe.columns)
 # set_best_params_manually={'learning_rate': 0.00007, 'num_epochs':400, 'batch_size': 2500, 'optimizer': 'SGD', 'dropout_rate': 0., 'num_hidden_units': 2000}
 trainsizepercent = .8
 valsizepercent = .15
-
+study_name='_3hr_ptclass_up'
 cells_forward_to_check =3*60
-threshold_cells_up = cells_forward_to_check * 0.1
+threshold_cells_up = cells_forward_to_check * 0.5
 percent_up =   .4  #as percent
-anticondition_threshold_cells_up = cells_forward_to_check * .6 #was .7
+anticondition_threshold_cells_up = cells_forward_to_check * .4 #was .7
 
 #TODO th
 positivecase_weight_up = 1 #1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
@@ -240,10 +240,10 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
         task = "binary"
         test_precision_up = Precision(num_classes=2, average='weighted', task='binary').to(device)(test_predicted_up_tensor,
                                                                                               y_up_test_tensor)  # move metric to same device as tensors
-        test_accuracy_up = Accuracy(num_classes=2, average='macro', task=task).to(device)(test_predicted_up_tensor,
+        test_accuracy_up = Accuracy(num_classes=2, average='weighted', task=task).to(device)(test_predicted_up_tensor,
                                                                                      y_up_test_tensor)
-        test_recall_up = Recall(num_classes=2, average='macro', task=task).to(device)(test_predicted_up_tensor, y_up_test_tensor)
-        test_f1_up = F1Score(num_classes=2, average='macro', task=task).to(device)(test_predicted_up_tensor, y_up_test_tensor)
+        test_recall_up = Recall(num_classes=2, average='weighted', task=task).to(device)(test_predicted_up_tensor, y_up_test_tensor)
+        test_f1_up = F1Score(num_classes=2, average='weighted', task=task).to(device)(test_predicted_up_tensor, y_up_test_tensor)
 
         # print( f"VALIDATION Epoch: {epoch + 1}, PrecisionScore: {PrecisionScore.item()}, Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()} ")
     # print(best_epoch_val_preds.sum(),y_val.sum())
@@ -286,8 +286,27 @@ def objective(trial):
 # [I 2023-10-02 16:26:55,124] Trial 47 finished with value: 0.7611955420466058 and parameters: {'max_depth': 21, 'min_samples_split': 5, 'n_estimators': 416, 'min_samples_leaf': 1}. Best is trial 47 with value: 0.7611955420466058.
 # Precision:  0.3333333333333333 F1 :  0.2222222222222222 AUC : 0.9848977889027951
 #Comment out to skip the hyperparameter selection.  Swap "best_params".
-study = optuna.create_study(direction="minimize")  # We want to maximize the F1-Score
-# TODO changed trials from 100
+try:
+    study = optuna.load_study(study_name=f'{study_name}_up',
+                                 storage=f'sqlite:///{study_name}_up.db')
+    print("Study Loaded.")
+    try:
+        best_params  = study.best_params
+        best_trial = study.best_trial
+        best_value = study.best_value
+        print("Best Value_up:", best_value)
+        print(best_params)
+        print("Best Trial:", best_trial)
+    except Exception as e:
+        print(e)
+except KeyError:
+    study = optuna.create_study(direction="minimize", study_name=f'{study_name}_up',
+                                   storage=f'sqlite:///{study_name}_up.db')
+"Keyerror, new optuna study created."  #
+
+##Comment out to skip the hyperparameter selection.  Swap "best_params".
+# study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
+#TODO changed trials from 100
 study.optimize(objective, n_trials=100)  # You can change the number of trials as needed
 best_params = study.best_params
 # best_params = set_best_params_manually
@@ -297,10 +316,12 @@ print("Best Hyperparameters:", best_params)
 ## Train the model with the best hyperparameters
 (best_f1_score,best_prec_score,best_model_state_dict,test_precision_up,test_f1_up) = train_model(
     best_params, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor)
-
+print("Best Hyperparameters:", best_params)
 print("val F1-Score:", best_f1_score)
-print("val Precision-Score:", best_prec_score)
 
+print("val Precision-Score:", best_prec_score)
+print("test F1-Score:", test_f1_up)
+print("test Precision-Score:", test_precision_up)
 model_up_nn = BinaryClassificationNNwithDropout(X_train_tensor.shape[1],best_params["num_hidden_units"],best_params["dropout_rate"]).to(device)
 # Load the saved state_dict into the model
 model_up_nn.load_state_dict(best_model_state_dict)

@@ -52,7 +52,7 @@ print(ml_dataframe.columns)
 set_best_params_manually = {'learning_rate': 0.001621715398308046, 'num_epochs': 617, 'batch_size': 2250,
                             'optimizer': 'Adadelta', 'dropout_rate': 0.13908048750415472, 'num_hidden_units': 2037}
 
-cells_forward_to_check = 1 * 60  # rows to check(minutes in this case)
+cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5  # how many rows must achieve target %
 percent_up = .25  # target percetage.
 anticondition_threshold_cells_up = cells_forward_to_check * .2  # was .7

@@ -47,4 +47,4 @@ for ticker in tickerlist:
         [exp_date_df.reset_index(drop=True)] + [df.reset_index(drop=True) for df in list_of_df], axis=1
     )
     print(combined_frame)
-    combined_frame.to_csv("MP_EXP.csv", index=False)
+    combined_frame.to_csv(f"{ticker}_MP_EXP.csv", index=False)

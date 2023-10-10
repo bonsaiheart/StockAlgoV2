@@ -15,40 +15,36 @@ ml_dataframe = pd.read_csv(DF_filename)
 # TODO train with thhe best parasm listed below, it had great metrics even on test.
 # Chosen_Predictor = [ 'ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 Chosen_Predictor = [
-    'LastTradeTime', 'Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up2',
+     'Bonsai Ratio',  'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up2',
     'ITM PCRv Down2',
     'ITM PCRv Up4', 'ITM PCRv Down4',
     'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2',
     'AwesomeOsc'
+
 ]
-##had highest corr for 3-5 hours with these:
-# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
+# Chosen_Predictor = ['ExpDate','LastTradeTime','Current Stock Price','Current SP % Change(LAC)','Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCR-Vol','PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1','PCRv Up4','PCRv Down1','PCRv Down2','PCRv Down4',"PCRoi Up1",'PCRoi Up4','PCRoi Down1','PCRoi Down2','PCRoi Down3','ITM PCR-Vol','ITM PCRv Up1','ITM PCRv Up4','ITM PCRv Down1','ITM PCRv Down2','ITM PCRv Down3','ITM PCRv Down4','ITM PCRoi Up1','ITM PCRoi Up2','ITM PCRoi Up3','ITM PCRoi Up4','ITM PCRoi Down2','ITM PCRoi Down3','ITM PCRoi Down4','ITM OI','Total OI','Net_IV','Net ITM IV','Net IV MP','Net IV LAC','NIV Current Strike','NIV 1Lower Strike','NIV 2Higher Strike','NIV 2Lower Strike','NIV 3Higher Strike','NIV 3Lower Strike','NIV 4Lower Strike','NIV highers(-)lowers1-2','NIV 1-4 % from mean','Net_IV/OI','Net ITM_IV/ITM_OI','Closest Strike to CP','RSI','RSI2','RSI14','AwesomeOsc','AwesomeOsc5_34']
+#
+#had highest corr for 3-5 hours with these:
+Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
-
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-study_name = 'SPY_1hour_prior231002'
-num_features_to_select = 8
-cells_forward_to_check = 60*1
-
-threshold_cells_up = cells_forward_to_check * .75
-threshold_cells_down = cells_forward_to_check * .75
-
-threshold_up = 0.5
-threshold_down = 0.5
-
-percent_up = .15
-percent_down = -.15
-
-
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
-threshold_up_formatted = int(threshold_up * 10)
-threshold_down_formatted = int(threshold_down * 10)
-Chosen_Predictor_nobrackets = [x.replace('/', '').replace(',', '_').replace(' ', '_').replace('-', '') for x in
-                               Chosen_Predictor]
-Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
+
+study_name = 'SPY_3hr_prior231002_auc_a2'
+percent_up = .3
+percent_down = -.3
+num_features_to_select = 8
+cells_forward_to_check = 60*4
+
+threshold_cells_up = cells_forward_to_check * .2
+threshold_cells_down = cells_forward_to_check * .2
+# pos_weight_multiplier = 1
+
+
+
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
 
@@ -75,40 +71,82 @@ X = ml_dataframe[Chosen_Predictor].copy()
 # Reset the index of your DataFrame
 X.reset_index(drop=True, inplace=True)
 
-# # Get column names
-# col_names = X.columns
 
-# Print indices along with column names
-# if len(nan_indices) > 0:
-#     print("NaN values found at indices:")
-#     for i, j in nan_indices:
-#         print(f"Row: {i}, Column: {col_names[j]}")
-# else:
-#     print("No NaN values found.")
-#
-# if len(inf_indices) > 0:
-#     print("Infinite values found at indices:")
-#     for i, j in inf_indices:
-#         print(f"Row: {i}, Column: {col_names[j]}")
-# else:
-#     print("No infinite values found.")
-#
-# if len(neginf_indices) > 0:
-#     print("Negative Infinite values found at indices:")
-#     for i, j in neginf_indices:
-#         print(f"Row: {i}, Column: {col_names[j]}")
-# else:
-#     print("No negative infinite values found.")
+def calculate_metrics(y_true, y_pred):
+    precision = precision_score(y_true, y_pred)
+    accuracy = accuracy_score(y_true, y_pred)
+    recall = recall_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    return precision, accuracy, recall, f1
+def calculate_class_weights(y,pos_weight_multiplier ):
+    # Calculate the number of positive and negative cases
+    num_positive = sum(y)
+    num_negative = len(y) - num_positive
+
+    # Calculate class weights
+    weight_negative = 1.0
+    weight_positive = num_negative / num_positive if num_positive > 0 else 1.0
+    weight_positive = weight_positive*pos_weight_multiplier
+
+    # Define custom class weights as a dictionary
+    class_weights = {0: weight_negative, 1: weight_positive}
+
+    return class_weights
+
+def select_features(X, y, num_features_to_select, feature_names):
+    # Perform feature selection using mutual information
+    feature_selector = SelectKBest(score_func=mutual_info_classif, k='all')
+
+    # Fit the feature selector on the data
+    X_selected = feature_selector.fit_transform(X, y)
+
+    # Get the indices of the selected features
+    selected_feature_indices = feature_selector.get_support(indices=True)
+
+    # Get the names of the selected features
+    selected_feature_names = [feature_names[i] for i in selected_feature_indices]
+
+    # Convert X_selected back to a DataFrame
+    X_selected_df = pd.DataFrame(X_selected, columns=selected_feature_names)
+
+    return X_selected_df, selected_feature_names
 
 
 X_train, X_temp, y_up_train, y_up_temp, y_down_train, y_down_temp = train_test_split(
-    X, y_up, y_down, test_size=0.2, random_state=None
+    X, y_up, y_down, test_size=0.15, random_state=None, shuffle=False
 )
-
 # Then, split the temporary set into validation and test sets
 X_val, X_test, y_up_val, y_up_test, y_down_val, y_down_test = train_test_split(
-    X_temp, y_up_temp, y_down_temp, test_size=0.5, random_state=None
+    X_temp, y_up_temp, y_down_temp, test_size=0.5, random_state=None, shuffle=False
 )
+# # Generate indices for the entire dataset
+# total_indices = np.arange(len(X))
+#
+# # Calculate lengths of training, validation, and test sets
+# train_len = int(0.6 * len(X))  # 60% for training
+# val_len = int(0.2 * len(X))    # 20% for validation
+# # Remaining 20% for test
+#
+# # Shuffle only the training indices
+# train_indices = np.random.permutation(total_indices[:train_len])
+#
+# # Keep the rest as is
+# val_indices = total_indices[train_len:train_len + val_len]
+# test_indices = total_indices[train_len + val_len:]
+#
+# # Extract sets using the indices
+# X_train = X.iloc[train_indices]
+# y_up_train = y_up.iloc[train_indices]
+# y_down_train = y_down.iloc[train_indices]
+#
+# X_val = X.iloc[val_indices]
+# y_up_val = y_up.iloc[val_indices]
+# y_down_val = y_down.iloc[val_indices]
+#
+# X_test = X.iloc[test_indices]
+# y_up_test = y_up.iloc[test_indices]
+# y_down_test = y_down.iloc[test_indices]
+
 print('y_up_valsum ', y_up_val.sum(), 'lenYvalup ', len(y_up_val))
 print('y_down_valsum ', y_down_val.sum(), 'lenYvaldown ', len(y_down_val))
 
@@ -133,41 +171,61 @@ for col in X_train.columns:
     X_test[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
 
-num_positive_up = sum(y_up_train)
-num_negative_up = len(y_up_train) - num_positive_up
-weight_negative_up = 1.0
-weight_positive_up = num_negative_up / num_positive_up
-# Calculate class weights
 
 
-num_positive_down = sum(y_down_train)  # Number of positive cases in the training set
-num_negative_down = len(y_down_train) - num_positive_down  # Number of negative cases in the training set
-weight_negative_down = 1.0
-weight_positive_down = num_negative_down / num_positive_down
-# print('num_positive_up= ', num_positive_up, 'num_negative_up= ', num_negative_up, 'num_positive_down= ',
-#       num_positive_down, 'negative_down= ', num_negative_down)
-print('weight_positve_up: ', weight_positive_up, '//weight_negative_up: ', weight_negative_up)
-print('weight_positve_down: ', weight_positive_down, '//weight_negative_down: ', weight_negative_down)
+
+
 # Define custom class weights as a dictionary
-custom_weights_up = {0: weight_negative_up,
-                     1: weight_positive_up}  # Assign weight_negative to class 0 and weight_positive to class 1
-custom_weights_down = {0: weight_negative_down,
-                       1: weight_positive_down}  # Assign weight_negative to class 0 and weight_positive to class 1
+
 # Create RandomForestClassifier with custom class weights
 tscv = TimeSeriesSplit(n_splits=3)
+X_train_selected_up, selected_feature_names_up = select_features(X_train, y_up_train, num_features_to_select, Chosen_Predictor)
+print(type(X_train_selected_up))
+X_val_selected_up = X_val[selected_feature_names_up]
+X_test_selected_up = X_test[selected_feature_names_up]
 
+# Call the select_features function for the 'down' case
+X_train_selected_down, selected_feature_names_down = select_features(X_train, y_down_train, num_features_to_select, Chosen_Predictor)
+X_val_selected_down = X_val[selected_feature_names_down]
+X_test_selected_down = X_test[selected_feature_names_down]
+
+print("Best features for Target_Up:", selected_feature_names_up)
+print("Best features for Target_Down:", selected_feature_names_down)
+# Get the number of selected features for the 'up' case
+n_features_up = X_train_selected_up.shape[1]
+
+# Get the number of selected features for the 'down' case
+n_features_down = X_train_selected_down.shape[1]
 
 def objective_up(trial, X_train_selected, y_train, X_val_selected_up, y_val):
     # Define hyperparameter search space
-    max_depth = trial.suggest_int('max_depth', 5, 25)
-    min_samples_split = trial.suggest_int('min_samples_split', 2, 20)
-    n_estimators = trial.suggest_int('n_estimators', 100, 1000)
-    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 8)
+    max_depth = trial.suggest_int('max_depth', 1, 50)  # Broadened range
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 50)  # Broadened range
+    n_estimators = trial.suggest_int('n_estimators', 50, 2000)  # Broadened range
+    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 20)  # Broadened range
+
+    # Additional hyperparameters
+    criterion = trial.suggest_categorical('criterion', ['gini', 'entropy'])
+    max_features_value = n_features_up // 3  # Integer division
+    max_features = trial.suggest_categorical('max_features', ['auto', 'sqrt', max_features_value, 'log2'])
+    bootstrap = trial.suggest_categorical('bootstrap', [True, False])
+    positivecase_weight_up_multiplier = trial.suggest_float("positivecase_weight_up", 1, 10)
+
+    custom_weights_up = calculate_class_weights(y_up_train,positivecase_weight_up_multiplier)
 
     # Create and train model
-    model_up = RandomForestClassifier(max_depth=max_depth, min_samples_split=min_samples_split,
-                                      n_estimators=n_estimators, min_samples_leaf=min_samples_leaf,
-                                      class_weight=custom_weights_up)
+    # Create and train model
+    model_up = RandomForestClassifier(
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        n_estimators=n_estimators,
+        min_samples_leaf=min_samples_leaf,
+        criterion=criterion,  # New hyperparameter
+        max_features=max_features,  # New hyperparameter
+        bootstrap=bootstrap,  # New hyperparameter
+        class_weight=custom_weights_up
+    )
+
     model_up.fit(X_train_selected, y_train)
     y_pred = model_up.predict(X_val_selected_up)
     y_prob = model_up.predict_proba(X_val_selected_up)[:, 1]  # Probability estimates of the positive class
@@ -177,8 +235,8 @@ def objective_up(trial, X_train_selected, y_train, X_val_selected_up, y_val):
     traincv_prec_scores_up = cross_val_score(model_up, X_train_selected_up, y_up_train, cv=tscv, scoring='precision')
     traincv_f1_scores_up = cross_val_score(model_up, X_train_selected_up, y_up_train, cv=tscv, scoring='f1')
     print("TRAINCross-validation prec,f1 scores for Target_up:", traincv_prec_scores_up, traincv_f1_scores_up)
-    print("TRAINMean cross-validation score for Target_up:", traincv_prec_scores_up.mean(), traincv_f1_scores_up.mean(),
-          '\n')
+    # print("TRAINMean cross-validation score for Target_up:", traincv_prec_scores_up.mean(), traincv_f1_scores_up.mean(),
+    #       )
     alpha = .5
     auc = roc_auc_score(y_val, y_prob)
     beta = 0.3  # You can adjust this weight as well
@@ -186,28 +244,47 @@ def objective_up(trial, X_train_selected, y_train, X_val_selected_up, y_val):
     # Blend the scores using alpha
     val_cv_prec_scores_up = cross_val_score(model_up, X_val_selected_up, y_up_val, cv=tscv, scoring='precision')
     val_cv_f1_scores_up = cross_val_score(model_up, X_val_selected_up, y_up_val, cv=tscv, scoring='f1')
-
+    test_cv_prec_scores_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv, scoring='precision')
+    test_cv_f1_scores_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv, scoring='f1')
     print("ValCross-validation prec,f1 scores for Target_up:", val_cv_prec_scores_up, val_cv_f1_scores_up)
-    print("ValMean cross-validation score for Target_up:", val_cv_prec_scores_up.mean(), val_cv_f1_scores_up.mean(), '\n')
+    # print("ValMean cross-validation score for Target_up:", val_cv_prec_scores_up.mean(), val_cv_f1_scores_up.mean())
     # blended_score = alpha * (1 - precision) + (1 - alpha) * cv_scores_down.mean()
     blended_score = alpha * (0.5 * (1 - traincv_prec_scores_up.mean()) + 0.5 * (1 - traincv_f1_scores_up.mean())) + (
                 1 - alpha) * (
                             0.5 * (1 - val_cv_prec_scores_up.mean()) + 0.5 * (1 - val_cv_f1_scores_up.mean()))
-
-    return blended_score
+    print("testCross-validation prec,f1 scores for Target_up:", test_cv_prec_scores_up, test_cv_f1_scores_up)
+    # print("testMean cross-validation score for Target_up:", test_cv_prec_scores_up.mean(), test_cv_f1_scores_up.mean())
+    blended_score = precision+f1
+    return auc
 
 
 def objective_down(trial, X_train_selected, y_train, X_val_selected_down, y_val):
-    max_depth = trial.suggest_int('max_depth', 5, 25)
-    min_samples_split = trial.suggest_int('min_samples_split', 2, 20)
-    n_estimators = trial.suggest_int('n_estimators', 100, 1000)
-    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 8)
+    max_depth = trial.suggest_int('max_depth', 1, 50)  # Broadened range
+    min_samples_split = trial.suggest_int('min_samples_split', 2, 50)  # Broadened range
+    n_estimators = trial.suggest_int('n_estimators', 50, 2000)  # Broadened range
+    min_samples_leaf = trial.suggest_int('min_samples_leaf', 1, 20)  # Broadened range
+
+    # Additional hyperparameters
+    criterion = trial.suggest_categorical('criterion', ['gini', 'entropy'])
+    max_features_value = n_features_down // 3  # Integer division
+    max_features = trial.suggest_categorical('max_features', ['auto', 'sqrt', max_features_value, 'log2'])
+    bootstrap = trial.suggest_categorical('bootstrap', [True, False])
+    positivecase_weight_down_multiplier = trial.suggest_float("positivecase_weight_down", 1, 10)
+    custom_weights_down = calculate_class_weights(y_down_train,positivecase_weight_down_multiplier)
 
     # Create and train model
+    # Create and train model
+    model_down = RandomForestClassifier(
+        max_depth=max_depth,
+        min_samples_split=min_samples_split,
+        n_estimators=n_estimators,
+        min_samples_leaf=min_samples_leaf,
+        criterion=criterion,  # New hyperparameter
+        max_features=max_features,  # New hyperparameter
+        bootstrap=bootstrap,  # New hyperparameter
+        class_weight=custom_weights_down
+    )
 
-    model_down = RandomForestClassifier(max_depth=max_depth, min_samples_split=min_samples_split,
-                                        n_estimators=n_estimators, min_samples_leaf=min_samples_leaf,
-                                        class_weight=custom_weights_down)
     model_down.fit(X_train_selected, y_train)
     y_pred = model_down.predict(X_val_selected_down)
     y_prob = model_down.predict_proba(X_val_selected_down)[:, 1]  # Probability estimates of the positive class
@@ -217,9 +294,9 @@ def objective_down(trial, X_train_selected, y_train, X_val_selected_down, y_val)
     traincv_prec_scores_down = cross_val_score(model_down, X_train_selected_down, y_down_train, cv=tscv,
                                                scoring='precision')
     traincv_f1_scores_down = cross_val_score(model_down, X_train_selected_down, y_down_train, cv=tscv, scoring='f1')
-    print("TRAINCross-validation prec,f1 scores for Target_up:", traincv_prec_scores_down, traincv_f1_scores_down)
-    print("TRAINMean cross-validation score for Target_up:", traincv_prec_scores_down.mean(),
-          traincv_f1_scores_down.mean(), '\n')
+    # print("TRAINCross-validation prec,f1 scores for Target_up:", traincv_prec_scores_down, traincv_f1_scores_down)
+    # print("TRAINMean cross-validation score for Target_up:", traincv_prec_scores_down.mean(),
+    #       traincv_f1_scores_down.mean(), )
     alpha = .5
     auc = roc_auc_score(y_val, y_prob)
     beta = 0.3  # You can adjust this weight as well
@@ -233,33 +310,23 @@ def objective_down(trial, X_train_selected, y_train, X_val_selected_down, y_val)
     print("VALCross-validation prec,f1 scores for Target_Down:", cv_prec_scores_down, cv_f1_scores_down)
     print("VALMean cross-validation score for Target_Down:", cv_prec_scores_down.mean(), cv_f1_scores_down.mean(), '\n')
     # blended_score = alpha * (1 - precision) + (1 - alpha) * cv_scores_down.mean()
-    blended_score = alpha * (
-                0.5 * (1 - traincv_prec_scores_down.mean()) + 0.5 * (1 - traincv_f1_scores_down.mean())) + (
-                                1 - alpha) * (
-                            0.5 * (1 - cv_prec_scores_down.mean()) + 0.5 * (1 - cv_f1_scores_down.mean()))
+    # blended_score = alpha * (
+    #             0.5 * (1 - traincv_prec_scores_down.mean()) + 0.5 * (1 - traincv_f1_scores_down.mean())) + (
+    #                             1 - alpha) * (
+    #                         0.5 * (1 - cv_prec_scores_down.mean()) + 0.5 * (1 - cv_f1_scores_down.mean()))
+    blended_score = precision+f1
 
-    return blended_score
+    return auc
 
 
 # Feature selection and transformation
-feature_selector_down = SelectKBest(score_func=mutual_info_classif, k=num_features_to_select)
-feature_selector_up = SelectKBest(score_func=mutual_info_classif, k=num_features_to_select)
-X_train_selected_up = feature_selector_up.fit_transform(X_train, y_up_train)
-X_val_selected_up = feature_selector_up.transform(X_val)
 
-X_test_selected_up = feature_selector_up.transform(X_test)
-X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
-X_val_selected_down = feature_selector_down.transform(X_val)
 
-X_test_selected_down = feature_selector_down.transform(X_test)
-best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
-print("Best features for Target_Up:", best_features_up)
 
-best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
-print("Best features for Target_Down:", best_features_down)
 # Optuna optimization
-try:
 
+
+try:
     study_up = optuna.load_study(study_name=f'{study_name}_up',
                                  storage=f'sqlite:///{study_name}_up.db')
     print("Study Loaded.")
@@ -268,70 +335,61 @@ try:
         best_trial_up = study_up.best_trial
         best_value_up = study_up.best_value
         print("Best Value_up:", best_value_up)
-
         print(best_params_up)
-
         print("Best Trial_up:", best_trial_up)
-
     except Exception as e:
         print(e)
 except KeyError:
-    study_up = optuna.create_study(direction="minimize", study_name=f'{study_name}_up',
+    study_up = optuna.create_study(direction="maximize", study_name=f'{study_name}_up',
                                    storage=f'sqlite:///{study_name}_up.db')
 "Keyerror, new optuna study created."  #
-study_up.optimize(lambda trial: objective_up(trial, X_train_selected_up, y_up_train, X_val_selected_up, y_up_val),
-                  n_trials=100)
-# best_params_up = {'max_depth': 13, 'min_samples_leaf': 1, 'min_samples_split': 3, 'n_estimators': 519}
-# Results   best_params_up ={'max_depth': 13, 'min_samples_leaf': 1, 'min_samples_split': 3, 'n_estimators': 519}
-# best_params_up = study_up.best_params
-# best_score_up = study_up.best_value
-# print(f"Best parameters up: {best_params_up}")
-# print(f"Best score up: {best_score_up}")
+
 try:
 
     study_down = optuna.load_study(study_name=f'{study_name}_down',
                                    storage=f'sqlite:///{study_name}_down.db')
-
     print("Study Loaded.")
     try:
         best_params_down = study_down.best_params
         best_trial_down = study_down.best_trial
         best_value_down = study_down.best_value
         print("Best Value_down:", best_value_down)
-
         print(best_params_down)
-
         print("Best Trial_down:", best_trial_down)
-
     except Exception as e:
         print(e)
 except KeyError:
     study_down = optuna.create_study(direction="minimize", study_name=f'{study_name}_down',
                                      storage=f'sqlite:///{study_name}_down.db')
 "Keyerror, new optuna study created."  #
+study_up.optimize(lambda trial: objective_up(trial, X_train_selected_up, y_up_train, X_val_selected_up, y_up_val),
+                  n_trials=1000)
 study_down.optimize(
     lambda trial: objective_down(trial, X_train_selected_down, y_down_train, X_val_selected_down, y_down_val),
-    n_trials=100)
+    n_trials=1000)
+# best_params_up = {'max_depth': 13, 'min_samples_leaf': 1, 'min_samples_split': 3, 'n_estimators': 519}
+# best_params_up=study_up.best_params
+# best_value_up=study_up.best_value
+# best_params_down=study_down.best_params
+# best_value_down=study_down.best_value
+# print(f"Best parameters up: {best_params_up}")
+# print(f"Best score up: {best_value_up}")
+#
 # best_params_down = {'max_depth': 13, 'min_samples_leaf': 1, 'min_samples_split': 3, 'n_estimators': 519}
+# print(f"Best parameters down: {best_params_down}")
+# print(f"Best score down: {best_value_down}")
 
-# best_params_down = study_down.best_params
-# best_score_down = study_down.best_value
-
-print(f"Best parameters down: {best_params_down}")
-# print(f"Best score down: {best_score_down}")
 model_up = RandomForestClassifier(**best_params_up, class_weight=custom_weights_up)
 model_down = RandomForestClassifier(**best_params_down, class_weight=custom_weights_down)
 # Concatenate training and validation sets for 'up'
-X_train_val_selected_up = np.vstack((X_train_selected_up, X_val_selected_up))
+X_train_val_selected_up =pd.concat([X_train_selected_up, X_val_selected_up], axis=0)
 y_train_val_up = np.concatenate((y_up_train, y_up_val))
-
 # Concatenate training and validation sets for 'down'
-X_train_val_selected_down = np.vstack((X_train_selected_down, X_val_selected_down))
+X_train_val_selected_down = pd.concat([X_train_selected_down, X_val_selected_down], axis=0)
 y_train_val_down = np.concatenate((y_down_train, y_down_val))
 # Fit the models on the selected features
 model_up.fit(X_train_val_selected_up, y_train_val_up)
 model_down.fit(X_train_val_selected_down, y_train_val_down)
-
 
 
 importance_tuples_up = [(feature, importance) for feature, importance in
@@ -339,31 +397,21 @@ importance_tuples_up = [(feature, importance) for feature, importance in
 importance_tuples_up = sorted(importance_tuples_up, key=lambda x: x[1], reverse=True)
 for feature, importance in importance_tuples_up:
     print(f"model up {feature}: {importance}")
-
 importance_tuples_down = [(feature, importance) for feature, importance in
                           zip(Chosen_Predictor, model_down.feature_importances_)]
 importance_tuples_down = sorted(importance_tuples_down, key=lambda x: x[1], reverse=True)
-
 for feature, importance in importance_tuples_down:
     print(f"Model down {feature}: {importance}")
 
 # Use the selected features for prediction
-predicted_probabilities_up = model_up.predict_proba(X_test_selected_up)
-predicted_probabilities_down = model_down.predict_proba(X_test_selected_down)
+predicted_up = model_up.predict(X_test_selected_up)
+predicted_down = model_down.predict(X_test_selected_down)
 
-###predict
-predicted_up = (predicted_probabilities_up[:, 1] > threshold_up).astype(int)
-predicted_down = (predicted_probabilities_down[:, 1] > threshold_down).astype(int)
 
-test_precision_up = precision_score(y_up_test, predicted_up)
-test_accuracy_up = accuracy_score(y_up_test, predicted_up)
-test_recall_up = recall_score(y_up_test, predicted_up)
-test_f1_up = f1_score(y_up_test, predicted_up)
 
-test_precision_down = precision_score(y_down_test, predicted_down)
-test_accuracy_down = accuracy_score(y_down_test, predicted_down)
-test_recall_down = recall_score(y_down_test, predicted_down)
-test_f1_down = f1_score(y_down_test, predicted_down)
+test_precision_up, test_accuracy_up, test_recall_up, test_f1_up = calculate_metrics(y_up_test, predicted_up)
+test_precision_down, test_accuracy_down, test_recall_down, test_f1_down = calculate_metrics(y_down_test, predicted_down)
+
 tscv1 = TimeSeriesSplit(n_splits=5)
 
 test_cv_prec_score_up = cross_val_score(model_up, X_test_selected_up, y_up_test, cv=tscv1, scoring='precision')
@@ -373,57 +421,40 @@ test_cv_f1_score_down = cross_val_score(model_down, X_test_selected_down, y_down
 print("test Metrics for Target_Up:", '\n')
 print("testPrecision:", test_precision_up)
 print("testAccuracy:", test_accuracy_up)
-print("testRecall:", test_recall_up)
 print("testF1-Score:", test_f1_up, '\n')
 print("testCross-validation scores for Target_Up:(prec/f1)", test_cv_prec_score_up, test_cv_f1_score_up)
 print("testMean cross-validation score for Target_Up:", test_cv_prec_score_up.mean(), test_cv_f1_score_up.mean(), '\n')
-
 print("test Metrics for Target_Down:", '\n')
 print("testPrecision:", test_precision_down)
 print("testAccuracy:", test_accuracy_down)
-print("testRecall:", test_recall_down)
 print("testF1-Score:", test_f1_down, '\n')
-
 print("test Cross-validation scores for Target_Down:(prec/f1)", test_cv_prec_score_down, test_cv_f1_score_down)
-print("test Mean cross-validation score for Target_Down:(prec/f1)", test_cv_prec_score_down.mean(),
-      test_cv_f1_score_down.mean(), '\n')
+print("test Mean cross-validation score for Target_Down:(prec/f1)", test_cv_prec_score_down.mean(), test_cv_f1_score_down.mean(), '\n')
 
 
-
+final_weights_up = calculate_class_weights(y_up)
+final_weights_down = calculate_class_weights(y_down)
+model_up = RandomForestClassifier(**best_params_up, class_weight=final_weights_up)
+model_down = RandomForestClassifier(**best_params_down, class_weight=final_weights_down)
 #scaling for final model
-min_max_dict = {}
+final_min_max_dict = {}
 for col in X.columns:
-    max_val = X[col].replace([np.inf, -np.inf], np.nan).max()
-    min_val = X[col].replace([np.inf, -np.inf], np.nan).min()
+    final_max_val = X[col].replace([np.inf, -np.inf], np.nan).max()
+    final_min_val = X[col].replace([np.inf, -np.inf], np.nan).min()
 
     # Adjust max_val based on its sign
-    max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+    final_max_val = final_max_val * 1.5 if final_max_val >= 0 else final_max_val / 1.5
     # Adjust min_val based on its sign
-    min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
-    print("min/max values ", min_val, max_val)
-    X[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+    final_min_val = final_min_val * 1.5 if final_min_val < 0 else final_min_val / 1.5
+    print("min/max values ", final_min_val, final_max_val)
+    X[col].replace([np.inf, -np.inf], [final_max_val, final_min_val], inplace=True)
 
-    min_max_dict[col] = {'min_val': min_val, 'max_val': max_val}
-X_selected_up = feature_selector_up.transform(X)
-X_selected_down = feature_selector_down.transform(X)
+    final_min_max_dict[col] = {'min_val': final_min_val, 'max_val': final_max_val}
 
+X_selected_up = X[selected_feature_names_up]
+X_selected_down = X[selected_feature_names_down]
 model_up.fit(X_selected_up, y_up)
 model_down.fit(X_selected_down, y_down)
-
-def save_file_with_shorter_name(data, file_path):
-    try:
-        # Attempt to save the file with the original name
-        with open(file_path, 'w') as file:
-            file.write(data)
-        print("File saved successfully:", file_path)
-    except OSError as e:
-        if e.errno == 63:  # File name too long error
-            print("File name is too long. Please enter a shorter file name:")
-            new_file_name = input()
-            new_file_path = os.path.join(os.path.dirname(file_path), new_file_name)
-            save_file_with_shorter_name(data, new_file_path)
-        else:
-            print("Error occurred while saving the file:", e)
 
 
 input_val = input("Would you li"
@@ -433,30 +464,26 @@ if input_val == "Y":
     model_directory = os.path.join("..", "..", "..", "Trained_Models", model_summary)
 
     print("Current working directory:", os.getcwd())
-
     if not os.path.exists(model_directory):
         os.makedirs(model_directory)
         print(f"Directory created at: {model_directory}")
-
     model_filename_up = os.path.join(model_directory, "target_up.joblib")
     model_filename_down = os.path.join(model_directory, "target_down.joblib")
-
     joblib.dump(model_up, model_filename_up)
     joblib.dump(model_down, model_filename_down)
-
     with open(
             f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         info_txt.write("This file contains information about the model.\n\n")
         info_txt.write(
             f"File analyzed: {DF_filename}\nCells_Foward_to_check: {cells_forward_to_check}\n\nBest parameters for Target_Up: {best_params_down}. \n\nBest parameters for Target_Down: {best_params_down}. \n\ntest_Metrics for Target_Up:\nPrecision: {test_precision_up}\nAccuracy: {test_accuracy_up}\nRecall: {test_recall_up}\nF1-Score: {test_f1_up}\ntest_Cross-validation scores for Target_Up:(prec/f1) {test_cv_prec_score_up, test_cv_f1_score_up}\nMean test_cross-validation score for Target_Up:(prec/f1) {test_cv_prec_score_up.mean(), test_cv_f1_score_up.mean()}\n\ntest_Metrics for Target_Down:\nPrecision: {test_precision_down}\nAccuracy: {test_accuracy_down}\nRecall: {test_recall_down}\nF1-Score: {test_f1_down}\ntest_Cross-validation scores for Target_Down:(prec/f1) {test_cv_prec_score_down, test_cv_f1_score_down}\nMean test_cross-validation score for Target_Down:(prec/f1) {test_cv_prec_score_down.mean(), test_cv_f1_score_down.mean()}\n\n")
         info_txt.write(
-            f"Min value//max value used for -inf/inf:{min_val, max_val}Predictors: {Chosen_Predictor}\n\nBest_Predictors_Selected Up: {best_features_up}\nBest_Predictors_Selected Down: {best_features_down}\n\nThreshold Up(sensitivity): {threshold_up}\nThreshold Down(sensitivity): {threshold_down}\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n")
+            f"Min value//max value used for -inf/inf:{min_val, max_val}Predictors: {Chosen_Predictor}\n\nBest_Predictors_Selected Up: {selected_feature_names_up}\nBest_Predictors_Selected Down: {selected_feature_names_down}\n\nTarget Underlying Percentage Up: {percent_up}\nTarget Underlying Percentage Down: {percent_down}\n")
     with open(f"../../../Trained_Models/{model_summary}/min_max_values.json", 'w') as f:
-        json.dump(min_max_dict, f)
+        json.dump(final_min_max_dict, f)
     with open(f"../../../Trained_Models/{model_summary}/features_up.json", 'w') as f2:
-        json.dump(best_features_up, f2)
+        json.dump(selected_feature_names_up, f2)
     with open(f"../../../Trained_Models/{model_summary}/features_down.json", 'w') as f3:
-        json.dump(best_features_down, f3)
+        json.dump(selected_feature_names_down, f3)
 else:
 
     exit()

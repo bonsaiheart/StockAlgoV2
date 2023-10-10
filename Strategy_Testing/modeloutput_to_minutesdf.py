@@ -19,7 +19,7 @@ def get_model_names(module):
 # List of module names
 module_names = [
     trained_minute_models,
-    # pytorch_trained_minute_models,
+    pytorch_trained_minute_models,
 ]
 
 
@@ -52,11 +52,11 @@ def apply_predictions_to_df(module_name, df, filename):
             columns_to_keep.append(model_name)
 
     df = df[columns_to_keep]
-    df.to_csv(f"algooutput_NEW ALL COLUMNS2_{filename}")
+    df.to_csv(f"algooutput_for_ptminclasss3hr_{filename}")
 
 # Directory containing CSV files
 dir = "../data/historical_multiday_minute_DF"
-prefixes_to_match = ["SPY",]  # Add your prefixes here
+prefixes_to_match = ["SPY","GOOG","TSLA"]  # Add your prefixes here
 
 for filename in os.listdir(dir):
     filepath = os.path.join(dir, filename)
@@ -65,7 +65,8 @@ for filename in os.listdir(dir):
     if filename.endswith(".csv") and any(filename.startswith(prefix) for prefix in prefixes_to_match):
         df = pd.read_csv(filepath)
         apply_predictions_to_df(module_names, df, filename)
-# threshold = 1e10  # Define a threshold value to limit the range
+# threshold = 1e10
+# Define a threshold value to limit the range
 
 # for feature in features:
 #     feature_values = prep_df[feature].values.astype(float)
