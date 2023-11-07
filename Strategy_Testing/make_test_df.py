@@ -172,7 +172,19 @@ def corr_a_df(df):
     output_dir = Path("../data/historical_multiday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     df.corr().to_csv(f"newcorr_checkitsista2.csv")
-tickers=['spy']
+tickers=['spy',
+'uvxy',
+'tsla',
+'roku',
+'chwy',
+'ba',
+'cmps',
+'mnmd',
+'goev',
+'w',
+'ostk',
+'msft',
+'goog']
 for x in tickers:
     print(x)
     df=get_dailyminutes_make_single_multiday_df(x)

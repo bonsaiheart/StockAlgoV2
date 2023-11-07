@@ -212,11 +212,11 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         trained_minute_models.Sell_90min_A4,
         # trained_minute_models.Buy_90min_A5,
         # trained_minute_models.Sell_90min_A5,
-        trained_minute_models.Buy_1hr_A9,
-        trained_minute_models.Sell_1hr_A9,
+        # trained_minute_models.Buy_1hr_A9,
+        # trained_minute_models.Sell_1hr_A9,
         # trained_minute_models.Buy_1hr_A8,
         # trained_minute_models.Sell_1hr_A8,
-        trained_minute_models.Buy_1hr_A7,
+        # trained_minute_models.Buy_1hr_A7,
         # trained_minute_models.Sell_1hr_A7,  # got 2 outt of 3, and when it works its >.1%
 
         # trained_minute_models.Buy_1hr_A6,
@@ -271,13 +271,9 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
             results[model_name] = dailyminutes_df[model_name].iloc[-1]
             result = results[model_name]
             if result > 0.5:
+                print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
                 loop = asyncio.get_event_loop()
-                # send_notifications.email_me_string(model_name, CorP, ticker)
-                asyncio.gather(place_option_order_sync(CorP, ticker, IB_option_date, contractStrike, contract_price, f"{model_name}",10
-                                                       , custom_takeprofit, custom_trailingstop, loop),
-                               place_buy_order_sync(ticker, current_price,
-                                                    model_name,10, None, None, loop))
                 send_notifications.send_tweet_w_countdown_followup(
                     ticker,
                     current_price,
@@ -285,6 +281,12 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
                     f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
                     seconds_till_expectedprofit, model_name
                 )
+                # send_notifications.email_me_string(model_name, CorP, ticker)
+                asyncio.gather(place_option_order_sync(CorP, ticker, IB_option_date, contractStrike, contract_price, f"{model_name}",10
+                                                       , custom_takeprofit, custom_trailingstop, loop),
+                               place_buy_order_sync(ticker, current_price,
+                                                    model_name,10, None, None, loop))
+
         except Exception as e:
             logger.error(f"An error occurred after recieving positive result. {ticker}, {model_name}: {e}",
                          exc_info=True)

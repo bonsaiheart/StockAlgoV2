@@ -1,53 +1,88 @@
 import datetime as dt
 import os
 from pathlib import Path
-
 import pandas as pd
+import yfinance as yf
 
-YYMMDD = dt.datetime.today().strftime("%y%m%d")
+def convert_date_format(date_str):
+    """Converts YYMMDD to YYYY-MM-DD."""
+    year = date_str[:2]
+    month = date_str[2:4]
+    day = date_str[4:6]
+    return f"20{year}-{month}-{day}"
 
-with open("UTILITIES/tickerlist.txt", "r") as f:
-    tickerlist = [line.strip().upper() for line in f.readlines()]
+
+def generate_and_save_max_pain_for_ticker(ticker, base_dir="data/ProcessedData"):
+    ticker_path = os.path.join(base_dir, ticker)
+    ticker_data = {}  # Will contain data for the current ticker
+
+    if not os.path.isdir(ticker_path):  # Check if it's a directory
+        return
+
+    for date_dir in os.listdir(ticker_path):
+        date_path = os.path.join(ticker_path, date_dir)
+
+        sorted_filenames = sorted(os.listdir(date_path))
+
+        for filename in sorted_filenames:
+            if filename.endswith(".csv") and filename >= f"{ticker}_{date_dir}_0930":
+                filepath = os.path.join(date_path, filename)
+
+                try:
+                    df = pd.read_csv(filepath)
+                except pd.errors.EmptyDataError:
+                    print(f"Skipping empty or malformed file: {filepath}")
+                    continue
+
+                if "ExpDate" in df.columns and "Maximum Pain" in df.columns:
+                    for _, row in df.iterrows():
+                        exp_date = row["ExpDate"]
+                        max_pain = row["Maximum Pain"]
+                        ticker_data.setdefault(exp_date, {})[date_dir] = max_pain
+                break  # Only process one file per date
+
+    # Convert ticker data to a DataFrame and save it
+    df = pd.DataFrame(ticker_data).T  # Transpose for desired format
+    # Sort the index and columns in ascending order
+    df = df.sort_index(axis=0, ascending=True)
+    df = df.sort_index(axis=1, ascending=True)
 
 
-processed_dir = "data/ProcessedData"
+    # Convert columns to datetime for ensuring accuracy in min and max functions
+    converted_dates = [convert_date_format(str(col)) if isinstance(col, str) else col for col in df.columns]
+    print(df.columns)
+    print(converted_dates)
+    df.columns = pd.to_datetime(converted_dates, format='%Y-%m-%d', errors='ignore')
+    print(df.dtypes)
 
+    print("DF Columns:", df.columns)
+    print("DF Index:", df.index)
+    end_date = max(df.columns) + dt.timedelta(days=1)
 
-for ticker in tickerlist:
-    ticker_dir = os.path.join(processed_dir, ticker)
-    list_of_df = []
-    exp_date_list = []
-    for directory in os.listdir(ticker_dir):
-        dir_path = os.path.join(ticker_dir, directory)
+    stock_data = yf.download(ticker, start=min(df.columns), end=end_date)
+    print(stock_data.columns)
+    print("Stock Data Index:", stock_data.index)
 
-        for filename in os.listdir(dir_path):
-            if filename.endswith(".csv"):
-                filepath = os.path.join(dir_path, filename)
-                dataframe_slice = pd.read_csv(filepath)
+    # Transpose df and join with stock_data
+    combined_frame = df.T.join(stock_data, how='left')
 
-                # Extract date from the filename
-                date = filename.split("_")[1]
-                column_name = f"MP {date}"
+    # Add 'ExpDate' as a column from the index
+    combined_frame['ExpDate'] = combined_frame.index
 
-                if "Maximum Pain" in dataframe_slice.columns:
-                    dataframe_slice[column_name] = dataframe_slice["Maximum Pain"]
-                    list_of_df.append(dataframe_slice[[column_name]])
+    # Reorder the columns to get OHLC columns first
+    cols = ['ExpDate', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'] + [col for col in combined_frame.columns
+                                                                                 if col not in ['ExpDate','Open', 'High', 'Low',
+                                                                                                'Close', 'Adj Close',
+                                                                                                'Volume', 'ExpDate']]
+    combined_frame = combined_frame[cols]
 
-                    # Check if 'ExpDate' column exists and add its values to the list of ExpDates
-                    if "ExpDate" in dataframe_slice.columns:
-                        exp_date_list.extend(dataframe_slice["ExpDate"])
-
-                    break  # Stop processing the current file
-
-    # Create a DataFrame with the combined ExpDate values
-    exp_date_df = pd.DataFrame({"ExpDate": exp_date_list})
-    print(exp_date_df)
-    # Concatenate the DataFrames and include the 'ExpDate' column on the far left
-    combined_frame = pd.concat(
-        [exp_date_df.reset_index(drop=True)] + [df.reset_index(drop=True) for df in list_of_df], axis=1
-    )
-    sorted_columns = ['ExpDate'] + sorted([col for col in combined_frame.columns if col != 'ExpDate'])
-    combined_frame = combined_frame[sorted_columns]
-
-    print(combined_frame)
+    # Save the combined DataFrame without an additional index column
     combined_frame.to_csv(f"MP_EXP_{ticker}.csv", index=False)
+def process_all_tickers(base_dir="data/ProcessedData"):
+    for ticker in os.listdir(base_dir):
+        if ticker in ['SPY', 'TSLA']:
+            print(ticker)
+            generate_and_save_max_pain_for_ticker(ticker, base_dir)
+
+# Run the function
+process_all_tickers()
