@@ -15,22 +15,18 @@ DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_mu
 #TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCRoi Up1','PCRoi Down1','ITM PCR-OI','ITM PCRoi Up1','ITM PCRoi Down1','ITM PCRoi Down2','ITM PCRoi Down3','ITM PCRoi Down4','ITM Contracts %','Net ITM IV','NIV highers(-)lowers1-4','Net_IV/OI','Net ITM_IV/ITM_OI']
-# early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
+Chosen_Predictor = [
+    'Current SP % Change(LAC)','B1/B2', 'B2/B1',  'PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1', 'PCRv Down1','PCRoi Up4','PCRoi Down3' ,'ITM PCR-Vol','ITM PCR-OI', 'Net IV LAC',
+    'RSI14', 'AwesomeOsc5_34',
+
+
+]# early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
 # model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.2, callbacks=[early_stopping])
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('device: ',device)
 ml_dataframe = pd.read_csv(DF_filename)
-print(ml_dataframe.columns)
-# ##had highest corr for 3-5 hours with these:
-# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCRv','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net IV']
-# set_best_params_manually={'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
-# Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2' ]
-# set_best_params_manually={'learning_rate': 1.4273231212290852e-04, 'num_epochs': 339, 'batch_size': 3000, 'optimizer': 'SGD', 'dropout_rate': 0.2, 'num_hidden_units': 2000}
-# set_best_params_manually={'learning_rate': 0.00007, 'num_epochs':400, 'batch_size': 2500, 'optimizer': 'SGD', 'dropout_rate': 0., 'num_hidden_units': 2000}
-trainsizepercent = .8
-valsizepercent = .15
-study_name='_3hr_ptclass_up'
+
+study_name='_3hr_ptclass_new'
 cells_forward_to_check =3*60
 threshold_cells_up = cells_forward_to_check * 0.5
 percent_up =   .4  #as percent
@@ -276,8 +272,9 @@ def objective(trial):
     alpha = .5
     print("precision :",prec_score,' f1 :',f1_score,"test prec: ",test_precision_up,"test f1: ",test_f1_up)
     # Blend the scores using alpha
-    blended_score = alpha * (1 - prec_score) + (1 - alpha) * f1_score
-    blended_test_score = alpha * (1 - test_precision_up) + (1 - alpha) * test_f1_up
+    blended_score = alpha * (1 - prec_score) +  (1-alpha) * (1-f1_score)
+    blended_test_score = alpha * (1 - test_precision_up) + (1 - alpha) * (1-test_f1_up)
+
     print('Blended test score: ',blended_test_score)
     return (blended_score+blended_test_score)/2
     #

@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 import asyncio
 import os
 import traceback
+
+import calculations
+import new_marketdata
 import trade_algos
 from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
@@ -57,16 +60,16 @@ semaphore = asyncio.Semaphore(500)
 async def get_options_data_for_ticker(session, ticker):
     ticker = ticker.upper()
     try:
-        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session, ticker)
+        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
         print(f"{ticker} OptionData complete at {datetime.now()}.")
-        return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
+        return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
     except Exception as e:
         logger.exception(f"Error in get_options_data for {ticker}: {e}")
         raise
-async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date):
+async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD):
     try:
-        (optionchain, dailyminutes, processeddata, ticker) = tradierAPI_marketdata.perform_operations(
-            ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
+        (optionchain, dailyminutes, processeddata, ticker) = new_marketdata.perform_operations(
+            ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
         )
         print(f"{ticker} PerformOptions complete at {datetime.now()}.")
     except Exception as e:
@@ -80,43 +83,6 @@ async def handle_ticker( ticker, LAC, current_price, price_change_percent, Stock
         except Exception as e:
             logger.exception(f"Error in actions for {ticker}: {e}")
             raise
-# async def handle_ticker(session, ticker):
-#
-#     async with semaphore:
-#         ticker = ticker.upper()
-#         try:
-#             try:
-#                 LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date = await tradierAPI_marketdata.get_options_data(session,ticker)
-#                 print(f"{ticker} OptionData complete at {datetime.now()}.")
-#             except Exception as e:
-#                 logger.exception(f"Error in get_options_data for {ticker}: {e}")
-#                 raise
-#
-#             try:
-#                 (optionchain, dailyminutes, processeddata, ticker) = tradierAPI_marketdata.perform_operations(
-#                     ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
-#                 )
-#                 print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-#             except Exception as e:
-#                 logger.exception(f"Error in perform_operations for {ticker}: {e}")
-#                 raise
-#
-#             if ticker in ["SPY", "TSLA", "GOOG"]:
-#                 try:
-#                     asyncio.create_task(trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
-#                     print(f"{ticker} Actions complete at {datetime.now()}.")
-#                 except Exception as e:
-#                     logger.exception(f"Error in actions for {ticker}: {e}")
-#                     raise
-#
-#         except Exception as e:
-#             print(f"Error occurred: {traceback.format_exc()}")
-#             logger.exception(f"An error occurred while handling ticker {ticker}: {e}")
-
-
-# async def main():
-#     max_retries = 4
-#     retry_delay = 5  # seconds
 
 async def main():
     async with aiohttp.ClientSession() as session:

@@ -52,7 +52,7 @@ def apply_predictions_to_df(module_name, df, filename):
             columns_to_keep.append(model_name)
 
     df = df[columns_to_keep]
-    df.to_csv(f"algooutput_for_ptminclasss3hr_{filename}")
+    df.to_csv(f"newnewnew_algooutput_{filename}")
 
 # Directory containing CSV files
 dir = "../data/historical_multiday_minute_DF"

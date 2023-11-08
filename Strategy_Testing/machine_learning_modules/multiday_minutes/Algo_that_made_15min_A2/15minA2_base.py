@@ -12,20 +12,16 @@ from sklearn.model_selection import train_test_split, TimeSeriesSplit, cross_val
 
 DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_minprior_231002.csv"
 ml_dataframe = pd.read_csv(DF_filename)
+
+print(ml_dataframe.columns)
 # TODO train with thhe best parasm listed below, it had great metrics even on test.
-# Chosen_Predictor = [ 'ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 Chosen_Predictor = [
-     'Bonsai Ratio',  'PCRv Up4', 'PCRv Down4', 'ITM PCRv Up2',
-    'ITM PCRv Down2',
-    'ITM PCRv Up4', 'ITM PCRv Down4',
-    'RSI14', 'AwesomeOsc5_34', 'RSI', 'RSI2',
-    'AwesomeOsc'
+    'Current SP % Change(LAC)','B1/B2', 'B2/B1',  'PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1', 'PCRv Down1','PCRoi Up4','PCRoi Down3' ,'ITM PCR-Vol','ITM PCR-OI', 'Net IV LAC',
+    'RSI14', 'AwesomeOsc5_34',
+
 
 ]
-# Chosen_Predictor = ['ExpDate','LastTradeTime','Current Stock Price','Current SP % Change(LAC)','Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCR-Vol','PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1','PCRv Up4','PCRv Down1','PCRv Down2','PCRv Down4',"PCRoi Up1",'PCRoi Up4','PCRoi Down1','PCRoi Down2','PCRoi Down3','ITM PCR-Vol','ITM PCRv Up1','ITM PCRv Up4','ITM PCRv Down1','ITM PCRv Down2','ITM PCRv Down3','ITM PCRv Down4','ITM PCRoi Up1','ITM PCRoi Up2','ITM PCRoi Up3','ITM PCRoi Up4','ITM PCRoi Down2','ITM PCRoi Down3','ITM PCRoi Down4','ITM OI','Total OI','Net_IV','Net ITM IV','Net IV MP','Net IV LAC','NIV Current Strike','NIV 1Lower Strike','NIV 2Higher Strike','NIV 2Lower Strike','NIV 3Higher Strike','NIV 3Lower Strike','NIV 4Lower Strike','NIV highers(-)lowers1-2','NIV 1-4 % from mean','Net_IV/OI','Net ITM_IV/ITM_OI','Closest Strike to CP','RSI','RSI2','RSI14','AwesomeOsc','AwesomeOsc5_34']
-#
-#had highest corr for 3-5 hours with these:
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
+
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
@@ -33,11 +29,11 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 
-study_name = 'SPY_3hr_prior231002_auc_a2'
+study_name = 'SPY_3hr_prior231002_auc_b1'
 percent_up = .3
 percent_down = -.3
 num_features_to_select = 8
-cells_forward_to_check = 60*4
+cells_forward_to_check = 60*3
 
 threshold_cells_up = cells_forward_to_check * .2
 threshold_cells_down = cells_forward_to_check * .2
