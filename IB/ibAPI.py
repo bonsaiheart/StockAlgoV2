@@ -75,9 +75,9 @@ loop.set_exception_handler(handle_exception)
 async def ib_connect():
     if not ib.isConnected():
         print("~~~ Connecting ~~~")
-        # randomclientID = random.randint(0, 999)
+        # randomclientID = random.randint(0, 999)#TODO change bac kclientid
         try:
-            await ib.connectAsync("192.168.1.119", 7497, clientId=1)
+            await ib.connectAsync("192.168.1.119", 7497, clientId=2)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
             print("~~Connection error:", e)
@@ -128,44 +128,37 @@ async def placeOptionBracketOrder(
     exp,
     strike,
     contract_current_price,
-    quantity,
+    quantity=1,
     orderRef=None,
-    custom_takeprofit=None,
-    custom_trailamount=None,
+    take_profit_percent=.15,
+    trailstop_amount_percent=.2,
 ):
+    if take_profit_percent == None:
+        take_profit_percent=.15
+    if trailstop_amount_percent==None:
+        trailstop_amount_percent=.2
     gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
     print("~~~Placing order~~~:")
     print("~~~gtddelta:",gtddelta)
     try:
-        # print(ticker, exp, strike, contract_current_price)
-        # print(type(ticker))
-        # print(type(exp))
-        # print(type(strike))
-        # print(type(contract_current_price))
-        ## needed to remove 'USD' for option
+
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
-        # ib.qualifyContracts(ticker_contract)
+        # await ib.qualifyContracts(ticker_contract)
+        print(ticker_contract)
         contract_current_price = round(contract_current_price, 2)
+        print(contract_current_price)
         quantity = quantity  # Replace with the desired order quantity
         limit_price = contract_current_price  # Replace with your desired limit price
-        print(custom_takeprofit,custom_trailamount,"CUSTOMSSSS")
-        if custom_takeprofit is not None:
-            take_profit_price = round(
-                contract_current_price+(contract_current_price * custom_takeprofit), 2
+        print(take_profit_percent,trailstop_amount_percent,"CUSTOMSSSS")
+        take_profit_price = round(
+            contract_current_price+(contract_current_price * take_profit_percent), 2
             )  # Replace with your desired take profit price
 
-        else:
-            take_profit_price = round(contract_current_price * 1.05, 2)  # Replace with your desired take profit price
         stop_loss_price = contract_current_price * 0.9  # Replace with your desired stop-loss price
-        if custom_trailamount is not None:
-            trailAmount = round(
-                contract_current_price * custom_trailamount, 2
+        trailAmount = round(
+            contract_current_price * trailstop_amount_percent, 2
             )  # Replace with your desired trailing stop percentage
-
-        else:
-            trailAmount = round(contract_current_price * 0.1, 2)  # Replace with your desired trailing stop percentage
-
         triggerPrice = limit_price
 
         # This will be our main or "parent" order
@@ -219,7 +212,7 @@ async def placeOptionBracketOrder(
             # ib.sleep(1)
             ib.placeOrder(ticker_contract, o)
 ##changed this 7.25
-            # ib.sleep(0)
+            # await ib.sleep(0)
         # ib.sleep(0)
         # saveOrderIdToFile(parentOrderIdFile, parentOrders)
         print(f"~~~~Order Placed: {parent.orderRef} ~~~~~")
@@ -233,10 +226,14 @@ async def placeOptionBracketOrder(
 async def placeBuyBracketOrder(ticker, current_price,
     quantity=1,
     orderRef=None,
-    custom_takeprofit=None,
-    custom_trailamount=None):
+    take_profit_percent=.0003,
+    trail_stop_percent=.0002):
     print(f"~~~~~Placing {ticker} BuyBracket order~~~~~")
     try:
+        if take_profit_percent==None:
+            take_profit_percent=.003
+        if trail_stop_percent==None:
+            trail_stop_percent=.002
         gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
         ticker_symbol = ticker
@@ -246,9 +243,9 @@ async def placeBuyBracketOrder(ticker, current_price,
         current_price = current_price
         quantity = quantity
         limit_price = current_price
-        take_profit_price = round(current_price * 1.003, 2)
+        take_profit_price = round(current_price+(current_price * take_profit_percent), 2)
         stop_loss_price = current_price * 0.9
-        trailAmount = round(current_price * 0.002, 2)
+        trailAmount = round(current_price * trail_stop_percent, 2)
         triggerPrice = limit_price
 
         parent = Order()
