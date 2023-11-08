@@ -6,8 +6,9 @@ import os
 import traceback
 
 import calculations
-import new_marketdata
+# import new_marketdata
 import trade_algos
+import trade_algos2
 from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
@@ -68,7 +69,7 @@ async def get_options_data_for_ticker(session, ticker):
         raise
 async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD):
     try:
-        (optionchain, dailyminutes, processeddata, ticker) = new_marketdata.perform_operations(
+        (optionchain, dailyminutes, processeddata, ticker) = calculations.perform_operations(
             ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
         )
         print(f"{ticker} PerformOptions complete at {datetime.now()}.")
@@ -78,7 +79,7 @@ async def handle_ticker( ticker, LAC, current_price, price_change_percent, Stock
 
     if ticker in ["SPY", "TSLA", "GOOG"]:
         try:
-            asyncio.create_task(trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+            asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
             print(f"{ticker} Actions complete at {datetime.now()}.")
         except Exception as e:
             logger.exception(f"Error in actions for {ticker}: {e}")

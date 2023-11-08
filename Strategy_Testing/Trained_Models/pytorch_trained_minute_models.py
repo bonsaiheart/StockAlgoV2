@@ -663,7 +663,7 @@ def Buy_3hr_PTminClassSPYA1(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
+    return result["Predictions"] ,.25,.3
 
 
 def Buy_3hr_PTminClassSPYA1(new_data_df):

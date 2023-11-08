@@ -24,9 +24,9 @@ def perform_operations(
 ):
     results = []
 
-    data = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
+    optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
 
-    groups = data.groupby("ExpDate")
+    groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
     for exp_date, group in groups:
         pain_list = []
@@ -117,10 +117,10 @@ def perform_operations(
         ### FINDING CLOSEST STRIKE TO LAc
         # target number from column A
         # calculate difference between target and each value in column B
-        data["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
+        optionchain_df["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
         ###############################
         if not group.empty:
-            smallest_change_from_lac = data["strike_lac_diff"].abs().idxmin()
+            smallest_change_from_lac = optionchain_df["strike_lac_diff"].abs().idxmin()
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
 
             # Find index of row with the closest strike to the current price
@@ -282,7 +282,7 @@ def perform_operations(
                 "PCRv Up3": round(strike_PCRv_dict[closest_higher_strike3], 3),
                 "PCRv Up4": round(strike_PCRv_dict[closest_higher_strike4], 3),
                 "PCRv Down1": round(strike_PCRv_dict[closest_lower_strike1], 3),
-                "PCRv Down```2": round(strike_PCRv_dict[closest_lower_strike2], 3),
+                "PCRv Down2": round(strike_PCRv_dict[closest_lower_strike2], 3),
                 "PCRv Down3": round(strike_PCRv_dict[closest_lower_strike3], 3),
                 "PCRv Down4": round(strike_PCRv_dict[closest_lower_strike4], 3),
                 "PCRoi Up1": round(strike_PCRoi_dict[closest_higher_strike1], 3),
@@ -370,29 +370,29 @@ def perform_operations(
                 "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow,
             }
         )
-    df = pd.DataFrame(results)
-    df["RSI"] = this_minute_ta_frame["RSI"]
-    df["RSI2"] = this_minute_ta_frame["RSI2"]
-    df["RSI14"] = this_minute_ta_frame["RSI14"]
-    df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
-    df["MACD"] = this_minute_ta_frame["MACD"]
-    df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
+    processed_data_df = pd.DataFrame(results)
+    processed_data_df["RSI"] = this_minute_ta_frame["RSI"]
+    processed_data_df["RSI2"] = this_minute_ta_frame["RSI2"]
+    processed_data_df["RSI14"] = this_minute_ta_frame["RSI14"]
+    processed_data_df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
+    processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
+    processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
 
     # Calculate 50-Day EMA
-    df["EMA_50"] = this_minute_ta_frame["EMA_50"]
+    processed_data_df["EMA_50"] = this_minute_ta_frame["EMA_50"]
 
     # Calculate 200-Day EMA
-    df["EMA_200"] = this_minute_ta_frame["EMA_200"]
+    processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
-    df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
-    df["MACD"] = this_minute_ta_frame["MACD"]
-    df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
+    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
+    processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
+    processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
 
     # Calculate 50-Day EMA
-    df["EMA_50"] = this_minute_ta_frame["EMA_50"]
+    processed_data_df["EMA_50"] = this_minute_ta_frame["EMA_50"]
 
     # Calculate 200-Day EMA
-    df["EMA_200"] = this_minute_ta_frame["EMA_200"]
+    processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
@@ -426,27 +426,27 @@ def perform_operations(
 
     # Use the function
     if output_file_dailyminutes.exists():
-        dailyminutes = pd.read_csv(output_file_dailyminutes)
-        dailyminutes = dailyminutes.dropna().drop_duplicates(subset="LastTradeTime")
-        dailyminutes = pd.concat([dailyminutes, df.head(1)], ignore_index=True)
-        replace_inf(dailyminutes)  # It will only run if inf or -inf values are present
+        dailyminutes_df = pd.read_csv(output_file_dailyminutes)
+        dailyminutes_df = dailyminutes_df.dropna().drop_duplicates(subset="LastTradeTime")
+        dailyminutes_df = pd.concat([dailyminutes_df, processed_data_df.head(1)], ignore_index=True)
+        replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
     else:
-        dailyminutes = pd.concat([df.head(1)], ignore_index=True)
-        replace_inf(dailyminutes)  # It will only run if inf or -inf values are present
+        dailyminutes_df = pd.concat([processed_data_df.head(1)], ignore_index=True)
+        replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
 
-    dailyminutes.to_csv(output_file_dailyminutes, index=False)
+    dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
 
     try:
-        df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
+        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError:
         print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
         # exit()
 
     return (
-        f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
-        f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv",
-        df,
+        optionchain_df,
+        dailyminutes_df,
+        processed_data_df,
         ticker,
 
     )
