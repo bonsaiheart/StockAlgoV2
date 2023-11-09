@@ -15,7 +15,7 @@ import joblib
 import os
 import optuna
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_minprior_231002.csv"
+DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 #TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 ml_dataframe = pd.read_csv(DF_filename)
@@ -455,7 +455,6 @@ def objective(trial):
     # return prec_score  # Optuna will try to maximize this value
 
 ##Comment out to skip the hyperparameter selection.  Swap "best_params".
-# study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
 try:
     study = optuna.load_study(study_name=f'{study_name}',
                                  storage=f'sqlite:///{study_name}.db')
@@ -479,7 +478,7 @@ study.optimize(objective, n_trials=10000)  # You can change the number of trials
 best_params = study.best_params
 # best_params = set_best_params_manually
 # best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
-best_params={'batch_size': 881, 'dropout_rate': 0.32727848596144893, 'learning_rate': 0.0006858665963457134, 'n_layers': 2, 'n_units_l0': 110, 'n_units_l1': 29, 'num_epochs': 308, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0015016778402561}
+# best_params={'batch_size': 881, 'dropout_rate': 0.32727848596144893, 'learning_rate': 0.0006858665963457134, 'n_layers': 2, 'n_units_l0': 110, 'n_units_l1': 29, 'num_epochs': 308, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0015016778402561}
 print("Best Hyperparameters:", best_params)
 
 n_layers = best_params['n_layers']
