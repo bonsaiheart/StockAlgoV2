@@ -34,15 +34,15 @@ def get_dailyminutes_make_single_multiday_df(ticker):
             # move "time" column to the first position
         else:
             print(f"{filename}: Format is incorrect.")
-    else:print("dir is Before TA Or Tradier")
 
 
 
+    print(list_of_df[-1])
     df = pd.concat(list_of_df, ignore_index=True)
     df.drop_duplicates(subset='LastTradeTime', inplace=True)
-
-    output_dir = Path(f"historical_mulitday_minute_corr/")
-    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    #
+    # output_dir = Path(f"historical_mulitday_minute_corr/")
+    # output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir2 = Path(rf"../data/historical_multiday_minute_DF/")
     output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
     try:
@@ -81,18 +81,29 @@ def multiday_minutes_corr(ticker,df):
         (df["Bonsai Ratio 2"] - df["Bonsai Ratio 2"].shift(1)) / df["Bonsai Ratio 2"].shift(1)
     ) * 100
     # ###     # add later price data to check for corr.
-    df["6 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-360)
-    df["5 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-300)
-    df["4 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-240)
-    df["3 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-180)
-    df["2 hour later change %"] = df["Current SP % Change" "(LAC)"] - df["Current SP % Change(LAC)"].shift(-120)
-    df["1 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-60)
-    df["45 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-45)
-    df["30 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-30)
-    df["20 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-20)
-    df["15 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-15)
-    df["10 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-10)
-    df["5 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-5)
+    # df["6 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-360)
+    # df["5 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-300)
+    # df["4 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-240)
+    # df["3 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-180)
+    # df["2 hour later change %"] = df["Current SP % Change" "(LAC)"] - df["Current SP % Change(LAC)"].shift(-120)
+    # df["1 hour later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-60)
+
+    # Assuming your DataFrame is indexed by time and each row represents 1-minute data
+    window_size = 60  # 60 minutes in an hour
+    new_data = {}
+
+    for hours in range(1, 7):  # Loop from 1 to 6 hours
+        window = hours * window_size
+        # Shift the data, so you're looking 'hours' hours into the past
+        shifted = df["Current SP % Change(LAC)"].shift(-window)
+        # Calculate max change % and store in new_data dictionary
+        new_data[f"{hours} hour later max change %"] = df["Current SP % Change(LAC)"].rolling(window).max() - shifted
+
+    # Create a new DataFrame from the new_data dictionary
+    new_df = pd.DataFrame(new_data, index=df.index)
+
+    # Concatenate this new DataFrame with the original DataFrame
+    df = pd.concat([df, new_df], axis=1)
 
     output_dir = Path("../data/historical_multiday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -168,6 +179,22 @@ def corr_a_df(df):
     df["15 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-15)
     df["10 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-10)
     df["5 min later change %"] = df["Current SP % Change(LAC)"] - df["Current SP % Change(LAC)"].shift(-5)
+    # Assuming your DataFrame is indexed by time and each row represents 1-minute data
+    window_size = 60  # 60 minutes in an hour
+    new_data = {}
+
+    for hours in range(1, 7):  # Loop from 1 to 6 hours
+        window = hours * window_size
+        # Shift the data, so you're looking 'hours' hours into the past
+        shifted = df["Current SP % Change(LAC)"].shift(-window)
+        # Calculate max change % and store in new_data dictionary
+        new_data[f"{hours} hour later max change %"] = df["Current SP % Change(LAC)"].rolling(window).max() - shifted
+
+    # Create a new DataFrame from the new_data dictionary
+    new_df = pd.DataFrame(new_data, index=df.index)
+
+    # Concatenate this new DataFrame with the original DataFrame
+    df = pd.concat([df, new_df], axis=1)
 
     output_dir = Path("../data/historical_multiday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -190,7 +217,7 @@ for x in tickers:
     df=get_dailyminutes_make_single_multiday_df(x)
     print("corr")
     multiday_minutes_corr(x,df)
-
+#TODO drop all the old model columns.
 
 #
 # df = pd.read_csv(

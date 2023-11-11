@@ -100,7 +100,167 @@ class DynamicNNwithDropout(nn.Module):
             x = layer(x)
         return x
 
+def Sell_20min_05pct_ptclass_S1(new_data_df):
+    model_dir = "_20min_05pct_ptclass_S1"
 
+    checkpoint = torch.load(f'{base_dir}/{model_dir}/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    print(features)
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    # Initialize the new model architecture
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+
+    # Load the saved state_dict into the model
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+
+    loaded_model.eval()  # Set the model to evaluation mode
+
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    tempdf = tempdf[features]
+    for col in tempdf.columns:
+        max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
+        min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
+        # Adjust max_val based on its sign
+        max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+        # Adjust min_val based on its sign
+        min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+        # Apply the same max_val and min_val to training, validation, and test sets
+        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    # scale the new data features
+    scaled_features = scaler_X.transform(tempdf.values)  # Using the transform method
+
+    # Convert DataFrame to a PyTorch tensor
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+
+    # Pass the tensor through the model to get predictions
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+
+    # Convert predictions to a NumPy array
+    predictions_numpy = predictions_prob.detach().numpy()
+
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
+
+    return result["Predictions"]
+def Buy_20min_05pct_ptclass_A1(new_data_df):
+    model_dir = "_20min_05pct_ptclass_A1"
+
+    checkpoint = torch.load(f'{base_dir}/{model_dir}/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    print(features)
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    # Initialize the new model architecture
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+
+    # Load the saved state_dict into the model
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+
+    loaded_model.eval()  # Set the model to evaluation mode
+
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    tempdf = tempdf[features]
+    for col in tempdf.columns:
+        max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
+        min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
+        # Adjust max_val based on its sign
+        max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+        # Adjust min_val based on its sign
+        min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+        # Apply the same max_val and min_val to training, validation, and test sets
+        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    #scale the new data features
+    scaled_features = scaler_X.transform(tempdf.values)  # Using the transform method
+
+    # Convert DataFrame to a PyTorch tensor
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+
+    # Pass the tensor through the model to get predictions
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+
+    # Convert predictions to a NumPy array
+    predictions_numpy = predictions_prob.detach().numpy()
+
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
+
+    return result["Predictions"]
+def Buy_2hr_ptclassV3_A1(new_data_df):
+    model_dir = "_2hr_ptclassV3_A1"
+
+    checkpoint = torch.load(f'{base_dir}/{model_dir}/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    # Initialize the new model architecture
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+
+    # Load the saved state_dict into the model
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+
+    loaded_model.eval()  # Set the model to evaluation mode
+
+    tempdf = new_data_df.copy()  # Create a copy of the original DataFrame
+    tempdf.dropna(subset=features, inplace=True)  # Drop rows with missing values in specified features
+    tempdf = tempdf[features]
+    for col in tempdf.columns:
+        max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
+        min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
+        # Adjust max_val based on its sign
+        max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+        # Adjust min_val based on its sign
+        min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+        # Apply the same max_val and min_val to training, validation, and test sets
+        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    #scale the new data features
+    scaled_features = scaler_X.transform(tempdf.values)  # Using the transform method
+
+    # Convert DataFrame to a PyTorch tensor
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+
+    # Pass the tensor through the model to get predictions
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+
+    # Convert predictions to a NumPy array
+    predictions_numpy = predictions_prob.detach().numpy()
+
+    # Create a new Series with the predictions and align it with the original DataFrame
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()  # Create a copy of the original DataFrame
+    result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
+    result.loc[
+        prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
+
+    return result["Predictions"]
 def Buy_4hr_ptclassA100(new_data_df):
     checkpoint = torch.load(f'{base_dir}/_4hr_ptclassA100/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']

@@ -14,6 +14,21 @@ import numpy as np
 import joblib
 import os
 import optuna
+import yaml
+
+with open('yaml_config\s/config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
+
+# Example replacements
+DF_filename = config['data']['df_filename']
+Chosen_Predictor = config['model']['chosen_predictors']
+cells_forward_to_check = config['training']['cells_forward_to_check']
+threshold_cells_up = config['training']['threshold_cells_up']
+percent_down = config['training']['percent_down']
+anticondition_threshold_cells = config['training']['anticondition_threshold_cells']
+theshhold_down = config['training']['threshold_down']
+n_trials = config['optuna']['n_trials']
+print(Chosen_Predictor)
 
 DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 #TODO add early stop or no?
@@ -40,11 +55,11 @@ ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 
 cells_forward_to_check =20
 threshold_cells_up = cells_forward_to_check * 0.1
-percent_up =   .05  #as percent
-anticondition_threshold_cells_up = cells_forward_to_check * 1 #was .7
+percent_down =   .05  #as percent
+anticondition_threshold_cells = cells_forward_to_check * 1 #was .7
 
 
-theshhold_up = 0.5 ###TODO these dont do any
+theshhold_down = 0.5 ###TODO these dont do any
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -54,12 +69,12 @@ targetUpCounter = 0
 anticondition_UpCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
-    condition_met_up = shifted_values > (ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"]*(percent_up/100)))
-    anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
+    condition_met_up = shifted_values < (ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"] * (percent_down / 100)))
+    anticondition_up = shifted_values >= ml_dataframe["Current Stock Price"]
     targetUpCounter += condition_met_up.astype(int)
     anticondition_UpCounter += anticondition_up.astype(int)
 ml_dataframe["Target_Up"] = (
-    (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+    (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells)
     )   .astype(int)
 ml_dataframe.dropna(subset=["Target_Up"], inplace=True)
 y_up = ml_dataframe["Target_Up"]
@@ -273,7 +288,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             # # print(val_outputs.max,val_outputs.min)
             # print("Min:", val_outputs.min().item())
             # print("Max:", val_outputs.max().item())
-            val_predictions = (val_outputs > theshhold_up).float()
+            val_predictions = (val_outputs > theshhold_down).float()
             F1Score = f1(val_predictions,y_val)  # computing F1 score
             PrecisionScore = prec(val_predictions,y_val )  # computing Precision score
             # PrecisionScore2 = (val_predictions * y_val).sum() / (val_predictions.sum() + 1e-7)
@@ -314,7 +329,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
 
     test_outputs = model(X_test_tensor)
     # print(test_outputs)
-    test_predictions = (test_outputs > theshhold_up).float().squeeze(1)
+    test_predictions = (test_outputs > theshhold_down).float().squeeze(1)
     # print(test_predictions)
     testF1Score = f1(test_predictions, y_up_test_tensor)  # computing F1 score
     testPrecisionScore = prec(test_predictions, y_up_test_tensor)
@@ -458,7 +473,7 @@ feature_imp = feature_importance(finalmodel, X_trainval_tensor, y_trainval_tenso
 print("Feature Importances:", feature_imp)
 predicted_probabilities_up = finalmodel(X_test_tensor).detach().cpu().numpy()
 # print("predicted_prob up:",predicted_probabilities_up)
-predicted_probabilities_up = (predicted_probabilities_up > theshhold_up).astype(int)
+predicted_probabilities_up = (predicted_probabilities_up > theshhold_down).astype(int)
 # print("predicted_prob up:",predicted_probabilities_up)
 predicted_up_tensor = torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
 
@@ -528,7 +543,7 @@ with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Predictors: {Chosen_Predictor}\n\n\n"
         f"Best Params: {best_params}\n\n\n"
         f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
-        f"Threshold Up (sensitivity): {theshhold_up}\n"
-        f"Target Underlying Percentage Up: {percent_up}\n"
+        f"Threshold Up (sensitivity): {theshhold_down}\n"
+        f"Target Underlying Percentage Up: {percent_down}\n"
         f"Anticondition: {anticondition_UpCounter}\n")
 

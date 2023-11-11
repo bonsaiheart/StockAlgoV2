@@ -22,6 +22,11 @@ module_names = [
     pytorch_trained_minute_models,
 ]
 
+def forward_rolling_min(series, window):
+    return series.shift(-window + 1).rolling(window=window, min_periods=1).min()
+
+def forward_rolling_max(series, window):
+    return series.shift(-window + 1).rolling(window=window, min_periods=1).max()
 
 # Function to apply predictions to DataFrame
 def apply_predictions_to_df(module_name, df, filename):
@@ -37,21 +42,32 @@ def apply_predictions_to_df(module_name, df, filename):
     df['3HR_later_Price'] = df['Current Stock Price'].shift(-180)
     df['4HR_later_Price'] = df['Current Stock Price'].shift(-240)
     df['5HR_later_Price'] = df['Current Stock Price'].shift(-300)
+    # Calculate future high and low prices
+    timeframes = [20, 60, 120, 180, 240]  # 20min, 1hr, 2hr, 3hr, 4hr in minutes
+    for t in timeframes:
+        df[f'High_{t}min'] = forward_rolling_max(df['Current Stock Price'], t)
+        df[f'Low_{t}min'] = forward_rolling_min(df['Current Stock Price'], t)
+
+    # Keep only the specified columns
+
     for module in module_name:
         model_names = get_model_names(module)
         for model_name in model_names:
-            print(f"Applying model: {model_name}")
-            model_func = getattr(module, model_name)
-            result = model_func(df)
+            # print(model_namesme)
+            if model_name == "Buy_20min_05pct_ptclass_A1" or model_name=='Sell_20min_05pct_ptclass_S1':
+                print(f"Applying model: {model_name}")
+                model_func = getattr(module, model_name)
+                result = model_func(df)
 
-            if isinstance(result, tuple):
-                df[model_name], takeprofit, stoploss = result
-            else:
-                df[model_name] = result
+                if isinstance(result, tuple):
+                    df[model_name], takeprofit, stoploss = result
+                else:
+                    df[model_name] = result
 
-            columns_to_keep.append(model_name)
+                columns_to_keep.append(model_name)
+    df = df[columns_to_keep + [f'High_{t}min' for t in timeframes] + [f'Low_{t}min' for t in timeframes]]
 
-    df = df[columns_to_keep]
+    # df = df[columns_to_keep]
     df.to_csv(f"newnewnew_algooutput_{filename}")
 
 # Directory containing CSV files
