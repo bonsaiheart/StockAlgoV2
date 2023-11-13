@@ -18,7 +18,7 @@ def get_model_names(module):
 
 # List of module names
 module_names = [
-    trained_minute_models,
+    # trained_minute_models,
     pytorch_trained_minute_models,
 ]
 
@@ -54,7 +54,7 @@ def apply_predictions_to_df(module_name, df, filename):
         model_names = get_model_names(module)
         for model_name in model_names:
             # print(model_namesme)
-            if model_name == "Buy_20min_05pct_ptclass_A1" or model_name=='Sell_20min_05pct_ptclass_S1':
+            # if model_name == "Buy_20min_05pct_ptclass_A1" or model_name=='Sell_20min_05pct_ptclass_S1':
                 print(f"Applying model: {model_name}")
                 model_func = getattr(module, model_name)
                 result = model_func(df)

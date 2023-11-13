@@ -41,7 +41,7 @@ Chosen_Predictor = [
     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 ]
 
-study_name=('20min_05pt_sell')
+study_name=('20min_15pt_sell')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -52,7 +52,8 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-n_trials=1
+n_trials=10000
+
 cells_forward_to_check =20
 threshold_cells_up = cells_forward_to_check * 0.1
 percent_down =   .15 #as percent

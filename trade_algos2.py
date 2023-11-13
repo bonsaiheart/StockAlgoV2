@@ -125,10 +125,12 @@ def get_model_list():
         trained_minute_models.Sell_3hr_15minA2baseSPYA1,
         trained_minute_models.Buy_30min_15minA2SPY_A1_test,
         trained_minute_models.Sell_30min_15minA2SPY_A1_test,
-
+        pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
+        pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
+        pytorch_trained_minute_models.Sell_20min_05pctdown_ptclass_S1,
         pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1ssSPYA2,
+        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
         pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         ]  
 
