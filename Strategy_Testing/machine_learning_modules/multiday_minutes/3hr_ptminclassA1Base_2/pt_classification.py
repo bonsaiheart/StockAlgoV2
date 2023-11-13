@@ -26,21 +26,24 @@ Chosen_Predictor = [
     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 ]
 
-study_name=('20min_05pt')
+
+study_name=('20min_1pct')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+#TODO make usre i am using early sotpping correctly when pasing the 'best epoch'
 print('device: ',device)
 print(ml_dataframe.columns)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 
+
+ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+n_trials = 0
 cells_forward_to_check =20
 threshold_cells_up = cells_forward_to_check * 0.1
-percent_up =   .05  #as percent
+percent_up =   .1  #as percent
 anticondition_threshold_cells_up = cells_forward_to_check * 1 #was .7
 
 
@@ -428,7 +431,7 @@ except KeyError:
 "Keyerror, new optuna study created."  #
 
 # TODO changed trials from 100
-study.optimize(objective, n_trials=00)  # You can change the number of trials as needed
+study.optimize(objective, n_trials=n_trials)  # You can change the number of trials as needed
 best_params = study.best_params
 # best_params = set_best_params_manually
 # best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}

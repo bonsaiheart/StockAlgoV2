@@ -52,7 +52,7 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-
+n_trials=1
 cells_forward_to_check =20
 threshold_cells_up = cells_forward_to_check * 0.1
 percent_down =   .15 #as percent
@@ -385,20 +385,20 @@ def train_final_model(hparams, Xtrainval, ytrainval):
 # Define Optuna Objective
 def objective(trial):
     # Define the hyperparameter search space
-    learning_rate = trial.suggest_float("learning_rate",  1e-05,0.01,log=True)#0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 50, 3000)#3800 #230  291
-    batch_size = trial.suggest_int("batch_size", 20,2500)#10240  3437
+    learning_rate = trial.suggest_float("learning_rate",  .0005,0.007,log=True)#0003034075497582067
+    num_epochs = trial.suggest_int("num_epochs", 100, 1000)#3800 #230  291
+    batch_size = trial.suggest_int("batch_size", 1000,3500)#10240  3437
     # Add more parameters as needed
 
     optimizer_name = trial.suggest_categorical("optimizer", [ "Adam", ])#"SGD","RMSprop", "Adagrad"
-    dropout_rate = trial.suggest_float("dropout_rate", 0,.4)# 30311980533100547  16372372692286732
+    dropout_rate = trial.suggest_float("dropout_rate", 0,.2)# 30311980533100547  16372372692286732
     #using layers now instead of setting num_hidden.
     n_layers = trial.suggest_int("n_layers", 1, 4)
     layers = []
     for i in range(n_layers):
-        layers.append(trial.suggest_int(f"n_units_l{i}", 4, 128))
+        layers.append(trial.suggest_int(f"n_units_l{i}", 32, 256))
     # num_hidden_units = trial.suggest_int("num_hidden_units", 50, 3500)#2560 #83 125 63
-    positivecase_weight_up = trial.suggest_float("positivecase_weight_up", 1,10)  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
+    positivecase_weight_up = trial.suggest_float("positivecase_weight_up", 1,2)  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
 
     # Call the train_model function with the current hyperparameters
     best_val_loss,f1_score, prec_score,best_model_state_dict,testF1Score,testPrecisionScore,best_epoch = train_model(
@@ -443,7 +443,7 @@ except KeyError:
 "Keyerror, new optuna study created."  #
 
 # TODO changed trials from 100
-study.optimize(objective, n_trials=10000)  # You can change the number of trials as needed
+study.optimize(objective, n_trials=n_trials)  # You can change the number of trials as needed
 best_params = study.best_params
 # best_params = set_best_params_manually
 # best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
