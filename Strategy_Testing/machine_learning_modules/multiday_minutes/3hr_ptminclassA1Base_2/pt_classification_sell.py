@@ -15,20 +15,20 @@ import joblib
 import os
 import optuna
 import yaml
-
-with open('yaml_config\s/config.yaml', 'r') as file:
-    config = yaml.safe_load(file)
-
-# Example replacements
-DF_filename = config['data']['df_filename']
-Chosen_Predictor = config['model']['chosen_predictors']
-cells_forward_to_check = config['training']['cells_forward_to_check']
-threshold_cells_up = config['training']['threshold_cells_up']
-percent_down = config['training']['percent_down']
-anticondition_threshold_cells = config['training']['anticondition_threshold_cells']
-theshhold_down = config['training']['threshold_down']
-n_trials = config['optuna']['n_trials']
-print(Chosen_Predictor)
+#
+# with open('yaml_config\s/config.yaml', 'r') as file:
+#     config = yaml.safe_load(file)
+#
+# # Example replacements
+# DF_filename = config['data']['df_filename']
+# Chosen_Predictor = config['model']['chosen_predictors']
+# cells_forward_to_check = config['training']['cells_forward_to_check']
+# threshold_cells_up = config['training']['threshold_cells_up']
+# percent_down = config['training']['percent_down']
+# anticondition_threshold_cells = config['training']['anticondition_threshold_cells']
+# theshhold_down = config['training']['threshold_down']
+# n_trials = config['optuna']['n_trials']
+# print(Chosen_Predictor)
 
 DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 #TODO add early stop or no?
@@ -41,7 +41,7 @@ Chosen_Predictor = [
     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 ]
 
-study_name=('20min_05pt')
+study_name=('20min_05pt_sell')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -55,7 +55,7 @@ ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 
 cells_forward_to_check =20
 threshold_cells_up = cells_forward_to_check * 0.1
-percent_down =   .05  #as percent
+percent_down =   .15 #as percent
 anticondition_threshold_cells = cells_forward_to_check * 1 #was .7
 
 
@@ -443,7 +443,7 @@ except KeyError:
 "Keyerror, new optuna study created."  #
 
 # TODO changed trials from 100
-study.optimize(objective, n_trials=00)  # You can change the number of trials as needed
+study.optimize(objective, n_trials=10000)  # You can change the number of trials as needed
 best_params = study.best_params
 # best_params = set_best_params_manually
 # best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}

@@ -81,13 +81,13 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                # send_notifications.send_tweet_w_countdown_followup(
-                #     ticker,
-                #     current_price,
-                #     upordown,
-                #     f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                #     seconds_till_expectedprofit, model_name
-                # )
+                send_notifications.send_tweet_w_countdown_followup(
+                    ticker,
+                    current_price,
+                    upordown,
+                    f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+                    seconds_till_expectedprofit, model_name
+                )
 
                 # Place the option order
                 await place_option_order_sync(
@@ -125,74 +125,12 @@ def get_model_list():
         trained_minute_models.Sell_3hr_15minA2baseSPYA1,
         trained_minute_models.Buy_30min_15minA2SPY_A1_test,
         trained_minute_models.Sell_30min_15minA2SPY_A1_test,
-        # trained_minute_models.Buy_2hr_RFSPYA2,
-        # trained_minute_models.Sell_2hr_RFSPYA2,
-        # trained_minute_models.Buy_2hr_RFSPYA1,
-        # trained_minute_models.Sell_2hr_RFSPYA1,
-        # pytorch_trained_minute_models.Buy_4hr_ffSPY230805,
+
         pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
+        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1ssSPYA2,
         pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
-        # pytorch_trained_minute_models.Buy_1hr_ptmin1A1,
-        # trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_4hr_nnSPYA1,
-        # trained_minute_models.Buy_2hr_gsmmcA1,
-        # trained_minute_models.Sell_2hr_gsmmcA1,
-        # trained_minute_models.Buy_2hr_nnA2,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_nnA2,
-        # trained_minute_models.Buy_90min_nnA2,  # WORKS GREAT?
-        # trained_minute_models.Sell_90min_nnA2,
-        # trained_minute_models.Buy_90min_nnA1,  # WORKS GREAT?
-        # trained_minute_models.Sell_90min_nnA1,
-        # trained_minute_models.Buy_1hr_nnA1,  # WORKS GREAT?
-        # trained_minute_models.Sell_1hr_nnA1,
-        # trained_minute_models.Buy_2hr_A1,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_A1,
-        # trained_minute_models.Buy_2hr_A2,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_A2,
-        #
-        # # trained_minute_models.Buy_90min_A2,
-        # trained_minute_models.Sell_90min_A2,
-        #
-        # trained_minute_models.Buy_90min_A1,
-        # trained_minute_models.Sell_90min_A1,
-        # trained_minute_models.Buy_90min_A2,
-        # trained_minute_models.Sell_90min_A2,
-        # trained_minute_models.Buy_90min_A3,
-        # trained_minute_models.Sell_90min_A3,
-        trained_minute_models.Buy_90min_A4,
-        trained_minute_models.Sell_90min_A4,
-        trained_minute_models.Buy_90min_A5,
-        trained_minute_models.Sell_90min_A5,
-        # trained_minute_models.Buy_1hr_A9,
-        # trained_minute_models.Sell_1hr_A9,
-        trained_minute_models.Buy_1hr_A8,
-        trained_minute_models.Sell_1hr_A8,
-        trained_minute_models.Buy_1hr_A7,
-        trained_minute_models.Sell_1hr_A7,  # got 2 outt of 3, and when it works its >.1%
-
-        # trained_minute_models.Buy_1hr_A6,
-        # trained_minute_models.Sell_1hr_A6,
-        #
-        # trained_minute_models.Buy_1hr_A5,
-        # trained_minute_models.Sell_1hr_A5,
-        #
-        # trained_minute_models.Buy_1hr_A4,
-        # trained_minute_models.Sell_1hr_A4,
-        #
-        # trained_minute_models.Buy_1hr_A3,
-        # trained_minute_models.Sell_1hr_A3,
-        #
-        # trained_minute_models.Buy_1hr_A2,
-        # trained_minute_models.Sell_1hr_A2,
-        #
-        # trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
-        # trained_minute_models.Sell_1hr_A1,  ###didn't seem to work accurately enough
-        # # WORKS GREAT
-
-        # trained_minute_models.Sell_15min_A2,  # not sure
-    ]  # ... other models
+        ]  
 
 
 # # Function to handle a positive model result
