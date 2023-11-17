@@ -12,7 +12,7 @@ from UTILITIES.logger_config import logger
 def log_error(location, ticker, model_name, exception):
     logger.error(f"An error occurred in {location}. {ticker}, {model_name}: {exception}", exc_info=True)
 
-
+#TODO- if no buy signal for some, close all positions for that orderref.
 # Order placement functions
 async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, orderRef,
                                   quantity, take_profit_percent, trail_stop_percent):
@@ -68,10 +68,10 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 take_profit_percent = None
                 trail_stop_percent = None
             result = model_output_df.iloc[-1]
-            print(trail_stop_percent,take_profit_percent)
-            print(model_name,result)
+            # print(trail_stop_percent,take_profit_percent)
+            # print(model_name,result)
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
-            if result > 0.5\
+            if result >= 0.0\
                     :
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
@@ -94,12 +94,12 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
                     quantity=19, take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
                 )
-
+#TODO uncomment this if you want
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
-                await place_buy_order_sync(
-                    ticker, current_price, model_name, quantity=19,
-                    take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
-                )
+                # await place_buy_order_sync(
+                #     ticker, current_price, model_name, quantity=19,
+                #     take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
+                # )
 
         except Exception as e:
             log_error("actions", ticker, model_name, e)
@@ -121,72 +121,19 @@ async def send_notification(ticker, current_price, upordown, model_name, formatt
 def get_model_list():
     return [
         # Add the actual models here
-        trained_minute_models.Buy_3hr_15minA2baseSPYA1,
+        # trained_minute_models.Buy_3hr_15minA2baseSPYA1,
         trained_minute_models.Sell_3hr_15minA2baseSPYA1,
-        trained_minute_models.Buy_30min_15minA2SPY_A1_test,
-        trained_minute_models.Sell_30min_15minA2SPY_A1_test,
+        # trained_minute_models.Buy_30min_15minA2SPY_A1_test,
+        # trained_minute_models.Sell_30min_15minA2SPY_A1_test,
         # trained_minute_models.Buy_2hr_RFSPYA2,
         # trained_minute_models.Sell_2hr_RFSPYA2,
         # trained_minute_models.Buy_2hr_RFSPYA1,
         # trained_minute_models.Sell_2hr_RFSPYA1,
         # pytorch_trained_minute_models.Buy_4hr_ffSPY230805,
-        pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
+        # pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
-        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
-        # pytorch_trained_minute_models.Buy_1hr_ptmin1A1,
-        # trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_4hr_nnSPYA1,
-        # trained_minute_models.Buy_2hr_gsmmcA1,
-        # trained_minute_models.Sell_2hr_gsmmcA1,
-        # trained_minute_models.Buy_2hr_nnA2,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_nnA2,
-        # trained_minute_models.Buy_90min_nnA2,  # WORKS GREAT?
-        # trained_minute_models.Sell_90min_nnA2,
-        # trained_minute_models.Buy_90min_nnA1,  # WORKS GREAT?
-        # trained_minute_models.Sell_90min_nnA1,
-        # trained_minute_models.Buy_1hr_nnA1,  # WORKS GREAT?
-        # trained_minute_models.Sell_1hr_nnA1,
-        # trained_minute_models.Buy_2hr_A1,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_A1,
-        # trained_minute_models.Buy_2hr_A2,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_A2,
-        #
-        # # trained_minute_models.Buy_90min_A2,
-        # trained_minute_models.Sell_90min_A2,
-        #
-        # trained_minute_models.Buy_90min_A1,
-        # trained_minute_models.Sell_90min_A1,
-        # trained_minute_models.Buy_90min_A2,
-        # trained_minute_models.Sell_90min_A2,
-        # trained_minute_models.Buy_90min_A3,
-        # trained_minute_models.Sell_90min_A3,
-        trained_minute_models.Buy_90min_A4,
-        trained_minute_models.Sell_90min_A4,
-        trained_minute_models.Buy_90min_A5,
-        trained_minute_models.Sell_90min_A5,
-        # trained_minute_models.Buy_1hr_A9,
-        # trained_minute_models.Sell_1hr_A9,
-        trained_minute_models.Buy_1hr_A8,
-        trained_minute_models.Sell_1hr_A8,
-        trained_minute_models.Buy_1hr_A7,
-        trained_minute_models.Sell_1hr_A7,  # got 2 outt of 3, and when it works its >.1%
 
-        # trained_minute_models.Buy_1hr_A6,
-        # trained_minute_models.Sell_1hr_A6,
-        #
-        # trained_minute_models.Buy_1hr_A5,
-        # trained_minute_models.Sell_1hr_A5,
-        #
-        # trained_minute_models.Buy_1hr_A4,
-        # trained_minute_models.Sell_1hr_A4,
-        #
-        # trained_minute_models.Buy_1hr_A3,
-        # trained_minute_models.Sell_1hr_A3,
-        #
-        # trained_minute_models.Buy_1hr_A2,
-        # trained_minute_models.Sell_1hr_A2,
-        #
         # trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
         # trained_minute_models.Sell_1hr_A1,  ###didn't seem to work accurately enough
         # # WORKS GREAT

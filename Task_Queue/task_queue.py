@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 import requests
 from PrivateData import tradier_info
 import PrivateData.twitter_info
-from Task_Queue.task_queue_cellery_bossman import app as app
+# from Task_Queue.task_queue_cellery_bossman import app as app
 from dateutil import parser
+from celery import Celery
+app = Celery("StockAlgoV2_followup_tweet", broker="redis://localhost:6379/0", backend="redis://localhost:6379/0")
 
 
 def reply_tweet_1_hour_later(message, tweet_id):

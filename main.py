@@ -5,6 +5,8 @@ import asyncio
 import os
 import traceback
 
+import ib_insync
+
 import calculations
 # import new_marketdata
 import trade_algos
@@ -21,6 +23,7 @@ async def handle_ticker_cycle(session, ticker):
         start_time = datetime.now()
         try:
             data = await get_options_data_for_ticker(session, ticker)
+            await asyncio.sleep(0)
             await handle_ticker( *data)
 
             end_time = datetime.now()
@@ -47,20 +50,31 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 
 
 #TODO actions is taking 16 of the 35 seconds.
-async def ib_connect_and_main():
+async def check_and_reconnect_ib():
     while True:
-        await ibAPI.ib_connect()  # Connect to IB here
-        await asyncio.sleep(5 * 60)
-        print('running ib_connect_and_main again.')
+        if not ibAPI.ib.isConnected():
+            try:
+                await ibAPI.ib_connect()
+                logger.info("Reconnected to IB.")
+            except Exception as e:
+                logger.error(f"Failed to reconnect to IB: {e}")
+        await asyncio.sleep(300)  # Check every 5 minutes
 
 async def run_program():
-    await asyncio.gather(ib_connect_and_main(), main())
+    reconnect_task = asyncio.create_task(check_and_reconnect_ib())
+    main_task = asyncio.create_task(main())
+
+    # Wait for both tasks to complete
+    # If one task is intended to run indefinitely, this will also run indefinitely
+    await asyncio.gather(reconnect_task, main_task)
 
 
 semaphore = asyncio.Semaphore(500)
 async def get_options_data_for_ticker(session, ticker):
     ticker = ticker.upper()
+    await asyncio.sleep(0)
     try:
+
         LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
         print(f"{ticker} OptionData complete at {datetime.now()}.")
         return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
@@ -100,6 +114,7 @@ async def main():
 
                 tasks = []
                 for i, ticker in enumerate(tickerlist):
+                    await asyncio.sleep(0)
                     await asyncio.sleep(i * delay_interval)  # This will stagger the start times
                     task = asyncio.create_task(handle_ticker_cycle(session, ticker))
                     tasks.append(task)
