@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import tweepy
-import PrivateData.twitter_info
+import PrivateData
 from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
 # min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
@@ -20,7 +20,6 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
     timestamp_file_path = os.path.join(directory, f"last_tweet_timestamp_{modelname}_{ticker}.txt")
     current_time = datetime.datetime.now()
 
-    # Setting up Twitter client
     bearer_token = PrivateData.twitter_info.bearer_token
     consumer_key = PrivateData.twitter_info.consumer_key
     consumer_secret = PrivateData.twitter_info.consumer_secret
@@ -49,11 +48,9 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             tweet_id = response.data["id"]
             print("Tweet ID:", tweet_id)
 
-            # Write the last_tweet_time after the successful tweet
             with open(timestamp_file_path, "w") as file:
                 file.write(current_time.isoformat())
 
-            # Trigger Celery task
             celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             print(f"Error while sending tweet: {e}")
@@ -63,27 +60,25 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
 
 
 def email_me_string(model_name, callorput, ticker):
-    # Email configuration
-    message = model_name
-    smtp_host = "bonsaiheart.com"
-    smtp_port = 587
-    smtp_user = "bot@bonsaiheart.com"
-    smtp_password = "P3ruv!4nT0rch"
-    from_email = "bot@bonsaiheart.com"
-    to_email = "bot@bonsaiheart.com"
-    subject = f"{message} {str(ticker)}"
 
-    # Create the email message
+    message = model_name
+    smtp_host = PrivateData.email.smtp_host
+    smtp_port = PrivateData.email.smtp_port
+    smtp_user = PrivateData.email.smtp_user
+    smtp_password = PrivateData.email.smtp_password
+    from_email = PrivateData.email.from_email
+    to_email = PrivateData.email.to_email
+
+    subject = f"{str(ticker)}* {message} "
+
     msg = MIMEMultipart()
     msg["From"] = from_email
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    # Set the message content
-    body = MIMEText(message)
+    body = MIMEText(f"{str(ticker)}* {message}" )
     msg.attach(body)
 
-    # Send the email using SMTP
     server = smtplib.SMTP(smtp_host, smtp_port)
     server.starttls()
     server.login(smtp_user, smtp_password)
@@ -95,24 +90,24 @@ def email_me_string(model_name, callorput, ticker):
 
 # send_tweet("spy","3","up","test")
 
-
+email_me_string("Buy_1hr_Ptminfakerrrhah","C","SPY")
 def email_me(filepath):
     # Email configuration
-    smtp_host = "bonsaiheart.com"
-    smtp_port = 587
-    smtp_user = "bot@bonsaiheart.com"
-    smtp_password = "P3ruv!4nT0rch"
-    from_email = "bot@bonsaiheart.com"
-    to_email = "bot@bonsaiheart.com"
+    smtp_host = PrivateData.email.smtp_host
+    smtp_port = PrivateData.email.smtp_port
+    smtp_user = PrivateData.email.smtp_user
+    smtp_password = PrivateData.email.smtp_password
+    from_email = PrivateData.email.from_email
+    to_email = PrivateData.email.to_email
     subject = f"{filepath}"
 
-    # Create the email message
+    # create mesage
     msg = MIMEMultipart()
     msg["From"] = from_email
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    # Attach the CSV file to the email message
+    # Attach CSV content
     csv_file_path = filepath
     with open(csv_file_path, "rb") as f:
         part = MIMEBase("application", "octet-stream")

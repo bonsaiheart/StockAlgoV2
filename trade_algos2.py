@@ -93,7 +93,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
         #TODO uncomment optionorder.
                 # await place_option_order_sync(
                 #     CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-                #     quantity=19, take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
+                #     quantity=19, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
                 # )
 
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
@@ -132,29 +132,6 @@ def get_model_list():
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         ]  
-
-
-# # Function to handle a positive model result
-# async def handle_positive_result(model_name, ticker, current_price, optionchain_df, processeddata_df, custom_takeprofit,
-#                                  custom_trailingstop):
-#     upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
-#         optionchain_df, processeddata_df, ticker, model_name
-#     )
-#
-#     # Send a notification about the positive result
-#     await send_notification(ticker, current_price, upordown, model_name, formatted_time)
-#
-#     # Place the option order
-#     await place_option_order_sync(
-#         CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-#         quantity=10, take_profit_percent=custom_takeprofit, trail_stop_percent=custom_trailingstop
-#     )
-#
-#     # If you also want to place a buy order
-#     await place_buy_order_sync(
-#         ticker, current_price, model_name, quantity=10,
-#         take_profit_percent=custom_takeprofit, trail_stop_percent=custom_trailingstop
-#     )
 
 
 # Function to retrieve contract details
@@ -199,12 +176,12 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
 
 
 # Main execution
-if __name__ == "__main__":
-    # Replace the placeholder paths with the actual paths to your CSV files
-    asyncio.run(actions(
-        'path_to_optionchain.csv',
-        'path_to_dailyminutes.csv',
-        'path_to_processeddata.csv',
-        'ticker_symbol',
-        'current_price'
-    ))
+# if __name__ == "__main__":
+#     # Replace the placeholder paths with the actual paths to your CSV files
+#     asyncio.run(actions(
+#         'path_to_optionchain.csv',
+#         'path_to_dailyminutes.csv',
+#         'path_to_processeddata.csv',
+#         'ticker_symbol',
+#         'current_price'
+#     ))

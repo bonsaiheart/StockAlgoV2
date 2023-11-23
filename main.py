@@ -1,15 +1,10 @@
 import cProfile
-import logging
 from datetime import datetime, timedelta
 import asyncio
-import os
 import traceback
-
 import calculations
-# import new_marketdata
 import trade_algos
 import trade_algos2
-from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 import aiohttp
@@ -47,14 +42,14 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 
 
 #TODO actions is taking 16 of the 35 seconds.
-async def ib_connect_and_main():
+async def ib_connect():
     while True:
         await ibAPI.ib_connect()  # Connect to IB here
         await asyncio.sleep(5 * 60)
         print('running ib_connect_and_main again.')
 
 async def run_program():
-    await asyncio.gather(ib_connect_and_main(), main())
+    await asyncio.gather(ib_connect(), main())
 
 
 semaphore = asyncio.Semaphore(500)
