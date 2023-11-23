@@ -62,13 +62,14 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
         try:
             # TODO make each model return signal, so they can have individual thressholds for buy/sell.
             if isinstance(model_output, tuple):
-                model_output_df, take_profit_percent, trail_stop_percent = model_output
+                model_output_df, stock_take_profit_percent, stock_trail_stop_percent,option_take_profit_percent,option_trail_stop_percent = model_output
             else:
                 model_output_df = model_output  # Assuming `model_output` is a DataFrame or similar
-                take_profit_percent = None
-                trail_stop_percent = None
+                stock_take_profit_percent = None
+                stock_trail_stop_percent = None
+                option_take_profit_percent = None
+                option_trail_stop_percent = None
             result = model_output_df.iloc[-1]
-            print(trail_stop_percent,take_profit_percent)
             print(model_name,result)
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
             if result > 0.5\
@@ -89,16 +90,16 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     seconds_till_expectedprofit, model_name
                 )
 
-                # Place the option order
-                await place_option_order_sync(
-                    CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-                    quantity=19, take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
-                )
+        #TODO uncomment optionorder.
+                # await place_option_order_sync(
+                #     CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
+                #     quantity=19, take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
+                # )
 
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
                 await place_buy_order_sync(
-                    ticker, current_price, model_name, quantity=19,
-                    take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
+                    ticker, current_price, model_name, quantity=4,
+                    take_profit_percent=stock_take_profit_percent, trail_stop_percent=stock_trail_stop_percent
                 )
 
         except Exception as e:
@@ -121,17 +122,15 @@ async def send_notification(ticker, current_price, upordown, model_name, formatt
 def get_model_list():
     return [
         # Add the actual models here
-        trained_minute_models.Buy_3hr_15minA2baseSPYA1,
-        trained_minute_models.Sell_3hr_15minA2baseSPYA1,
-        trained_minute_models.Buy_30min_15minA2SPY_A1_test,
-        trained_minute_models.Sell_30min_15minA2SPY_A1_test,
+        # trained_minute_models.Buy_3hr_15minA2baseSPYA1,
+        # trained_minute_models.Sell_3hr_15minA2baseSPYA1,
         pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
-        pytorch_trained_minute_models.Sell_20min_05pctdown_ptclass_S1,
-        pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
+        # pytorch_trained_minute_models.Sell_20min_05pctdown_ptclass_S1,
+        # pytorch_trained_minute_models.Buy_1hr_ptmin/classSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
-        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
+        # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
+        # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         ]  
 
 

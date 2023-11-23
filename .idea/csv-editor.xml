@@ -234,6 +234,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_231101.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_231110.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/DailyMinutes/SPY/SPY_231113.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/data/DailyMinutes/TSLA/TSLA_231011.csv">
           <value>
             <Attribute>

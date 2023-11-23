@@ -153,7 +153,7 @@ def Buy_20min_1pctup_ptclass_B1(new_data_df):
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
 
-    return result["Predictions"]
+    return result["Predictions"],.1,.1,None,None
 def Sell_20min_05pctdown_ptclass_S1(new_data_df):
     model_dir = "_20min_05pctdown_ptclass_S1"
 
@@ -262,7 +262,7 @@ def Buy_20min_05pctup_ptclass_B1(new_data_df):
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
 
-    return result["Predictions"]
+    return result["Predictions"],.1,.1,None,None
 def Buy_2hr_ptclassV3_A1(new_data_df):
     model_dir = "_2hr_ptclassV3_A1"
 
@@ -907,7 +907,7 @@ def Buy_3hr_PTminClassSPYA1(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"]
+    return result["Predictions"],.3,.5,None,None
 
 
 def Buy_2hr_ptminclassSPYA2(new_data_df):

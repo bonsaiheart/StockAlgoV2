@@ -77,7 +77,7 @@ async def ib_connect():
         print("~~~ Connecting ~~~")
         # randomclientID = random.randint(0, 999)#TODO change bac kclientid
         try:#TODO change back to client 1
-            await ib.connectAsync("192.168.1.119", 7497, clientId=1)
+            await ib.connectAsync("192.168.1.119", 7497, clientId=0)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logging.getLogger().error("Connection error: %s", e)
             print("~~Connection error:", e)
@@ -228,6 +228,8 @@ async def placeBuyBracketOrder(ticker, current_price,
     orderRef=None,
     take_profit_percent=.0003,
     trail_stop_percent=.0002):
+    trail_stop_percent = trail_stop_percent / 100
+    take_profit_percent =take_profit_percent/100
     print(f"~~~~~Placing {ticker} BuyBracket order~~~~~")
     try:
         if take_profit_percent==None:
@@ -277,8 +279,8 @@ async def placeBuyBracketOrder(ticker, current_price,
         stopLoss.orderType = "TRAIL"
         stopLoss.TrailingUnit = 1
         stopLoss.outsideRth = True
-        stopLoss.auxPrice = trailAmount
-        stopLoss.trailStopPrice = limit_price - trailAmount
+        stopLoss.trailingPercent = trailAmount
+        # stopLoss.trailStopPrice = limit_price - trailAmount
         stopLoss.totalQuantity = quantity
         stopLoss.parentId = parent.orderId
         stopLoss.transmit = True

@@ -41,7 +41,7 @@ Chosen_Predictor = [
     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 ]
 
-study_name=('20min_15pt_sell')
+study_name=('_20min_05ptdown_S1')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
