@@ -7,6 +7,7 @@ import traceback
 
 import ib_insync
 
+import ib_insync.util
 import calculations
 # import new_marketdata
 import trade_algos
@@ -28,13 +29,16 @@ async def handle_ticker_cycle(session, ticker):
 
             end_time = datetime.now()
             elapsed_time = (end_time - start_time).total_seconds()
+
             sleep_time = max(0, 60 - elapsed_time)
             await asyncio.sleep(sleep_time)
         except Exception as e:
             print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
             logger.exception(f"Error occurred for ticker {ticker}: {e}")
-            await asyncio.sleep(60)  # If there's an error, we can still wait for 60 seconds or handle it differently
-
+            end_time = datetime.now()
+            elapsed_time = (end_time - start_time).total_seconds()
+            sleep_time = max(0, 60 - elapsed_time)
+            await asyncio.sleep(sleep_time)
 
 async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     pr = cProfile.Profile()
@@ -52,6 +56,7 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 #TODO actions is taking 16 of the 35 seconds.
 async def check_and_reconnect_ib():
     while True:
+        ib_insync.util.getLoop()
         if not ibAPI.ib.isConnected():
             try:
                 await ibAPI.ib_connect()
@@ -75,16 +80,16 @@ async def get_options_data_for_ticker(session, ticker):
     await asyncio.sleep(0)
     try:
 
-        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
+        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, combined_optionchain_df,YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
         print(f"{ticker} OptionData complete at {datetime.now()}.")
-        return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
+        return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, combined_optionchain_df,YYMMDD
     except Exception as e:
         logger.exception(f"Error in get_options_data for {ticker}: {e}")
         raise
-async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD):
+async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, combined_optionchain_df,YYMMDD):
     try:
-        (optionchain, dailyminutes, processeddata, ticker) = calculations.perform_operations(
-            ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
+        (combined_optionchain_df_withlac_diff, dailyminutes, processeddata, ticker) = await calculations.perform_operations(
+            ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, combined_optionchain_df,YYMMDD
         )
         print(f"{ticker} PerformOptions complete at {datetime.now()}.")
     except Exception as e:
@@ -93,7 +98,7 @@ async def handle_ticker( ticker, LAC, current_price, price_change_percent, Stock
 
     if ticker in ["SPY", "TSLA", "GOOG"]:
         try:
-            asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+            asyncio.create_task(trade_algos2.actions(combined_optionchain_df_withlac_diff, dailyminutes, processeddata, ticker, current_price))
             print(f"{ticker} Actions complete at {datetime.now()}.")
         except Exception as e:
             logger.exception(f"Error in actions for {ticker}: {e}")
@@ -134,6 +139,10 @@ async def main():
 
 if __name__ == "__main__":
     try:
+        #use this to exit all and plose open orders.
+        # ibAPI.ib_reset_and_close_pos()
+        # ibAPI.util.patchAsyncio()
         asyncio.run(run_program())
+
     finally:
         ibAPI.ib_disconnect()  # Disconnect at the end of the script

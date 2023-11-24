@@ -1,6 +1,8 @@
 import asyncio
 import re
 from datetime import datetime
+
+import numpy as np
 import pandas as pd
 import IB.ibAPI
 from Strategy_Testing.Trained_Models import trained_minute_models, pytorch_trained_minute_models
@@ -17,6 +19,8 @@ def log_error(location, ticker, model_name, exception):
 async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, orderRef,
                                   quantity, take_profit_percent, trail_stop_percent):
     try:
+        print(ticker,exp,strike,contract_current_price,orderRef)
+        print('Tradealgo - placeOptionBracketOrder')
         await IB.ibAPI.placeOptionBracketOrder(
             CorP, ticker, exp, strike, contract_current_price, quantity,
             orderRef, take_profit_percent, trail_stop_percent
@@ -68,11 +72,15 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 take_profit_percent = None
                 trail_stop_percent = None
             result = model_output_df.iloc[-1]
-            # print(trail_stop_percent,take_profit_percent)
-            # print(model_name,result)
+            # print(model_name, result)
+            if np.isnan(result):
+                logger.warning(f"The result of {model_name} is NaN.")
+
+            #TODO collect the positive results to send a single order?  prevents lots of cancels in ib for children?
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
             if result >= 0.0\
                     :
+                print(model_name, 'result is :', result)
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
@@ -100,7 +108,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 #     ticker, current_price, model_name, quantity=19,
                 #     take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
                 # )
-
+                break
         except Exception as e:
             log_error("actions", ticker, model_name, e)
 
@@ -122,7 +130,7 @@ def get_model_list():
     return [
         # Add the actual models here
         # trained_minute_models.Buy_3hr_15minA2baseSPYA1,
-        trained_minute_models.Sell_3hr_15minA2baseSPYA1,
+        # trained_minute_models.Sell_3hr_15minA2baseSPYA1,
         # trained_minute_models.Buy_30min_15minA2SPY_A1_test,
         # trained_minute_models.Sell_30min_15minA2SPY_A1_test,
         # trained_minute_models.Buy_2hr_RFSPYA2,
@@ -132,7 +140,7 @@ def get_model_list():
         # pytorch_trained_minute_models.Buy_4hr_ffSPY230805,
         # pytorch_trained_minute_models.Buy_1hr_ptminclassSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
+        pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
 
         # trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
         # trained_minute_models.Sell_1hr_A1,  ###didn't seem to work accurately enough
@@ -168,27 +176,30 @@ def get_model_list():
 # Function to retrieve contract details
 def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
+    # print(optionchain_df.columns)
+    # print(optionchain_df["ExpDate"])
     closest_exp_date = processeddata_df['ExpDate'].iloc[0]
     closest_strikes_list = processeddata_df["Closest Strike Above/Below(below to above,4 each) list"].iloc[0]
 
     # Format the expiration date for IB
     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
-    print(date_object)
+    # print(date_object)
     formatted_contract_date = date_object.strftime("%y%m%d")
 
     IB_option_date = date_object.strftime("%Y%m%d")
-    print(IB_option_date)
+    # print(IB_option_date)
     # Determine the type of contract based on the model name
     CorP = "C" if "Buy" in model_name else "P"
-
+    # print(closest_strikes_list,"CLOSESET STRRIKES LIST")
     # Calculate the contract strike and price
-    contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
+    #closest_strike_list is ex:[400,405,410,415,420,425,430,435]
+    contractStrike = closest_strikes_list[2] if CorP == "C" else closest_strikes_list[-3]
     # has for mat 410.5
     formatted_contract_strike = contractStrike * 1000
-    print(contractStrike)
+    # print(contractStrike)
     contract_symbol = f"{ticker}{formatted_contract_date}{CorP}{int(formatted_contract_strike):08d}"
-    print(contract_symbol)
-    print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
+    # print(contract_symbol)
+    # print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
     # Get the last price for the contract
     if CorP == "C":
         contract_price = \

@@ -15,7 +15,7 @@ from UTILITIES.logger_config import logger
 async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, orderRef,quantity=10,
                                   custom_takeprofit=None, custom_trailamount=None, loop=None):
     try:
-        await IB.ibAPI.placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity,
+        IB.ibAPI.placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity,
                                                orderRef, custom_takeprofit, custom_trailamount)
     except Exception as e:
         logger.error(f"An error occurred in place_option_order_sync. {ticker} : {e}", exc_info=True)

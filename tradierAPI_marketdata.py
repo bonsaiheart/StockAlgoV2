@@ -9,7 +9,7 @@ import ta
 import PrivateData.tradier_info
 from UTILITIES.logger_config import logger
 
-concurrency_limit = 2
+concurrency_limit = 500
 # import webullAPI
 # Add a small constant to denominators taper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
@@ -225,7 +225,7 @@ async def get_options_data(session, ticker):
     puts_df.rename(columns={k: f"p_{v}" for k, v in rename_dict.items()}, inplace=True)
 
     # Merge dataframes
-    combined = pd.merge(puts_df, calls_df, on=["ExpDate", "Strike"])
+    combined_optionchain_df = pd.merge(puts_df, calls_df, on=["ExpDate", "Strike"])
     # Update renaming dictionary for the combined DataFrame
     rename_dict_combined = {
         "c_lastPrice": "Call_LastPrice",
@@ -245,7 +245,8 @@ async def get_options_data(session, ticker):
         "p_lastPriceXoi": "Puts_lastPriceXoi",
     }
 
-    combined.rename(columns=rename_dict_combined, inplace=True)
+    combined_optionchain_df.rename(columns=rename_dict_combined, inplace=True)
+
     ####################
     # for option in json_response["options"]["option"]:
     #     print(option["symbol"], option["open_interest"])
@@ -255,17 +256,16 @@ async def get_options_data(session, ticker):
 
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-
     try:
-        combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x")
+        combined_optionchain_df.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x")
     except Exception as e:
         if FileExistsError:
             if StockLastTradeTime == 1600:
-                combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
+                combined_optionchain_df.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
         else:
             print(f"An error occurred while writing the CSV file,: {e}")
-            combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
+            combined_optionchain_df.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
     # combined.to_csv(f"combined_tradier.csv")
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
 
-    return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, expiration_dates,YYMMDD
+    return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, combined_optionchain_df,YYMMDD

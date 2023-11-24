@@ -3,28 +3,19 @@ import numpy as np
 import pandas as pd
 
 
-def perform_operations(
+async def perform_operations(
         ticker,
         last_adj_close,
-        current_price,        # calls_DFSxOI_dict = (
-        #     group.loc[group["Calls_dollarsFromStrikeXoi"] >= 0, ["Strike", "Calls_dollarsFromStrikeXoi"]]
-        #     .set_index("Strike")
-        #     .to_dict()
-        # )
-        # puts_DFSxOI_dict = (
-        #     group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
-        #     .set_index("Strike")
-        #     .to_dict()
-        # )
+        current_price,
         price_change_percent,
         StockLastTradeTime,
         this_minute_ta_frame,
-        expiration_dates,
+        optionchain_df,
         YYMMDD
 ):
     results = []
 
-    optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
+    # optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
 
     groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
