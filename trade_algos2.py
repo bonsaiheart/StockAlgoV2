@@ -74,6 +74,11 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
             if result > 0.5\
                     :
+                try:
+                    send_notifications.email_me_string(model_name,CorP,ticker)
+                except Exception as e:
+                    print(f"Cemail error {e}.")
+                    logger.exception(f"An error occurred while emailin{e}")
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
@@ -93,29 +98,21 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
         #TODO uncomment optionorder.
                 # await place_option_order_sync(
                 #     CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-                #     quantity=19, take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
+                #     quantity=19,f take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
                 # )
 
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
                 await place_buy_order_sync(
                     ticker, current_price, model_name, quantity=4,
                     take_profit_percent=stock_take_profit_percent, trail_stop_percent=stock_trail_stop_percent
-                )
+                     )
 
         except Exception as e:
             log_error("actions", ticker, model_name, e)
 
 
 # Define a function to send notifications (assuming you have this functionality in the send_notifications module)
-async def send_notification(ticker, current_price, upordown, model_name, formatted_time):
-    message = f"${ticker} ${current_price}. Time to make money on a {upordown} #{model_name} {formatted_time}"
 
-    # Assuming you have an async function to send notifications
-    await send_notifications.async_send_tweet(message)
-
-    # For a synchronous function you can use run_in_executor to run it in an async manner
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, send_notifications.sync_send_email, message)
 ##TODO add clause to track price after buy signal.. if it drops x% then rebuy/reaverage.
 
 # Define the model list, this assumes that the model list is predefined

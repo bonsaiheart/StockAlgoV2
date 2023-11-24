@@ -16,8 +16,8 @@ from IB import ibAPI
 import aiohttp
 from UTILITIES.logger_config import logger
 
-is_market_open = check_Market_Conditions.is_market_open_now()
-# is_market_open=True
+# is_market_open = check_Market_Conditions.is_market_open_now()
+is_market_open=True
 async def handle_ticker_cycle(session, ticker):
     while True:
         start_time = datetime.now()

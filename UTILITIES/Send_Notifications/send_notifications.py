@@ -7,6 +7,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import tweepy
 import PrivateData
+import PrivateData.email
 from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
 # min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
@@ -90,7 +91,7 @@ def email_me_string(model_name, callorput, ticker):
 
 # send_tweet("spy","3","up","test")
 
-email_me_string("Buy_1hr_Ptminfakerrrhah","C","SPY")
+# email_me_string("Buy_1hr_Ptminfakerrrhah","C","SPY")
 def email_me(filepath):
     # Email configuration
     smtp_host = PrivateData.email.smtp_host
