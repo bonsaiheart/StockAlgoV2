@@ -181,76 +181,7 @@ async def actions(optionchain, dailyminutes, processeddata, ticker, current_pric
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
         pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
-        # pytorch_trained_minute_models.Buy_1hr_ptmin1A1,
-        # trained_minute_models.Buy_4hr_nnSPYA1,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_4hr_nnSPYA1,
-        trained_minute_models.Buy_2hr_gsmmcA1,
-        # trained_minute_models.Sell_2hr_gsmmcA1,
-        # trained_minute_models.Buy_2hr_nnA2,  ##made 3 out of 3, >.25% change! wow
-        # trained_minute_models.Sell_2hr_nnA2,
-        # trained_minute_models.Buy_90min_nnA2,  # WORKS GREAT?
-        # trained_minute_models.Sell_90min_nnA2,
-        # trained_minute_models.Buy_90min_nnA1,  # WORKS GREAT?
-        # trained_minute_models.Sell_90min_nnA1,
-        # trained_minute_models.Buy_1hr_nnA1,  # WORKS GREAT?
-        # trained_minute_models.Sell_1hr_nnA1,
-        trained_minute_models.Buy_2hr_A1,  ##made 3 out of 3, >.25% change! wow
-        trained_minute_models.Sell_2hr_A1,
-        trained_minute_models.Buy_2hr_A2,  ##made 3 out of 3, >.25% change! wow
-        trained_minute_models.Sell_2hr_A2,
-
-        # trained_minute_models.Buy_90min_A2,
-        trained_minute_models.Sell_90min_A2,
-
-        # trained_minute_models.Buy_90min_A1,
-        # trained_minute_models.Sell_90min_A1,
-        # trained_minute_models.Buy_90min_A2,
-        trained_minute_models.Sell_90min_A2,
-        trained_minute_models.Buy_90min_A3,
-        trained_minute_models.Sell_90min_A3,
-        trained_minute_models.Buy_90min_A4,
-        trained_minute_models.Sell_90min_A4,
-        # trained_minute_models.Buy_90min_A5,
-        # trained_minute_models.Sell_90min_A5,
-        # trained_minute_models.Buy_1hr_A9,
-        # trained_minute_models.Sell_1hr_A9,
-        # trained_minute_models.Buy_1hr_A8,
-        # trained_minute_models.Sell_1hr_A8,
-        # trained_minute_models.Buy_1hr_A7,
-        # trained_minute_models.Sell_1hr_A7,  # got 2 outt of 3, and when it works its >.1%
-
-        # trained_minute_models.Buy_1hr_A6,
-        # trained_minute_models.Sell_1hr_A6,
-
-        # trained_minute_models.Buy_1hr_A5,
-        # trained_minute_models.Sell_1hr_A5,
-
-        # trained_minute_models.Buy_1hr_A4,
-        # trained_minute_models.Sell_1hr_A4,
-
-        trained_minute_models.Buy_1hr_A3,
-        trained_minute_models.Sell_1hr_A3,
-
-        trained_minute_models.Buy_1hr_A2,
-        trained_minute_models.Sell_1hr_A2,
-
-        trained_minute_models.Buy_1hr_A1,  # WORKS GREAT?
-        trained_minute_models.Sell_1hr_A1,  ###didn't seem to work accurately enough
-        # WORKS GREAT?
-        # trained_minute_models.Buy_45min_A1,
-        # trained_minute_models.Sell_45min_A1,# only works ~50%?
-
-        # trained_minute_models.Buy_30min_A1,  # WORKS GREAT?
-        # trained_minute_models.Sell_30min_A1,  # seems to work well, expect .03-.1 drop.
-
-        # trained_minute_models.Buy_20min_A1,  # WORKS GREAT?
-        # trained_minute_models.Sell_20min_A1,
-        # WORKS GREAT?
-        # trained_minute_models.Buy_15min_A2,  # works well?
-        trained_minute_models.Sell_15min_A2,  # not sure
-        # trained_minute_models.Buy_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
-        # trained_minute_models.Sell_15min_A1,  ##A1 picks up more moves, but more false positives - and more big moves
-    ]
+     ]
     dailyminutes_df = pd.read_csv(dailyminutes)
 
     # Store results in a dictionary for easy access
