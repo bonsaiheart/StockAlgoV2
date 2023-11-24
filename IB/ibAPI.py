@@ -2,11 +2,7 @@ import asyncio
 import datetime
 import logging
 import os
-import json
-import uuid
-from random import random
-
-import ib_insync.util
+# import random
 from ib_insync import *
 from mpmath import rand
 
@@ -18,6 +14,7 @@ log_dir = os.path.join(project_dir, "errorlog")
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 logging.getLogger('ib_insync').setLevel(logging.WARNING)
+# Explicitly add the handler for ib_insync
 logging.getLogger('ib_insync').addHandler(logger.handlers[0])
 # TODO note that when i dont use the order handler += at the end, thats when orders seem to get mismatched/not transmitted etc.
 # ib_insync.util.getLoop()
@@ -72,14 +69,21 @@ def reset_all():
 def connection_stats():
     print(ib.isConnected())
 
+# def handle_exception(loop, context):
+#     msg = context.get("exception", context["message"])
+#     logging.error(f"Caught exception: {msg}")
+#     logging.info("Shutting down...")
+#     asyncio.create_task(loop.shutdown())
+# loop = asyncio.get_event_loop()
+# loop.set_exception_handler(handle_exception)
+
 
 # ib.disconnect()
 async def ib_connect():
     if not ib.isConnected():
         print("~~~ Connecting ~~~")
         # randomclientID = random.randint(0, 999)#TODO change bac kclientid
-        ib_insync.util.getLoop()
-        ib_insync.util.getLoop()
+        # ib_insync.util.getLoop()
 
         try:
             await ib.connectAsync("192.168.1.119", 7497, clientId=0, timeout=45)
@@ -130,53 +134,16 @@ async def getTrade(order):
 
 # With trade.isDone() can the be checked if the order is stil running or not.
 
+#
+# def handle_exception(loop, context):
+#     msg = context.get("exception", context["message"])
+#     print('handleexception: ', msg)
+#     logging.error(f"Caught exception: {msg}")
+#     logging.info("Shutting down...")
+#     asyncio.create_task(loop.shutdown())
 
-def handle_exception(loop, context):
-    msg = context.get("exception", context["message"])
-    print('handleexception: ', msg)
-    logging.error(f"Caught exception: {msg}")
-    logging.info("Shutting down...")
-    asyncio.create_task(loop.shutdown())
 
 
-# async def cancel_order(order):
-#     trade = await getTrade(order)
-#     if trade.orderStatus.status == 'Cancelled':
-#         print("Order already cancelled")
-#         return
-#
-#     # Set up an asyncio Event to wait for the order to be cancelled
-#     order_cancelled = asyncio.Event()
-#
-#     # Define a callback function for order status updates
-#     def on_order_status(trade_update, order_status):
-#         if trade_update.order.orderId == order.orderId and order_status.status == 'Cancelled':
-#             order_cancelled.set()
-#
-#     # Subscribe to the order status event
-#     ib.orderStatusEvent += on_order_status
-#
-#     # Send cancel request
-#     ib.cancelOrder(order)
-#
-#     # Wait for the order status to change to 'Cancelled'
-#     await order_cancelled.wait()
-#
-#     # Unsubscribe from the event to avoid memory leaks
-#     ib.orderStatusEvent -= on_order_status
-#
-#     print("Order cancelled")
-# async def cancel_order(order):
-#     print('attempting to cancel',order)
-#     trade = await getTrade(order)
-#     if trade.orderStatus.status != 'Cancelled':
-#         print("TRADE ORDERSTATUSEVENT",trade.orderStatus)
-#         # ib.cancelOrder(order)
-#         ib.cancelOrder(order)
-#         # ib.waitOnUpdate()
-#
-#     while trade.orderStatus.status != 'Cancelled' :
-#         print(trade.orderStatus.status)
 
 # Define a callback function for the cancelOrderEvent
 async def cancel_order(order):
@@ -364,72 +331,9 @@ async def replace_child_orders(order_details, contract,
                 await asyncio.sleep(1)
 
             # print(await getTrade(takeProfit))
-
-
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.exception(f"An error occurred while replace children.{ticker_contract},: {e}")
+        logger.exception(f"An error occurred while replace child orders.{ticker_contract},: {e}")
 
-
-# Event handler for order status updates
-async def orderStatusHandler(trade: Trade):
-    global parentOrders
-
-    order_id = trade.order.orderId  # Accessing the orderId from the order attribute of the Trade object
-    # print("status handler order id",order_id)
-    # Find the parent order for the updated child order
-    # for parentOrderId, orderDetails in parentOrders.items():
-    #     if 'childOrderIds' in orderDetails and order_id in orderDetails['childOrderIds']:
-    #         # Update the status of the child order
-    #         childOrderStatus = {
-    #             "filled": trade.filled(),
-    #             "remaining": trade.remaining(),
-    #             "status": trade.orderStatus.status
-    #         }
-    # print("order details :",order_details)
-    # orders_to_cancel = [order for order in child_orders_objs]
-    # await cancel_orders(child_orders_objs)
-    # for order in child_orders_objs:
-    #     trade = await getTrade(order)
-    #     print("TRADE cancelled?:  ",trade)
-    #     # ib.sleep(20)
-    #     # print("TRADE cancelled now?:  ", trade)
-
-    # Replace orders with updated details
-    # await placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price,
-    #                               quantity, orderRef, take_profit_percent, trailstop_amount_percent,
-    #                               check_opposite_orders=False, order_details=order_details)
-
-
-# async def reinstate_cancelled_orders(orders_to_reinstate):
-#     for order_id, orderDetails in orders_to_reinstate.items():
-#         print("reinstating orders: ",orderDetails)
-#         await placeOptionBracketOrderFromDetails(orderDetails)
-#         # elif orderDetails["contract"].__class__ == Stock:
-#         #     await placeStockBracketOrderFromDetails(orderDetails)
-#
-async def can_place_new_order(ib, contract, threshold=7):
-    # Fetch open orders
-    open_trades =  ib.openTrades()
-    print(open_trades)
-
-    # print(contract[0].conId)
-    # Count orders for the specified contract
-    count = sum(1 for trade in open_trades if trade.contract.conId == contract[0].conId)
-    print(f"{count} open orders for {contract}.")
-    # Return True if below threshold, False otherwise
-    return count < threshold
-# async def can_place_new_order(ib, contract, threshold=10):
-#     # Fetch open trades
-#     open_trades = ib.openTrades()
-#
-#     # Count BUY and SELL orders for the specified contract
-#     buy_count = sum(1 for trade in open_trades if trade.contract == contract and trade.order.action == 'BUY')
-#     sell_count = sum(1 for trade in open_trades if trade.contract == contract and trade.order.action == 'SELL')
-#
-#     print(f"{buy_count} BUY orders and {sell_count} SELL orders for {contract.localSymbol}.")
-#
-#     # Check if below threshold for both BUY and SELL
-#     return buy_count < threshold and sell_count < threshold
 async def placeOptionBracketOrder(
         CorP,
         ticker,
@@ -441,44 +345,50 @@ async def placeOptionBracketOrder(
         take_profit_percent=.15,
         trailstop_amount_percent=.2,
         check_opposite_orders=True):
-    # if take_profit_percent == None:
-    #     take_profit_percent = .15
-    # if trailstop_amount_percent == None:
-    #     trailstop_amount_percent = .2
-    take_profit_percent = .05
-    trailstop_amount_percent=.05
-    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=30)).strftime("%Y%m%d %H:%M:%S")
-    print("~~~Placing OptionBracket order~~~:")
-    ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
+    if take_profit_percent == None:
+        take_profit_percent = .15
+    if trailstop_amount_percent == None:
+        trailstop_amount_percent = .2
+    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
+    print("~~~Placing order~~~:")
+    print("~~~gtddelta:", gtddelta)
+    ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
     qualified_contract = await ib.qualifyContractsAsync(ticker_contract)
-    print('qualified_contract')
+
     if await can_place_new_order(ib, qualified_contract):
         if check_opposite_orders:
             try:
                 print("Checking opposite orders.")
                 action = "SELL"  # Adjust based on your logic
-                await cancel_and_replace_orders(ticker_contract,action, CorP, ticker, exp, strike, contract_current_price,
+                await cancel_and_replace_orders(ticker_contract, action, CorP, ticker, exp, strike,
+                                                contract_current_price,
                                                 quantity, orderRef, take_profit_percent, trailstop_amount_percent)
                 # ib.sleep(5)
             except (Exception, asyncio.exceptions.TimeoutError) as e:
                 logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
         else:
             try:
-
                 contract_current_price = round(contract_current_price, 2)
-                #TODO changed quantity
-                quantity = 1  # Replace with the desired order quantity
+                quantity = quantity  # Replace with the desired order quantity
                 limit_price = contract_current_price  # Replace with your desired limit price
+                take_profit_price = round(
+                    contract_current_price + (contract_current_price * take_profit_percent), 2
+                )  # Replace with your desired take profit price
 
+                trailAmount = round(
+                    contract_current_price * trailstop_amount_percent, 2
+                )  # Replace with your desired trailing stop percentage
+                triggerPrice = limit_price
 
                 # This will be our main or "parent" order
                 parent = Order()
                 parent.orderId = ib.client.getReqId()
+
                 parent.action = "BUY"
                 parent.orderType = "LMT"
                 parent.totalQuantity = quantity
-                parent.lmtPrice = round(limit_price*1.01,2)
+                parent.lmtPrice = limit_price
                 parent.transmit = False
                 parent.outsideRth = True
                 ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
@@ -490,62 +400,44 @@ async def placeOptionBracketOrder(
                 takeProfit.action = "SELL"
                 takeProfit.orderType = "LMT"
                 takeProfit.totalQuantity = quantity
+                takeProfit.lmtPrice = take_profit_price
                 takeProfit.parentId = parent.orderId
                 takeProfit.outsideRth = True
-                takeProfit.transmit = False
                 takeProfit.ocaGroup = parent.orderId
-                # price_condition = PriceCondition(
-                #     price=take_profit_price*.8,
-                #     conId=ticker_contract.conId,
-                #     # exchange=ticker_contract.exchange,
-                #     isMore=True
-                # )
-                # takeProfit.conditions.append(price_condition)
+                takeProfit.transmit = False
                 takeProfit.tif = "GTC"
-                takeProfit.lmtPrice = round(contract_current_price + (contract_current_price * take_profit_percent), 2)
 
                 stopLoss = Order()
                 stopLoss.orderId = ib.client.getReqId()
                 stopLoss.action = "SELL"
                 stopLoss.orderType = "TRAIL"
                 stopLoss.TrailingUnit = 1
+                # stopLoss.auxPrice = trailAmount
+                # stopLoss.trailStopPrice = limit_price - trailAmount
+                stopLoss.trailingPercent = trailAmount
                 stopLoss.totalQuantity = quantity
                 stopLoss.parentId = parent.orderId
                 stopLoss.ocaGroup = parent.orderId
-                # stoploss_condition = PriceCondition(
-                #     price=contract_current_price-trailAmount,
-                #     conId=ticker_contract.conId,
-                #     # exchange=ticker_contract.exchange,
-                #     isMore=False
-                # )
-                # stopLoss.conditions.append(stoploss_condition)
-
                 stopLoss.outsideRth = True
                 stopLoss.transmit = True
                 stopLoss.tif = "GTC"
-                # Use stored trailing stop details if available
 
-                trailAmount = round(contract_current_price * trailstop_amount_percent, 2)
-                stopLoss.auxPrice = trailAmount
-                stopLoss.trailStopPrice = contract_current_price - trailAmount
-                parent.ocaGroup
-                bracketOrder = [parent,takeProfit, stopLoss]
+                bracketOrder = [parent, takeProfit, stopLoss]
 
                 ##TODO change ref back
-                # print(f"~~~~Placing Order: {parent.orderRef} ~~~~~")
+                print(f"~~~~Placing Order: {parent.orderRef} ~~~~~")
                 for o in bracketOrder:
                     o.ocaType = 2
-                    o.clientId = 2
-                    # o.ocaGroup =
                     if orderRef is not None:
+
                         o.orderRef = orderRef
+                    # ib.sleep(1)
                     ib.placeOrder(ticker_contract, o)
                 ##changed this 7.25
                 # await ib.sleep(0)
-                #     ib.sleep()
-
-                print(f"~~~~Order Placed: {ticker_contract} {parent.orderRef} ~~~~~")#maybe just revert to when the canelling was working. maybe it was just overwhelmed?
-
+                # ib.sleep(0)
+                # saveOrderIdToFile(parentOrderIdFile, parentOrders)
+                print(f"~~~~Order Placed: {parent.orderRef} ~~~~~")
                 trade = await getTrade(parent)
                 while not trade.isDone():
                     # print(trade.orderStatus)
@@ -556,96 +448,181 @@ async def placeOptionBracketOrder(
     else:
         logger.warning(f"Too many open orders (7+){ticker_contract} {orderRef} .  Skipping order placement.")
 
-            # ib.disconnect()
+
+# ib.disconnect()
+async def can_place_new_order(ib, contract, threshold=7):
+    # Fetch open orders
+    open_trades =  ib.openTrades()
+    print(open_trades)
+
+    # print(contract[0].conId)
+    # Count orders for the specified contract
+    count = sum(1 for trade in open_trades if trade.contract.conId == contract[0].conId)
+    print(f"{count} open orders for {contract}.")
+    # Return True if below threshold, False otherwise
+    return count < threshold
+
+async def placeBuyBracketOrder(ticker, current_price,
+    quantity=1,
+    orderRef=None,
+    take_profit_percent=.0003,
+    trail_stop_percent=.0002):
+    trail_stop_percent = trail_stop_percent / 100
+    take_profit_percent =take_profit_percent/100
+    print(f"~~~~~Placing {ticker} BuyBracket order~~~~~")
+    try:
+        if take_profit_percent==None:
+            take_profit_percent=.003
+        if trail_stop_percent==None:
+            trail_stop_percent=.002
+        gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
+        ticker_symbol = ticker
+        ticker_contract = Stock(ticker_symbol, "SMART", "USD")
+        # awaitib.qualifyContractsAsync(ticker_contract)
+
+        current_price = current_price
+        quantity = quantity
+        limit_price = current_price
+        take_profit_price = round(current_price+(current_price * take_profit_percent), 2)
+        trailAmount = round(current_price * trail_stop_percent, 2)
+
+        parent = Order()
+        parent.orderId = ib.client.getReqId()
+        parent.action = "BUY"
+        parent.orderType = "LMT"
+        parent.totalQuantity = quantity
+        parent.lmtPrice = limit_price
+        parent.transmit = False
+        parent.outsideRth = True
+        ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
+        parent.goodTillDate = gtddelta
+        parent.tif = "GTD"
+
+        takeProfit = Order()
+        takeProfit.orderId = ib.client.getReqId()
+        takeProfit.action = "SELL" if parent.action == "BUY" else "BUY"
+        takeProfit.outsideRth = True
+        takeProfit.orderType = "LMT"
+        takeProfit.totalQuantity = quantity
+        takeProfit.lmtPrice = take_profit_price
+        takeProfit.parentId = parent.orderId
+        takeProfit.transmit = False
+        takeProfit.tif = "GTC"
+
+        stopLoss = Order()
+        stopLoss.orderId = ib.client.getReqId()
+        stopLoss.action = "SELL" if parent.action == "BUY" else "BUY"
+        stopLoss.orderType = "TRAIL"
+        stopLoss.TrailingUnit = 1
+        stopLoss.outsideRth = True
+        stopLoss.trailingPercent = trailAmount
+        # stopLoss.trailStopPrice = limit_price - trailAmount
+        stopLoss.totalQuantity = quantity
+        stopLoss.parentId = parent.orderId
+        stopLoss.transmit = True
+        stopLoss.tif = "GTC"
+
+        bracketOrder = [parent, takeProfit, stopLoss]
+
+        ##TODO change ref back
+        for o in bracketOrder:
+            if orderRef is not None:
+                o.orderRef = orderRef
+            ib.placeOrder(ticker_contract, o)
+            ##changed this 7.25
+            # ib.sleep(0)
+        print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
+    except (Exception) as e:
+        logger.exception(f"An error occurred while placeBuyBracketOrder.{ticker},: {e}")
 
 
-# async def placeBuyBracketOrder(ticker, current_price,
-#                                quantity=1,
-#                                orderRef=None,
-#                                take_profit_percent=.0003,
-#                                trail_stop_percent=.0002):
-#     print(f"~~~~~Placing {ticker} BuyBracket order~~~~~")
-#     try:
-#         if take_profit_percent == None:
-#             take_profit_percent = .003
-#         if trail_stop_percent == None:
-#             trail_stop_percent = .002
-#         gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
-#         # print("orders : ",ib.openOrders())
-#         ticker_symbol = ticker
-#         ticker_contract = Stock(ticker_symbol, "SMART", "USD")
-#         # ib.qualifyContracts(ticker_contract)
-#
-#         current_price = current_price
-#         quantity = quantity
-#         limit_price = current_price
-#         take_profit_price = round(current_price + (current_price * take_profit_percent), 2)
-#         stop_loss_price = current_price * 0.9
-#         trailAmount = round(current_price * trail_stop_percent, 2)
-#         triggerPrice = limit_price
-#
-#         parent = Order()
-#         parent.orderId = ib.client.getReqId()
-#         parent.action = "BUY"
-#         parent.orderType = "LMT"
-#         parent.totalQuantity = quantity
-#         parent.lmtPrice = limit_price
-#         parent.transmit = False
-#         parent.outsideRth = True
-#         ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-#         parent.goodTillDate = gtddelta
-#         parent.tif = "GTD"
-#
-#         takeProfit = Order()
-#         takeProfit.orderId = ib.client.getReqId()
-#         takeProfit.action = "SELL" if parent.action == "BUY" else "BUY"
-#         takeProfit.outsideRth = True
-#         takeProfit.orderType = "LMT"
-#         takeProfit.totalQuantity = quantity
-#         takeProfit.lmtPrice = take_profit_price
-#         takeProfit.parentId = parent.orderId
-#         takeProfit.transmit = False
-#         takeProfit.tif = "GTC"
-#
-#         stopLoss = Order()
-#         stopLoss.orderId = ib.client.getReqId()
-#         stopLoss.action = "SELL" if parent.action == "BUY" else "BUY"
-#         stopLoss.orderType = "TRAIL"
-#         stopLoss.TrailingUnit = 1
-#         stopLoss.outsideRth = True
-#         stopLoss.auxPrice = trailAmount
-#         stopLoss.trailStopPrice = limit_price - trailAmount
-#         stopLoss.totalQuantity = quantity
-#         stopLoss.parentId = parent.orderId
-#         stopLoss.transmit = True
-#         stopLoss.tif = "GTC"
-#
-#         bracketOrder = [parent, takeProfit, stopLoss]
-#         orderDetailsDict = {
-#             "ticker": ticker,
-#             "contract_current_price": current_price,
-#             "quantity": quantity,
-#             "orderRef": orderRef,
-#             "take_profit_percent": take_profit_percent,
-#             "trailstop_amount_percent": trail_stop_percent,
-#             "childOrderIds": [takeProfit.orderId, stopLoss.orderId]
-#         }
-#
-#         ##TODO change ref back
-#         for o in bracketOrder:
-#             if orderRef is not None:
-#                 o.orderRef = orderRef
-#             ib.placeOrder(ticker_contract, o)
-#             ##changed this 7.25
-#             # ib.sleep(0)
-#         print(f"~~~~Placing order: {parent.orderRef} ~~~~~")
-#     except (Exception) as e:
-#         logger.exception(f"An error occurred while placeBuyBracketOrder.{ticker},: {e}")
 
-# Load previously stored parent order IDs and child order IDs
+def placeCallBracketOrder(
+    ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None, custom_trailamount=None
+):
+    try:
+        ticker_symbol = ticker
+        # print(ticker, exp, strike, current_price)
+        # print(type(ticker))
+        # print(type(exp))
+        # print(type(strike))
+        # print(type(current_price))
+        ## needed to remove 'USD' for option
+        gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
+
+        ticker_contract = Option(ticker, exp, strike, "C", "SMART")
+        ib.qualifyContracts(ticker_contract)
+        current_price = round(current_price, 2)
+        quantity = quantity
+        limit_price = current_price
+        if custom_takeprofit is not None:
+            take_profit_price = round(current_price * custom_takeprofit, 2)
+        else:
+            take_profit_price = round(current_price * 1.15, 2)
+        stop_loss_price = current_price * 0.9
+        if custom_trailamount is not None:
+            trailAmount = round(current_price * custom_trailamount, 2)
+        else:
+            trailAmount = round(current_price * 0.05, 2)
+
+        triggerPrice = limit_price
+
+        parent = Order()
+        parent.orderId = ib.client.getReqId()
+        parent.action = "BUY"
+        parent.orderType = "LMT"
+        parent.totalQuantity = quantity
+        parent.lmtPrice = limit_price
+        parent.transmit = False
+        parent.outsideRth = True
+        parent.tif = "GTD"
+        parent.goodTillDate = gtddelta
+
+        takeProfit = Order()
+        takeProfit.orderId = ib.client.getReqId()
+        takeProfit.action = "SELL"
+        takeProfit.orderType = "LMT"
+        takeProfit.totalQuantity = quantity
+        takeProfit.lmtPrice = take_profit_price
+        takeProfit.parentId = parent.orderId
+        takeProfit.outsideRth = True
+        takeProfit.transmit = False
+
+        stopLoss = Order()
+        stopLoss.orderId = ib.client.getReqId()
+        stopLoss.action = "SELL"
+        stopLoss.orderType = "TRAIL"
+        stopLoss.outsideRth = True
+        stopLoss.TrailingUnit = 1
+        stopLoss.auxPrice = trailAmount
+        stopLoss.trailStopPrice = limit_price - trailAmount
+        stopLoss.totalQuantity = quantity
+        stopLoss.parentId = parent.orderId
+        stopLoss.transmit = True
+
+        bracketOrder = [parent, takeProfit, stopLoss]
+
+        parentOrderId = ib.placeOrder(ticker_contract, parent)
+        # parentOrders[parentOrderId] = {}  # Create an empty dictionary for child orders of this parent order
+        # saveOrderIdToFile(parentOrderIdFile, parentOrders)
+
+        for o in bracketOrder:
+            if orderRef != None:
+                o.orderRef = orderRef
+            # childOrderId = ib.placeOrder(ticker_contract, o)
+            # parentOrders[parentOrderId][childOrderId] = o
+
+        # ib.sleep(0)
+
+    except (Exception, asyncio.exceptions.TimeoutError) as e:
+        logging.error("PlaceCallBracketOrder error: %s", e)
+
+#
+# # Load previously stored parent order IDs and child order IDs
 # parentOrders = retrieveOrderIdFromFile(parentOrderIdFile)
-
-# Register the event handler for order status
+#
+# # Register the event handler for order status
 # ib.orderStatusEvent += orderStatusHandler
 
 ###TODO diff client id for diff stat. and add options.
@@ -691,8 +668,4 @@ stop = Order(action = reverseAction, totalQuantity = 1, orderType = "STP",
                          adjustedTrailingAmount = trail_amount,
                          adjustedStopPrice = adjusted_stop_price )  
 """
-# def getTrade(order):
-#     trade = next((trade for trade in ib.trades() if trade.order is order), None)
-# With trade.isDone() can the be checked if the order is stil running or not.
-#
-# Another way to check is with order in ib.openOrders().
+

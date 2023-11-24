@@ -14,20 +14,34 @@ import numpy as np
 import joblib
 import os
 import optuna
+import yaml
+#
+# with open('yaml_config\s/config.yaml', 'r') as file:
+#     config = yaml.safe_load(file)
+#
+# # Example replacements
+# DF_filename = config['data']['df_filename']
+# Chosen_Predictor = config['model']['chosen_predictors']
+# cells_forward_to_check = config['training']['cells_forward_to_check']
+# threshold_cells_up = config['training']['threshold_cells_up']
+# percent_down = config['training']['percent_down']
+# anticondition_threshold_cells = config['training']['anticondition_threshold_cells']
+# theshhold_down = config['training']['threshold_down']
+# n_trials = config['optuna']['n_trials']
+# print(Chosen_Predictor)
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_minprior_231002.csv"
+DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 #TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 ml_dataframe = pd.read_csv(DF_filename)
 
 # Chosen_Predictor = ['ExpDate','LastTradeTime','Current Stock Price','Current SP % Change(LAC)','Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCR-Vol','PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1','PCRv Up4','PCRv Down1','PCRv Down2','PCRv Down4',"PCRoi Up1",'PCRoi Up4','PCRoi Down1','PCRoi Down2','PCRoi Down3','ITM PCR-Vol','ITM PCRv Up1','ITM PCRv Up4','ITM PCRv Down1','ITM PCRv Down2','ITM PCRv Down3','ITM PCRv Down4','ITM PCRoi Up1','ITM PCRoi Up2','ITM PCRoi Up3','ITM PCRoi Up4','ITM PCRoi Down2','ITM PCRoi Down3','ITM PCRoi Down4','ITM OI','Total OI','Net_IV','Net ITM IV','Net IV MP','Net IV LAC','NIV Current Strike','NIV 1Lower Strike','NIV 2Higher Strike','NIV 2Lower Strike','NIV 3Higher Strike','NIV 3Lower Strike','NIV 4Lower Strike','NIV highers(-)lowers1-2','NIV 1-4 % from mean','Net_IV/OI','Net ITM_IV/ITM_OI','Closest Strike to CP','RSI','RSI2','RSI14','AwesomeOsc','AwesomeOsc5_34']
-
+#TODO scale Predictors based on data ranges/types
 Chosen_Predictor = [
-    'Current SP % Change(LAC)','B1/B2', 'B2/B1',  'PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1', 'PCRv Down1','PCRoi Up4','PCRoi Down3' ,'ITM PCR-Vol','ITM PCR-OI', 'Net IV LAC',
-    'RSI14', 'AwesomeOsc5_34',
+    'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 ]
 
-study_name='_shuffled_blendedscore_2hrptminclassA1_withweightmultipliler_scaled_X_231013'
+study_name=('_20min_05ptdown_S1')
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -38,14 +52,15 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+n_trials=10000
 
-cells_forward_to_check =2*60
-threshold_cells_up = cells_forward_to_check * 0.4
-percent_up =   .25  #as percent
-anticondition_threshold_cells_up = cells_forward_to_check * .7 #was .7
+cells_forward_to_check =20
+threshold_cells_up = cells_forward_to_check * 0.1
+percent_down =   .15 #as percent
+anticondition_threshold_cells = cells_forward_to_check * 1 #was .7
 
 
-theshhold_up = 0.5 ###TODO these dont do any
+theshhold_down = 0.5 ###TODO these dont do any
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -55,12 +70,12 @@ targetUpCounter = 0
 anticondition_UpCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
-    condition_met_up = shifted_values > (ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"]*(percent_up/100)))
-    anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
+    condition_met_up = shifted_values < (ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"] * (percent_down / 100)))
+    anticondition_up = shifted_values >= ml_dataframe["Current Stock Price"]
     targetUpCounter += condition_met_up.astype(int)
     anticondition_UpCounter += anticondition_up.astype(int)
 ml_dataframe["Target_Up"] = (
-    (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+    (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells)
     )   .astype(int)
 ml_dataframe.dropna(subset=["Target_Up"], inplace=True)
 y_up = ml_dataframe["Target_Up"]
@@ -79,133 +94,90 @@ X_train, X_temp, y_up_train, y_up_temp = train_test_split(
 X_val, X_test, y_up_val, y_up_test = train_test_split(
     X_temp, y_up_temp, test_size=0.5, random_state=None, shuffle=False
 )
-# # Generate indices for the entire dataset
-# total_indices = np.arange(len(X))
-#
-# # Calculate lengths of training, validation, and test sets
-# train_len = int(0.6 * len(X))  # 60% for training
-# val_len = int(0.2 * len(X))    # 20% for validation
-# # Remaining 20% for test
-#
-# # Shuffle only the training indices
-# train_indices = np.random.permutation(total_indices[:train_len])
-#
-# # Keep the rest as is
-# val_indices = total_indices[train_len:train_len + val_len]
-# test_indices = total_indices[train_len + val_len:]
-#
-# # Extract sets using the indices
-# X_train = X.iloc[train_indices]
-# y_up_train = y_up.iloc[train_indices]
-#
-# X_val = X.iloc[val_indices]
-# y_up_val = y_up.iloc[val_indices]
-#
-# X_test = X.iloc[test_indices]
-# y_up_test = y_up.iloc[test_indices]
+
 
 import numpy as np
+import pandas as pd
+import torch
+from sklearn.preprocessing import RobustScaler
 
+# Function to replace infinities and adjust extrema by column in a DataFrame
+def replace_infinities_and_scale(df, factor=1.5):
+    for col in df.columns:
+        # Replace infinities with NaN, then calculate max and min
+        max_val = df[col].replace([np.inf, -np.inf], np.nan).max()
+        min_val = df[col].replace([np.inf, -np.inf], np.nan).min()
 
+        # Scale max and min values by a factor based on their sign
+        max_val = max_val * factor if max_val >= 0 else max_val / factor
+        min_val = min_val * factor if min_val < 0 else min_val / factor
+
+        # Replace infinities with the scaled max and min values
+        df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+        print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
+
+# Concatenate train and validation sets
 X_trainval = pd.concat([X_train, X_val], ignore_index=True)
 y_trainval = pd.concat([y_up_train, y_up_val], ignore_index=True)
 
-for col in X_train.columns:
-    max_val = X_train[col].replace([np.inf, -np.inf], np.nan).max()
-    min_val = X_train[col].replace([np.inf, -np.inf], np.nan).min()
+# Replace infinities and adjust extrema in the training, validation, and test sets
+replace_infinities_and_scale(X_train)
+replace_infinities_and_scale(X_val)
+replace_infinities_and_scale(X_test)
 
+# Replace infinities and adjust extrema in the concatenated train and validation set
+replace_infinities_and_scale(X_trainval)
 
-    # Adjust max_val based on its sign
-    max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
-
-    # Adjust min_val based on its sign
-    min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
-    print("min/max values ", min_val, max_val)
-    # Apply the same max_val and min_val to training, validation, and test sets
-    # Apply the same max_val and min_val to training, validation, and test sets
-    X_train[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
-    X_val[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)  # Include this
-    X_test[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
-
-for col in X_trainval.columns:
-    max_val = X_trainval[col].replace([np.inf, -np.inf], np.nan).max()
-    min_val = X_trainval[col].replace([np.inf, -np.inf], np.nan).min()
-    # Adjust max_val based on its sign
-    max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
-    # Adjust min_val based on its sign
-    min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
-    print("min/max values ", min_val, max_val)
-    # Apply the same max_val and min_val to training, validation, and test sets
-    X_trainval[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+# Fit a robust scaler on the concatenated train and validation set and transform it
 finalscaler_X = RobustScaler()
 X_trainval_scaled = finalscaler_X.fit_transform(X_trainval)
 X_trainval_tensor = torch.tensor(X_trainval_scaled, dtype=torch.float32).to(device)
 y_trainval_tensor = torch.tensor(y_trainval.values, dtype=torch.float32).to(device)
 
+# Function to convert scaled data to tensors
+def convert_to_tensor(scaler, X_train, X_val, X_test, device):
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_val_scaled = scaler.transform(X_val)
+    X_test_scaled = scaler.transform(X_test)
 
+    return (
+        torch.tensor(X_train_scaled, dtype=torch.float32).to(device),
+        torch.tensor(X_val_scaled, dtype=torch.float32).to(device),
+        torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
+    )
 
-# Create a scaler object
+# Create a scaler object and convert datasets to tensors
 scaler = RobustScaler()
-# Fit the scaler to the training data and then transform both training and test data
-X_train_scaled = scaler.fit_transform(X_train)
-X_val_scaled = scaler.transform(X_val)
-X_test_scaled = scaler.transform(X_test)
-# X_train_scaled = np.array(X_train.values)
-# X_val_scaled = np.array(X_val.values)
-# X_test_scaled = np.array(X_test.values)
-# Now convert them to torch tensors
-X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
-X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
-X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
-
+X_train_tensor, X_val_tensor, X_test_tensor = convert_to_tensor(scaler, X_train, X_val, X_test, device)
 y_up_train_tensor = torch.tensor(y_up_train.values, dtype=torch.float32).to(device)
 y_up_val_tensor = torch.tensor(y_up_val.values, dtype=torch.float32).to(device)
 y_up_test_tensor = torch.tensor(y_up_test.values, dtype=torch.float32).to(device)
 
+# Print lengths of datasets
+print(f"Train length: {len(X_train_tensor)}, Validation length: {len(X_val_tensor)}, Test length: {len(X_test_tensor)}")
 
-print("train length:",len(X_train_tensor),"val length:", len(X_val_tensor),"test length:",len(X_test_tensor))
+# Calculate the number of positive and negative samples in each set
+num_positive_up_train = y_up_train_tensor.sum().item()
+num_negative_up_train = (y_up_train_tensor == 0).sum().item()
+num_positive_up_val = y_up_val_tensor.sum().item()
+num_negative_up_val = (y_up_val_tensor == 0).sum().item()
+num_positive_up_test = y_up_test_tensor.sum().item()
+num_negative_up_test = (y_up_test_tensor == 0).sum().item()
+
+# Calculate the number of positive and negative samples in the combined train and validation set
+num_negative_up_trainval = num_negative_up_train + num_negative_up_val
+num_positive_up_trainval = num_positive_up_train + num_positive_up_val
 
 
-num_positive_up_train = sum(y_up_train_tensor)
-num_negative_up_train = len(y_up_train_tensor) - num_positive_up_train
-num_positive_up_val = sum(y_up_val_tensor)
-num_negative_up_val = len(y_up_val_tensor) - num_positive_up_val
-num_positive_up_test = sum(y_up_test_tensor)
-num_negative_up_test = len(y_up_test_tensor) - num_positive_up_test
-weight_negative_up = 1.0
+def print_dataset_statistics(stage, num_positive, num_negative):
+    ratio = num_positive / num_negative if num_negative else float('inf')  # Avoid division by zero
+    print(f"{stage} ratio of pos/neg up: {ratio:.2f}")
+    print(f"{stage} num_positive_up: {num_positive}")
+    print(f"{stage} num_negative_up: {num_negative}\n")
 
-num_negative_up_trainval = num_negative_up_train+num_negative_up_val
-num_positive_up_trainval= num_positive_up_train+num_positive_up_val
-
-print("train ratio of pos/neg up:", num_positive_up_train/num_negative_up_train)
-print('train num_positive_up:', num_positive_up_train)
-print('train num_negative_up:', num_negative_up_train)
-print("val ratio of pos/neg up:", num_positive_up_val/num_negative_up_val)
-print('val num_positive_up:', num_positive_up_val)
-print('val num_negative_up:', num_negative_up_val)
-print("test ratio of pos/neg up:", num_positive_up_test/num_negative_up_test)
-print('test num_positive_up:', num_positive_up_test)
-print('test num_negative_up:', num_negative_up_test)
-
-class BinaryClassificationNNwithDropout(nn.Module):
-    def __init__(self, input_dim, num_hidden_units, dropout_rate):
-        super(BinaryClassificationNNwithDropout, self).__init__()
-        self.layer1 = nn.Linear(input_dim, num_hidden_units)
-        self.layer2 = nn.Linear(num_hidden_units, int(num_hidden_units/2))
-        self.layer3 = nn.Linear(int(num_hidden_units/2), int(num_hidden_units/4))
-        self.output_layer = nn.Linear(int(num_hidden_units/4), 1)
-        self.activation = nn.ReLU()
-        self.dropout = nn.Dropout(p=dropout_rate) # Dropout layer
-
-    def forward(self, x):
-        x = self.activation(self.layer1(x))
-        x = self.dropout(x) # Apply dropout after the activation
-        x = self.activation(self.layer2(x))
-        x = self.dropout(x) # Apply dropout after the activation
-        x = self.activation(self.layer3(x))
-        x = self.dropout(x) # Apply dropout after the activation
-        x = self.output_layer(x)  # Removed sigmoid here
-        return x
+print_dataset_statistics("Train", num_positive_up_train, num_negative_up_train)
+print_dataset_statistics("Validation", num_positive_up_val, num_negative_up_val)
+print_dataset_statistics("Test", num_positive_up_test, num_negative_up_test)
 
 
 class DynamicNNwithDropout(nn.Module):
@@ -254,8 +226,6 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
     positivecase_weight_up = hparams["positivecase_weight_up"]
     weight_positive_up = (num_negative_up_train / num_positive_up_train) * positivecase_weight_up
     best_model_state_dict = None
-    # best_epoch_val_preds = None
-    # model = BinaryClassificationNNwithDropout(X_train.shape[1], hparams["num_hidden_units"], hparams['dropout_rate']).to(device)
     model = DynamicNNwithDropout(X_train.shape[1], hparams['layers'], hparams['dropout_rate']).to(device)
 
     model.train()
@@ -319,7 +289,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             # # print(val_outputs.max,val_outputs.min)
             # print("Min:", val_outputs.min().item())
             # print("Max:", val_outputs.max().item())
-            val_predictions = (val_outputs > theshhold_up).float()
+            val_predictions = (val_outputs > theshhold_down).float()
             F1Score = f1(val_predictions,y_val)  # computing F1 score
             PrecisionScore = prec(val_predictions,y_val )  # computing Precision score
             # PrecisionScore2 = (val_predictions * y_val).sum() / (val_predictions.sum() + 1e-7)
@@ -360,7 +330,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
 
     test_outputs = model(X_test_tensor)
     # print(test_outputs)
-    test_predictions = (test_outputs > theshhold_up).float().squeeze(1)
+    test_predictions = (test_outputs > theshhold_down).float().squeeze(1)
     # print(test_predictions)
     testF1Score = f1(test_predictions, y_up_test_tensor)  # computing F1 score
     testPrecisionScore = prec(test_predictions, y_up_test_tensor)
@@ -416,20 +386,20 @@ def train_final_model(hparams, Xtrainval, ytrainval):
 # Define Optuna Objective
 def objective(trial):
     # Define the hyperparameter search space
-    learning_rate = trial.suggest_float("learning_rate",  1e-05,0.01,log=True)#0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 50, 3000)#3800 #230  291
-    batch_size = trial.suggest_int("batch_size", 20,2500)#10240  3437
+    learning_rate = trial.suggest_float("learning_rate",  .0005,0.007,log=True)#0003034075497582067
+    num_epochs = trial.suggest_int("num_epochs", 100, 1000)#3800 #230  291
+    batch_size = trial.suggest_int("batch_size", 1000,3500)#10240  3437
     # Add more parameters as needed
 
     optimizer_name = trial.suggest_categorical("optimizer", [ "Adam", ])#"SGD","RMSprop", "Adagrad"
-    dropout_rate = trial.suggest_float("dropout_rate", 0,.4)# 30311980533100547  16372372692286732
+    dropout_rate = trial.suggest_float("dropout_rate", 0,.2)# 30311980533100547  16372372692286732
     #using layers now instead of setting num_hidden.
     n_layers = trial.suggest_int("n_layers", 1, 4)
     layers = []
     for i in range(n_layers):
-        layers.append(trial.suggest_int(f"n_units_l{i}", 4, 128))
+        layers.append(trial.suggest_int(f"n_units_l{i}", 32, 256))
     # num_hidden_units = trial.suggest_int("num_hidden_units", 50, 3500)#2560 #83 125 63
-    positivecase_weight_up = trial.suggest_float("positivecase_weight_up", 1,10)  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
+    positivecase_weight_up = trial.suggest_float("positivecase_weight_up", 1,2)  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
 
     # Call the train_model function with the current hyperparameters
     best_val_loss,f1_score, prec_score,best_model_state_dict,testF1Score,testPrecisionScore,best_epoch = train_model(
@@ -455,7 +425,6 @@ def objective(trial):
     # return prec_score  # Optuna will try to maximize this value
 
 ##Comment out to skip the hyperparameter selection.  Swap "best_params".
-# study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
 try:
     study = optuna.load_study(study_name=f'{study_name}',
                                  storage=f'sqlite:///{study_name}.db')
@@ -475,11 +444,11 @@ except KeyError:
 "Keyerror, new optuna study created."  #
 
 # TODO changed trials from 100
-study.optimize(objective, n_trials=10000)  # You can change the number of trials as needed
+study.optimize(objective, n_trials=n_trials)  # You can change the number of trials as needed
 best_params = study.best_params
 # best_params = set_best_params_manually
 # best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
-best_params={'batch_size': 881, 'dropout_rate': 0.32727848596144893, 'learning_rate': 0.0006858665963457134, 'n_layers': 2, 'n_units_l0': 110, 'n_units_l1': 29, 'num_epochs': 308, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0015016778402561}
+# best_params={'batch_size': 881, 'dropout_rate': 0.32727848596144893, 'learning_rate': 0.0006858665963457134, 'n_layers': 2, 'n_units_l0': 110, 'n_units_l1': 29, 'num_epochs': 308, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0015016778402561}
 print("Best Hyperparameters:", best_params)
 
 n_layers = best_params['n_layers']
@@ -505,7 +474,7 @@ feature_imp = feature_importance(finalmodel, X_trainval_tensor, y_trainval_tenso
 print("Feature Importances:", feature_imp)
 predicted_probabilities_up = finalmodel(X_test_tensor).detach().cpu().numpy()
 # print("predicted_prob up:",predicted_probabilities_up)
-predicted_probabilities_up = (predicted_probabilities_up > theshhold_up).astype(int)
+predicted_probabilities_up = (predicted_probabilities_up > theshhold_down).astype(int)
 # print("predicted_prob up:",predicted_probabilities_up)
 predicted_up_tensor = torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
 
@@ -575,7 +544,7 @@ with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Predictors: {Chosen_Predictor}\n\n\n"
         f"Best Params: {best_params}\n\n\n"
         f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
-        f"Threshold Up (sensitivity): {theshhold_up}\n"
-        f"Target Underlying Percentage Up: {percent_up}\n"
+        f"Threshold Up (sensitivity): {theshhold_down}\n"
+        f"Target Underlying Percentage Up: {percent_down}\n"
         f"Anticondition: {anticondition_UpCounter}\n")
 

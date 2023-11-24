@@ -94,53 +94,37 @@ async def get_options_data(session, ticker):
     ##change index to datetimeindex
     df.index = pd.to_datetime(df.index)
 
-    close = df["close"]
-    df["AwesomeOsc"] = ta.momentum.awesome_oscillator(
-        high=df["high"], low=df["low"], window1=1, window2=5, fillna=False
-    )
-    df["AwesomeOsc5_34"] = ta.momentum.awesome_oscillator(
-        high=df["high"], low=df["low"], window1=5, window2=34, fillna=False
-    )
-    # Calculate MACD (12, 26, 9)
-    macd_object = ta.trend.MACD(close=close, window_slow=26, window_fast=12, window_sign=9, fillna=False)
 
-    # Extract MACD values
-    macd = macd_object.macd()
 
-    # Calculate Signal Line (9-period EMA of MACD)
-    signal_line = ta.trend.ema_indicator(close=macd, window=9, fillna=False)
+    def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
+        """
+        Safely perform a calculation for a DataFrame and handle exceptions.
+        If an exception occurs, the specified column is filled with NaN.
+        """
+        try:
+            df[column_name] = calculation_function(*args, **kwargs)
+        except Exception:
+            df[column_name] = pd.NA  # or pd.nan
 
-    # Assign MACD and Signal Line values to the DataFrame
-    df["MACD"] = macd
-    df["Signal_Line"] = signal_line
+    # Usage of safe_calculation function for each indicator
+    safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,
+                     window2=5, fillna=False)
+    safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5,
+                     window2=34, fillna=False)
+    # For MACD
+    macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    safe_calculation(df, "MACD", macd_object.macd)
+    safe_calculation(df, "Signal_Line", macd_object.signal)
 
-    # Calculate 50-Day EMA
-    df["EMA_50"] = ta.trend.ema_indicator(close=close, window=50, fillna=False)
+    # For EMAs
+    safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)
+    safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["close"], window=200, fillna=False)
 
-    # Calculate 200-Day EMA
-    df["EMA_200"] = ta.trend.ema_indicator(close=close, window=200, fillna=False)
+    # For RSI
+    safe_calculation(df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False)
+    safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False)
+    safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False)
 
-    df["RSI"] = ta.momentum.rsi(close=close, window=5, fillna=False)
-    df["RSI2"] = ta.momentum.rsi(close=close, window=2, fillna=False)
-    df["RSI14"] = ta.momentum.rsi(close=close, window=14, fillna=False)
-    # Calculate MACD (12, 26, 9)
-    macd_object = ta.trend.MACD(close=close, window_slow=26, window_fast=12, window_sign=9, fillna=False)
-
-    # Extract MACD values
-    macd = macd_object.macd()
-
-    # Calculate Signal Line (9-period EMA of MACD)
-    signal_line = ta.trend.ema_indicator(close=macd, window=9, fillna=False)
-
-    # Assign MACD and Signal Line values to the DataFrame
-    df["MACD"] = macd
-    df["Signal_Line"] = signal_line
-
-    # Calculate 50-Day EMA
-    df["EMA_50"] = ta.trend.ema_indicator(close=close, window=50, fillna=False)
-
-    # Calculate 200-Day EMA
-    df["EMA_200"] = ta.trend.ema_indicator(close=close, window=200, fillna=False)
 
     groups = df.groupby(df.index.date)
     group_dates = list(groups.groups.keys())
@@ -159,8 +143,7 @@ async def get_options_data(session, ticker):
     StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
     StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
     print(f"${ticker} last Trade Time: {StockLastTradeTime}")
-    # print(f"LAC: ${LAC}")
-    # print(f"{ticker} Current Price: ${CurrentPrice}")
+
 
     expirations = expirations_response["expirations"]["expiration"]
     expiration_dates = [expiration["date"] for expiration in expirations]
