@@ -1,16 +1,23 @@
 import cProfile
+import logging
 from datetime import datetime, timedelta
 import asyncio
+import os
 import traceback
+
+import UTILITIES.check_Market_Conditions
 import calculations
+# import new_marketdata
 import trade_algos
 import trade_algos2
+from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 import aiohttp
 from UTILITIES.logger_config import logger
 
-
+is_market_open = check_Market_Conditions.is_market_open_now()
+# is_market_open=True
 async def handle_ticker_cycle(session, ticker):
     while True:
         start_time = datetime.now()
@@ -25,7 +32,11 @@ async def handle_ticker_cycle(session, ticker):
         except Exception as e:
             print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
             logger.exception(f"Error occurred for ticker {ticker}: {e}")
-            await asyncio.sleep(60)  # If there's an error, we can still wait for 60 seconds or handle it differently
+            end_time = datetime.now()
+            elapsed_time = (end_time - start_time).total_seconds()
+            sleep_time = max(0, 60 - elapsed_time)
+            await asyncio.sleep(sleep_time)
+            # await asyncio.sleep(60)  # If there's an error, we can still wait for 60 seconds or handle it differently
 
 
 async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
@@ -43,7 +54,7 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 
 #TODO actions is taking 16 of the 35 seconds.
 async def ib_connect():
-    while True:
+    while is_market_open ==True:
         await ibAPI.ib_connect()  # Connect to IB here
         await asyncio.sleep(5 * 60)
         print('running ib_connect_and_main again.')
@@ -82,7 +93,7 @@ async def handle_ticker( ticker, LAC, current_price, price_change_percent, Stock
 
 async def main():
     async with aiohttp.ClientSession() as session:
-        while True:
+        while is_market_open == True:
             start_time = datetime.now()
             print(start_time)
 

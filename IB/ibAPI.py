@@ -39,7 +39,7 @@ parentOrders = {}
 # ...
 # @app.task
 # def close_orders():
-#     global parentOrders
+#     global parentOrdersf
 #     for parentOrderId, childOrders in parentOrders.items():
 #         for childOrderId in childOrders:
 #             ib.cancelOrder(childOrderId)
@@ -144,7 +144,7 @@ async def placeOptionBracketOrder(
     try:
 
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
-        # await ib.qualifyContracts(ticker_contract)
+        await ib.qualifyContractsAsync(ticker_contract)
         print(ticker_contract)
         contract_current_price = round(contract_current_price, 2)
         print(contract_current_price)
