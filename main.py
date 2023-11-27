@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import asyncio
 import traceback
 
-import ib_insync
+# import ib_insync
 
 import ib_insync.util
 import calculations

@@ -83,7 +83,7 @@ async def ib_connect():
     if not ib.isConnected():
         print("~~~ Connecting ~~~")
         # randomclientID = random.randint(0, 999)#TODO change bac kclientid
-        ib_insync.util.getLoop()
+        # ib_insync.util.getLoop()
 
         try:
             await ib.connectAsync("192.168.1.119", 7497, clientId=0, timeout=45)
@@ -332,7 +332,7 @@ async def replace_child_orders(order_details, contract,
 
             # print(await getTrade(takeProfit))
     except (Exception, asyncio.exceptions.TimeoutError) as e:
-        logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
+        logger.exception(f"An error occurred while replace child orders.{ticker_contract},: {e}")
 
 async def placeOptionBracketOrder(
         CorP,
