@@ -43,7 +43,6 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
         last_tweet_time = None
 
     if last_tweet_time is None or (current_time - last_tweet_time) >= min_tweet_interval:
-        print("~~~Sending Tweet~~~")
         try:
             response = client.create_tweet(text=message)
             tweet_id = response.data["id"]
@@ -55,7 +54,7 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
             celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             print(f"Error while sending tweet: {e}")
-            logger.error(f"An error occurred while trying to tweet for {ticker}: {e}", exc_info=True)
+            logger.error(f"An error occurred while trying to tweet for {ticker}: {e}", exc_info=False)
     else:
         print(last_tweet_time, "too close to last tweet time")
 

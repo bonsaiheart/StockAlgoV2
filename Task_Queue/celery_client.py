@@ -6,4 +6,4 @@ def send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownse
     result = Task_Queue.task_queue.wait_60_minutes_and_send_tweet.apply_async(
         args=[ticker, current_price, tweet_id, upordown, countdownseconds], countdown=countdownseconds
     )
-    print(result)
+    print("result from sendtocelery:",result)

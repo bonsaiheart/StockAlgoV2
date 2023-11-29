@@ -29,7 +29,7 @@ def save_market_schedule_to_file():
     market_schedule.to_csv(file_path, index=True)
 
 
-def is_market_open_now():
+async def is_market_open_now():
     today = datetime.utcnow().date()
     today_timestamp = pd.to_datetime(today)
     directory = "UTILITIES"

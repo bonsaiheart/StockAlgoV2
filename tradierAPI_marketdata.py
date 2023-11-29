@@ -93,8 +93,7 @@ async def get_options_data(session, ticker):
     # df.set_index('time', inplace=True)
     ##change index to datetimeindex
     df.index = pd.to_datetime(df.index)
-
-
+    # df.to_csv("LOOKATME.csv")
 
     def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
         """
@@ -113,8 +112,10 @@ async def get_options_data(session, ticker):
                      window2=34, fillna=False)
     # For MACD
     macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    signal_line = ta.trend.ema_indicator(close=macd_object.macd(), window=9, fillna=False)
+
     safe_calculation(df, "MACD", macd_object.macd)
-    safe_calculation(df, "Signal_Line", macd_object.signal)
+    safe_calculation(df, "Signal_Line", signal_line)
 
     # For EMAs
     safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)

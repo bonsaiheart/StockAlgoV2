@@ -74,33 +74,38 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
             if result > 0.5\
                     :
-                try:
-                    send_notifications.email_me_string(model_name,CorP,ticker)
-                except Exception as e:
-                    print(f"Cemail error {e}.")
-                    logger.exception(f"An error occurred while emailin{e}")
+
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
                 )
-
+                try:
+                    send_notifications.email_me_string(model_name, CorP, ticker)
+                except Exception as e:
+                    print(f"Cemail error {e}.")
+                    logger.exception(f"An error occurred while emailin{e}")
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                send_notifications.send_tweet_w_countdown_followup(
-                    ticker,
-                    current_price,
-                    upordown,
-                    f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                    seconds_till_expectedprofit, model_name
-                )
+                try:
+                    send_notifications.send_tweet_w_countdown_followup(
+                        ticker,
+                        current_price,
+                        upordown,
+                        f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+                        seconds_till_expectedprofit, model_name
+                    )
+                except Exception as e:
+                    print(f"Tweet error {e}.")
+                    logger.exception(f"An error occurred while Tweeting {e}")
+
 
         #TODO uncomment optionorder.
                 # await place_option_order_sync(
                 #     CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
                 #     quantity=19,f take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
                 # )
-
+                await asyncio.sleep(0)
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
                 await place_buy_order_sync(
                     ticker, current_price, model_name, quantity=4,
@@ -120,12 +125,13 @@ def get_model_list():
     return [
         # Add the actual models here
         # trained_minute_models.Buy_3hr_15minA2baseSPYA1,
+        pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         # trained_minute_models.Sell_3hr_15minA2baseSPYA1,
         pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
         # pytorch_trained_minute_models.Sell_20min_05pctdown_ptclass_S1,
         # pytorch_trained_minute_models.Buy_1hr_ptmin/classSPYA1,
-        pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
+
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
         # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         ]  

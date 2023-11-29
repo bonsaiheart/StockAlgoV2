@@ -17,7 +17,7 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/MP_EXP_SPY.csv">
+        <entry key="/LOOKATME.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -49,6 +49,13 @@
           <value>
             <Attribute>
               <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/UTILITIES/market_schedule_2023-11-27.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=":" />
             </Attribute>
           </value>
         </entry>
@@ -525,13 +532,6 @@
           <value>
             <Attribute>
               <option name="separator" value=":" />
-            </Attribute>
-          </value>
-        </entry>
-        <entry key="/testdailyminutes.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
             </Attribute>
           </value>
         </entry>

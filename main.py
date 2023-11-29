@@ -1,10 +1,11 @@
+
 import cProfile
 import logging
 from datetime import datetime, timedelta
 import asyncio
 import os
-import traceback
 
+import traceback
 import UTILITIES.check_Market_Conditions
 import calculations
 # import new_marketdata
@@ -14,29 +15,10 @@ from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 import aiohttp
+
 from UTILITIES.logger_config import logger
-
-# is_market_open = check_Market_Conditions.is_market_open_now()
-is_market_open=True
-async def handle_ticker_cycle(session, ticker):
-    while True:
-        start_time = datetime.now()
-        try:
-            data = await get_options_data_for_ticker(session, ticker)
-            await handle_ticker( *data)
-
-            end_time = datetime.now()
-            elapsed_time = (end_time - start_time).total_seconds()
-            sleep_time = max(0, 60 - elapsed_time)
-            await asyncio.sleep(sleep_time)
-        except Exception as e:
-            print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
-            logger.exception(f"Error occurred for ticker {ticker}: {e}")
-            end_time = datetime.now()
-            elapsed_time = (end_time - start_time).total_seconds()
-            sleep_time = max(0, 60 - elapsed_time)
-            await asyncio.sleep(sleep_time)
-            # await asyncio.sleep(60)  # If there's an error, we can still wait for 60 seconds or handle it differently
+is_market_open = check_Market_Conditions.is_market_open_now()
+# is_market_open=True
 
 
 async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
@@ -50,19 +32,16 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 
     pr.disable()
     pr.print_stats()
-
-
 #TODO actions is taking 16 of the 35 seconds.
+
 async def ib_connect():
-    while is_market_open ==True:
-        await ibAPI.ib_connect()  # Connect to IB here
-        await asyncio.sleep(5 * 60)
-        print('running ib_connect_and_main again.')
+    await ibAPI.ib_connect()  # Connect to IB here
+    await asyncio.sleep(5 * 60)
+    print('running ib_connect_and_main again.')
+
 
 async def run_program():
     await asyncio.gather(ib_connect(), main())
-
-
 semaphore = asyncio.Semaphore(500)
 async def get_options_data_for_ticker(session, ticker):
     ticker = ticker.upper()
@@ -73,6 +52,7 @@ async def get_options_data_for_ticker(session, ticker):
     except Exception as e:
         logger.exception(f"Error in get_options_data for {ticker}: {e}")
         raise
+
 async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD):
     try:
         (optionchain, dailyminutes, processeddata, ticker) = calculations.perform_operations(
@@ -83,17 +63,38 @@ async def handle_ticker( ticker, LAC, current_price, price_change_percent, Stock
         logger.exception(f"Error in perform_operations for {ticker}: {e}")
         raise
 
-    if ticker in ["SPY", "TSLA", "GOOG"]:
-        try:
-            asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
-            print(f"{ticker} Actions complete at {datetime.now()}.")
-        except Exception as e:
-            logger.exception(f"Error in actions for {ticker}: {e}")
-            raise
 
+    try:
+        asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+        print(f"{ticker} Actions complete at {datetime.now()}.")
+    except Exception as e:
+        logger.exception(f"Error in actions for {ticker}: {e}")
+        raise
+
+async def handle_ticker_cycle(session, ticker):
+    while True:
+        start_time = datetime.now()
+        try:
+            data = await get_options_data_for_ticker(session, ticker)
+
+            if ticker in ["SPY", "TSLA", "GOOG"]:
+
+                await handle_ticker(*data)
+
+            end_time = datetime.now()
+            elapsed_time = (end_time - start_time).total_seconds()
+            sleep_time = max(0, 60 - elapsed_time)
+            await asyncio.sleep(sleep_time)
+
+
+        except Exception as e:
+            print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
+            logger.exception(f"Error occurred for ticker {ticker}: {e}")
+            # await asyncio.sleep(60)  # If there's an error, we can still wait for 60 seconds or handle it differently
+#TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 async def main():
     async with aiohttp.ClientSession() as session:
-        while is_market_open == True:
+        # while await is_market_open:
             start_time = datetime.now()
             print(start_time)
 
@@ -105,8 +106,10 @@ async def main():
                 delay_interval = 60.0 / len(tickerlist)
 
                 tasks = []
+
                 for i, ticker in enumerate(tickerlist):
-                    await asyncio.sleep(i * delay_interval)  # This will stagger the start times
+
+                    # await asyncio.sleep(i * delay_interval)  # This will stagger the start times
                     task = asyncio.create_task(handle_ticker_cycle(session, ticker))
                     tasks.append(task)
 
@@ -117,12 +120,12 @@ async def main():
                 print(f"Error occurred in aio session: {traceback.format_exc()}")
                 logger.exception(f"Error occurred in aio session: {e}")
 
-            current_time = datetime.now()
-            next_iteration_time = start_time + timedelta(seconds=60)
-            _60sec_countdown = (next_iteration_time - current_time).total_seconds()
-            print(start_time, next_iteration_time, current_time, "Time Remaining in Loop:", _60sec_countdown,
-                  "~~~~~~~~")
-
+            # current_time = datetime.now()
+            # next_iteration_time = start_time + timedelta(seconds=60)
+            # _60sec_countdown = (next_iteration_time - current_time).total_seconds()
+            # print(start_time, next_iteration_time, current_time, "Time Remaining in Loop:", _60sec_countdown,
+            #       "~~~~~~~~")
+            ###TODO I wanted this to tell me how long each iteration is taking (all tickers)
 if __name__ == "__main__":
     try:
         asyncio.run(run_program())
