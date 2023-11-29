@@ -82,6 +82,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
+                send_notifications.email_me_string(model_name,callorput,ticker)
                 send_notifications.send_tweet_w_countdown_followup(
                     ticker,
                     current_price,
@@ -107,16 +108,16 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
 
 
 # Define a function to send notifications (assuming you have this functionality in the send_notifications module)
-async def send_notification(ticker, current_price, upordown, model_name, formatted_time):
-    message = f"${ticker} ${current_price}. Time to make money on a {upordown} #{model_name} {formatted_time}"
-
-    # Assuming you have an async function to send notifications
-    await send_notifications.async_send_tweet(message)
-
-    # For a synchronous function you can use run_in_executor to run it in an async manner
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, send_notifications.sync_send_email, message)
-##TODO add clause to track price after buy signal.. if it drops x% then rebuy/reaverage.
+# async def send_notification(ticker, current_price, upordown, model_name, formatted_time):
+#     message = f"${ticker} ${current_price}. Time to make money on a {upordown} #{model_name} {formatted_time}"
+#
+#     # Assuming you have an async function to send notifications
+#     await send_notifications.async_send_tweet(message)
+#
+#     # For a synchronous function you can use run_in_executor to run it in an async manner
+#     loop = asyncio.get_event_loop()
+#     await loop.run_in_executor(None, send_notifications.sync_send_email, message)
+# ##TODO add clause to track price after buy signal.. if it drops x% then rebuy/reaverage.
 
 # Define the model list, this assumes that the model list is predefined
 def get_model_list():
