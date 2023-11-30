@@ -1,6 +1,5 @@
 import asyncio
 
-from Task_Queue.task_queue_cellery_bossman import app
 import Task_Queue.task_queue
 
 ###Note, its no longer 1 hour, but a countdown passed into function.

@@ -30,7 +30,7 @@ import yaml
 # n_trials = config['optuna']['n_trials']
 # print(Chosen_Predictor)
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = r"C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv"
 #TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 ml_dataframe = pd.read_csv(DF_filename)
@@ -41,7 +41,10 @@ Chosen_Predictor = [
     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 ]
 
-study_name=('_20min_05ptdown_S1')
+study_name=('_2hr_50pt_down')
+n_trials=0
+cells_forward_to_check =60*2
+percent_down =   .5 #as percent
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -52,14 +55,10 @@ ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-n_trials=10000
 
-cells_forward_to_check =20
+
 threshold_cells_up = cells_forward_to_check * 0.1
-percent_down =   .15 #as percent
 anticondition_threshold_cells = cells_forward_to_check * 1 #was .7
-
-
 theshhold_down = 0.5 ###TODO these dont do any
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
@@ -268,8 +267,13 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
         # Training step
         model.train()
         for i in range(0, len(X_train), batch_size):
-            X_batch = X_train[i : i + batch_size]
-            y_batch = y_train[i : i + batch_size]
+            X_batch = X_train[i: i + batch_size]
+            y_batch = y_train[i: i + batch_size]
+
+            # Skip the batch if it has only one sample. works well when the occasional skipping of small batches won't significantly impact the overall training process,
+            if X_batch.shape[0] <= 1:
+                continue
+
 
             y_batch = y_batch.unsqueeze(1)  #was wrong shape?
             optimizer.zero_grad()
@@ -390,8 +394,8 @@ def objective(trial):
     num_epochs = trial.suggest_int("num_epochs", 100, 1000)#3800 #230  291
     batch_size = trial.suggest_int("batch_size", 1000,3500)#10240  3437
     # Add more parameters as needed
-
-    optimizer_name = trial.suggest_categorical("optimizer", [ "Adam", ])#"SGD","RMSprop", "Adagrad"
+#TODO the rounds with SGD seemed to be closer val/test. values.
+    optimizer_name = trial.suggest_categorical("optimizer", [ "Adam", "SGD"])#,"RMSprop", "Adagrad"
     dropout_rate = trial.suggest_float("dropout_rate", 0,.2)# 30311980533100547  16372372692286732
     #using layers now instead of setting num_hidden.
     n_layers = trial.suggest_int("n_layers", 1, 4)
@@ -547,29 +551,4 @@ with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Threshold Up (sensitivity): {theshhold_down}\n"
         f"Target Underlying Percentage Up: {percent_down}\n"
         f"Anticondition: {anticondition_UpCounter}\n")
-#TODO a template function to generate all needed functions automatically.
-# # Step 1: Define the template
-# template = '''
-# import torch
-#
-# def {function_name}(input_data):
-#     # Load the model (Assuming model is saved as a .pth file)
-#     model = torch.load('path_to_saved_model.pth')
-#     model.eval()
-#
-#     # Preprocess input_data
-#     # ... preprocessing steps ...
-#
-#     # Make a prediction
-#     output = model(input_data)
-#
-#     return output
-# '''
-#
-# # Step 2: Populate the template with dynamic content
-# function_name = 'predict_function'  # This can be dynamically set based on your training script
-# filled_template = template.format(function_name=function_name)
-#
-# # Step 3: Write the populated template to a file
-# with open('generated_predict_function.py', 'w') as file:
-#     file.write(filled_template)
+

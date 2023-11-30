@@ -124,16 +124,11 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
 def get_model_list():
     return [
         # Add the actual models here
-        # trained_minute_models.Buy_3hr_15minA2baseSPYA1,
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        # trained_minute_models.Sell_3hr_15minA2baseSPYA1,
+        pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
         pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
-        # pytorch_trained_minute_models.Sell_20min_05pctdown_ptclass_S1,
-        # pytorch_trained_minute_models.Buy_1hr_ptmin/classSPYA1,
 
-        # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA2,
-        # pytorch_trained_minute_models.Buy_2hr_ptminclassSPYA1,
         ]  
 
 
@@ -174,7 +169,7 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     IB_option_date = date_object.strftime("%Y%m%d")
     # print(IB_option_date)
     # Determine the type of contract based on the model name
-    CorP = "C" if "Buy" in model_name else "P"
+    CorP = "C" if "Buy" in model_name or "Up" in model_name else "P"
 
     # Calculate the contract strike and price
     contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
