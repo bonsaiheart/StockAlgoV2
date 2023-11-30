@@ -89,6 +89,61 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
             tweet_id,
         )
 
+async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownseconds):
+    old_price = float(current_price)
+
+    # wait_time = timedelta(minutes=60)
+    # end_time = datetime.now() + wait_time
+    # while datetime.now() < end_time:
+    #     pass
+
+    headers = {"Authorization": f"Bearer {tradier_info.real_auth}", "Accept": "application/json"}
+
+    # Calculate the start and end times
+    current_time = datetime.now()
+    start_time = current_time - timedelta(seconds=countdownseconds)
+
+    params = {
+        "symbol": f"{ticker.upper()}",
+        "interval": "1min",
+        "start": start_time.strftime("%Y-%m-%d %H:%M"),
+        "end": current_time.strftime("%Y-%m-%d %H:%M"),
+        "session_filter": "all",
+    }
+
+    response = requests.get("https://api.tradier.com/v1/markets/timesales", params=params, headers=headers)
+
+    json_response = response.json()
+
+    time_high_low_dict = {}
+
+    series_data = json_response["series"]["data"]
+
+    for data_point in series_data:
+        high = data_point["high"]
+        low = data_point["low"]
+        time = parser.parse(data_point["time"]).strftime("%y%m%d %H:%M")
+        time_high_low_dict[time] = {"high": high, "low": low}
+
+    # Calculate the highest and lowest prices
+    highs = [values["high"] for values in time_high_low_dict.values()]
+    lows = [values["low"] for values in time_high_low_dict.values()]
+    highest_price = max(highs)
+    lowest_price = min(lows)
+    highest_price_time = next(key for key, value in time_high_low_dict.items() if value["high"] == highest_price)
+    lowest_price_time = next(key for key, value in time_high_low_dict.items() if value["low"] == lowest_price)
+
+    if upordown == "up":
+        reply_tweet_1_hour_later(
+            f"As of {highest_price_time} EST, ${ticker} was ${highest_price}. Up ${round(highest_price - old_price, 3)}, or %{round(((highest_price - old_price) / old_price) * 100, 3)} from entry.",
+            tweet_id,
+        )
+    if upordown == "down":
+        reply_tweet_1_hour_later(
+            f"As of {lowest_price_time} EST, ${ticker} was ${lowest_price}. Down ${round(old_price - lowest_price, 3)}, or %{round(((old_price - lowest_price) / lowest_price) * 100, 3)} from entry.",
+            tweet_id,
+        )
+
 
 # wait_60_minutes_and_send_tweet('spy', '100', '333333', 'up', 20)
 # daemon mode backgroud.

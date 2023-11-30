@@ -99,18 +99,18 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     print(f"Tweet error {e}.")
                     logger.exception(f"An error occurred while Tweeting {e}")
 
-
+                # await asyncio.sleep(0)
         #TODO uncomment optionorder.
-                # await place_option_order_sync(
-                #     CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-                #     quantity=19,f take_profit_percent=take_profit_percent, trail_stop_percent=trail_stop_percent
-                # )
-                await asyncio.sleep(0)
+                await place_option_order_sync(
+                    CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
+                    quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
+                )
+                # await asyncio.sleep(0)
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
-                await place_buy_order_sync(
-                    ticker, current_price, model_name, quantity=4,
-                    take_profit_percent=stock_take_profit_percent, trail_stop_percent=stock_trail_stop_percent
-                     )
+                # await place_buy_order_sync(
+                #     ticker, current_price, model_name, quantity=4,
+                #     take_profit_percent=stock_take_profit_percent, trail_stop_percent=stock_trail_stop_percent
+                #      )
 
         except Exception as e:
             log_error("actions", ticker, model_name, e)
@@ -168,11 +168,11 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
 
     # Format the expiration date for IB
     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
-    print(date_object)
+    # print(date_object)
     formatted_contract_date = date_object.strftime("%y%m%d")
 
     IB_option_date = date_object.strftime("%Y%m%d")
-    print(IB_option_date)
+    # print(IB_option_date)
     # Determine the type of contract based on the model name
     CorP = "C" if "Buy" in model_name else "P"
 
@@ -180,10 +180,10 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
     # has for mat 410.5
     formatted_contract_strike = contractStrike * 1000
-    print(contractStrike)
+    # print(contractStrike)
     contract_symbol = f"{ticker}{formatted_contract_date}{CorP}{int(formatted_contract_strike):08d}"
     print(contract_symbol)
-    print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
+    # print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
     # Get the last price for the contract
     if CorP == "C":
         contract_price = \

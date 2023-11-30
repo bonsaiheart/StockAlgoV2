@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 YYMMDD = dt.datetime.today().strftime("%y%m%d")
-
+#TODO add function to make dailyminutes from optionsdata
 def get_dailyminutes_make_single_multiday_df(ticker):
     # expected_format = "XXX_230427_0930.csv"
     dailyminutes_dir = "../data/DailyMinutes"
@@ -86,7 +86,7 @@ def daily_series_prep_for_backtest(ticker,df):
     df = df[cols]
     # df = df.loc[:, cols]
 
-    print(df.columns)
+    # print(df.columns)
     output_dir = Path(f"historical_daily_corr/{ticker}/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir2 = Path(f"historical_daily_DF/{ticker}")
@@ -156,6 +156,6 @@ tickers=['spy',
 for x in tickers:
     print(x)
     df=get_dailyminutes_make_single_multiday_df(x)
-    print("corr")
+    # print("corr")
     corr_minute_df(x,df)
 

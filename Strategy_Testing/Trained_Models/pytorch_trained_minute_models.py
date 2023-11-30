@@ -104,7 +104,7 @@ def Buy_20min_1pctup_ptclass_B1(new_data_df):
 
     checkpoint = torch.load(f'{base_dir}/{model_dir}/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
-    print(features)
+    # print(features)
     dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
     layers = checkpoint['layers']
@@ -214,7 +214,7 @@ def Buy_20min_05pctup_ptclass_B1(new_data_df):
 
     checkpoint = torch.load(f'{base_dir}/{model_dir}/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
-    print(features)
+    # print(features)
     dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
     layers = checkpoint['layers']
