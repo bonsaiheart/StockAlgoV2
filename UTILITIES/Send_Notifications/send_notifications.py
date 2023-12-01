@@ -12,7 +12,7 @@ from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
 # min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
 
-def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds, modelname):
+async def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds, modelname):
     min_tweet_interval = datetime.timedelta(minutes=countdownseconds // 60)
     print(f"~~~Sending ${ticker} Tweet~~~")
 
@@ -52,7 +52,7 @@ def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, co
                 file.write(current_time.isoformat())
 
             # celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
-            celery_client.followup_tweet_async_cycle(ticker, current_price, tweet_id, upordown, countdownseconds)
+            await celery_client.followup_tweet_async_cycle(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             # print(f"Error while sending tweet: {e}")
             logger.error(f"An error occurred while trying to tweet for {ticker}: {e}", exc_info=False)

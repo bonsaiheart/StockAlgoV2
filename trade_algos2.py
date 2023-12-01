@@ -87,17 +87,18 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                try:
-                    send_notifications.send_tweet_w_countdown_followup(
-                        ticker,
-                        current_price,
-                        upordown,
-                        f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                        seconds_till_expectedprofit, model_name
-                    )
-                except Exception as e:
-                    print(f"Tweet error {e}.")
-                    logger.exception(f"An error occurred while Tweeting {e}")
+                if ticker == 'SPY':
+                    try:
+                        await send_notifications.send_tweet_w_countdown_followup(
+                            ticker,
+                            current_price,
+                            upordown,
+                            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+                            seconds_till_expectedprofit, model_name
+                        )
+                    except Exception as e:
+                        print(f"Tweet error {e}.")
+                        logger.exception(f"An error occurred while Tweeting {e}")
 
                 # await asyncio.sleep(0)
         #TODO uncomment optionorder.

@@ -35,9 +35,10 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 #TODO actions is taking 16 of the 35 seconds.
 
 async def ib_connect():
-    await ibAPI.ib_connect()  # Connect to IB here
-    await asyncio.sleep(5 * 60)
-    print('running ib_connect_and_main again.')
+    while True:
+        await ibAPI.ib_connect()  # Connect to IB here
+        await asyncio.sleep(5 * 60)
+        print('running ib_connect_and_main again.')
 
 
 async def run_program():

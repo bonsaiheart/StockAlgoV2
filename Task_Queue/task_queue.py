@@ -1,3 +1,4 @@
+import asyncio
 import time
 import tweepy
 from datetime import datetime, timedelta
@@ -42,7 +43,6 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
     # end_time = datetime.now() + wait_time
     # while datetime.now() < end_time:
     #     pass
-
     headers = {"Authorization": f"Bearer {tradier_info.real_auth}", "Accept": "application/json"}
 
     # Calculate the start and end times
@@ -91,7 +91,9 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
         )
 
 async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownseconds):
+    print("countdownseconds"    ,countdownseconds)
     old_price = float(current_price)
+    await asyncio.sleep(countdownseconds)
 
     # wait_time = timedelta(minutes=60)
     # end_time = datetime.now() + wait_time
