@@ -105,7 +105,7 @@ def SPY_2hr_50pct_Down_PTNNclass(new_data_df):
 
     checkpoint = torch.load(f'{base_dir}/{model_dir}/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
-    print(features)
+    # print(features)
     dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
     layers = checkpoint['layers']
@@ -152,8 +152,8 @@ def SPY_2hr_50pct_Down_PTNNclass(new_data_df):
     result["Predictions"] = np.nan  # Initialize the 'Predictions' column with NaN values
     result.loc[
         prediction_series.index, "Predictions"] = prediction_series.values  # Assign predictions to corresponding rows
-    print(result["Predictions"])
-    return result["Predictions"], .5, .5, 10, 10
+    # print(result["Predictions"])
+    return result["Predictions"], .5, .5, 10, 50
 def Buy_20min_1pctup_ptclass_B1(new_data_df):
     model_dir = "_20min_1pctup_ptclass_B1"
 

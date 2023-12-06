@@ -9,7 +9,7 @@ import ta
 import PrivateData.tradier_info
 from UTILITIES.logger_config import logger
 
-concurrency_limit = 2
+
 # import webullAPI
 # Add a small constant to denominators taper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
@@ -24,33 +24,30 @@ np.seterr(divide='ignore', invalid='ignore')
 
 
 async def get_option_chain(session, ticker, exp_date, headers):
-    response = await session.get(
-        "https://api.tradier.com/v1/markets/options/chains",
-        params={"symbol": ticker, "expiration": exp_date, "greeks": "true"},
-        headers=headers,
-        timeout=40  # Set the timeout to 10 seconds
-    )
-    json_response = await response.json()
-    # print(response.status_code)
-    # print("Option Chain: ",json_response)
-    optionchain_df = pd.DataFrame(json_response["options"]["option"])
-    return optionchain_df
+    url = "https://api.tradier.com/v1/markets/options/chains"
+    params = {"symbol": ticker, "expiration": exp_date, "greeks": "true"}
+    json_response = await fetch(session, url, params, headers)
+
+    if json_response and "options" in json_response and "option" in json_response["options"]:
+        optionchain_df = pd.DataFrame(json_response["options"]["option"])
+        return optionchain_df
+    else:
+        print(f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing")
+        return None  # Or another appropriate response to indicate failure
+
 
 
 async def get_option_chains_concurrently(session, ticker, expiration_dates, headers):
-    tasks = []
-    for exp_date in expiration_dates:
-        tasks.append(get_option_chain(session, ticker, exp_date, headers))
+    tasks = [get_option_chain(session, ticker, exp_date, headers) for exp_date in expiration_dates]
     all_option_chains = await asyncio.gather(*tasks)
     return all_option_chains
+
 
 
 async def fetch(session, url, params, headers):
     try:
         async with session.get(url, params=params, headers=headers) as response:
-            # print("Rate Limit Headers:")
-            # print("Allowed:", response.headers.get("X-Ratelimit-Allowed"))
-            # print("Used:", response.headers.get("X-Ratelimit-Used"))
+            # print("Rate Limit Headers Allowed:", response.headers.get("X-Ratelimit-Allowed"),"Used:", response.headers.get("X-Ratelimit-Used"))
             return await response.json()
     except Exception as e:
         print(f"Connection error to {url}: {e}.")

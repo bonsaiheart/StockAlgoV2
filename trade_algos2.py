@@ -27,7 +27,7 @@ async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_pr
 
 async def place_buy_order_sync(ticker, current_price, orderRef, quantity, take_profit_percent,
                                trail_stop_percent):
-    try:
+    try:#TODO make create task
         await IB.ibAPI.placeBuyBracketOrder(
             ticker, current_price, quantity, orderRef, take_profit_percent, trail_stop_percent
         )
@@ -76,7 +76,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     :
 
                 # Retrieve the contract details
-                upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
+                upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_HR_MIN_only = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
                 )
                 try:
@@ -103,7 +103,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 # await asyncio.sleep(0)
         #TODO uncomment optionorder.
                 await place_option_order_sync(
-                    CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
+                    CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
                     quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
                 )
                 # await asyncio.sleep(0)
@@ -127,36 +127,11 @@ def get_model_list():
         # Add the actual models here
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
         pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
-        pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
-        pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
+        # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
+        # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
 
         ]  
 
-
-# # Function to handle a positive model result
-# async def handle_positive_result(model_name, ticker, current_price, optionchain_df, processeddata_df, custom_takeprofit,
-#                                  custom_trailingstop):
-#     upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
-#         optionchain_df, processeddata_df, ticker, model_name
-#     )
-#
-#     # Send a notification about the positive result
-#     await send_notification(ticker, current_price, upordown, model_name, formatted_time)
-#
-#     # Place the option order
-#     await place_option_order_sync(
-#         CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-#         quantity=10, take_profit_percent=custom_takeprofit, trail_stop_percent=custom_trailingstop
-#     )
-#
-#     # If you also want to place a buy order
-#     await place_buy_order_sync(
-#         ticker, current_price, model_name, quantity=10,
-#         take_profit_percent=custom_takeprofit, trail_stop_percent=custom_trailingstop
-#     )
-
-
-# Function to retrieve contract details
 def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
     closest_exp_date = processeddata_df['ExpDate'].iloc[0]
@@ -178,7 +153,7 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     formatted_contract_strike = contractStrike * 1000
     # print(contractStrike)
     contract_symbol = f"{ticker}{formatted_contract_date}{CorP}{int(formatted_contract_strike):08d}"
-    print(contract_symbol)
+    # print(contract_symbol)
     # print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
     # Get the last price for the contract
     if CorP == "C":
@@ -192,9 +167,14 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     upordown = "up" if CorP == "C" else "down"
 
     # Get the current time formatted for the notification message
-    formatted_time = datetime.now().strftime("%y%m%d %H:%M EST")
+    current_time = datetime.now()
 
-    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time
+    # Full date and time format
+    formatted_time = current_time.strftime("%y%m%d %H:%M EST")
+
+    # Only time format
+    formatted_time_HMonly = current_time.strftime("%H:%M")
+    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time,formatted_time_HMonly
 
 
 # Main execution
