@@ -45,13 +45,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="/Strategy_Testing/tst.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
         <entry key="/UTILITIES/market_schedule_2023-11-27.csv">
           <value>
             <Attribute>

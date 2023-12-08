@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 import pandas as pd
 import IB.ibAPI
+
 from Strategy_Testing.Trained_Models import trained_minute_models, pytorch_trained_minute_models
 from UTILITIES.Send_Notifications import send_notifications
 from UTILITIES.logger_config import logger
@@ -102,10 +103,16 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
 
                 # await asyncio.sleep(0)
         #TODO uncomment optionorder.
-                await place_option_order_sync(
-                    CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
-                    quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
-                )
+                if IB.ibAPI.ib.isConnected():
+                    try:
+                        await place_option_order_sync(
+                            CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
+                            quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
+
+
+                    except Exception as e:
+
+                        log_error("actions", ticker, model_name, e)
                 # await asyncio.sleep(0)
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
                 # await place_buy_order_sync(

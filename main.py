@@ -19,8 +19,14 @@ import aiohttp
 from UTILITIES.logger_config import logger
 is_market_open = check_Market_Conditions.is_market_open_now()
 # is_market_open=True
+client_session = None
 
 
+async def create_client_session():
+    global client_session
+    if client_session is not None:
+        await client_session.close()  # Close the existing session if it's not None
+    client_session = aiohttp.ClientSession()
 async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
     pr = cProfile.Profile()
     pr.enable()
@@ -36,14 +42,22 @@ async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, cur
 
 async def ib_connect():
     while True:
-        await ibAPI.ib_connect()  # Connect to IB here
-        await asyncio.sleep(5 * 60)
-        print('running ib_connect_and_main again.')
-
-
+        try:
+            await ibAPI.ib_connect()  # Connect to IB here
+            await asyncio.sleep(5 * 60)
+            print('running ib_connect_and_main again.')
+        except Exception as e:
+            # Log the error and continue running
+            logger.exception(f"Error in ib_connect: {e}")
 async def run_program():
-    await asyncio.gather(ib_connect(), main())
-semaphore = asyncio.Semaphore(100)
+    while True:  # This loop ensures the program continues running even if the session closes
+        try:
+            await asyncio.gather(ib_connect(), main())
+        except Exception as e:
+            # Log the error and continue running
+            logger.exception(f"Error in run_program: {e}")
+
+semaphore = asyncio.Semaphore(500)
 async def get_options_data_for_ticker(session, ticker):
 
     ticker = ticker.upper()
@@ -97,8 +111,13 @@ async def handle_ticker_cycle(session, ticker):
 
 #TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 async def main():
-    async with aiohttp.ClientSession() as session:
-    # while await is_market_open:
+    while True:
+        try:
+            await create_client_session()  # Create a new client session
+            # Your main program logic here using the new client session
+            session = client_session
+        except Exception as e:
+            logging.exception(f"Error in main: {e}")
         start_time = datetime.now()
         print(start_time)
 
@@ -131,5 +150,10 @@ async def main():
 if __name__ == "__main__":
     try:
         asyncio.run(run_program())
+    except KeyboardInterrupt:
+        pass
     finally:
-        ibAPI.ib_disconnect()  # Disconnect at the end of the script
+        if client_session is not None:
+            asyncio.run(client_session.close())
+        if ibAPI.ib.isConnected():
+            ibAPI.ib_disconnect()  # Disconnect at the end of the script

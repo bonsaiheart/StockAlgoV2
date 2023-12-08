@@ -65,11 +65,11 @@ async def ib_connect():
         print("~~~ Connecting ~~~")
         try:
             await ib.connectAsync("192.168.1.119", 7497, clientId=0, timeout=45)
-        except (Exception, asyncio.exceptions.TimeoutError) as e:
+        except Exception as e:
             logging.getLogger().error("Connection error: %s", e)
-            print("~~Connection error:", e)
+            # print("~~Connection error:", e)
     else:
-        print("~~~IB already connected.~~~")
+        print("~~~IB already connected. Cannot connect.~~~")
 
 
 def ib_disconnect():

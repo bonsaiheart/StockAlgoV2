@@ -51,7 +51,7 @@ async def fetch(session, url, params, headers):
             return await response.json()
     except Exception as e:
         print(f"Connection error to {url}: {e}.")
-        logger.exception(f"An error occurred while fetching data: {e}")
+        logger.exception(f"An error occurred while fetching data: {e} At URL {url}")
 
 
 async def get_options_data(session, ticker):
