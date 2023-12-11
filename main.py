@@ -15,8 +15,8 @@ from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
 from IB import ibAPI
 import aiohttp
-
 from UTILITIES.logger_config import logger
+
 is_market_open = check_Market_Conditions.is_market_open_now()
 # is_market_open=True
 client_session = None
