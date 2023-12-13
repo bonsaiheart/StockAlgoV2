@@ -42,13 +42,14 @@ Chosen_Predictor = [
 ]
 
 study_name=('_2hr_50pt_down')
-n_trials=0
+n_trials=10000
 cells_forward_to_check =60*2
 percent_down =   .5 #as percent
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print('device: ',device)
+
 print(ml_dataframe.columns)
 ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
@@ -523,7 +524,7 @@ print("Number of Total Samples(Target_Up):", num_positive_samples_up+num_negativ
 input_val = input("Would you like to save these models? y/n: ").upper()
 if input_val == "Y":
     model_summary = input("Save this set of models as: ")
-    model_directory = os.path.join("../../../Trained_Models", f"{model_summary}")
+    model_directory = os.path.join("../../../../../Trained_Models", f"{model_summary}")
     if not os.path.exists(model_directory):
         os.makedirs(model_directory)
     model_filename_up = os.path.join(model_directory, "target_up.pth")
@@ -536,19 +537,60 @@ if input_val == "Y":
                 'scaler_X':finalscaler_X
     }, model_filename_up)
     # Save the scaler
-with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
-    info_txt.write("This file contains information about the model.\n\n")
-    info_txt.write(
-        f"File analyzed: {DF_filename}\nCells_Foward_to_check: {cells_forward_to_check}\n\n"
-    )
-    info_txt.write(
-        f"Metrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\n"
-    )
-    info_txt.write(
-        f"Predictors: {Chosen_Predictor}\n\n\n"
-        f"Best Params: {best_params}\n\n\n"
-        f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
-        f"Threshold Up (sensitivity): {theshhold_down}\n"
-        f"Target Underlying Percentage Up: {percent_down}\n"
-        f"Anticondition: {anticondition_UpCounter}\n")
 
+    # Generate the function definition
+    function_def = f"""
+def {model_summary}(new_data_df):
+    checkpoint = torch.load(f'{{base_dir}}/{model_summary}/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    for col in tempdf.columns:
+        max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
+        min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
+        max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+        min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    tempdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features)
+    input_tensor = torch.tensor(tempdf.values, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series.values
+    return result
+    """
+
+    # Append the new function definition to pytorch_trained_minute_models.py
+    with open('../../../../../Trained_Models/pytorch_trained_minute_models.py', 'a') as file:
+        file.write(function_def)
+    with open(f"../../../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
+        info_txt.write("This file contains information about the model.\n\n")
+        info_txt.write(
+            f"File analyzed: {DF_filename}\nCells_Foward_to_check: {cells_forward_to_check}\n\n"
+        )
+        info_txt.write(
+            f"Metrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\n"
+        )
+        info_txt.write(
+            f"Predictors: {Chosen_Predictor}\n\n\n"
+            f"Best Params: {best_params}\n\n\n"
+            f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
+            f"Threshold Up (sensitivity): {theshhold_down}\n"
+            f"Target Underlying Percentage Up: {percent_down}\n"
+            f"Anticondition: {anticondition_UpCounter}\n")

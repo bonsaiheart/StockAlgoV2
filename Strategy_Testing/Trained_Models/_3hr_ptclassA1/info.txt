@@ -18,7 +18,7 @@ Number of Positive Samples (Target_Up): 48.0
 Number of Negative Samples (Target_Up): 376.0
 Threshold Up (sensitivity): 0.5
 Target Underlying Percentage Up: 0.4
-Anticondition: 1       1
+Anticondition: 1       1-
 2       0
 3       0
 4       0
