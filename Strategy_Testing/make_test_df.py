@@ -82,7 +82,7 @@ YYMMDD = dt.datetime.today().strftime("%y%m%d")
 def get_1st_frames_to_make_dailyminute_df(ticker):
     expected_format = "XXX_230427_0930.csv"  # Replace "XXX" with the expected prefix
 
-    processed_dir = "..\data\ProcessedData"
+    processed_dir = "../data/ProcessedData"
 
     ###TODO manually change tickero
     ticker = ticker.upper()
@@ -126,7 +126,7 @@ def get_1st_frames_to_make_dailyminute_df(ticker):
         print(df)
         # output_dir = Path(f"corr/{ticker}/")
         # output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-        output_dir2 = Path(f"dailyDF/{ticker}")
+        output_dir2 = Path(f"dailyminutes_from_processed/{ticker}")
         output_dir2.mkdir(mode=0o755, parents=True, exist_ok=True)
 
         # df.corr().to_csv(f"corr/{ticker}/{directory}.csv")
@@ -267,22 +267,40 @@ def corr_minute_df(ticker,df):
     output_dir = Path("../data/historical_multiday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     df.corr().to_csv(f"../data/historical_multiday_minute_corr/{YYMMDD}_{ticker}.csv")
-tickers=['spy',
-# 'uvxy',
-# 'tsla',
-# 'roku',
-# 'chwy',
-# 'ba',
-# 'cmps',
-# 'mnmd',
-# 'goev',
-# 'w',
-# 'msft',
-'goog']
+tickers=[
+'SPY',
+'UVXY',
+'TSLA',
+'ROKU',
+'CHWY',
+'BA',
+'CMPS',
+'MNMD',
+'GOEV',
+'W',
+'MSFT',
+'GOOGL',
+'GOOG',
+'QQQ',
+'IWM',
+'META',
+'SQQQ',
+'RWM',
+'SPXS',
+'LLY',
+'V',
+'WMT',
+'JPM',
+'AMZN',
+'NVDA']
 for x in tickers:
-    get_1st_frames_to_make_dailyminute_df(x)
-    # print(x)
-    # df=get_dailyminutes_make_single_multiday_df(x)
-    # # print("corr")
+    try:
+        # get_1st_frames_to_make_dailyminute_df(x)
+
+        print(x)
+        df=get_dailyminutes_make_single_multiday_df(x)
+        # # print("corr")
     # corr_minute_df(x,df)
 
+    except Exception as e:
+        print(x,e)

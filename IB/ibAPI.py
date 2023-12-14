@@ -23,18 +23,18 @@ ib = IB()
 def ib_reset_and_close_pos():
     # if ib.isConnected():
     #     ib.disconnect()
-    # if not ib.isConnected():
-    #     print("~~~ Connecting ~~~")
-    #     # randomclientID = random.randint(0, 999)#TODO change bac kclientid
-    #     try:
-    #
-    #         ib.connect("192.168.1.119", 7497, clientId=0, timeout=45)
-    #         print("connected.")
-    #
-    #
-    #     except (Exception, asyncio.exceptions.TimeoutError) as e:
-    #         logging.getLogger().error("Connection error or error reset posistions.: %s", e)
-    #         print("~~Connection/closepositions error:", e)
+    if not ib.isConnected():
+        print("~~~ Connecting ~~~")
+        # randomclientID = random.randint(0, 999)#TODO change bac kclientid
+        try:
+
+            ib.connect("192.168.1.119", 7497, clientId=0, timeout=45)
+            print("connected.")
+
+
+        except (Exception, asyncio.exceptions.TimeoutError) as e:
+            logging.getLogger().error("Connection error or error reset posistions.: %s", e)
+            print("~~Connection/closepositions error:", e)
     reset_all()
     logger.info("Reset all positions/closed open orders.")
 def reset_all():
@@ -165,7 +165,7 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
     else:
         order_details = {}
         for order in child_orders_objs_list:
-            new_order_ref = increment_order_ref(order.orderRef)
+            # new_order_ref = increment_order_ref(order.orderRef)
             ocaGroup = order.ocaGroup
             trade = await getTrade(order)
 
@@ -182,7 +182,7 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
                     "ocaGroup": order.ocaGroup,
                     "parentID":order.parentId,
                     "percentOffset": order.percentOffset,
-                    "orderRef": new_order_ref,
+                    "orderRef": order.orderRef + "_trail",
                 }
             elif order.orderType == "LMT":
                 order_details[order.ocaGroup]["takeProfit"] = {
@@ -190,7 +190,7 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
                     "limitPrice": order.lmtPrice,
                     "ocaGroup": order.ocaGroup,
                     "parentID": order.parentId,
-                    "orderRef": new_order_ref,
+                    "orderRef": order.orderRef + "_takeprofit",
                 }
             await cancel_order(order)
         # print("ORDER DEATAILS DICT", order_details)

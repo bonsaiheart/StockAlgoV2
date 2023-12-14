@@ -1,29 +1,88 @@
 from pathlib import Path
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta
+from tradierAPI_marketdata import fetch
+import PrivateData.tradier_info
+import ta
+from UTILITIES.logger_config import logger
+paper_auth = PrivateData.tradier_info.paper_auth
+real_acc = PrivateData.tradier_info.real_acc
+real_auth = PrivateData.tradier_info.real_auth
+
+#TODO could overhaul so anything can be done from optinchain.. lots work hmm
+async def get_ta(session, ticker):
+    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
+    end = datetime.today().strftime("%Y-%m-%d %H:%M")
+    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+
+    time_sale_response = await fetch(session, "https://api.tradier.com/v1/markets/timesales",
+                                     params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
+                                             "session_filter": "all"}, headers=headers)
+    if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
+        df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
+    else:
+        print(
+            f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
+        return None  # Or another appropriate response to indicate failure
+        # df.set_index('time', inplace=True)
+        ##change index to datetimeindex
+    df.index = pd.to_datetime(df.index)
+    # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
+    #     df.to_csv("LOOKATMEMNMD.csv")
+    # if ticker == 'SPY':
+    #     df.to_csv("LOOKATMESPY.csv")
+
+    def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
+        """
+        Safely perform a calculation for a DataFrame and handle exceptions.
+        If an exception occurs, the specified column is filled with NaN.
+        """
+        try:
+
+            df[column_name] = calculation_function(*args, **kwargs)
+        except Exception as e:
+            print(column_name, ticker, e)
+            df[column_name] = pd.NA  # or pd.nan
+
+    # Usage of safe_calculation function for each indicator
+    safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,
+                     window2=5, fillna=False)
+    safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5,
+                     window2=34, fillna=False)
+    # For MACD
+    macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    signal_line = macd_object.macd_signal
+    safe_calculation(df, "MACD", macd_object.macd)
+    safe_calculation(df, "Signal_Line", signal_line)
+
+    # For EMAs
+    safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)
+    safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["close"], window=200, fillna=False)
+
+    # For RSI
+    safe_calculation(df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False)
+    safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False)
+    safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False)
+
+    groups = df.groupby(df.index.date)
+    group_dates = list(groups.groups.keys())
+    lastgroup = group_dates[-1]
+    ta_data = groups.get_group(lastgroup)
+    this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
+    return this_minute_ta_frame
 
 
-def perform_operations(
-        ticker,
-        last_adj_close,
-        current_price,        # calls_DFSxOI_dict = (
-        #     group.loc[group["Calls_dollarsFromStrikeXoi"] >= 0, ["Strike", "Calls_dollarsFromStrikeXoi"]]
-        #     .set_index("Strike")
-        #     .to_dict()
-        # )
-        # puts_DFSxOI_dict = (
-        #     group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
-        #     .set_index("Strike")
-        #     .to_dict()
-        # )
-        price_change_percent,
-        StockLastTradeTime,
-        this_minute_ta_frame,
-        expiration_dates,
-        YYMMDD
-):
+async def perform_operations(session,
+                             ticker,
+                             last_adj_close,
+                             current_price,
+                             StockLastTradeTime,
+                            YYMMDD
+                             ):
     results = []
-
+    price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
+    #TODO could pass in optionchain.
     optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
 
     groups = optionchain_df.groupby("ExpDate")
@@ -46,7 +105,6 @@ def perform_operations(
         puts_LASTPRICExOI_dict = (
             group.loc[group["Puts_lastPriceXoi"] >= 0, ["Strike", "Puts_lastPriceXoi"]].set_index("Strike").to_dict()
         )
-
 
         ITM_CallsVol = group.loc[(group["Strike"] <= current_price), "Call_Volume"].sum()
         ITM_PutsVol = group.loc[(group["Strike"] >= current_price), "Put_Volume"].sum()
@@ -210,7 +268,6 @@ def perform_operations(
             else:
                 strike_ITMPCRoi_dict[strikeabovebelow] = itm_put_oi / itm_call_oi
 
-
         def get_ratio_and_iv(strike):
             if strike is None:
                 # handle the case where strike is None
@@ -371,6 +428,7 @@ def perform_operations(
             }
         )
     processed_data_df = pd.DataFrame(results)
+    this_minute_ta_frame = await get_ta(session, ticker)
     processed_data_df["RSI"] = this_minute_ta_frame["RSI"]
     processed_data_df["RSI2"] = this_minute_ta_frame["RSI2"]
     processed_data_df["RSI14"] = this_minute_ta_frame["RSI14"]
@@ -384,7 +442,8 @@ def perform_operations(
     # Calculate 200-Day EMA
     processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
-    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
+    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame[
+        "AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
     processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
     processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
 
@@ -427,7 +486,7 @@ def perform_operations(
     # Use the function
     if output_file_dailyminutes.exists():
         dailyminutes_df = pd.read_csv(output_file_dailyminutes)
-        dailyminutes_df = dailyminutes_df.dropna().drop_duplicates(subset="LastTradeTime")
+        dailyminutes_df = dailyminutes_df.drop_duplicates(subset="LastTradeTime")
         dailyminutes_df = pd.concat([dailyminutes_df, processed_data_df.head(1)], ignore_index=True)
         replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
     else:
@@ -437,11 +496,17 @@ def perform_operations(
     dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
 
     try:
-        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
+        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x",
+                                 index=False)
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
-    except FileExistsError:
+    except FileExistsError as e:
         print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
+        now = datetime.now()
+        YYMMDD_HHMM= now.strftime("%y%m%d_%H%M")
         # exit()
+        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x",index=False)
+
+        logger.error(f"TIME:{YYMMDD_HHMM}. {ticker} Processed data aready exists: {StockLastTradeTime}, using current YYMMDD_HHMM: {e}")
 
     return (
         optionchain_df,

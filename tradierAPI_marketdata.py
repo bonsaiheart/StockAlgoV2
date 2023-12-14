@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import ta
 
 import PrivateData.tradier_info
 from UTILITIES.logger_config import logger
@@ -55,15 +54,12 @@ async def fetch(session, url, params, headers):
 
 
 async def get_options_data(session, ticker):
-    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
-    end = datetime.today().strftime("%Y-%m-%d %H:%M")
+
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
     tasks = []
     # Add tasks to tasks list
-    tasks.append(fetch(session, "https://api.tradier.com/v1/markets/timesales",
-                       params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
-                               "session_filter": "all"}, headers=headers))
+
 
     tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
                        params={"symbols": ticker, "greeks": "false"}, headers=headers))
@@ -74,69 +70,23 @@ async def get_options_data(session, ticker):
     # Wait for all tasks to complete
     responses = await asyncio.gather(*tasks)
     # Process responses
-    time_sale_response = responses[0]
-    quotes_response = responses[1]
-    expirations_response = responses[2]
-
-    json_response = time_sale_response
-    # print(response.status_code)
-    # print(json_response)
-    if json_response and "series" in json_response and "data" in json_response["series"]:
-        df = pd.DataFrame(json_response["series"]["data"]).set_index("time")
-    else:
-        print(
-            f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
-        return None  # Or another appropriate response to indicate failure
-    # df.set_index('time', inplace=True)
-    ##change index to datetimeindex
-    df.index = pd.to_datetime(df.index)
-    # df.to_csv("LOOKATME.csv")
-
-    def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
-        """
-        Safely perform a calculation for a DataFrame and handle exceptions.
-        If an exception occurs, the specified column is filled with NaN.
-        """
-        try:
-            df[column_name] = calculation_function(*args, **kwargs)
-        except Exception:
-            df[column_name] = pd.NA  # or pd.nan
-
-    # Usage of safe_calculation function for each indicator
-    safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,
-                     window2=5, fillna=False)
-    safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5,
-                     window2=34, fillna=False)
-    # For MACD
-    macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
-    signal_line = ta.trend.ema_indicator(close=macd_object.macd(), window=9, fillna=False)
-
-    safe_calculation(df, "MACD", macd_object.macd)
-    safe_calculation(df, "Signal_Line", signal_line)
-
-    # For EMAs
-    safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)
-    safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["close"], window=200, fillna=False)
-
-    # For RSI
-    safe_calculation(df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False)
-    safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False)
-    safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False)
+    quotes_response = responses[0]
+    expirations_response = responses[1]
 
 
-    groups = df.groupby(df.index.date)
-    group_dates = list(groups.groups.keys())
-    lastgroup = group_dates[-1]
-    ta_data = groups.get_group(lastgroup)
-    this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
 
-    json_response = quotes_response
-
-    quote_df = pd.DataFrame.from_dict(json_response["quotes"]["quote"], orient="index").T
+    quote_df = pd.DataFrame.from_dict(quotes_response["quotes"]["quote"], orient="index").T
     LAC = quote_df.at[0, "prevclose"]
+    open = quote_df.at[0, "open"]
+    # print(open)
+    high = quote_df.at[0, "high"]
+    low = quote_df.at[0, "low"]
+    average_volume = quote_df.at[0, "average_volume"]
+    last_volume = quote_df.at[0, "last_volume"]
 
+    # print(high)
     CurrentPrice = quote_df.at[0, "last"]
-    price_change_percent = quote_df["change_percentage"][0]
+    # price_change_percent = quote_df["change_percentage"][0]  Assuming this same as lac to current price
     StockLastTradeTime = quote_df["trade_date"][0]
     StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
     StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
@@ -225,6 +175,13 @@ async def get_options_data(session, ticker):
         "p_dollarsFromStrikeXoi": "Puts_dollarsFromStrikeXoi",
         "p_lastPriceXoi": "Puts_lastPriceXoi",
     }
+    combined["LAC"] = LAC
+    combined["CurrentPrice"] = CurrentPrice
+    combined["open"] = open
+    combined["high"] = high
+    combined["low"] = low
+    combined["average_volume"] = average_volume
+    combined["last_volume"] = last_volume
 
     combined.rename(columns=rename_dict_combined, inplace=True)
     ####################
@@ -239,14 +196,14 @@ async def get_options_data(session, ticker):
 
     try:
         combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x")
-    except Exception as e:
-        if FileExistsError:
-            if StockLastTradeTime == 1600:
-                combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
-        else:
-            print(f"An error occurred while writing the CSV file,: {e}")
-            combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
-    # combined.to_csv(f"combined_tradier.csv")
-    ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
+    except FileExistsError as e:
+        now = datetime.now()
+        YYMMDD_HHMM= now.strftime("%y%m%d_%H%M")
+        logger.error(f"TIME:{YYMMDD_HHMM}. {ticker} file aready exists using lasttradetime: {StockLastTradeTime}, using current YYMMDD_HHMM: {e}")
 
-    return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, expiration_dates,YYMMDD
+        combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+
+#TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
+    return LAC, CurrentPrice,  StockLastTradeTime, YYMMDD
+
+#TODO added open high low close avg vol last vol... but didnt do anything with it yet

@@ -60,7 +60,7 @@ def apply_predictions_to_df(module_name, df, filename):
                 result = model_func(df)
 
                 if isinstance(result, tuple):
-                    df[model_name], takeprofit, stoploss = result
+                    df[model_name], stock_takeprofit, stock_stoploss,option_takeprofit,option_stoploss = result
                 else:
                     df[model_name] = result
 

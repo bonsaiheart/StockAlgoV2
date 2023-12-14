@@ -69,10 +69,14 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 stock_take_profit_percent = None
                 stock_trail_stop_percent = None
                 option_take_profit_percent = None
-                option_trail_stop_percent = None
+            #     option_trail_stop_percent = None
+            # model_output_df.to_csv('test.csv')
+            # dailyminutes_df.to_csv('test_dailymin.csv')
             result = model_output_df.iloc[-1]
-            print(model_name,result)
-            # If the model result is positive (greater than 0.5 in your case), handle the positive result
+            tail = model_output_df.tail(5)
+
+            print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
+            # If the model result is positive handle the positive result
             if result > 0.5\
                     :
 
@@ -108,6 +112,9 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                         await place_option_order_sync(
                             CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
                             quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
+                        now = datetime.now()
+                        HHMM = now.strftime("%H%M")
+                        print(HHMM,ticker,model_name,"order placed.")
 
 
                     except Exception as e:
@@ -143,8 +150,8 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
     closest_exp_date = processeddata_df['ExpDate'].iloc[0]
     closest_strikes_list = processeddata_df["Closest Strike Above/Below(below to above,4 each) list"].iloc[0]
-
     # Format the expiration date for IB
+    #low to high, indesx 4 is closest current strike
     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
     # print(date_object)
     formatted_contract_date = date_object.strftime("%y%m%d")
@@ -155,7 +162,9 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     CorP = "C" if "Buy" in model_name or "Up" in model_name else "P"
 
     # Calculate the contract strike and price
-    contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
+    # contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
+    contractStrike = closest_strikes_list[4] if CorP == "C" else closest_strikes_list[4]
+
     # has for mat 410.5
     formatted_contract_strike = contractStrike * 1000
     # print(contractStrike)

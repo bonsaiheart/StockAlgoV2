@@ -15,7 +15,7 @@ def save_market_schedule_to_file():
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
     market_schedule["market_close_utc"] = pd.to_datetime(market_schedule["market_close"])
 
-    directory = "UTILITIES"
+    directory = "UTILITIES/market_schedules"
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -29,10 +29,10 @@ def save_market_schedule_to_file():
     market_schedule.to_csv(file_path, index=True)
 
 
-async def is_market_open_now():
+async def get_market_open_close_times():
     today = datetime.utcnow().date()
     today_timestamp = pd.to_datetime(today)
-    directory = "UTILITIES"
+    directory = "UTILITIES/market_schedules"
     file_path = os.path.join(directory, f"market_schedule_{today}.csv")
 
     if not os.path.exists(file_path):
@@ -46,22 +46,23 @@ async def is_market_open_now():
     market_schedule.index = pd.to_datetime(market_schedule.index)  # Convert index to datetime
 
     if today_timestamp in market_schedule.index:
-        market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"].time()
-        market_close_utc = market_schedule.loc[today_timestamp, "market_close_utc"].time()
+        market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"]
+        market_close_utc = market_schedule.loc[today_timestamp, "market_close_utc"]
 
-        # Get the current time in UTC
-        now_utc = datetime.utcnow().time()
-        if market_open_utc <= now_utc <= market_close_utc:
-            print("The stock market is currently open.")
-            is_market_open = True
-        else:
-            print("The stock market is currently closed.")
-            is_market_open = False
-    else:
-        print("Today is not a trading day.")
-        is_market_open = False
+    #     # Get the current time in UTC
+    #     now_utc = datetime.utcnow().time()
+    #     if market_open_utc <= now_utc <= market_close_utc:
+    #         print("The stock market is currently open.")
+    #         is_market_open = True
+    #     else:
+    #         print("The stock market is currently closed.")
+    #         is_market_open = False
+    # else:
+    #     print("Today is not a trading day.")
+    #     is_market_open = False
+    print(market_close_utc,market_open_utc)
+    return market_open_utc,market_close_utc
 
-    return is_market_open
 
 
 # Call this function to check if the market is open

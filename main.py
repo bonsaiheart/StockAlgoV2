@@ -6,10 +6,12 @@ import asyncio
 import os
 
 import traceback
+
+import pytz
+
 import UTILITIES.check_Market_Conditions
 import calculations
 # import new_marketdata
-import trade_algos
 import trade_algos2
 from UTILITIES import check_Market_Conditions
 import tradierAPI_marketdata
@@ -17,9 +19,23 @@ from IB import ibAPI
 import aiohttp
 from UTILITIES.logger_config import logger
 
-is_market_open = check_Market_Conditions.is_market_open_now()
-# is_market_open=True
 client_session = None
+market_open_time = None
+market_close_time = None
+
+
+async def wait_until_time(target_time_utc):
+    utc_now = datetime.utcnow()
+    now_unix_time = int(utc_now.timestamp())
+    # print(target_time,now)
+    target_time_unix_time = int(target_time_utc.timestamp())
+    time_difference = target_time_unix_time - now_unix_time
+
+    print(now_unix_time,target_time_unix_time)
+    print(time_difference)
+    # wait_seconds = (target_time - now).total_seconds()
+    await asyncio.sleep(max(0, time_difference))
+
 
 
 async def create_client_session():
@@ -27,18 +43,18 @@ async def create_client_session():
     if client_session is not None:
         await client_session.close()  # Close the existing session if it's not None
     client_session = aiohttp.ClientSession()
-async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
-    pr = cProfile.Profile()
-    pr.enable()
-
-    try:
-        await trade_algos.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
-    except Exception as e:
-        print(f"Error occurred: {traceback.format_exc()}")
-
-    pr.disable()
-    pr.print_stats()
-#TODO actions is taking 16 of the 35 seconds.
+# async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
+#     pr = cProfile.Profile()
+#     pr.enable()
+#
+#     try:
+#         await trade_algos.actions22(optionchain, dailyminutes, processeddata, ticker, current_price)
+#     except Exception as e:
+#         print(f"Error occurred: {traceback.format_exc()}")
+#
+#     pr.disable()
+#     pr.print_stats()
+# #TODO actions is taking 16 of the 35 seconds.
 
 async def ib_connect():
     while True:
@@ -62,23 +78,28 @@ async def get_options_data_for_ticker(session, ticker):
 
     ticker = ticker.upper()
     try:
-        LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
+        LAC, current_price,  StockLastTradeTime,  YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
         # print(f"{ticker} OptionData complete at {datetime.now()}.")
-        return ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
+        return LAC, current_price,  StockLastTradeTime,  YYMMDD
     except Exception as e:
         logger.exception(f"Error in get_options_data for {ticker}: {e}")
         raise
 
-async def handle_ticker( ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD):
+async def calculate_operations( session,ticker, LAC, current_price, StockLastTradeTime, YYMMDD):
     try:
-        (optionchain, dailyminutes, processeddata, ticker) = calculations.perform_operations(
-            ticker, LAC, current_price, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date,YYMMDD
+        (optionchain, dailyminutes, processeddata, ticker) = await calculations.perform_operations(session,
+            ticker, LAC, current_price, StockLastTradeTime, YYMMDD
         )
+
         # print(f"{ticker} PerformOptions complete at {datetime.now()}.")
     except Exception as e:
         logger.exception(f"Error in perform_operations for {ticker}: {e}")
         raise
+    if ticker in ["SPY", "TSLA", "GOOGL"]:
+        asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
+    return optionchain, dailyminutes, processeddata, ticker
 
+async def trade_algos( optionchain, dailyminutes, processeddata, ticker, current_price):
 
     try:
         asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
@@ -86,60 +107,60 @@ async def handle_ticker( ticker, LAC, current_price, price_change_percent, Stock
     except Exception as e:
         logger.exception(f"Error in actions for {ticker}: {e}")
         raise
-
+###Currently taking 39,40 seconds.
 async def handle_ticker_cycle(session, ticker):
+    global market_close_time
+    start_time = datetime.now(pytz.utc)
 
-    while True:
-        start_time = datetime.now()
-
+    while start_time < market_close_time:
+    # while True:
         try:
-
-            data = await get_options_data_for_ticker(session, ticker)
-
-            if ticker in ["SPY", "TSLA", "GOOGL"]:
-                asyncio.create_task(handle_ticker(*data))
-
+            LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker)
+            asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD))
 
 
         except Exception as e:
             print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
             logger.exception(f"Error occurred for ticker {ticker}: {e}")
-        end_time = datetime.now()
+        end_time = datetime.now(pytz.utc)
         elapsed_time = (end_time - start_time).total_seconds()
         sleep_time = max(0, 60 - elapsed_time)
+        # break
         await asyncio.sleep(sleep_time)
+        start_time = datetime.now(pytz.utc)
 
 #TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 async def main():
-    while True:
-        try:
-            await create_client_session()  # Create a new client session
-            # Your main program logic here using the new client session
-            session = client_session
-        except Exception as e:
-            logging.exception(f"Error in main: {e}")
-        start_time = datetime.now()
-        print(start_time)
+    global market_open_time, market_close_time
+    market_open_time, market_close_time=await check_Market_Conditions.get_market_open_close_times()
+    await wait_until_time(market_open_time)
+    print(datetime.now())
 
-        try:
-            with open("UTILITIES/tickerlist.txt", "r") as f:
-                tickerlist = [line.strip().upper() for line in f.readlines()]
+    try:
+        await create_client_session()  # Create a new client session
+        # Your main program logic here using the new client session
+        session = client_session
+    except Exception as e:
+        logging.exception(f"Error in main: {e}")
+    try:
+        with open("UTILITIES/tickerlist.txt", "r") as f:
+            tickerlist = [line.strip().upper() for line in f.readlines()]
+         # Compute the delay interval
+        tasks=[]
+        # delay_interval = .1
+        for i, ticker in enumerate(tickerlist):
 
-            # Compute the delay interval
-            tasks=[]
-            delay_interval = .1
-            for i, ticker in enumerate(tickerlist):
-
-                await asyncio.sleep(1)  # This will stagger the start times
-                tasks.append(asyncio.create_task(handle_ticker_cycle(session, ticker)))
-            await asyncio.gather(*tasks)
+            await asyncio.sleep(.1)  # This will stagger the start times
+            tasks.append(asyncio.create_task(handle_ticker_cycle(session, ticker)))
+        await asyncio.gather(*tasks)
+        print("OVER AT:",datetime.now())
 
 
 
 
-        except Exception as e:
-            print(f"Error occurred in aio session: {traceback.format_exc()}")
-            logger.exception(f"Error occurred in aio session: {e}")
+    except Exception as e:
+        print(f"Error occurred in aio session: {traceback.format_exc()}")
+        logger.exception(f"Error occurred in aio session: {e}")
 
         # current_time = datetime.now()
         # next_iteration_time = start_time + timedelta(seconds=60)
