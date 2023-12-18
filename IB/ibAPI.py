@@ -19,7 +19,10 @@ logging.getLogger('ib_insync').setLevel(logging.WARNING)
 
 ib = IB()
 
-
+def getfills():
+    for fill in ib.fills():
+        if fill.contract.secType != 'OPT':
+            continue
 def ib_reset_and_close_pos():
     # if ib.isConnected():
     #     ib.disconnect()
@@ -168,6 +171,12 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
             # new_order_ref = increment_order_ref(order.orderRef)
             ocaGroup = order.ocaGroup
             trade = await getTrade(order)
+            await cancel_order(order)
+            # Retrieve the latest fills after cancellation
+            fills = ib.fills()
+            order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
+            filled_qty = sum(fill.execution.shares for fill in order_fills)
+            remaining_qty = order.totalQuantity - filled_qty
 
             if order.ocaGroup not in order_details:
                 order_details[order.ocaGroup] = {}
@@ -179,20 +188,23 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
                     "trailingPercent": order.trailingPercent,
                     "auxPrice": order.auxPrice,
                     "trailStopPrice": order.trailStopPrice,
-                    "ocaGroup": order.ocaGroup,
+                    # "ocaGroup": order.ocaGroup,
                     "parentID":order.parentId,
                     "percentOffset": order.percentOffset,
-                    "orderRef": order.orderRef + "_trail",
-                }
+                    "orderRef": order.orderRef,
+                    "remainingQty": remaining_qty
+
+            }
             elif order.orderType == "LMT":
                 order_details[order.ocaGroup]["takeProfit"] = {
                     "type": "LMT",
                     "limitPrice": order.lmtPrice,
-                    "ocaGroup": order.ocaGroup,
+                    # "ocaGroup": order.ocaGroup,
                     "parentID": order.parentId,
-                    "orderRef": order.orderRef + "_takeprofit",
+                    "orderRef": order.orderRef,
+                    "remainingQty": remaining_qty
+
                 }
-            await cancel_order(order)
         # print("ORDER DEATAILS DICT", order_details)
         parenttrade = await placeOptionBracketOrder(
             CorP,
@@ -213,13 +225,14 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
                                    quantity)
 
 
-async def replace_child_orders(order_details, contract,
-                               quantity):
+async def replace_child_orders(order_details, contract):
+
     try:
         for ocaGroup, child_order_details in order_details.items():
+            quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
+
             ticker_contract = contract
             print("dict",order_details[ocaGroup]["stopLoss"])
-            quantity = quantity  # Replace with the desired order quantity
             takeProfit = Order()
             takeProfit.orderId = ib.client.getReqId()
             takeProfit.action = "SELL"
@@ -278,12 +291,20 @@ async def replace_child_orders(order_details, contract,
             for o in bracketOrder:
                 o.ocaType = 2
                 ib.placeOrder(ticker_contract, o)
-            trade = await getTrade(takeProfit)
-            trade2 = await getTrade(stopLoss)
-            print("TRADE2 STOPLOSS:" ,trade2)
-            while  trade.isDone() and  trade2.isDone():
-                await asyncio.sleep(0)
-            print("TRADE2 STOPLOSS:" ,trade2)
+            # trade = await getTrade(takeProfit)
+            # trade2 = await getTrade(stopLoss)
+            while True:
+                stoplossTrade = await getTrade(stopLoss)
+                takeprofitTrade = await getTrade(takeProfit)
+                if stoplossTrade is not None and takeprofitTrade is not None:
+                    # You might want to add additional checks here, depending on your logic
+                    break
+                await asyncio.sleep(.1)  # Properly yield control to the event loop
+
+            # print("TRADE1 Take Profit:" ,trade)
+            # # while  trade.isDone() and  trade2.isDone():
+            # #     await asyncio.sleep(0)
+            # print("TRADE2 STOPLOSS:" ,trade2)
 
             # print(await getTrade(takeProfit))
     except (Exception, asyncio.exceptions.TimeoutError) as e:
@@ -342,6 +363,8 @@ async def placeOptionBracketOrder(
                 parent.orderType = "LMT"
                 parent.totalQuantity = quantity
                 parent.lmtPrice = limit_price
+                parent.orderRef = orderRef
+
                 parent.transmit = False
                 parent.outsideRth = True
                 ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
@@ -355,6 +378,8 @@ async def placeOptionBracketOrder(
                 takeProfit.totalQuantity = quantity
                 takeProfit.lmtPrice = take_profit_price
                 takeProfit.parentId = parent.orderId
+                takeProfit.orderRef = orderRef + "_takeprof"
+
                 takeProfit.outsideRth = True
                 takeProfit.ocaGroup = parent.orderId
                 takeProfit.transmit = False
@@ -365,6 +390,8 @@ async def placeOptionBracketOrder(
                 stopLoss.action = "SELL"
                 stopLoss.orderType = "TRAIL"
                 stopLoss.TrailingUnit = 1
+                stopLoss.orderRef = orderRef + "_trail"
+
                 # stopLoss.trailStopPrice = limit_price - trailAmount
                 # stopLoss.trailStopPrice = .5
                 #I  think the big issue HERE was that percent was a whole number like 3, so it was doin some weird thinkg.
@@ -385,9 +412,7 @@ async def placeOptionBracketOrder(
                 ##TODO change ref back
                 for o in bracketOrder:
                     o.ocaType = 2
-                    if orderRef is not None:
 
-                        o.orderRef = orderRef
                     # ib.sleep(1)
                     ib.placeOrder(ticker_contract, o)
                 print(f"~~~~Placed OptionOrder.  Parent orderRef: {parent.orderRef} ~~~~~")
@@ -397,11 +422,17 @@ async def placeOptionBracketOrder(
                 # ib.sleep(0)
                 # saveOrderIdToFile(parentOrderIdFile, parentOrders)
                 # print(f"~~~~Order Placed: {parent.orderRef} ~~~~~")
-                trade = await getTrade(parent)
-                while not trade.isDone():
-                    # print(trade.orderStatus)
-                    await asyncio.sleep(0)
-                return trade
+                while True:
+                    parenttrade = await getTrade(parent)
+                    if parenttrade is not None:
+                        # You might want to add additional checks here, depending on your logic
+                        break
+                    await asyncio.sleep(.1)  # Properly yield control to the event loop
+
+                # while not trade.isDone():
+                #     # print(trade.orderStatus)
+                #     await asyncio.sleep(0)
+                return parenttrade
             except (Exception, asyncio.exceptions.TimeoutError) as e:
                 logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
     else:

@@ -92,7 +92,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                if ticker == 'SPY':
+                if ticker == ticker:#placeholder , was just for spy
                     try:
                         await send_notifications.send_tweet_w_countdown_followup(
                             ticker,

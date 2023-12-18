@@ -51,8 +51,8 @@ async def send_tweet_w_countdown_followup(ticker, current_price, upordown, messa
             with open(timestamp_file_path, "w") as file:
                 file.write(current_time.isoformat())
 
-            # celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
-            await celery_client.followup_tweet_async_cycle(ticker, current_price, tweet_id, upordown, countdownseconds)
+            celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
+            # await celery_client.followup_tweet_async_cycle(ticker, current_price, tweet_id, upordown, countdownseconds)
         except Exception as e:
             # print(f"Error while sending tweet: {e}")
             logger.error(f"An error occurred while trying to tweet for {ticker}: {e}", exc_info=False)

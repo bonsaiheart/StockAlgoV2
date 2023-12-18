@@ -24,7 +24,10 @@ try:
 except (Exception, asyncio.exceptions.TimeoutError) as e:
     logging.getLogger().error("Connection error or error reset positions: %s", e)
     print("Connection/close positions error:", e)
-
+for fill in ib.fills():
+    if fill.contract.secType != 'OPT':
+        continue
+# fills looks like Fill(contract=Option(conId=670881788, symbol='SPY', lastTradeDateOrContractMonth='20231218', strike=472.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='SPY   231218P00472000', tradingClass='SPY'), execution=Execution(execId='00020057.658064db.01.01', time=datetime.datetime(2023, 12, 18, 20, 54, 26, tzinfo=datetime.timezone.utc), acctNumber='DU7285205', exchange='MERCURY', side='BOT', shares=1.0, price=0.04, permId=1988077838, clientId=0, orderId=159627, liquidation=0, cumQty=1.0, avgPrice=0.04, orderRef='SPY_2hr_50pct_Down_PTNNclass_15:54', evRule='', evMultiplier=0.0, modelCode='', lastLiquidity=2), commissionReport=CommissionReport(execId='00020057.658064db.01.01', commission=1.03925, currency='USD', realizedPNL=-2.070964, yield_=0.0, yieldRedemptionDate=0), time=datetime.datetime(2023, 12, 18, 20, 54, 26, tzinfo=datetime.timezone.utc))
 
     # if ib.isConnected():
     #     ib.disconnect()
@@ -40,7 +43,11 @@ except (Exception, asyncio.exceptions.TimeoutError) as e:
     #     except (Exception, asyncio.exceptions.TimeoutError) as e:
     #         logging.getLogger().error("Connection error or error reset posistions.: %s", e)
     #         print("~~Connection/closepositions error:", e)
-    reset_all()
+    # reset_all()\
+    for fill in ib.fills():
+        print(fill)
+        if fill.contract.secType != 'OPT':
+            continue
     logger.info("Reset all positions/closed open orders.")
 def reset_all():
     ib.reqGlobalCancel()
@@ -99,8 +106,8 @@ async def cancel_order(order):
 
 
 
-
-print(__name__)
-if __name__ == "__main__":
-    print("ib name is main")
-    ib_reset_and_close_pos()
+#
+# print(__name__)
+# if __name__ == "__main__":
+#     print("ib name is main")
+#     ib_reset_and_close_pos()
