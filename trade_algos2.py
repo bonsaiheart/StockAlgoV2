@@ -69,7 +69,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 stock_take_profit_percent = None
                 stock_trail_stop_percent = None
                 option_take_profit_percent = None
-            #     option_trail_stop_percent = None
+                option_trail_stop_percent = None
             # model_output_df.to_csv('test.csv')
             # dailyminutes_df.to_csv('test_dailymin.csv')
             result = model_output_df.iloc[-1]

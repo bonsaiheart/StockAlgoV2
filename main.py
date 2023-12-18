@@ -24,18 +24,19 @@ market_open_time = None
 market_close_time = None
 
 
+
 async def wait_until_time(target_time_utc):
     utc_now = datetime.utcnow()
     now_unix_time = int(utc_now.timestamp())
-    # print(target_time,now)
     target_time_unix_time = int(target_time_utc.timestamp())
     time_difference = target_time_unix_time - now_unix_time
 
-    print(now_unix_time,target_time_unix_time)
-    print(time_difference)
-    # wait_seconds = (target_time - now).total_seconds()
-    await asyncio.sleep(max(0, time_difference))
+    # Uncomment for debugging
+    # print(f"Current Unix Time: {now_unix_time}, Target Unix Time: {target_time_unix_time}")
+    # print(f"Time Difference (seconds): {time_difference}")
 
+    # Sleep until 20 seconds before target time
+    await asyncio.sleep(max(0, time_difference - 20))
 
 
 async def create_client_session():
@@ -112,7 +113,7 @@ async def handle_ticker_cycle(session, ticker):
     global market_close_time
     start_time = datetime.now(pytz.utc)
 
-    while start_time < market_close_time:
+    while start_time < market_close_time+ timedelta(seconds=20):
     # while True:
         try:
             LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker)
