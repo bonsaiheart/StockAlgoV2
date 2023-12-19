@@ -20,8 +20,8 @@ import aiohttp
 from UTILITIES.logger_config import logger
 
 client_session = None
-market_open_time = None
-market_close_time = None
+market_open_time_utc = None
+market_close_time_utc = None
 
 
 
@@ -36,7 +36,7 @@ async def wait_until_time(target_time_utc):
     # print(f"Time Difference (seconds): {time_difference}")
 
     # Sleep until 20 seconds before target time
-    time.sleep(max(0, time_difference - 20))
+    time.sleep(max(0, time_difference-1))
 
 
 async def create_client_session():
@@ -75,21 +75,21 @@ async def run_program():
             logger.exception(f"Error in run_program: {e}")
 
 semaphore = asyncio.Semaphore(500)
-async def get_options_data_for_ticker(session, ticker):
+async def get_options_data_for_ticker(session, ticker,loop_start_time):
 
     ticker = ticker.upper()
     try:
-        LAC, current_price,  StockLastTradeTime,  YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker)
+        LAC, current_price,  StockLastTradeTime,  YYMMDD = await tradierAPI_marketdata.get_options_data(session, ticker,loop_start_time)
         # print(f"{ticker} OptionData complete at {datetime.now()}.")
         return LAC, current_price,  StockLastTradeTime,  YYMMDD
     except Exception as e:
         logger.exception(f"Error in get_options_data for {ticker}: {e}")
         raise
 
-async def calculate_operations( session,ticker, LAC, current_price, StockLastTradeTime, YYMMDD):
+async def calculate_operations( session,ticker, LAC, current_price, StockLastTradeTime, YYMMDD,current_time):
     try:
         (optionchain, dailyminutes, processeddata, ticker) = await calculations.perform_operations(session,
-            ticker, LAC, current_price, StockLastTradeTime, YYMMDD
+            ticker, LAC, current_price, StockLastTradeTime, YYMMDD,current_time
         )
 
         # print(f"{ticker} PerformOptions complete at {datetime.now()}.")
@@ -110,13 +110,15 @@ async def trade_algos( optionchain, dailyminutes, processeddata, ticker, current
         raise
 ###Currently taking 39,40 seconds.
 async def handle_ticker_cycle(session, ticker):
-    global market_close_time
+    global market_close_time_utc
     start_time = datetime.now(pytz.utc)
 
-    while start_time < market_close_time+ timedelta(seconds=20):
+    while start_time < market_close_time_utc+ timedelta(seconds=0):
     # while True:
         try:
-            LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker)
+            now = datetime.now()
+            loop_start_time_est = now.strftime("%y%m%d_%H%M")
+            LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker,loop_start_time_est)
             if LAC ==None or CurrentPrice == None or StockLastTradeTime ==None or YYMMDD == None:
                 end_time = datetime.now(pytz.utc)
                 elapsed_time = (end_time - start_time).total_seconds()
@@ -125,7 +127,7 @@ async def handle_ticker_cycle(session, ticker):
                 await asyncio.sleep(sleep_time)
                 start_time = datetime.now(pytz.utc)
             else:
-                asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD))
+                asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est))
 
 
         except Exception as e:
@@ -141,10 +143,11 @@ async def handle_ticker_cycle(session, ticker):
 
 #TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 async def main():
-    global market_open_time, market_close_time
-    market_open_time, market_close_time=await check_Market_Conditions.get_market_open_close_times()
-    await wait_until_time(market_open_time)
-    print(datetime.now())
+    global market_open_time_utc, market_close_time_utc
+    market_open_time_utc, market_close_time_utc=await check_Market_Conditions.get_market_open_close_times()
+    await wait_until_time(market_open_time_utc)
+    print( "current_utc time: ",datetime.utcnow())
+
 
     try:
         await create_client_session()  # Create a new client session

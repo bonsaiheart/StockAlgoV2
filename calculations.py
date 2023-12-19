@@ -78,12 +78,12 @@ async def perform_operations(session,
                              last_adj_close,
                              current_price,
                              StockLastTradeTime,
-                            YYMMDD
+                            YYMMDD,CurrentTime
                              ):
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
     #TODO could pass in optionchain.
-    optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
+    optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv")
 
     groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
@@ -313,10 +313,12 @@ async def perform_operations(session,
         Bonsai2_Ratio = ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI)) * (
                 (all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
         round(strike_PCRv_dict[closest_higher_strike1], 3),
+
         results.append(
             {
                 ###TODO change all price data to percentage change?
                 ###TODO change closest strike to average of closest above/closest below
+                "CurrentTime:": CurrentTime,
                 "ExpDate": exp_date,
                 "LastTradeTime": StockLastTradeTime,
                 "Current Stock Price": float(current_price),
@@ -486,7 +488,7 @@ async def perform_operations(session,
     # Use the function
     if output_file_dailyminutes.exists():
         dailyminutes_df = pd.read_csv(output_file_dailyminutes)
-        dailyminutes_df = dailyminutes_df.drop_duplicates(subset="LastTradeTime")
+        # dailyminutes_df = dailyminutes_df.drop_duplicates(subset="CurrentTime")
         dailyminutes_df = pd.concat([dailyminutes_df, processed_data_df.head(1)], ignore_index=True)
         replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
     else:
@@ -496,17 +498,16 @@ async def perform_operations(session,
     dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
 
     try:
-        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x",
+        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv", mode="x",
                                  index=False)
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError as e:
-        print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
-        now = datetime.now()
-        YYMMDD_HHMM= now.strftime("%y%m%d_%H%M")
-        # exit()
-        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x",index=False)
+        # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
 
-        logger.error(f"TIME:{YYMMDD_HHMM}. {ticker} Processed data aready exists: {StockLastTradeTime}, using current YYMMDD_HHMM: {e}")
+        # exit()
+        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv", mode="x",index=False)
+
+        logger.error(f"{ticker} Processed data aready exists: {CurrentTime}{e}")
 
     return (
         optionchain_df,

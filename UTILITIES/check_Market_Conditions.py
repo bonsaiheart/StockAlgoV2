@@ -60,7 +60,7 @@ async def get_market_open_close_times():
     # else:
     #     print("Today is not a trading day.")
     #     is_market_open = False
-    print(market_close_utc,market_open_utc)
+    print("Market Open UTC: ",market_open_utc,"Market Close UTC: ",market_close_utc)
     return market_open_utc,market_close_utc
 
 

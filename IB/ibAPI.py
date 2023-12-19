@@ -123,31 +123,47 @@ async def getTrade(order):
 
 
 # Define a callback function for the cancelOrderEvent
+# async def cancel_order(order):
+#     # print('Attempting to cancel', order)
+#
+#     trade = await getTrade(order)
+#     # Create an asyncio Event to wait for the order to be cancelled
+#     order_cancelled = asyncio.Event()
+#
+#     # Define a callback function for the cancelOrderEvent
+#     def make_on_cancel_order_event(order_id):
+#         def on_cancel_order_event(trade: Trade):
+#             if trade.order.orderId == order_id:
+#                 # print(f"Order cancellation confirmed for trade: {trade}")
+#                 order_cancelled.set()
+#         return on_cancel_order_event
+#
+#     # Subscribe to the cancelOrderEvent
+#     on_cancel_order_event = make_on_cancel_order_event(order.orderId)
+#     ib.cancelOrderEvent += on_cancel_order_event
+#     ib.cancelOrder(order)
+#
+#     await order_cancelled.wait()  # Wait for the cancellation to be confirmed
+#     # Unsubscribe from the event to avoid memory leaks
+#     ib.cancelOrderEvent -= on_cancel_order_event
+#
+#TODO swapped these cancels_ordres because sometimes it seems order is getting filled after trying to cancel, adn i have mismatching positions/open trades.
 async def cancel_order(order):
-    # print('Attempting to cancel', order)
-
     trade = await getTrade(order)
-    # Create an asyncio Event to wait for the order to be cancelled
-    order_cancelled = asyncio.Event()
+    if trade is not None and trade.orderStatus.status not in ['Cancelled', 'Filled']:
+        order_cancelled = asyncio.Event()
 
-    # Define a callback function for the cancelOrderEvent
-    def make_on_cancel_order_event(order_id):
         def on_cancel_order_event(trade: Trade):
-            if trade.order.orderId == order_id:
-                # print(f"Order cancellation confirmed for trade: {trade}")
+            if trade.order.orderId == order.orderId:
                 order_cancelled.set()
-        return on_cancel_order_event
 
-    # Subscribe to the cancelOrderEvent
-    on_cancel_order_event = make_on_cancel_order_event(order.orderId)
-    ib.cancelOrderEvent += on_cancel_order_event
-    ib.cancelOrder(order)
-
-    await order_cancelled.wait()  # Wait for the cancellation to be confirmed
-    # Unsubscribe from the event to avoid memory leaks
-    ib.cancelOrderEvent -= on_cancel_order_event
-
-
+        ib.cancelOrderEvent += on_cancel_order_event
+        ib.cancelOrder(order)
+        await order_cancelled.wait()
+        ib.cancelOrderEvent -= on_cancel_order_event
+    else:
+        # Log or handle the case where the order is already cancelled or filled
+        print(f"Order {order.orderId} is already {trade.orderStatus.status} and cannot be cancelled.")
 
 
 async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, contract_current_price,
@@ -168,20 +184,26 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
     else:
         order_details = {}
         for order in child_orders_objs_list:
-            # new_order_ref = increment_order_ref(order.orderRef)
-            ocaGroup = order.ocaGroup
             trade = await getTrade(order)
-            await cancel_order(order)
+            if trade and trade.orderStatus.status not in ['Cancelled', 'Filled']:
+                await cancel_order(order)
+            # # new_order_ref = increment_order_ref(order.orderRef)
+            # ocaGroup = order.ocaGroup
+            # trade = await getTrade(order)
+            # await cancel_order(order)
+
             # Retrieve the latest fills after cancellation
             fills = ib.fills()
             order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
             filled_qty = sum(fill.execution.shares for fill in order_fills)
+            print("filled qty for order: ",  filled_qty)
             remaining_qty = order.totalQuantity - filled_qty
+            print("remaining qty for order: " , remaining_qty)
 
             if order.ocaGroup not in order_details:
                 order_details[order.ocaGroup] = {}
             if order.orderType == "TRAIL":
-                print(order,"aux:",order.auxPrice,"trailstopprice:",order.trailStopPrice)
+                # print(order,"aux:",order.auxPrice,"trailstopprice:",order.trailStopPrice)
 
                 order_details[order.ocaGroup]["stopLoss"] = {
                     "type": "TRAIL",
@@ -435,19 +457,19 @@ async def placeOptionBracketOrder(
             except (Exception, asyncio.exceptions.TimeoutError) as e:
                 logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
     else:
-        logger.warning(f"Too many open orders (7+){ticker_contract} {orderRef} .  Skipping order placement.")
+        logger.warning(f"Too many open orders (18+){ticker_contract} {orderRef} .  Skipping order placement.")
 
 
 # ib.disconnect()
-async def can_place_new_order(ib, contract, threshold=7):
+async def can_place_new_order(ib, contract, threshold=18):
     # Fetch open orders
     open_trades =  ib.openTrades()
     # print(open_trades)
-
+    # print("OpenTradesfor contract:",open_trades)
     # print(contract[0].conId)
     # Count orders for the specified contract
     count = sum(1 for trade in open_trades if trade.contract.conId == contract[0].conId)
-    # print(f"{count} open orders for {contract}.")
+    print(f"{count} open orders for {contract[0].localSymbol}.")
     # Return True if below threshold, False otherwise
     return count < threshold
 

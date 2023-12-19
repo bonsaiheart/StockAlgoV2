@@ -53,8 +53,7 @@ async def fetch(session, url, params, headers):
         logger.exception(f"An error occurred while fetching data: {e} At URL {url}")
 
 
-async def get_options_data(session, ticker):
-    now = datetime.now()
+async def get_options_data(session, ticker,YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
     tasks = []
@@ -198,18 +197,19 @@ async def get_options_data(session, ticker):
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
+
     if YYMMDD == StockLastTradeTime_YMD:
          try:
-             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime_str}.csv", mode="x")
-         except FileExistsError as e:
-
-             YYMMDD_HHMM= now.strftime("%y%m%d_%H%M")
-             logger.error(f"TIME:{YYMMDD_HHMM}. {ticker} file aready exists using lasttradetime: {StockLastTradeTime_str}, using current YYMMDD_HHMM: {e}")
-
              combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
-         return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
-    else:
-        return None,None,None,None #IF its getting outdated info, skip
+             return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
+
+         except Exception as e:
+
+             logger.error(f"{e} TIME:{YYMMDD_HHMM}. {ticker} file aready exists using lasttradetime: {YYMMDD_HHMM}, using current YYMMDD_HHMM: {e}")
+             return None, None, None, None  # IF its getting outdated info, skip
+
+             # combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+
 #TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
 
 

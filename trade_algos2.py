@@ -72,14 +72,16 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 option_trail_stop_percent = None
             # model_output_df.to_csv('test.csv')
             # dailyminutes_df.to_csv('test_dailymin.csv')
+
             result = model_output_df.iloc[-1]
             tail = model_output_df.tail(5)
 
-            print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
+            # print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
             # If the model result is positive handle the positive result
-            if result > 0.5\
-                    :
-
+            if result > 0.5:
+                now = datetime.now()
+                HHMM = now.strftime("%H%M")
+                print("Positive result: ",ticker,model_name,HHMM)
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_HR_MIN_only = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
@@ -111,10 +113,10 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     try:
                         await place_option_order_sync(
                             CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
-                            quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
+                            quantity=7,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
                         now = datetime.now()
                         HHMM = now.strftime("%H%M")
-                        print(HHMM,ticker,model_name,"order placed.")
+                        print("Order placed: ",HHMM,ticker,model_name)
 
 
                     except Exception as e:
