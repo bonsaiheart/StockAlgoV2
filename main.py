@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta
 import asyncio
 import os
-
+import time
 import traceback
 
 import pytz
@@ -36,7 +36,7 @@ async def wait_until_time(target_time_utc):
     # print(f"Time Difference (seconds): {time_difference}")
 
     # Sleep until 20 seconds before target time
-    await asyncio.sleep(max(0, time_difference - 20))
+    time.sleep(max(0, time_difference - 20))
 
 
 async def create_client_session():
@@ -117,12 +117,21 @@ async def handle_ticker_cycle(session, ticker):
     # while True:
         try:
             LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker)
-            asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD))
+            if LAC ==None or CurrentPrice == None or StockLastTradeTime ==None or YYMMDD == None:
+                end_time = datetime.now(pytz.utc)
+                elapsed_time = (end_time - start_time).total_seconds()
+                sleep_time = max(0, 60 - elapsed_time)
+                # break
+                await asyncio.sleep(sleep_time)
+                start_time = datetime.now(pytz.utc)
+            else:
+                asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD))
 
 
         except Exception as e:
             print(f"Error occurred for ticker {ticker}: {traceback.format_exc()}")
             logger.exception(f"Error occurred for ticker {ticker}: {e}")
+
         end_time = datetime.now(pytz.utc)
         elapsed_time = (end_time - start_time).total_seconds()
         sleep_time = max(0, 60 - elapsed_time)

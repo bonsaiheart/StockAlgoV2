@@ -54,7 +54,7 @@ async def fetch(session, url, params, headers):
 
 
 async def get_options_data(session, ticker):
-
+    now = datetime.now()
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
     tasks = []
@@ -89,8 +89,12 @@ async def get_options_data(session, ticker):
     # price_change_percent = quote_df["change_percentage"][0]  Assuming this same as lac to current price
     StockLastTradeTime = quote_df["trade_date"][0]
     StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
+    StockLastTradeTime_datetime = datetime.fromtimestamp(StockLastTradeTime)
+    StockLastTradeTime_str = StockLastTradeTime_datetime.strftime("%y%m%d_%H%M")
+    StockLastTradeTime_YMD = StockLastTradeTime_datetime.strftime("%y%m%d")
+
     StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
-    print(f"${ticker} last Trade Time: {StockLastTradeTime}")
+    print(f"${ticker} last Trade Time: {StockLastTradeTime_str}")
 
 
     expirations = expirations_response["expirations"]["expiration"]
@@ -194,16 +198,19 @@ async def get_options_data(session, ticker):
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
-    try:
-        combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x")
-    except FileExistsError as e:
-        now = datetime.now()
-        YYMMDD_HHMM= now.strftime("%y%m%d_%H%M")
-        logger.error(f"TIME:{YYMMDD_HHMM}. {ticker} file aready exists using lasttradetime: {StockLastTradeTime}, using current YYMMDD_HHMM: {e}")
+    if YYMMDD == StockLastTradeTime_YMD:
+         try:
+             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime_str}.csv", mode="x")
+         except FileExistsError as e:
 
-        combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+             YYMMDD_HHMM= now.strftime("%y%m%d_%H%M")
+             logger.error(f"TIME:{YYMMDD_HHMM}. {ticker} file aready exists using lasttradetime: {StockLastTradeTime_str}, using current YYMMDD_HHMM: {e}")
 
+             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+         return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
+    else:
+        return None,None,None,None #IF its getting outdated info, skip
 #TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
-    return LAC, CurrentPrice,  StockLastTradeTime, YYMMDD
+
 
 #TODO added open high low close avg vol last vol... but didnt do anything with it yet
