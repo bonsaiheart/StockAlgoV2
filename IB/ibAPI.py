@@ -221,8 +221,7 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
             await asyncio.sleep(0)
             # print('waiting for parent to fill before replacing children.')
         # trade.orderStatus.ActiveStates
-        await replace_child_orders(order_details, contract,
-                                   quantity)
+        await replace_child_orders(order_details, contract)
 
 
 async def replace_child_orders(order_details, contract):
@@ -232,7 +231,7 @@ async def replace_child_orders(order_details, contract):
             quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
 
             ticker_contract = contract
-            print("dict",order_details[ocaGroup]["stopLoss"])
+            # print("dict",order_details[ocaGroup]["stopLoss"])
             takeProfit = Order()
             takeProfit.orderId = ib.client.getReqId()
             takeProfit.action = "SELL"
