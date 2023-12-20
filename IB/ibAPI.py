@@ -272,9 +272,10 @@ async def cancel_and_replace_orders(contract, action, CorP, ticker, exp, strike,
             take_profit_percent=take_profit_percent,
             trailstop_amount_percent=trailstop_amount_percent,
             check_opposite_orders=False)
-        while not parenttrade.isDone():
+        while True:
             await asyncio.sleep(0)
-            # print('waiting for parent to fill before replacing children.')
+            if parenttrade.isDone() or parenttrade.orderStatus.status == "Inactive":
+                break
         # trade.orderStatus.ActiveStates
         await replace_child_orders(order_details, contract)
 
@@ -373,7 +374,7 @@ async def placeOptionBracketOrder(
         orderRef=None,
         take_profit_percent=3,
         trailstop_amount_percent=3,
-        check_opposite_orders=True):
+        check_opposite_orders=True,parent_tif="GTD"):
     if take_profit_percent == None:
         take_profit_percent = 3
     if trailstop_amount_percent == None:
@@ -422,7 +423,7 @@ async def placeOptionBracketOrder(
                 parent.transmit = False
                 parent.outsideRth = True
                 ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-                parent.tif = "GTD"
+                parent.tif = parent_tif
                 parent.goodTillDate = gtddelta
 
                 takeProfit = Order()
