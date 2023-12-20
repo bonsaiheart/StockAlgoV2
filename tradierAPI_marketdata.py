@@ -42,7 +42,6 @@ async def get_option_chains_concurrently(session, ticker, expiration_dates, head
     return all_option_chains
 
 
-
 async def fetch(session, url, params, headers):
     try:
         async with session.get(url, params=params, headers=headers) as response:
@@ -51,6 +50,7 @@ async def fetch(session, url, params, headers):
     except Exception as e:
         print(f"Connection error to {url}: {e}.")
         logger.exception(f"An error occurred while fetching data: {e} At URL {url}")
+
 
 
 async def get_options_data(session, ticker,YYMMDD_HHMM):

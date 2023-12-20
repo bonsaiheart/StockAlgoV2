@@ -19,6 +19,7 @@ async def get_ta(session, ticker):
     time_sale_response = await fetch(session, "https://api.tradier.com/v1/markets/timesales",
                                      params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
                                              "session_filter": "all"}, headers=headers)
+
     if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
         df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
     else:
