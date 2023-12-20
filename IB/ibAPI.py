@@ -6,8 +6,10 @@ import re
 
 # import random
 from ib_insync import *
+
 from UTILITIES.logger_config import logger
-#TODO set up logger
+
+# TODO set up logger
 # Initialization and global variables
 project_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(project_dir, "errorlog")
@@ -19,10 +21,7 @@ logging.getLogger('ib_insync').setLevel(logging.WARNING)
 
 ib = IB()
 
-def getfills():
-    for fill in ib.fills():
-        if fill.contract.secType != 'OPT':
-            continue
+
 def ib_reset_and_close_pos():
     # if ib.isConnected():
     #     ib.disconnect()
@@ -40,6 +39,8 @@ def ib_reset_and_close_pos():
             print("~~Connection/closepositions error:", e)
     reset_all()
     logger.info("Reset all positions/closed open orders.")
+
+
 def reset_all():
     ib.reqGlobalCancel()
 
@@ -88,6 +89,7 @@ async def get_execution_price(parent_order_id):
             return trade.orderStatus.avgFillPrice
     return None
 
+
 def increment_order_ref(order_ref):
     """ Increments the numeric part of the order reference. """
     match = re.search(r'([\s\S]*?)(\d*Rep\.)(\d+)$', order_ref)
@@ -99,6 +101,8 @@ def increment_order_ref(order_ref):
     else:
         # If "Rep." doesn't exist, add it and start with 1
         return f"{order_ref}_Rep.1"
+
+
 async def find_child_orders_with_details(contract, action):
     child_orders_list = []
     # Filter open orders to find child orders for the given contract
@@ -118,8 +122,6 @@ async def getTrade(order):
     trade = next((trade for trade in ib.trades() if trade.order is order), None)
 
     return trade
-
-
 
 
 # Define a callback function for the cancelOrderEvent
@@ -147,61 +149,92 @@ async def getTrade(order):
 #     # Unsubscribe from the event to avoid memory leaks
 #     ib.cancelOrderEvent -= on_cancel_order_event
 #
-#TODO swapped these cancels_ordres because sometimes it seems order is getting filled after trying to cancel, adn i have mismatching positions/open trades.
-async def cancel_order(order):
-    trade = await getTrade(order)
-    if trade is not None and trade.orderStatus.status not in ['Cancelled', 'Filled']:
+# TODO swapped these cancels_ordres because sometimes it seems order is getting filled after trying to cancel, adn i have mismatching positions/open trades.
+async def cancel_oca_group_orders(oca_group_orders):
+    cancellation_events = []
+    for order in oca_group_orders:
         order_cancelled = asyncio.Event()
+        cancellation_events.append((order, order_cancelled))
 
-        def on_cancel_order_event(trade: Trade):
-            if trade.order.orderId == order.orderId:
-                order_cancelled.set()
+        def make_on_cancel_order_event(order_id, event):
+            def on_cancel_order_event(trade: Trade):
+                if trade.order.orderId == order_id:
+                    event.set()
 
+            return on_cancel_order_event
+
+        on_cancel_order_event = make_on_cancel_order_event(order.orderId, order_cancelled)
         ib.cancelOrderEvent += on_cancel_order_event
         ib.cancelOrder(order)
-        await order_cancelled.wait()
-        ib.cancelOrderEvent -= on_cancel_order_event
-    else:
-        # Log or handle the case where the order is already cancelled or filled
-        print(f"Order {order.orderId} is already {trade.orderStatus.status} and cannot be cancelled.")
+
+    remaining_quantities = {}
+    for order, event in cancellation_events:
+        await event.wait()
+        ib.cancelOrderEvent -= make_on_cancel_order_event(order.orderId, event)
+
+        # Check for partial fills after cancellation
+        fills = ib.fills()
+        order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
+        filled_qty = sum(fill.execution.shares for fill in order_fills)
+        remaining_qty = order.totalQuantity - filled_qty
+        remaining_quantities[order.orderId] = remaining_qty
+
+    return remaining_quantities
 
 
-async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, contract_current_price,
-                                    quantity, orderRef, take_profit_percent, trailstop_amount_percent):
+#
+# async def cancel_order(order):
+#     trade = await getTrade(order)
+#     if trade is None:
+#         print(f"Trade for order {order.orderId} not found.")
+#         return None
+#
+#     # Check if the order is fully filled or cancelled
+#     if trade.orderStatus.status in ['Cancelled', 'Filled']:
+#         print(f"Order {order.orderId} is already {trade.orderStatus.status} and cannot be cancelled.")
+#         return None
+#
+#     # Proceed to cancel if the order is not fully filled or cancelled
+#     order_cancelled = asyncio.Event()
+#
+#     def on_cancel_order_event(trade: Trade):
+#         if trade.order.orderId == order.orderId:
+#             order_cancelled.set()
+#
+#     ib.cancelOrderEvent += on_cancel_order_event
+#     ib.cancelOrder(order)
+#     await order_cancelled.wait()
+#     ib.cancelOrderEvent -= on_cancel_order_event
+#
+#     # Check for partial fills after cancellation attempt
+#     fills = ib.fills()
+#     order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
+#     filled_qty = sum(fill.execution.shares for fill in order_fills)
+#     remaining_qty = order.totalQuantity - filled_qty
+#     return remaining_qty
+
+async def cancel_and_replace_orders(contract, action, CorP, ticker, exp, strike, contract_current_price, quantity,
+                                    orderRef, take_profit_percent, trailstop_amount_percent):
     child_orders_objs_list = await find_child_orders_with_details(contract, action)
     if not child_orders_objs_list:
-        await placeOptionBracketOrder(
-            CorP,
-            ticker,
-            exp,
-            strike,
-            contract_current_price,
-            quantity=quantity,
-            orderRef=orderRef,
-            take_profit_percent=take_profit_percent,
-            trailstop_amount_percent=trailstop_amount_percent,
-            check_opposite_orders=False)
+        await placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
+                                      take_profit_percent, trailstop_amount_percent, check_opposite_orders=False)
     else:
+        remaining_quantities = await cancel_oca_group_orders(child_orders_objs_list)
+
         order_details = {}
         for order in child_orders_objs_list:
-            trade = await getTrade(order)
-            if trade and trade.orderStatus.status not in ['Cancelled', 'Filled']:
-                await cancel_order(order)
+            remaining_qty = remaining_quantities.get(order.orderId, 0)
+            if order.ocaGroup not in order_details:
+                order_details[order.ocaGroup] = {}
+
             # # new_order_ref = increment_order_ref(order.orderRef)
             # ocaGroup = order.ocaGroup
             # trade = await getTrade(order)
             # await cancel_order(order)
 
-            # Retrieve the latest fills after cancellation
-            fills = ib.fills()
-            order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
-            filled_qty = sum(fill.execution.shares for fill in order_fills)
-            print("filled qty for order: ",  filled_qty)
-            remaining_qty = order.totalQuantity - filled_qty
-            print("remaining qty for order: " , remaining_qty)
-
-            if order.ocaGroup not in order_details:
-                order_details[order.ocaGroup] = {}
+            # if order.ocaGroup not in order_details:
+            #     order_details[order.ocaGroup] = {}
             if order.orderType == "TRAIL":
                 # print(order,"aux:",order.auxPrice,"trailstopprice:",order.trailStopPrice)
 
@@ -211,12 +244,12 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
                     "auxPrice": order.auxPrice,
                     "trailStopPrice": order.trailStopPrice,
                     # "ocaGroup": order.ocaGroup,
-                    "parentID":order.parentId,
+                    "parentID": order.parentId,
                     "percentOffset": order.percentOffset,
                     "orderRef": order.orderRef,
                     "remainingQty": remaining_qty
 
-            }
+                }
             elif order.orderType == "LMT":
                 order_details[order.ocaGroup]["takeProfit"] = {
                     "type": "LMT",
@@ -247,7 +280,6 @@ async def cancel_and_replace_orders(contract,action, CorP, ticker, exp, strike, 
 
 
 async def replace_child_orders(order_details, contract):
-
     try:
         for ocaGroup, child_order_details in order_details.items():
             quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
@@ -272,7 +304,6 @@ async def replace_child_orders(order_details, contract):
                 takeProfit.orderRef = order_details[ocaGroup]["takeProfit"]["orderRef"]
                 # takeProfit.orderRef = ''
 
-
             stopLoss = Order()
             stopLoss.action = "SELL"
             stopLoss.orderType = "TRAIL"
@@ -294,7 +325,7 @@ async def replace_child_orders(order_details, contract):
                 # stopLoss.trailStopPrice = initial_stop_price  # initial stop price
 
                 # stopLoss.percentOffset = order_details[ocaGroup]["stopLoss"]["percentOffset"]
-                #TODO monday make sure this is correct.  it should be same floor as the og order.
+                # TODO monday make sure this is correct.  it should be same floor as the og order.
                 # stopLoss.auxPrice = round(order_details[ocaGroup]["stopLoss"]["trailStopPrice"],2) * (1 - order_details[ocaGroup]["stopLoss"]["trailingPercent"])
                 # stopLoss.auxPrice = order_details[ocaGroup]["stopLoss"]["auxPrice"]
                 # stopLoss.trailStopPrice = order_details[ocaGroup]["stopLoss"]["trailStopPrice"]  # Use the stored trailStopPrice
@@ -330,6 +361,8 @@ async def replace_child_orders(order_details, contract):
             # print(await getTrade(takeProfit))
     except (Exception, asyncio.exceptions.TimeoutError) as e:
         logger.exception(f"An error occurred while replace child orders.{ticker_contract},: {e}")
+
+
 async def placeOptionBracketOrder(
         CorP,
         ticker,
@@ -344,7 +377,7 @@ async def placeOptionBracketOrder(
     if take_profit_percent == None:
         take_profit_percent = 3
     if trailstop_amount_percent == None:
-        trailstop_amount_percent =3
+        trailstop_amount_percent = 3
 
     ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
     qualified_contract = await ib.qualifyContractsAsync(ticker_contract)
@@ -368,7 +401,7 @@ async def placeOptionBracketOrder(
                 quantity = quantity  # Replace with the desired order quantity
                 limit_price = contract_current_price  # Replace with your desired limit price
                 take_profit_price = round(
-                    contract_current_price + (contract_current_price * (take_profit_percent/100)), 2
+                    contract_current_price + (contract_current_price * (take_profit_percent / 100)), 2
                 )  # Replace with your desired take profit price
 
                 auxPrice = round(
@@ -415,8 +448,8 @@ async def placeOptionBracketOrder(
 
                 # stopLoss.trailStopPrice = limit_price - trailAmount
                 # stopLoss.trailStopPrice = .5
-                #I  think the big issue HERE was that percent was a whole number like 3, so it was doin some weird thinkg.
-                stopLoss.trailStopPrice = round(contract_current_price *((100-trailstop_amount_percent)/100),2)
+                # I  think the big issue HERE was that percent was a whole number like 3, so it was doin some weird thinkg.
+                stopLoss.trailStopPrice = round(contract_current_price * ((100 - trailstop_amount_percent) / 100), 2)
                 # stopLoss.trailingPercent = 99
                 stopLoss.trailingPercent = trailstop_amount_percent
 
@@ -463,7 +496,7 @@ async def placeOptionBracketOrder(
 # ib.disconnect()
 async def can_place_new_order(ib, contract, threshold=18):
     # Fetch open orders
-    open_trades =  ib.openTrades()
+    open_trades = ib.openTrades()
     # print(open_trades)
     # print("OpenTradesfor contract:",open_trades)
     # print(contract[0].conId)
@@ -473,19 +506,20 @@ async def can_place_new_order(ib, contract, threshold=18):
     # Return True if below threshold, False otherwise
     return count < threshold
 
+
 async def placeBuyBracketOrder(ticker, current_price,
-    quantity=1,
-    orderRef=None,
-    take_profit_percent=.0003,
-    trail_stop_percent=.0002):
+                               quantity=1,
+                               orderRef=None,
+                               take_profit_percent=.0003,
+                               trail_stop_percent=.0002):
     trail_stop_percent = trail_stop_percent / 100
-    take_profit_percent =take_profit_percent/100
+    take_profit_percent = take_profit_percent / 100
     print(f"~~~~~Placing {ticker} BuyBracket order~~~~~")
     try:
-        if take_profit_percent==None:
-            take_profit_percent=.003
-        if trail_stop_percent==None:
-            trail_stop_percent=.002
+        if take_profit_percent == None:
+            take_profit_percent = .003
+        if trail_stop_percent == None:
+            trail_stop_percent = .002
         gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=180)).strftime("%Y%m%d %H:%M:%S")
 
         ticker_symbol = ticker
@@ -495,7 +529,7 @@ async def placeBuyBracketOrder(ticker, current_price,
         current_price = current_price
         quantity = quantity
         limit_price = current_price
-        take_profit_price = round(current_price+(current_price * take_profit_percent), 2)
+        take_profit_price = round(current_price + (current_price * take_profit_percent), 2)
         trailAmount = round(current_price * trail_stop_percent, 2)
 
         parent = Order()
@@ -548,9 +582,8 @@ async def placeBuyBracketOrder(ticker, current_price,
         logger.exception(f"An error occurred while placeBuyBracketOrder.{ticker},: {e}")
 
 
-
 def placeCallBracketOrder(
-    ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None, custom_trailamount=None
+        ticker, exp, strike, current_price, quantity, orderRef=None, custom_takeprofit=None, custom_trailamount=None
 ):
     try:
         ticker_symbol = ticker
