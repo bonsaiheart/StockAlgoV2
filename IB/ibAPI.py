@@ -181,10 +181,10 @@ async def cancel_oca_group_orders(oca_group_orders):
         print("filled qty:",filled_qty,"remainig qty:", remaining_qty)
 
         oca_group = order.ocaGroup
-        if oca_group in oca_group_remaining_qty:
-            oca_group_remaining_qty[oca_group] += remaining_qty
-        else:
-            oca_group_remaining_qty[oca_group] = remaining_qty
+        # if oca_group in oca_group_remaining_qty:
+        #     oca_group_remaining_qty[oca_group] += remaining_qty
+        # else:
+        oca_group_remaining_qty[oca_group] = remaining_qty
 
     return oca_group_remaining_qty
 
