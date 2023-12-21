@@ -97,13 +97,15 @@ async def calculate_operations( session,ticker, LAC, current_price, StockLastTra
         logger.exception(f"Error in perform_operations for {ticker}: {e}")
         raise
     # if ticker in ["SPY", "TSLA", "GOOGL"]:
-    asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
+    # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
+    await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
     return optionchain, dailyminutes, processeddata, ticker
 
 async def trade_algos( optionchain, dailyminutes, processeddata, ticker, current_price):
 
     try:
-        asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+        # asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
+        await trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price)
         # print(f"{ticker} Actions complete at {datetime.now()}.")
     except Exception as e:
         logger.exception(f"Error in actions for {ticker}: {e}")
@@ -129,7 +131,8 @@ async def handle_ticker_cycle(session, ticker):
                 await asyncio.sleep(sleep_time)
                 start_time = datetime.now(pytz.utc)
             else:
-                asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est))
+                # asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est))
+                await calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est)
 
 
         except Exception as e:
