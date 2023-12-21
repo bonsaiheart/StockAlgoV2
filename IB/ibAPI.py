@@ -160,27 +160,33 @@ async def cancel_oca_group_orders(oca_group_orders):
             def on_cancel_order_event(trade: Trade):
                 if trade.order.orderId == order_id:
                     event.set()
-
             return on_cancel_order_event
 
         on_cancel_order_event = make_on_cancel_order_event(order.orderId, order_cancelled)
         ib.cancelOrderEvent += on_cancel_order_event
         ib.cancelOrder(order)
 
-    remaining_quantities = {}
+    # Wait for all cancellations to complete
+    await asyncio.gather(*(event.wait() for _, event in cancellation_events))
     for order, event in cancellation_events:
-        await event.wait()
         ib.cancelOrderEvent -= make_on_cancel_order_event(order.orderId, event)
 
-        # Check for partial fills after cancellation
-        fills = ib.fills()
+        # New approach to calculate remaining quantities for each OCA group
+    oca_group_remaining_qty = {}
+    fills = ib.fills()
+    for order in oca_group_orders:
         order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
         filled_qty = sum(fill.execution.shares for fill in order_fills)
         remaining_qty = order.totalQuantity - filled_qty
-        remaining_quantities[order.orderId] = remaining_qty
+        print("filled qty:",filled_qty,"remainig qty:", remaining_qty)
 
-    return remaining_quantities
+        oca_group = order.ocaGroup
+        if oca_group in oca_group_remaining_qty:
+            oca_group_remaining_qty[oca_group] += remaining_qty
+        else:
+            oca_group_remaining_qty[oca_group] = remaining_qty
 
+    return oca_group_remaining_qty
 
 #
 # async def cancel_order(order):
@@ -219,22 +225,28 @@ async def cancel_and_replace_orders(contract, action, CorP, ticker, exp, strike,
     if not child_orders_objs_list:
         await placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                                       take_profit_percent, trailstop_amount_percent, check_opposite_orders=False)
+    # else:
+    #     remaining_quantities = await cancel_oca_group_orders(child_orders_objs_list)
+    #
+    #     order_details = {}
+    #     for order in child_orders_objs_list:
+    #         remaining_qty = remaining_quantities.get(order.orderId, 0)
+    #         if order.ocaGroup not in order_details:
+    #             order_details[order.ocaGroup] = {}
     else:
-        remaining_quantities = await cancel_oca_group_orders(child_orders_objs_list)
-
+        oca_group_remaining_qty = await cancel_oca_group_orders(child_orders_objs_list)
         order_details = {}
         for order in child_orders_objs_list:
-            remaining_qty = remaining_quantities.get(order.orderId, 0)
-            if order.ocaGroup not in order_details:
-                order_details[order.ocaGroup] = {}
-
+            print(order.ocaGroup) #IS HERE, but not in order_)detals?
+            oca_group = order.ocaGroup
+            remaining_qty = oca_group_remaining_qty.get(oca_group, 0)
             # # new_order_ref = increment_order_ref(order.orderRef)
             # ocaGroup = order.ocaGroup
             # trade = await getTrade(order)
             # await cancel_order(order)
 
-            # if order.ocaGroup not in order_details:
-            #     order_details[order.ocaGroup] = {}
+            if order.ocaGroup not in order_details:
+                order_details[order.ocaGroup] = {}
             if order.orderType == "TRAIL":
                 # print(order,"aux:",order.auxPrice,"trailstopprice:",order.trailStopPrice)
 
@@ -286,6 +298,8 @@ async def replace_child_orders(order_details, contract):
             quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
 
             ticker_contract = contract
+            qualified_contract = await ib.qualifyContractsAsync(ticker_contract)
+
             # print("dict",order_details[ocaGroup]["stopLoss"])
             takeProfit = Order()
             takeProfit.orderId = ib.client.getReqId()
@@ -343,7 +357,7 @@ async def replace_child_orders(order_details, contract):
 
             for o in bracketOrder:
                 o.ocaType = 2
-                ib.placeOrder(ticker_contract, o)
+                ib.placeOrder(qualified_contract[0], o)
             # trade = await getTrade(takeProfit)
             # trade2 = await getTrade(stopLoss)
             while True:

@@ -94,7 +94,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                if ticker == ticker:#placeholder , was just for spy
+                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
                     try:
                         await send_notifications.send_tweet_w_countdown_followup(
                             ticker,
@@ -111,12 +111,14 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
         #TODO uncomment optionorder.
                 if IB.ibAPI.ib.isConnected():
                     try:
-                        await place_option_order_sync(
-                            CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
-                            quantity=7,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
-                        now = datetime.now()
-                        HHMM = now.strftime("%H%M")
-                        print("Order placed: ",HHMM,ticker,model_name)
+                        if ticker not in ["SQQQ","UVXY","SPXS"]:
+                            await place_option_order_sync(
+                                CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only,
+
+                                quantity=7,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
+                            now = datetime.now()
+                            HHMM = now.strftime("%H%M")
+                            print("Order placed: ",HHMM,ticker,model_name)
 
 
                     except Exception as e:
