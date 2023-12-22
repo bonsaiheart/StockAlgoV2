@@ -19,7 +19,7 @@ async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_pr
                                   quantity, take_profit_percent, trail_stop_percent):
     try:
         await IB.ibAPI.placeOptionBracketOrder(
-            CorP, ticker, exp, strike, contract_current_price, quantity,
+            CorP, ticker, exp, strike, contract_current_price, 10,
             orderRef, take_profit_percent, trail_stop_percent
         )
     except Exception as e:

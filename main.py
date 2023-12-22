@@ -33,7 +33,7 @@ async def wait_until_time(target_time_utc):
 
     # Uncomment for debugging
     # print(f"Current Unix Time: {now_unix_time}, Target Unix Time: {target_time_unix_time}")
-    # print(f"Time Difference (seconds): {time_difference}")
+    print(f"Time Difference (seconds): {time_difference}")
 
     # Sleep until 20 seconds before target time
     time.sleep(max(0, time_difference-1))
@@ -96,9 +96,10 @@ async def calculate_operations( session,ticker, LAC, current_price, StockLastTra
     except Exception as e:
         logger.exception(f"Error in perform_operations for {ticker}: {e}")
         raise
-    # if ticker in ["SPY", "TSLA", "GOOGL"]:
+    if ticker in ["SPY", "TSLA", "GOOGL","CHWY","ROKU","V"]:
     # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
-    await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
+
+        await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
     return optionchain, dailyminutes, processeddata, ticker
 
 async def trade_algos( optionchain, dailyminutes, processeddata, ticker, current_price):
@@ -122,14 +123,14 @@ async def handle_ticker_cycle(session, ticker):
             loop_start_time_est = now.strftime("%y%m%d_%H%M")
             LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker,loop_start_time_est)
             if LAC ==None or CurrentPrice == None or StockLastTradeTime ==None or YYMMDD == None:
-                end_time = datetime.now(pytz.utc)
-                elapsed_time = (end_time - start_time).total_seconds()
-                sleep_time = max(0, 60 - elapsed_time)
+                # end_time = datetime.now(pytz.utc)
+                # elapsed_time = (end_time - start_time).total_seconds()
+                # sleep_time = max(0, 60 - elapsed_time)
                 logger.exception(
                     f"time{now}.  lac: {LAC}, current price: {CurrentPrice}, stock last trade time: {StockLastTradeTime}, yymmd: {YYMMDD}")
                 # break
-                await asyncio.sleep(sleep_time)
-                start_time = datetime.now(pytz.utc)
+                # await asyncio.sleep(sleep_time)
+                # start_time = datetime.now(pytz.utc)
             else:
                 # asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est))
                 await calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est)
@@ -141,10 +142,16 @@ async def handle_ticker_cycle(session, ticker):
 
         end_time = datetime.now(pytz.utc)
         elapsed_time = (end_time - start_time).total_seconds()
+        record_elapsed_time(ticker, elapsed_time)
+
         sleep_time = max(0, 60 - elapsed_time)
-        # break
+
         await asyncio.sleep(sleep_time)
         start_time = datetime.now(pytz.utc)
+
+def record_elapsed_time( ticker, elapsed_time):
+    with open("elapsed_times.txt", "a") as file:
+        file.write(f"{ticker} ,{datetime.now().isoformat()},{elapsed_time}\n")
 
 #TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 async def main():
@@ -172,7 +179,7 @@ async def main():
             tasks.append(asyncio.create_task(handle_ticker_cycle(session, ticker)))
         await asyncio.gather(*tasks)
         print("OVER AT:",datetime.now())
-
+        # exit()
 
 
 

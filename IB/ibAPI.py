@@ -23,8 +23,7 @@ ib = IB()
 
 
 def ib_reset_and_close_pos():
-    # if ib.isConnected():
-    #     ib.disconnect()
+
     if not ib.isConnected():
         print("~~~ Connecting ~~~")
         # randomclientID = random.randint(0, 999)#TODO change bac kclientid
@@ -123,32 +122,6 @@ async def getTrade(order):
 
     return trade
 
-
-# Define a callback function for the cancelOrderEvent
-# async def cancel_order(order):
-#     # print('Attempting to cancel', order)
-#
-#     trade = await getTrade(order)
-#     # Create an asyncio Event to wait for the order to be cancelled
-#     order_cancelled = asyncio.Event()
-#
-#     # Define a callback function for the cancelOrderEvent
-#     def make_on_cancel_order_event(order_id):
-#         def on_cancel_order_event(trade: Trade):
-#             if trade.order.orderId == order_id:
-#                 # print(f"Order cancellation confirmed for trade: {trade}")
-#                 order_cancelled.set()
-#         return on_cancel_order_event
-#
-#     # Subscribe to the cancelOrderEvent
-#     on_cancel_order_event = make_on_cancel_order_event(order.orderId)
-#     ib.cancelOrderEvent += on_cancel_order_event
-#     ib.cancelOrder(order)
-#
-#     await order_cancelled.wait()  # Wait for the cancellation to be confirmed
-#     # Unsubscribe from the event to avoid memory leaks
-#     ib.cancelOrderEvent -= on_cancel_order_event
-#
 # TODO swapped these cancels_ordres because sometimes it seems order is getting filled after trying to cancel, adn i have mismatching positions/open trades.
 async def cancel_oca_group_orders(oca_group_orders):
     cancellation_events = []
@@ -181,43 +154,10 @@ async def cancel_oca_group_orders(oca_group_orders):
         print("filled qty:",filled_qty,"remainig qty:", remaining_qty)
 
         oca_group = order.ocaGroup
-        # if oca_group in oca_group_remaining_qty:
-        #     oca_group_remaining_qty[oca_group] += remaining_qty
-        # else:
         oca_group_remaining_qty[oca_group] = remaining_qty
 
     return oca_group_remaining_qty
 
-#
-# async def cancel_order(order):
-#     trade = await getTrade(order)
-#     if trade is None:
-#         print(f"Trade for order {order.orderId} not found.")
-#         return None
-#
-#     # Check if the order is fully filled or cancelled
-#     if trade.orderStatus.status in ['Cancelled', 'Filled']:
-#         print(f"Order {order.orderId} is already {trade.orderStatus.status} and cannot be cancelled.")
-#         return None
-#
-#     # Proceed to cancel if the order is not fully filled or cancelled
-#     order_cancelled = asyncio.Event()
-#
-#     def on_cancel_order_event(trade: Trade):
-#         if trade.order.orderId == order.orderId:
-#             order_cancelled.set()
-#
-#     ib.cancelOrderEvent += on_cancel_order_event
-#     ib.cancelOrder(order)
-#     await order_cancelled.wait()
-#     ib.cancelOrderEvent -= on_cancel_order_event
-#
-#     # Check for partial fills after cancellation attempt
-#     fills = ib.fills()
-#     order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
-#     filled_qty = sum(fill.execution.shares for fill in order_fills)
-#     remaining_qty = order.totalQuantity - filled_qty
-#     return remaining_qty
 
 async def cancel_and_replace_orders(contract, action, CorP, ticker, exp, strike, contract_current_price, quantity,
                                     orderRef, take_profit_percent, trailstop_amount_percent):
@@ -225,19 +165,11 @@ async def cancel_and_replace_orders(contract, action, CorP, ticker, exp, strike,
     if not child_orders_objs_list:
         await placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                                       take_profit_percent, trailstop_amount_percent, check_opposite_orders=False)
-    # else:
-    #     remaining_quantities = await cancel_oca_group_orders(child_orders_objs_list)
-    #
-    #     order_details = {}
-    #     for order in child_orders_objs_list:
-    #         remaining_qty = remaining_quantities.get(order.orderId, 0)
-    #         if order.ocaGroup not in order_details:
-    #             order_details[order.ocaGroup] = {}
+
     else:
         oca_group_remaining_qty = await cancel_oca_group_orders(child_orders_objs_list)
         order_details = {}
         for order in child_orders_objs_list:
-            print(order.ocaGroup) #IS HERE, but not in order_)detals?
             oca_group = order.ocaGroup
             remaining_qty = oca_group_remaining_qty.get(oca_group, 0)
             # # new_order_ref = increment_order_ref(order.orderRef)
@@ -285,9 +217,10 @@ async def cancel_and_replace_orders(contract, action, CorP, ticker, exp, strike,
             trailstop_amount_percent=trailstop_amount_percent,
             check_opposite_orders=False)
         while True:
-            await asyncio.sleep(0)
             if parenttrade.isDone() or parenttrade.orderStatus.status == "Inactive":
                 break
+            await asyncio.sleep(0)
+
         # trade.orderStatus.ActiveStates
         await replace_child_orders(order_details, contract)
 
@@ -333,40 +266,21 @@ async def replace_child_orders(order_details, contract):
             if order_details and order_details[ocaGroup]["stopLoss"]["type"] == "TRAIL":
                 stopLoss.trailStopPrice = order_details[ocaGroup]["stopLoss"]["trailStopPrice"]
                 stopLoss.trailingPercent = order_details[ocaGroup]["stopLoss"]["trailingPercent"]
-                # arbitrary_value = order_details[ocaGroup]["stopLoss"]["trailStopPrice"]
-                # trailing_amount = arbitrary_value * stopLoss.trailingPercent
-                # For a long position, initial stop price is set below the arbitrary price
-                # initial_stop_price = arbitrary_value + trailing_amount
-                # stopLoss.trailStopPrice = initial_stop_price  # initial stop price
-
-                # stopLoss.percentOffset = order_details[ocaGroup]["stopLoss"]["percentOffset"]
-                # TODO monday make sure this is correct.  it should be same floor as the og order.
-                # stopLoss.auxPrice = round(order_details[ocaGroup]["stopLoss"]["trailStopPrice"],2) * (1 - order_details[ocaGroup]["stopLoss"]["trailingPercent"])
-                # stopLoss.auxPrice = order_details[ocaGroup]["stopLoss"]["auxPrice"]
-                # stopLoss.trailStopPrice = order_details[ocaGroup]["stopLoss"]["trailStopPrice"]  # Use the stored trailStopPrice
-
-                # print("child replaced stoploss aux:",stopLoss.auxPrice)
-                # print("child replaced stoploss trailstop:",stopLoss.trailStopPrice)
-
                 stopLoss.ocaGroup = takeProfit.orderId
-                # stopLoss.parentId = order_details[ocaGroup]["stopLoss"]["parentID"]
                 stopLoss.orderRef = order_details[ocaGroup]["stopLoss"]["orderRef"]
             bracketOrder = [takeProfit, stopLoss]
-
-            # ib.oneCancelsAll(orders=bracketOrder, ocaGroup=ocaGroup, ocaType=2)
 
             for o in bracketOrder:
                 o.ocaType = 2
                 ib.placeOrder(qualified_contract[0], o)
-            # trade = await getTrade(takeProfit)
-            # trade2 = await getTrade(stopLoss)
+
             while True:
                 stoplossTrade = await getTrade(stopLoss)
                 takeprofitTrade = await getTrade(takeProfit)
                 if stoplossTrade is not None and takeprofitTrade is not None:
                     # You might want to add additional checks here, depending on your logic
                     break
-                await asyncio.sleep(.1)  # Properly yield control to the event loop
+                await asyncio.sleep(0)  # Properly yield control to the event loop
 
             # print("TRADE1 Take Profit:" ,trade)
             # # while  trade.isDone() and  trade2.isDone():
@@ -496,7 +410,7 @@ async def placeOptionBracketOrder(
                     if parenttrade is not None:
                         # You might want to add additional checks here, depending on your logic
                         break
-                    await asyncio.sleep(.1)  # Properly yield control to the event loop
+                    await asyncio.sleep(0)  # Properly yield control to the event loop
 
                 # while not trade.isDone():
                 #     # print(trade.orderStatus)

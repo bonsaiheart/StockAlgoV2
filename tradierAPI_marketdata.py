@@ -104,11 +104,12 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
     all_option_chains = await get_option_chains_concurrently(session, ticker, expiration_dates, headers)
 
     for optionchain_df in all_option_chains:
-        grouped = optionchain_df.groupby("option_type")
-        call_group = grouped.get_group("call").copy()
-        put_group = grouped.get_group("put").copy()
-        callsChain.append(call_group)
-        putsChain.append(put_group)
+        if optionchain_df is not None:
+            grouped = optionchain_df.groupby("option_type")
+            call_group = grouped.get_group("call").copy()
+            put_group = grouped.get_group("put").copy()
+            callsChain.append(call_group)
+            putsChain.append(put_group)
 
     calls_df = pd.concat(callsChain, ignore_index=True)
     puts_df = pd.concat(putsChain, ignore_index=True)
@@ -205,7 +206,7 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
 
          except Exception as e:
 
-             logger.error(f"{e} TIME:{YYMMDD_HHMM}. {ticker} file aready exists using lasttradetime: {YYMMDD_HHMM}, using current YYMMDD_HHMM: {e}")
+             logger.error(f"{e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
              return None, None, None, None  # IF its getting outdated info, skip
 
              # combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
