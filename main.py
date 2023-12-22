@@ -9,7 +9,6 @@ import traceback
 
 import pytz
 
-import IB.ibAPI
 import UTILITIES.check_Market_Conditions
 import calculations
 # import new_marketdata
@@ -23,58 +22,6 @@ from UTILITIES.logger_config import logger
 client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
-# Global task list to keep track of all created tasks
-# all_tasks = []
-#
-# # Modified function to add created tasks to the global list
-# async def calculate_operations(session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, current_time):
-#     # existing code...
-#     new_task = asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
-#     all_tasks.append(new_task)
-#     # rest of the function...
-#
-#
-# # Similarly, modify other functions like trade_algos to add created tasks to all_tasks
-#
-# # Modified main function
-# async def main():
-#     global all_tasks
-#     # existing code...
-#     try:
-#         # existing code for initializing tasks
-#         for i, ticker in enumerate(tickerlist):
-#             await asyncio.sleep(.1)
-#             new_task = asyncio.create_task(handle_ticker_cycle(session, ticker))
-#             all_tasks.append(new_task)
-#
-#         # Wait for all initialized tasks to complete
-#         await asyncio.gather(*all_tasks)
-#         print("All tasks completed. Exiting at:", datetime.now())
-#     except Exception as e:
-#         print(f"Error occurred: {traceback.format_exc()}")
-#
-# # Main program entry point
-# if __name__ == "__main__":
-#     try:
-#         asyncio.run(run_program())
-#     except KeyboardInterrupt:
-#         pass
-#     finally:
-#         if client_session is not None:
-#             asyncio.run(client_session.close())
-#         if ibAPI.ib.isConnected():
-#             ibAPI.ib_disconnect()
-#
-# # Ensure to modify run_program to also wait for all tasks
-# async def run_program():
-#     global all_tasks
-#     try:
-#         await asyncio.gather(ib_connect(), main())
-#         # After main tasks are done, wait for any remaining tasks
-#         await asyncio.gather(*all_tasks)
-#     except Exception as e:
-#         logger.exception(f"Error in run_program: {e}")
-# ``````````````````````````````````
 
 
 
@@ -113,9 +60,7 @@ async def create_client_session():
 async def ib_connect():
     while True:
         try:
-            order_manager = IB.ibAPI.IBOrderManager()
-
-            await order_manager.ib_connect()  # Connect to IB here
+            await ibAPI.ib_connect()  # Connect to IB here
             await asyncio.sleep(5 * 60)
             print('running ib_connect_and_main again.')
         except Exception as e:
@@ -153,8 +98,7 @@ async def calculate_operations( session,ticker, LAC, current_price, StockLastTra
         raise
     if ticker in ["SPY", "TSLA", "GOOGL","CHWY","ROKU","V"]:
     # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
-    # new_task=asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
-    # all_tasks.append(new_task)
+
         await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
     return optionchain, dailyminutes, processeddata, ticker
 
@@ -255,10 +199,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     finally:
-        order_manager = IB.ibAPI.IBOrderManager()
-
-
         if client_session is not None:
             asyncio.run(client_session.close())
-        if order_manager.ib.isConnected():
-            await order_manager.ib_disconnect()
+        if ibAPI.ib.isConnected():
+            ibAPI.ib_disconnect()  # Disconnect at the end of the script
