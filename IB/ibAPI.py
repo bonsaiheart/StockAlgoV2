@@ -26,8 +26,10 @@ class IBOrderManager:
         self.pending_orders = {}
         self.order_events = {}  # Store asyncio.Event objects for orders
 
-    def on_order_status_change(self, trade, order_status):
+    def on_order_status_change(self, trade):
         order_id = trade.order.orderId
+        order_status = trade.orderStatus
+
         if order_status.status in ['Filled', 'Cancelled', 'Inactive']:
             print(f"Order {order_id} {order_status.status}.")
             if order_id in self.pending_orders:
@@ -326,7 +328,7 @@ class IBOrderManager:
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         qualified_contract = await self.ib.qualifyContractsAsync(ticker_contract)
 
-        if await self.can_place_new_order(ib, qualified_contract):
+        if await self.can_place_new_order(qualified_contract[0]):
             if check_opposite_orders:
                 try:
                     print("Checking opposite orders.")
@@ -459,8 +461,8 @@ class IBOrderManager:
         # print("OpenTradesfor contract:",open_trades)
         # print(contract[0].conId)
         # Count orders for the specified contract
-        count = sum(1 for trade in open_trades if trade.contract.conId == contract[0].conId)
-        print(f"{count} open orders for {contract[0].localSymbol}.")
+        count = sum(1 for trade in open_trades if trade.contract.conId == contract.conId)
+        print(f"{count} open orders for {contract.localSymbol}.")
         # Return True if below threshold, False otherwise
         return count < threshold
 

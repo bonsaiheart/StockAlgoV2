@@ -87,7 +87,7 @@ def email_me_string(model_name, callorput, ticker):
     server.quit()
 
     print("Email sent!")
-
+email_me_string("sdf","dd","sdf")
 
 # send_tweet("spy","3","up","test")
 

@@ -8,6 +8,8 @@ from Strategy_Testing.Trained_Models import trained_minute_models, pytorch_train
 from UTILITIES.Send_Notifications import send_notifications
 from UTILITIES.logger_config import logger
 
+order_manager = IB.ibAPI.IBOrderManager()
+
 
 # Utility function to handle errors
 def log_error(location, ticker, model_name, exception):
@@ -17,8 +19,9 @@ def log_error(location, ticker, model_name, exception):
 # Order placement functions
 async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_price, orderRef,
                                   quantity, take_profit_percent, trail_stop_percent):
+
     try:
-        await IB.ibAPI.placeOptionBracketOrder(
+        await order_manager.placeOptionBracketOrder(
             CorP, ticker, exp, strike, contract_current_price, 10,
             orderRef, take_profit_percent, trail_stop_percent
         )

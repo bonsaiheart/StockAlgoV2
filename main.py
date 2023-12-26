@@ -261,4 +261,4 @@ if __name__ == "__main__":
         if client_session is not None:
             asyncio.run(client_session.close())
         if order_manager.ib.isConnected():
-            await order_manager.ib_disconnect()
+            order_manager.ib_disconnect()
