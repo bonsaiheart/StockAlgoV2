@@ -75,9 +75,7 @@ Chosen_Predictor = ["Current Stock Price",
                     "Net IV LAC",
                     "Net_IV/OI",
                     "Net ITM_IV/ITM_OI",
-                    "Closest Strike to CP",
-
-                    ]
+                                     ]
 # TODO scale Predictors based on data ranges/types
 # Chosen_Predictor = [
 #     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
