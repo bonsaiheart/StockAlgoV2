@@ -3,7 +3,6 @@ import re
 from datetime import datetime
 import pandas as pd
 import IB.ibAPI
-
 from Strategy_Testing.Trained_Models import trained_minute_models, pytorch_trained_minute_models
 from UTILITIES.Send_Notifications import send_notifications
 from UTILITIES.logger_config import logger
@@ -19,7 +18,7 @@ async def place_option_order_sync(CorP, ticker, exp, strike, contract_current_pr
                                   quantity, take_profit_percent, trail_stop_percent):
     try:
         await IB.ibAPI.placeOptionBracketOrder(
-            CorP, ticker, exp, strike, contract_current_price, 10,
+            CorP, ticker, exp, strike, contract_current_price, quantity,
             orderRef, take_profit_percent, trail_stop_percent
         )
     except Exception as e:
@@ -49,11 +48,51 @@ def check_interval_match(model_name):
     else:
         logger.error(f"Invalid model function name: {model_name}")
         return None, None
+async def handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent):
+    # Retrieve the contract details
+    upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
+        optionchain_df, processeddata_df, ticker, model_name
+    )
+
+    # Handle notifications and orders
+    try:
+        send_notifications.email_me_string(model_name, CorP, ticker)
+    except Exception as e:
+        print(f"Email error {e}.")
+        logger.exception(f"An error occurred while emailing {e}")
+
+    callorput = 'call' if CorP == 'C' else 'put'
+    timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
+    try:
+        send_notifications.send_tweet_w_countdown_followup(
+            ticker, current_price, upordown,
+            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+            seconds_till_expectedprofit, model_name
+        )
+    except Exception as e:
+        print(f"Tweet error {e}.")
+        logger.exception(f"An error occurred while Tweeting {e}")
+
+    await place_option_order_sync(
+        CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
+        quantity=2, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
+    )
+# Define model pairs that require a combined signal sum over 1.5 to trigger an action
+model_pairs = {
+    "ModelPair1": [pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass2.__name__,pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__],
+    "ModelPair2": ["ModelName3", "ModelName4"],
+    # Add more pairs as needed
+}
+
+# Initialize a dictionary to store signal sums for model pairs
+signal_sums = {pair: 0 for pair in model_pairs}
 
 
 # Main function to handle model actions
 async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, current_price):
     # Load your data into dataframes
+    # Initialize a variable to keep track of evaluated models
+    evaluated_models = set()
 
     # Iterate over each model in your model list
     for model in get_model_list():
@@ -70,18 +109,33 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 stock_trail_stop_percent = None
                 option_take_profit_percent = None
                 option_trail_stop_percent = None
-            # model_output_df.to_csv('test.csv')
-            # dailyminutes_df.to_csv('test_dailymin.csv')
-
             result = model_output_df.iloc[-1]
-            tail = model_output_df.tail(5)
+            print(model_name,result)
+            evaluated_models.add(model_name)
+            # print('evaluated',evaluated_models)
+            # Check if model is part of any pair
+            part_of_pair = False
+            for pair_name, pair_models in model_pairs.items():
+                if model_name in pair_models:
+                    part_of_pair = True
+                    # Update signal sum for the pair
+                    signal_sums[pair_name] += result
+                    # Check if both models in the pair have been evaluated
+                    if evaluated_models.issuperset(pair_models):
+                        print(pair_name,signal_sums[pair_name])
+                        if signal_sums[pair_name] > 1.5:
+                            #TODO change so that it uses a tp/trail fitted for the pair/combo.
+                            await handle_model_result(pair_name, ticker, current_price, optionchain_df,
+                                                      processeddata_df, option_take_profit_percent,
+                                                      option_trail_stop_percent)
 
-            # print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
-            # If the model result is positive handle the positive result
-            if result > 0.5:
-                now = datetime.now()
-                HHMM = now.strftime("%H%M")
-                print("Positive result: ",ticker,model_name,HHMM)
+                        # Reset signal sum for the pair
+                        signal_sums[pair_name] = 0
+                    break
+            # If the model result is positive (greater than 0.5 in your case), handle the positive result
+            if not part_of_pair and result > 0.5:
+                await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
+
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_HR_MIN_only = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
@@ -94,7 +148,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
+                if ticker == 'SPY':
                     try:
                         await send_notifications.send_tweet_w_countdown_followup(
                             ticker,
@@ -109,21 +163,10 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
 
                 # await asyncio.sleep(0)
         #TODO uncomment optionorder.
-                if IB.ibAPI.ib.isConnected():
-                    try:
-                        if ticker not in ["SQQQ","UVXY","SPXS"]:
-                            await place_option_order_sync(
-                                CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only,
-
-                                quantity=7,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
-                            now = datetime.now()
-                            HHMM = now.strftime("%H%M")
-                            print("Order placed: ",HHMM,ticker,model_name)
-
-
-                    except Exception as e:
-
-                        log_error("actions", ticker, model_name, e)
+                await place_option_order_sync(
+                    CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
+                    quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
+                )
                 # await asyncio.sleep(0)
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
                 # await place_buy_order_sync(
@@ -154,8 +197,8 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
     closest_exp_date = processeddata_df['ExpDate'].iloc[0]
     closest_strikes_list = processeddata_df["Closest Strike Above/Below(below to above,4 each) list"].iloc[0]
+
     # Format the expiration date for IB
-    #low to high, indesx 4 is closest current strike
     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
     # print(date_object)
     formatted_contract_date = date_object.strftime("%y%m%d")
@@ -163,7 +206,7 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     IB_option_date = date_object.strftime("%Y%m%d")
     # print(IB_option_date)
     # Determine the type of contract based on the model name
-    CorP = "C" if "Buy" in model_name or "Up" in model_name else "P"
+    CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
 
     # Calculate the contract strike and price
     # contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
@@ -187,14 +230,9 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     upordown = "up" if CorP == "C" else "down"
 
     # Get the current time formatted for the notification message
-    current_time = datetime.now()
+    formatted_time = datetime.now().strftime("%y%m%d %H:%M EST")
 
-    # Full date and time format
-    formatted_time = current_time.strftime("%y%m%d %H:%M EST")
-
-    # Only time format
-    formatted_time_HMonly = current_time.strftime("%H:%M")
-    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time,formatted_time_HMonly
+    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time
 
 
 # Main execution
