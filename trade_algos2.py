@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 import pandas as pd
 import IB.ibAPI
+
 from Strategy_Testing.Trained_Models import trained_minute_models, pytorch_trained_minute_models
 from UTILITIES.Send_Notifications import send_notifications
 from UTILITIES.logger_config import logger
@@ -151,7 +152,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                if ticker == 'SPY':
+                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
                     try:
                         await send_notifications.send_tweet_w_countdown_followup(
                             ticker,
@@ -166,10 +167,21 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
 
                 # await asyncio.sleep(0)
         #TODO uncomment optionorder.
-                await place_option_order_sync(
-                    CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=model_name+"_"+formatted_time_HR_MIN_only,
-                    quantity=2,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
-                )
+                if IB.ibAPI.ib.isConnected():
+                    try:
+                        if ticker not in ["SQQQ","UVXY","SPXS"]:
+                            await place_option_order_sync(
+                                CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only,
+
+                                quantity=7,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
+                            now = datetime.now()
+                            HHMM = now.strftime("%H%M")
+                            print("Order placed: ",HHMM,ticker,model_name)
+
+
+                    except Exception as e:
+
+                        log_error("actions", ticker, model_name, e)
                 # await asyncio.sleep(0)
                 # Place the buy order if applicable (this part depends on your specific trading strategy)
                 # await place_buy_order_sync(
@@ -200,8 +212,8 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
     closest_exp_date = processeddata_df['ExpDate'].iloc[0]
     closest_strikes_list = processeddata_df["Closest Strike Above/Below(below to above,4 each) list"].iloc[0]
-
     # Format the expiration date for IB
+    #low to high, indesx 4 is closest current strike
     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
     # print(date_object)
     formatted_contract_date = date_object.strftime("%y%m%d")
