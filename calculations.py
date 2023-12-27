@@ -22,6 +22,7 @@ async def get_ta(session, ticker):
 
     if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
         df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
+
     else:
         print(
             f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
@@ -39,11 +40,14 @@ async def get_ta(session, ticker):
         Safely perform a calculation for a DataFrame and handle exceptions.
         If an exception occurs, the specified column is filled with NaN.
         """
+
         try:
 
             df[column_name] = calculation_function(*args, **kwargs)
         except Exception as e:
-            print(column_name, ticker, e)
+            # print(column_name, ticker, e)
+            logger.warning(
+                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__},error={e}.  This is usually caused by missing data from yfinance.")
             df[column_name] = pd.NA  # or pd.nan
 
     # Usage of safe_calculation function for each indicator
