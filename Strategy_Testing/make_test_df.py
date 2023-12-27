@@ -144,20 +144,21 @@ def get_dailyminutes_make_single_multiday_df(ticker):
             filepath = os.path.join(ticker_dir, filename)
             dataframe_slice = pd.read_csv(filepath)
             list_of_df.append(dataframe_slice)
+            print(filename)
             # move "time" column to the first position
         else:
             print(f"{filename}: Format is incorrect.")
     print(list_of_df[-1])
     df = pd.concat(list_of_df, ignore_index=True)
-    df.drop_duplicates(subset='LastTradeTime', inplace=True)
+    # df.drop_duplicates(subset='LastTradeTime', inplace=True) NO
     output_dir = Path(rf"../data/historical_multiday_minute_DF/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     try:
         df.drop("Closest Strike Above/Below(below to above,4 each) list",axis=1,inplace=True)
     except Exception as e:
+        print(e)
         pass
     df.to_csv(rf"../data/historical_multiday_minute_DF/{ticker}_historical_multiday_min.csv")
-    return df
 
 def multiday_minute_series_prep_for_backtest(ticker,df):
 
@@ -269,36 +270,36 @@ def corr_minute_df(ticker,df):
     df.corr().to_csv(f"../data/historical_multiday_minute_corr/{YYMMDD}_{ticker}.csv")
 tickers=[
 'SPY',
-'UVXY',
-'TSLA',
-'ROKU',
-'CHWY',
-'BA',
-'CMPS',
-'MNMD',
-'GOEV',
-'W',
-'MSFT',
-'GOOGL',
-'GOOG',
-'QQQ',
-'IWM',
-'META',
-'SQQQ',
-'RWM',
-'SPXS',
-'LLY',
-'V',
-'WMT',
-'JPM',
-'AMZN',
+# 'UVXY',
+# 'TSLA',
+# 'ROKU',
+# 'CHWY',
+# 'BA',
+# 'CMPS',
+# 'MNMD',
+# 'GOEV',
+# 'W',
+# 'MSFT',
+# 'GOOGL',
+# 'GOOG',
+# 'QQQ',
+# 'IWM',
+# 'META',
+# 'SQQQ',
+# 'RWM',
+# 'SPXS',
+# 'LLY',
+# 'V',
+# 'WMT',
+# 'JPM',
+# 'AMZN',
 'NVDA']
 for x in tickers:
     try:
         # get_1st_frames_to_make_dailyminute_df(x)
 
         print(x)
-        df=get_dailyminutes_make_single_multiday_df(x)
+        get_dailyminutes_make_single_multiday_df(x)
         # # print("corr")
     # corr_minute_df(x,df)
 

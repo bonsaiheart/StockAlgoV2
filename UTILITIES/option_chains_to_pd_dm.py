@@ -29,7 +29,7 @@ def is_within_last_30_days(date):#ACtaully targeting 11/23 to 11/28 because that
 
 def is_within_target_dates(date):
     # Define the start and end dates of the target range
-    start_date = datetime(2023, 11, 26, tzinfo=pytz.utc)  # assuming the year is 2023
+    start_date = datetime(2023, 11, 25, tzinfo=pytz.utc)  # assuming the year is 2023
     end_date = datetime(2023, 11, 28, tzinfo=pytz.utc)
 
     # Check if the given date is within the target date range
@@ -71,75 +71,66 @@ def str_YYMMDD_HHMM_to_datetime(date_str):
     return date
 semaphore = asyncio.Semaphore(5000)  # Adjust the number 10 to your desired concurrency limit
 
-async def get_ta(session, ticker,date):
-    # async with semaphore:  # This will limit the number of concurrent get_ta calls
-
+async def get_ta(ticker, date):
     date = str_YYMMDD_HHMM_to_datetime(date)
-    start = (date - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
-    end = (date).strftime("%Y-%m-%d %H:%M")
-    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
-    #start date must be on or after 2023-11-20 00:00:00.?  as of f 1218
-    print(start,end)
-    time_sale_response = await fetch(session, "https://api.tradier.com/v1/markets/timesales",
-                                     params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
-                                             "session_filter": "all"}, headers=headers)
 
-    if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
-        df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
-    else:
-        exit()
-        print(
-            f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
-        return None  # Or another appropriate response to indicate failure
-        # df.set_index('time', inplace=True)
-        ##change index to datetimeindex
-    df.index = pd.to_datetime(df.index)
+    while True:
+        start = (date - timedelta(days=5)).strftime("%Y-%m-%d")
+        end = date.strftime("%Y-%m-%d")
+        print(start, end)
 
-    # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
-    #     df.to_csv("LOOKATMEMNMD.csv")
-    # if ticker == 'SPY':
-    #     df.to_csv("LOOKATMESPY.csv")
+        # Fetch data using yfinance
+        data = yf.download(ticker, start=start, end=end, interval='1m')
 
-    def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
-        """
-        Safely perform a calculation for a DataFrame and handle exceptions.
-        If an exception occurs, the specified column is filled with NaN.
-        """
-        try:
+        if not data.empty:
+            df = data
 
-            df[column_name] = calculation_function(*args, **kwargs)
-        except Exception as e:
-            print(column_name, ticker, e)
-            df[column_name] = pd.NA  # or pd.nan
+            # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
+            #     df.to_csv("LOOKATMEMNMD.csv")
+            # if ticker == 'SPY':
+            #     df.to_csv("LOOKATMESPY.csv")
 
-    # Usage of safe_calculation function for each indicator
-    safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,
-                     window2=5, fillna=False)
-    safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5,
-                     window2=34, fillna=False)
-    # For MACD
-    macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
-    signal_line = macd_object.macd_signal
-    safe_calculation(df, "MACD", macd_object.macd)
-    safe_calculation(df, "Signal_Line", signal_line)
+            def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
+                """
+                Safely perform a calculation for a DataFrame and handle exceptions.
+                If an exception occurs, the specified column is filled with NaN.
+                """
+                try:
 
-    # For EMAs
-    safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)
-    safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["close"], window=200, fillna=False)
+                    df[column_name] = calculation_function(*args, **kwargs)
+                except Exception as e:
+                    print(column_name, ticker, e)
+                    df[column_name] = pd.NA  # or pd.nan
 
-    # For RSI
-    safe_calculation(df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False)
-    safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False)
-    safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False)
+            # Usage of safe_calculation function for each indicator
+            safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["High"], low=df["Low"], window1=1,
+                             window2=5, fillna=False)
+            safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["High"], low=df["Low"], window1=5,
+                             window2=34, fillna=False)
+            # For MACD
+            macd_object = ta.trend.MACD(close=df["Close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+            signal_line = macd_object.macd_signal
+            safe_calculation(df, "MACD", macd_object.macd)
+            safe_calculation(df, "Signal_Line", signal_line)
 
-    groups = df.groupby(df.index.date)
-    group_dates = list(groups.groups.keys())
-    lastgroup = group_dates[-1]
-    ta_data = groups.get_group(lastgroup)
-    this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
-    return this_minute_ta_frame
+            # For EMAs
+            safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["Close"], window=50, fillna=False)
+            safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["Close"], window=200, fillna=False)
 
+            # For RSC
+            safe_calculation(df, "RSI", ta.momentum.rsi, close=df["Close"], window=5, fillna=False)
+            safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["Close"], window=2, fillna=False)
+            safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["Close"], window=14, fillna=False)
 
+            groups = df.groupby(df.index.date)
+            group_dates = list(groups.groups.keys())
+            lastgroup = group_dates[-1]
+            ta_data = groups.get_group(lastgroup)
+            this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
+            return this_minute_ta_frame
+            break
+        else:
+            continue
 async def perform_operations(session,
                              ticker,
                              last_adj_close,
@@ -494,7 +485,7 @@ async def perform_operations(session,
             }
         )
     processed_data_df = pd.DataFrame(results)
-    this_minute_ta_frame = await get_ta(session, ticker,date=StockLastTradeTime)
+    this_minute_ta_frame = await get_ta(ticker,date=StockLastTradeTime)
     processed_data_df["RSI"] = this_minute_ta_frame["RSI"]
     processed_data_df["RSI2"] = this_minute_ta_frame["RSI2"]
     processed_data_df["RSI14"] = this_minute_ta_frame["RSI14"]
@@ -519,10 +510,10 @@ async def perform_operations(session,
     # Calculate 200-Day EMA
     processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
-    output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
+    output_dir = Path(f"a/ProcessedData/{ticker}/{YYMMDD}/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
-    output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")#TODO changed theis from .../ which is the actual dir.
+    output_dir_dailyminutes = Path(f"a/DailyMinutes/{ticker}")
+    output_file_dailyminutes = Path(f"a/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")#TODO changed theis from .../ which is the actual dir.
     # output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
     # output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -561,7 +552,7 @@ async def perform_operations(session,
     dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
 
     try:
-        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x",
+        processed_data_df.to_csv(f"a/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x",
                                  index=False)
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError as e:
@@ -668,7 +659,7 @@ async def main():
     async with aiohttp.ClientSession() as session:
 
         for ticker_folder in os.listdir(optionchain_dir):
-            # if ticker_folder in ["TSLA","SPY","GOOGL"]:
+            if ticker_folder in ["TSLA","SPY","GOOGL"]:
                 print(ticker_folder)
                 ticker_dir = os.path.join(optionchain_dir, ticker_folder)
                 if os.path.isdir(ticker_dir):  # Ensure it's a directory

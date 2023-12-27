@@ -12,8 +12,9 @@ from joblib import dump
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
 from sklearn.metrics import log_loss
-from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit, KFold
 from sklearn.preprocessing import RobustScaler
+from sklearn.model_selection import train_test_split
 
 # Filter out specific warning messages
 warnings.filterwarnings("ignore", category=Warning)
@@ -22,7 +23,7 @@ simplefilter("ignore", category=RuntimeWarning)
 # Restore the warning filter (if needed)
 # warnings.filterwarnings("default", category=Warning)
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_min.csv"
+DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 # TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 '''use lasso?# Sample data
@@ -44,15 +45,17 @@ rf.fit(X[:, selected_features], y)'''
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # ##had highest corr for 3-5 hours with these:
-Chosen_Predictor = ['Bonsai Ratio', 'Bonsai Ratio 2', 'ITM PCR-Vol', 'ITM PCRoi Up1', 'RSI14', 'AwesomeOsc5_34',
+Chosen_Predictor = ['Bonsai Ratio', 'Bonsai Ratio 2', 'ITM PCR-Vol', 'ITM PCRv Up1','ITM PCRv Down1', 'RSI14',
                     'Net_IV']
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
-    lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
+# ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
+#     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
+# ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
 
 cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5  # how many rows must achieve target %
+num_trials = 1 #before using best params on test.
+
 percent_up = .35  # target percetage.
 anticondition_threshold_cells_up = cells_forward_to_check * .2  # was .7
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
@@ -87,17 +90,18 @@ print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infin
 print("Negative Infinite values found at indices:" if len(neginf_indices) > 0 else "No negative infinite values found.")
 
 #
-test_set_percentage = 0.2  # Specify the percentage of the data to use as a test set
-split_index = int(len(X) * (1 - test_set_percentage))
+from sklearn.model_selection import train_test_split
 
-X_test = X[split_index:].reset_index(drop=True)
-y_test = y[split_index:].reset_index(drop=True)
-X = X[:split_index].reset_index(drop=True)
-y = y[:split_index].reset_index(drop=True)
+# Assuming X and y are your features and target variables
+test_set_percentage = 0.02  # Specify the percentage of the data to use as a test set
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_set_percentage,shuffle=False)
+
+# If your data is a time series and should not be shuffled, use:
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_set_percentage, shuffle=False)
+
 print("Xlength: ", len(X), "XTestlen: ", len(X_test), "positive in y: ", y.sum(), "positive in ytest: ", y_test.sum())
-# Fit the scaler on the entire training data
-scaler_X_trainval = RobustScaler().fit(X)
-scaler_y_trainval = RobustScaler().fit(y.values.reshape(-1, 1))
 
 '''Metrics & Model Selection: You're storing the best model based on the F1 score. This is okay if F1 is the most important metric for your problem. If not, you might want to adjust this logic. Also, you could consider saving the models from all the folds and using a voting mechanism for predictions if you want to leverage the power of ensemble predictions'''
 
@@ -112,16 +116,16 @@ def train_model(param_dict, X, y, final_classifier=None):
     bootstrap = param_dict['bootstrap']
 
     best_model = None
-    tscv = TimeSeriesSplit(n_splits=5)
-    X_np = X.to_numpy()
+
+    kf = KFold(n_splits=2, shuffle=False)  # 5-fold cross-validation
     auc_scores = []
     log_loss_scores = []
-
+    X_np = X.to_numpy()
     best_f1, best_precision, best_recall, best_accuracy, best_auc = 0, 0, 0, 0, 0
     total_f1, total_precision, total_recall, total_accuracy = 0, 0, 0, 0
     num_folds = 0
 
-    for train_index, val_index in tscv.split(X_np):
+    for train_index, val_index in kf.split(X_np):
         X_train, X_val = X_np[train_index], X_np[val_index]
         y_train, y_val = y[train_index], y[val_index]
         scaler_X = RobustScaler().fit(X_train)
@@ -147,7 +151,7 @@ def train_model(param_dict, X, y, final_classifier=None):
             rf_classifier.fit(X_train, y_train)
 
         y_pred = rf_classifier.predict_proba(X_val)[:, 1]
-        y_pred_binary = (y_pred > 0.4).astype(int)
+        y_pred_binary = (y_pred > 0.5).astype(int)
         auc = roc_auc_score(y_val, y_pred)
         logloss = log_loss(y_val, y_pred)
 
@@ -188,7 +192,7 @@ def train_model(param_dict, X, y, final_classifier=None):
         'avg_recall': best_recall,
         'avg_auc': avg_auc,
         'avg_logloss': avg_logloss,
-        'best_model': best_model
+        'best_model': best_model,
     }
 
 
@@ -214,7 +218,7 @@ def objective(trial):
 
     }
 
-    results = train_model(param_dict, X, y)
+    results = train_model(param_dict, X_train, y_train)
     avg_f1 = results['avg_f1']
     avg_precision = results['avg_precision']
     avg_logloss = results['avg_logloss']
@@ -258,19 +262,17 @@ while True:
     "Keyerror, new optuna study created."  #
     # TODO add a second loop of test, wehre if it doesnt achieve x score, the trial fails.)
 
-    study.optimize(objective, n_trials=1000, )  # callbacks=[early_stopping_opt]
+    study.optimize(objective, n_trials=num_trials, )  # callbacks=[early_stopping_opt]
 
     best_params = study.best_params
-    full_data = lgb.Dataset(X.to_numpy(), label=y.to_numpy())
-
+    X_Scaler = RobustScaler().fit(X_train)
+    X_train_scaled = X_Scaler.transform(X_train)
+    X_test_scaled = X_Scaler.transform(X_test)
     final_rf_classifier = RandomForestClassifier(**best_params)
-    final_rf_classifier.fit(X.to_numpy(), y.to_numpy())
+    trained_model = final_rf_classifier.fit(X_train_scaled, y_train.to_numpy())
 
     print("~~~~training model using best params.~~~~")
 
-    results = train_model(best_params, X, y, final_classifier=final_rf_classifier)
-
-    trained_model = results['best_model']
 
     # plt.barh(range(X.shape[1]), feature_importances[sorted_idx])
     # plt.yticks(range(X.shape[1]), X.columns[sorted_idx])
@@ -280,47 +282,46 @@ while True:
     # selector = SelectFromModel(RandomForestClassifier, threshold=0.1)
     # X_new = selector.transform(X_test)
     # Now use trained_rf to predict on your test data
-    if results['best_model'] == None:
-        continue
+
+
+
+    threshold = 0.5
+    y_test_pred = trained_model.predict(X_test_scaled)
+    # print(y_test_pred[0],y_test_pred[10],y_test_pred[20],y_test_pred[-1])
+    binary_predictions = (y_test_pred > threshold).astype(int)
+
+    # indexes = np.where(y_test == 1)[0]
+    # values_at_indexes = y_test_pred[indexes]
+    # print(values_at_indexes)
+
+    # Compute metrics
+    f1 = f1_score(y_test, binary_predictions)
+    precision = precision_score(y_test, binary_predictions)
+    recall = recall_score(y_test, binary_predictions)
+    accuracy = accuracy_score(y_test, binary_predictions)
+    if f1 < 0.7 and precision < .7:
+        print("Test F1 score and prec. are not above 0.75. Restarting optimization.")
+        print("Test Metrics:")
+        print("F1:", f1)
+        print("Precision:", precision)
+
+        print("Recall:", recall)
+        print("Accuracy:", accuracy)
+        continue  # Restart the optimization loop
     else:
-        X_test_scaled = scaler_X_trainval.transform(X_test)
-        threshold = 0.5
-        y_test_pred = trained_model.predict(X_test)
-        # print(y_test_pred[0],y_test_pred[10],y_test_pred[20],y_test_pred[-1])
-        binary_predictions = (y_test_pred > threshold).astype(int)
+        print("Test F1 score is above 0.8. Optimization complete.")
+        feature_importances = trained_model.feature_importances_
+        sorted_idx = np.argsort(feature_importances)
+        sorted_features = X.columns[sorted_idx]
 
-        # indexes = np.where(y_test == 1)[0]
-        # values_at_indexes = y_test_pred[indexes]
-        # print(values_at_indexes)
-
-        # Compute metrics
-        f1 = f1_score(y_test, binary_predictions)
-        precision = precision_score(y_test, binary_predictions)
-        recall = recall_score(y_test, binary_predictions)
-        accuracy = accuracy_score(y_test, binary_predictions)
-        if f1 < 0.75 and precision < .75:
-            print("Test F1 score and prec. are not above 0.75. Restarting optimization.")
-            print("Test Metrics:")
-            print("F1:", f1)
-            print("Precision:", precision)
-
-            print("Recall:", recall)
-            print("Accuracy:", accuracy)
-            continue  # Restart the optimization loop
-        else:
-            print("Test F1 score is above 0.8. Optimization complete.")
-            feature_importances = trained_model.feature_importances_
-            sorted_idx = np.argsort(feature_importances)
-            sorted_features = X.columns[sorted_idx]
-
-            plt.figure(figsize=(10, 15))  # Increased from (10, 8) to (10, 15)
-            plt.barh(range(X.shape[1]), feature_importances[sorted_idx])
-            plt.yticks(range(X.shape[1]), sorted_features, fontsize=8)
-            plt.xlabel("Feature Importance")
-            plt.title("Feature Importances")
-            plt.show()
-            sorted_idx = np.argsort(feature_importances)
-            break  # Exi
+        plt.figure(figsize=(10, 15))  # Increased from (10, 8) to (10, 15)
+        plt.barh(range(X.shape[1]), feature_importances[sorted_idx])
+        plt.yticks(range(X.shape[1]), sorted_features, fontsize=8)
+        plt.xlabel("Feature Importance")
+        plt.title("Feature Importances")
+        plt.show()
+        sorted_idx = np.argsort(feature_importances)
+        break  # Exi
 
 # Print results
 print("Test Metrics:")
