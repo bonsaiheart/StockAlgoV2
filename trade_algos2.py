@@ -54,7 +54,7 @@ def check_interval_match(model_name):
         return None, None
 async def handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent):
     # Retrieve the contract details
-    upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time = get_contract_details(
+    upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time,formatted_time_HR_MIN_only = get_contract_details(
         optionchain_df, processeddata_df, ticker, model_name
     )
 
@@ -68,23 +68,23 @@ async def handle_model_result(model_name, ticker, current_price, optionchain_df,
     callorput = 'call' if CorP == 'C' else 'put'
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
     try:
-        send_notifications.send_tweet_w_countdown_followup(
+        asyncio.create_task(send_notifications.send_tweet_w_countdown_followup(
             ticker, current_price, upordown,
             f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
             seconds_till_expectedprofit, model_name
-        )
+        ))
     except Exception as e:
         print(f"Tweet error {e}.")
         logger.exception(f"An error occurred while Tweeting {e}")
 
     await place_option_order_sync(
         CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-        quantity=2, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
+        quantity=10, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
     )
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
 model_pairs = {
-    "ModelPair1": [pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass2.__name__,pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__],
-    "ModelPair2": ["ModelName3", "ModelName4"],
+    "ModelPair1": [pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__,pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__],
+    # "ModelPair2": ["ModelName3", "ModelName4"],
     # Add more pairs as needed
 }
 
@@ -137,7 +137,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                         signal_sums[pair_name] = 0
                     break
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
-            if not part_of_pair and result > 0.5:
+            if not part_of_pair and result > 0:
                 await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
 
                 # Retrieve the contract details
@@ -145,7 +145,7 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     optionchain_df, processeddata_df, ticker, model_name
                 )
                 try:
-                    send_notifications.email_me_string(model_name, CorP, ticker)
+                    await send_notifications.email_me_string(model_name, CorP, ticker)
                 except Exception as e:
                     print(f"Cemail error {e}.")
                     logger.exception(f"An error occurred while emailin{e}")
@@ -246,8 +246,9 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
 
     # Get the current time formatted for the notification message
     formatted_time = datetime.now().strftime("%y%m%d %H:%M EST")
+    formatted_time_HR_MIN_only = datetime.now().strftime("%H%M")
 
-    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time
+    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time,formatted_time_HR_MIN_only
 
 
 # Main execution
