@@ -77,14 +77,21 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
             # dailyminutes_df.to_csv('test_dailymin.csv')
 
             result = model_output_df.iloc[-1]
-            tail = model_output_df.tail(5)
+            # Assuming model_output_df is your DataFrame and you have defined ticker and model_name variables
+            # Get the last 3 rows of the DataFrame
+            tail = model_output_df.tail(3)
 
-            print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
+            # Convert the Series to a string representation
+            # Using 'join' to concatenate the string representations of the values
+            tail_str = ', '.join(map(str, tail))
+
+            # Concatenate and print in the same row
+            print(f"{ticker} {model_name} last 3 results: {tail_str}")#TODO could use this avg. to make order!
             # If the model result is positive handle the positive result
-            if result > 0:
+            if result > 0.5:
                 now = datetime.now()
                 HHMM = now.strftime("%H%M")
-                print("Positive result: ",ticker,model_name,HHMM)
+                # print("Positive result: ",ticker,model_name,HHMM)
                 # Retrieve the contract details
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_HR_MIN_only = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name

@@ -9,6 +9,8 @@ import PrivateData.tradier_info
 from UTILITIES.logger_config import logger
 
 
+class OptionChainError(Exception):
+    pass
 # import webullAPI
 # Add a small constant to denominators taper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
@@ -25,7 +27,12 @@ np.seterr(divide='ignore', invalid='ignore')
 async def get_option_chain(session, ticker, exp_date, headers):
     url = "https://api.tradier.com/v1/markets/options/chains"
     params = {"symbol": ticker, "expiration": exp_date, "greeks": "true"}
-    json_response = await fetch(session, url, params, headers)
+    try:
+        json_response = await fetch(session, url, params, headers)
+    except OptionChainError as e:
+        raise
+    if json_response is None:
+        raise OptionChainError(f"Failed to retrieve option chain data for {ticker} (in traideierapi.get_options_chain")
 
     if json_response and "options" in json_response and "option" in json_response["options"]:
         optionchain_df = pd.DataFrame(json_response["options"]["option"])
@@ -37,21 +44,29 @@ async def get_option_chain(session, ticker, exp_date, headers):
 
 
 async def get_option_chains_concurrently(session, ticker, expiration_dates, headers):
-    tasks = [get_option_chain(session, ticker, exp_date, headers) for exp_date in expiration_dates]
-    all_option_chains = await asyncio.gather(*tasks)
-    return all_option_chains
+    try:
+        tasks = [get_option_chain(session, ticker, exp_date, headers) for exp_date in expiration_dates]
+        all_option_chains = await asyncio.gather(*tasks)
+
+        # Check if any of the option chains is None and return None immediately
+        if any(chain is None for chain in all_option_chains):
+            return None
+
+        return all_option_chains
+    except OptionChainError as e:
+        raise  # Re-raise the exception to the caller
 
 
 async def fetch(session, url, params, headers):
     try:
         async with session.get(url, params=params, headers=headers) as response:
-            # print("Rate Limit Headers Allowed:", response.headers.get("X-Ratelimit-Allowed"),"Used:", response.headers.get("X-Ratelimit-Used"))
-            return await response.json()
+            content_type = response.headers.get("Content-Type", "").lower()
+            if "application/json" in content_type:
+                return await response.json()
+            else:
+                raise OptionChainError(f"Unexpected content type in response from {url}: {content_type}")
     except Exception as e:
-        print(f"Connection error to {url}: {e}.")
-        logger.exception(f"An error occurred while fetching data: {e} At URL {url}")
-
-
+        raise OptionChainError(f"Connection error to {url}: {e}")
 
 async def get_options_data(session, ticker,YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
@@ -101,7 +116,10 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
 
     callsChain = []
     putsChain = []
-    all_option_chains = await get_option_chains_concurrently(session, ticker, expiration_dates, headers)
+    try:
+        all_option_chains = await get_option_chains_concurrently(session, ticker, expiration_dates, headers)
+    except OptionChainError as e:
+        raise  # Re-raise the exception to the caller
 
     for optionchain_df in all_option_chains:
         if optionchain_df is not None:
@@ -195,21 +213,26 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
     # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
     # vega measures response to IV change.
 
+    from pathlib import Path
+
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
-
+    # Make sure it's the same day's data.
     if YYMMDD == StockLastTradeTime_YMD:
-         try:
-             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
-             return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
+        try:
+            combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+            return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
 
-         except Exception as e:
+        except FileExistsError as e:
+            logger.error(f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
+            return None, None, None, None  # Return None values if the file already exists
 
-             logger.error(f"{e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
-             return None, None, None, None  # IF its getting outdated info, skip
+        except Exception as e:
+            logger.error(f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
+            return None, None, None, None  # Return None values for any other exceptions
 
-             # combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+            # combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
 
 #TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
 
