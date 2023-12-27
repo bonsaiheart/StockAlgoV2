@@ -79,9 +79,9 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
             result = model_output_df.iloc[-1]
             tail = model_output_df.tail(5)
 
-            # print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
+            print(ticker, model_name,"last 5 results",tail) #TODO could use this avg. to make order!
             # If the model result is positive handle the positive result
-            if result > 0.5:
+            if result > 0:
                 now = datetime.now()
                 HHMM = now.strftime("%H%M")
                 print("Positive result: ",ticker,model_name,HHMM)
@@ -89,26 +89,26 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_HR_MIN_only = get_contract_details(
                     optionchain_df, processeddata_df, ticker, model_name
                 )
-                try:
-                    send_notifications.email_me_string(model_name, CorP, ticker)
-                except Exception as e:
-                    print(f"Cemail error {e}.")
-                    logger.exception(f"An error occurred while emailin{e}")
+                # try:
+                #     send_notifications.email_me_string(model_name, CorP, ticker)
+                # except Exception as e:
+                #     print(f"Cemail error {e}.")
+                #     logger.exception(f"An error occurred while emailin{e}")
                 callorput = 'call' if CorP == 'C' else 'put'
                 # print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
-                    try:
-                        await send_notifications.send_tweet_w_countdown_followup(
-                            ticker,
-                            current_price,
-                            upordown,
-                            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                            seconds_till_expectedprofit, model_name
-                        )
-                    except Exception as e:
-                        print(f"Tweet error {e}.")
-                        logger.exception(f"An error occurred while Tweeting {e}")
+                # if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
+                #     try:
+                #         await send_notifications.send_tweet_w_countdown_followup(
+                #             ticker,
+                #             current_price,
+                #             upordown,
+                #             f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+                #             seconds_till_expectedprofit, model_name
+                #         )
+                #     except Exception as e:
+                #         print(f"Tweet error {e}.")
+                #         logger.exception(f"An error occurred while Tweeting {e}")
 
                 # await asyncio.sleep(0)
         #TODO uncomment optionorder.

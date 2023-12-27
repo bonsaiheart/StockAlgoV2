@@ -50,9 +50,11 @@ class IBOrderManager:
         if order_id in self.order_events:
             if order_status.status == 'Submitted':
                 self.order_events[order_id]['active'].set()
+                # del self.order_events[order_id]
+
             elif order_status.status in ['Filled', 'Cancelled', 'Inactive']:
                 self.order_events[order_id]['done'].set()
-                del self.order_events[order_id]
+                # del self.order_events[order_id]
 
     def ib_reset_and_close_pos(self):
 
@@ -97,7 +99,7 @@ class IBOrderManager:
         if not self.ib.isConnected():
             print("~~~ Connecting ~~~")
             try:
-                await self.ib.connectAsync("192.168.1.109", 7497, clientId=1, timeout=45)
+                await self.ib.connectAsync("192.168.1.109", 7497, clientId=0, timeout=45)
             except Exception as e:
                 logging.getLogger().error("Connection error: %s", e)
                 # print("~~Connection error:", e)
@@ -135,6 +137,7 @@ class IBOrderManager:
             # trade = await getTrade(order)
             # print("action",action)
             # print(order.parentId , order.action,trade.contract)
+            # print(trade.contract,contract)
             if trade.order.action == 'SELL' and trade.contract == contract:
                 # print("childorders trades",trade)
                 child_orders_list.append(trade.order)
@@ -150,11 +153,13 @@ class IBOrderManager:
     # TODO swapped these cancels_ordres because sometimes it seems order is getting filled after trying to cancel, adn i have mismatching positions/open trades.
     async def cancel_oca_group_orders(self, oca_group_orders):
         cancellation_events = []
+        event_listeners = []
+
         for order in oca_group_orders:
             order_cancelled = asyncio.Event()
             cancellation_events.append((order, order_cancelled))
 
-            async def make_on_cancel_order_event(order_id, event):
+            def make_on_cancel_order_event(order_id, event):
                 def on_cancel_order_event(trade: Trade):
                     if trade.order.orderId == order_id:
                         event.set()
@@ -163,14 +168,19 @@ class IBOrderManager:
 
             on_cancel_order_event = make_on_cancel_order_event(order.orderId, order_cancelled)
             self.ib.cancelOrderEvent += on_cancel_order_event
+            event_listeners.append(on_cancel_order_event)
             self.ib.cancelOrder(order)
 
         # Wait for all cancellations to complete
         await asyncio.gather(*(event.wait() for _, event in cancellation_events))
-        for order, event in cancellation_events:
-            ib.cancelOrderEvent -= await make_on_cancel_order_event(order.orderId, event)
 
-            # New approach to calculate remaining quantities for each OCA group
+        # Detach event listeners
+        for listener in event_listeners:
+            self.ib.cancelOrderEvent -= listener
+
+        # Rest of your method...
+
+        # New approach to calculate remaining quantities for each OCA group
         oca_group_remaining_qty = {}
         fills = ib.fills()
         for order in oca_group_orders:
@@ -189,6 +199,7 @@ class IBOrderManager:
                                         orderRef, take_profit_percent, trailstop_amount_percent):
         child_orders_objs_list = await self.find_child_orders_with_details(contract, action)
         if not child_orders_objs_list:
+            print("No children for ",ticker)
             await self.placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
                                                take_profit_percent, trailstop_amount_percent,
                                                check_opposite_orders=False)
@@ -286,8 +297,8 @@ class IBOrderManager:
 
                     self.order_events[trade.order.orderId] = {'active': asyncio.Event(), 'done': asyncio.Event()}
                     order_ids.append(trade.order.orderId)
-
-                await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
+#TODO i guess this makes it stall out?
+                # await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
 
 
         except (Exception, asyncio.exceptions.TimeoutError) as e:
@@ -311,13 +322,13 @@ class IBOrderManager:
 
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         qualified_contract = await self.ib.qualifyContractsAsync(ticker_contract)
-
+        print("placeoptionbracketorder")
         if await self.can_place_new_order(qualified_contract[0]):
             if check_opposite_orders:
                 try:
                     print("Checking opposite orders.")
                     action = "SELL"  # Adjust based on your logic
-                    await self.cancel_and_replace_orders(ticker_contract, action, CorP, ticker, exp, strike,
+                    await self.cancel_and_replace_orders(qualified_contract[0], action, CorP, ticker, exp, strike,
                                                          contract_current_price,
                                                          quantity, orderRef, take_profit_percent,
                                                          trailstop_amount_percent)
@@ -398,7 +409,7 @@ class IBOrderManager:
                     self.ib.orderStatusEvent += self.on_order_status_change
 
                     # Store the parent trade
-                    parent_trade = None
+                    parent_trade = parent.orderId #IDK DELETE THIS
                     order_ids = []
 
                     for o in bracketOrder:
@@ -407,9 +418,9 @@ class IBOrderManager:
                         self.order_events[trade.order.orderId] = {'active': asyncio.Event(), 'done': asyncio.Event()}
                         order_ids.append(trade.order.orderId)
 
-                    await asyncio.gather(
-                        *(self.order_events[orderId]['done'].wait() for orderId in order_ids)
-                    )
+                    await self.order_events[parent.orderId]['done'].wait()
+
+                    # await asyncio.gather(*(self.order_events[orderId]['done'].wait() for orderId in order_ids))
 
                     # Return the parent trade
                     return parent_trade

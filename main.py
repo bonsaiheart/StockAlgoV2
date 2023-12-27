@@ -155,6 +155,7 @@ async def calculate_operations( session,ticker, LAC, current_price, StockLastTra
     # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
     # new_task=asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
     # all_tasks.append(new_task)
+    #     asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
         await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
     return optionchain, dailyminutes, processeddata, ticker
 
