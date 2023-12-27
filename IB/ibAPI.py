@@ -28,8 +28,8 @@ def ib_reset_and_close_pos():
         print("~~~ Connecting ~~~")
         # randomclientID = random.randint(0, 999)#TODO change bac kclientid
         try:
-
-            ib.connect("192.168.1.119", 7497, clientId=0, timeout=45)
+#119=toiuchscreen dell.  109 is studio
+            ib.connect("192.168.1.109", 7497, clientId=0, timeout=45)
             print("connected.")
 
 
@@ -67,7 +67,7 @@ async def ib_connect():
     if not ib.isConnected():
         print("~~~ Connecting ~~~")
         try:
-            await ib.connectAsync("192.168.1.119", 7497, clientId=0, timeout=45)
+            await ib.connectAsync("192.168.1.109", 7497, clientId=0, timeout=45)
         except Exception as e:
             logging.getLogger().error("Connection error: %s", e)
             # print("~~Connection error:", e)

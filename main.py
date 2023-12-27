@@ -22,8 +22,8 @@ from UTILITIES.logger_config import logger
 client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
-
-
+# Flag to track if handle_ticker_cycle tasks are running
+ticker_cycle_running = asyncio.Event()
 
 async def wait_until_time(target_time_utc):
     utc_now = datetime.utcnow()
@@ -34,9 +34,10 @@ async def wait_until_time(target_time_utc):
     # Uncomment for debugging
     # print(f"Current Unix Time: {now_unix_time}, Target Unix Time: {target_time_unix_time}")
     print(f"Time Difference (seconds): {time_difference}")
-
+    #
     # Sleep until 20 seconds before target time
     time.sleep(max(0, time_difference-1))
+
 
 
 async def create_client_session():
@@ -59,21 +60,26 @@ async def create_client_session():
 
 async def ib_connect():
     while True:
-        try:
-            await ibAPI.ib_connect()  # Connect to IB here
-            await asyncio.sleep(5 * 60)
-            print('running ib_connect_and_main again.')
-        except Exception as e:
-            # Log the error and continue running
-            logger.exception(f"Error in ib_connect: {e}")
+        while ticker_cycle_running.is_set():
+            print("tickercycleruningset?",ticker_cycle_running.is_set())
+            try:
+                await ibAPI.ib_connect()  # Connect to IB here
+                await asyncio.sleep(5 * 60)
+                print('running ib_connect_and_main again.')
+            except Exception as e:
+                # Log the error and continue running
+                logger.exception(f"Error in ib_connect: {e}")
+        else:
+            break
 async def run_program():
     while True:  # This loop ensures the program continues running even if the session closes
         try:
             await asyncio.gather(ib_connect(), main())
+            break
         except Exception as e:
             # Log the error and continue running
             logger.exception(f"Error in run_program: {e}")
-
+            break
 semaphore = asyncio.Semaphore(500)
 async def get_options_data_for_ticker(session, ticker,loop_start_time):
 
@@ -116,9 +122,11 @@ async def handle_ticker_cycle(session, ticker):
     global market_close_time_utc
     start_time = datetime.now(pytz.utc)
 
+
     while start_time < market_close_time_utc+ timedelta(seconds=0):
     # while True:
         try:
+
             now = datetime.now()
             loop_start_time_est = now.strftime("%y%m%d_%H%M")
             LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker,loop_start_time_est)
@@ -129,6 +137,7 @@ async def handle_ticker_cycle(session, ticker):
                 logger.exception(
                     f"time{now}.  lac: {LAC}, current price: {CurrentPrice}, stock last trade time: {StockLastTradeTime}, yymmd: {YYMMDD}")
                 # break
+                # continue
                 # await asyncio.sleep(sleep_time)
                 # start_time = datetime.now(pytz.utc)
             else:
@@ -149,16 +158,18 @@ async def handle_ticker_cycle(session, ticker):
         await asyncio.sleep(sleep_time)
         start_time = datetime.now(pytz.utc)
 
+
+    # Clear the flag to indicate that this task has finished
+    ticker_cycle_running.clear()
+
+
 def record_elapsed_time( ticker, elapsed_time):
     with open("elapsed_times.txt", "a") as file:
         file.write(f"{ticker} ,{datetime.now().isoformat()},{elapsed_time}\n")
 
 #TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 async def main():
-    global market_open_time_utc, market_close_time_utc
-    market_open_time_utc, market_close_time_utc=await check_Market_Conditions.get_market_open_close_times()
-    await wait_until_time(market_open_time_utc)
-    print( "current_utc time: ",datetime.utcnow())
+
 
 
     try:
@@ -195,11 +206,20 @@ async def main():
         ###TODO I wanted this to tell me how long each iteration is taking (all tickers)
 if __name__ == "__main__":
     try:
+
+        market_open_time_utc, market_close_time_utc= asyncio.run(check_Market_Conditions.get_market_open_close_times())
+        asyncio.run(wait_until_time(market_open_time_utc))
+        logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
+        # Set the flag to indicate that this task is running
+        ticker_cycle_running.set()
+
         asyncio.run(run_program())
     except KeyboardInterrupt:
         pass
     finally:
         if client_session is not None:
-            asyncio.run(client_session.close())
+            asyncio.run(client_session.close())  # Await the session closure
         if ibAPI.ib.isConnected():
             ibAPI.ib_disconnect()  # Disconnect at the end of the script
+        logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+
