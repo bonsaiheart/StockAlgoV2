@@ -219,5 +219,6 @@ if __name__ == "__main__":
             asyncio.run(client_session.close())
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
-        logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+    logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+
 
