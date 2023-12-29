@@ -158,7 +158,8 @@ def get_dailyminutes_make_single_multiday_df(ticker):
     except Exception as e:
         print(e)
         pass
-    df.to_csv(rf"../data/historical_multiday_minute_DF/{ticker}_historical_multiday_min.csv")
+    df.to_csv(rf"../data/historical_multiday_minute_DF/{ticker}_historical_multiday_min.csv", index=False)
+
 
 def multiday_minute_series_prep_for_backtest(ticker,df):
 
@@ -268,40 +269,3 @@ def corr_minute_df(ticker,df):
     output_dir = Path("../data/historical_multiday_minute_corr/")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     df.corr().to_csv(f"../data/historical_multiday_minute_corr/{YYMMDD}_{ticker}.csv")
-tickers=[
-'SPY',
-# 'UVXY',
-# 'TSLA',
-# 'ROKU',
-# 'CHWY',
-# 'BA',
-# 'CMPS',
-# 'MNMD',
-# 'GOEV',
-# 'W',
-# 'MSFT',
-# 'GOOGL',
-# 'GOOG',
-# 'QQQ',
-# 'IWM',
-# 'META',
-# 'SQQQ',
-# 'RWM',
-# 'SPXS',
-# 'LLY',
-# 'V',
-# 'WMT',
-# 'JPM',
-# 'AMZN',
-'NVDA']
-for x in tickers:
-    try:
-        # get_1st_frames_to_make_dailyminute_df(x)
-
-        print(x)
-        get_dailyminutes_make_single_multiday_df(x)
-        # # print("corr")
-    # corr_minute_df(x,df)
-
-    except Exception as e:
-        print(x,e)

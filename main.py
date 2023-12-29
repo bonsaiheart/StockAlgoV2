@@ -2,9 +2,10 @@ import asyncio
 import logging
 import traceback
 from datetime import timedelta
-
 import aiohttp
-
+from datetime import datetime
+import asyncio
+import pytz  # Make sure to install pytz if you haven't already
 import IB.ibAPI
 import calculations
 # import new_marketdata
@@ -12,7 +13,7 @@ import trade_algos2
 import tradierAPI_marketdata
 from UTILITIES import check_Market_Conditions,eod_scp_dailyminutes_to_studiopc
 from UTILITIES.logger_config import logger
-
+from Strategy_Testing.make_test_df import  get_dailyminutes_make_single_multiday_df
 client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
@@ -20,9 +21,16 @@ ticker_cycle_running = asyncio.Event()
 # flag to track if handle_ticker_cycle() tasks are still runing
 
 
-from datetime import datetime
-import asyncio
-import pytz  # Make sure to install pytz if you haven't already
+# #TODO actions is taking 16 of the 35 seconds.
+order_manager = IB.ibAPI.IBOrderManager()
+
+semaphore = asyncio.Semaphore(500)
+
+# def get_next_minute_start():
+#     now = datetime.now(pytz.utc)
+#     next_minute_start = now + timedelta(seconds=60 - now.second)
+#     return next_minute_start
+###Currently taking 39,40 seconds.
 
 
 async def wait_until_time(target_time_utc):
@@ -39,21 +47,6 @@ async def create_client_session():
     if client_session is not None:
         await client_session.close()  # Close the existing session if it's not None
     client_session = aiohttp.ClientSession()
-
-
-# async def profiled_actions(optionchain, dailyminutes, processeddata, ticker, current_price):
-#     pr = cProfile.Profile()
-#     pr.enable()
-#
-#     try:
-#         await trade_algos.actions22(optionchain, dailyminutes, processeddata, ticker, current_price)
-#     except Exception as e:
-#         print(f"Error occurred: {traceback.format_exc()}")
-#
-#     pr.disable()
-#     pr.print_stats()
-# #TODO actions is taking 16 of the 35 seconds.
-order_manager = IB.ibAPI.IBOrderManager()
 
 
 async def ib_connect():
@@ -80,9 +73,6 @@ async def run_program():
             await ib_task  # Wait for ib_task to exit (it should handle cancellation)
         except asyncio.CancelledError:
             pass  # Handle CancelledError if necessary
-
-semaphore = asyncio.Semaphore(500)
-
 
 async def get_options_data_for_ticker(session, ticker, loop_start_time):
     ticker = ticker.upper()
@@ -123,11 +113,7 @@ async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_
         raise
 
 
-# def get_next_minute_start():
-#     now = datetime.now(pytz.utc)
-#     next_minute_start = now + timedelta(seconds=60 - now.second)
-#     return next_minute_start
-###Currently taking 39,40 seconds.
+
 async def handle_ticker_cycle(session, ticker):
     global market_close_time_utc
     start_time = datetime.now(pytz.utc)
@@ -233,8 +219,17 @@ if __name__ == "__main__":
             asyncio.run(client_session.close())
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
+
+        with open("UTILITIES/tickerlist.txt", "r") as f:
+            tickerlist = [line.strip().upper() for line in f.readlines()]
+            for ticker in tickerlist:
+                try:
+                    get_dailyminutes_make_single_multiday_df(ticker)
+
+                except Exception as e:
+                    print(ticker, e)
         ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client('192.168.1.109', 22, 'bonsaiheart', '/home/bonsai/.ssh/id_rsa')
-        eod_scp_dailyminutes_to_studiopc.scp_transfer_files(ssh_client, '/home/bonsai/Python_Projects/StockAlgoV2/data/DailyMinutes',
+        eod_scp_dailyminutes_to_studiopc.scp_transfer_files(ssh_client, '/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF',
                            r"PycharmProjects/StockAlgoV2/data")
         ssh_client.close()
     logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
