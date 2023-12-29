@@ -62,11 +62,12 @@ async def fetch(session, url, params, headers):
         async with session.get(url, params=params, headers=headers) as response:
             content_type = response.headers.get("Content-Type", "").lower()
             if "application/json" in content_type:
+                # print('APPLICATION IN RESPOSE TYPE JSON')
                 return await response.json()
             else:
-                raise OptionChainError(f"Unexpected content type in response from {url}: {content_type}")
+                raise OptionChainError(f"{params} - Unexpected content type in response from {url}: {content_type}")
     except Exception as e:
-        raise OptionChainError(f"Connection error to {url}: {e}")
+        raise OptionChainError(f"Connection error to {url}: {e} with params {params}")
 
 async def get_options_data(session, ticker,YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
@@ -108,7 +109,6 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
     StockLastTradeTime_YMD = StockLastTradeTime_datetime.strftime("%y%m%d")
 
     StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
-    print(f"${ticker} last Trade Time: {StockLastTradeTime_str}")
 
 
     expirations = expirations_response["expirations"]["expiration"]
@@ -220,6 +220,8 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
 
     # Make sure it's the same day's data.
     if YYMMDD == StockLastTradeTime_YMD:
+        print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
+
         try:
             combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
             return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
@@ -233,7 +235,8 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
             return None, None, None, None  # Return None values for any other exceptions
 
             # combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
-
+    else:
+        logger.warning(f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}")
 #TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
 
 

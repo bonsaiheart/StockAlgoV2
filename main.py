@@ -66,7 +66,7 @@ async def ib_connect():
         try:
 
             await order_manager.ib_connect()  # Connect to IB here
-            await asyncio.sleep(1 * 60)
+            await asyncio.sleep(5 * 60)
             print('running ib_connect_and_main again.')
         except Exception as e:
             # Log the error and continue running
@@ -90,25 +90,28 @@ async def get_options_data_for_ticker(session, ticker,loop_start_time):
         return LAC, current_price,  StockLastTradeTime,  YYMMDD
     except Exception as e:
         logger.exception(f"Error in get_options_data for {ticker}: {e}")
-        raise
-
+        return None,None,None,None
 async def calculate_operations( session,ticker, LAC, current_price, StockLastTradeTime, YYMMDD,loop_start_time):
-    try:
-        (optionchain, dailyminutes, processeddata, ticker) = await calculations.perform_operations(session,
-            ticker, LAC, current_price, StockLastTradeTime, YYMMDD,loop_start_time
-        )
-
-        # print(f"{ticker} PerformOptions complete at {datetime.now()}.")
-    except Exception as e:
-        logger.exception(f"Error in perform_operations for {ticker}: {e}")
-        raise
     if ticker in ["SPY", "TSLA", "GOOGL","CHWY","ROKU","V"]:
+
+        try:
+            (optionchain, dailyminutes, processeddata, ticker) = await calculations.perform_operations(session,
+                ticker, LAC, current_price, StockLastTradeTime, YYMMDD,loop_start_time
+            )
+
+            # print(f"{ticker} PerformOptions complete at {datetime.now()}.")
+
+    # if ticker in ["SPY", "TSLA", "GOOGL","CHWY","ROKU","V"]:
     # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
     # new_task=asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
     # all_tasks.append(new_task)
-    #     asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
-        await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
-    return optionchain, dailyminutes, processeddata, ticker
+            asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price))
+            return optionchain, dailyminutes, processeddata, ticker
+
+        # await trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price)
+        except Exception as e:
+            logger.exception(f"Error in perform_operations for {ticker}: {e}")
+            raise
 
 async def trade_algos( optionchain, dailyminutes, processeddata, ticker, current_price):
 
@@ -128,24 +131,23 @@ async def handle_ticker_cycle(session, ticker):
     # while True:
         now = datetime.now()
         loop_start_time_est = now.strftime("%y%m%d_%H%M")
-        try:
+        try:#TODO make try 3x before quitting?
             LAC, CurrentPrice,  StockLastTradeTime, YYMMDD = await get_options_data_for_ticker(session, ticker,loop_start_time_est)
             if None in [LAC, CurrentPrice, StockLastTradeTime, YYMMDD]:
-                raise OptionChainError(f"(file exists?) Data missing for ticker {ticker} AT {start_time}")
+                logger.error(f"None was in data. (file exists?) Data missing for ticker {ticker} AT {start_time}")
+                await asyncio.sleep(15)
+                continue
                     # end_time = datetime.now(pytz.utc)
                 # elapsed_time = (end_time - start_time).total_seconds()
                 # sleep_time = max(0, 60 - elapsed_time)
-                logger.exception(
-                    f"time{now}.  lac: {LAC}, current price: {CurrentPrice}, stock last trade time: {StockLastTradeTime}, yymmd: {YYMMDD}")
-                continue
             else:
                 # asyncio.create_task(calculate_operations(session,ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,loop_start_time_est))
                 await calculate_operations(session, ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD,
                                                loop_start_time_est)
 
-        except OptionChainError as e:
-            logger.info(f"OptionChainError occurred at {start_time}: {e}")
-            await asyncio.sleep(5)
+        except Exception as e:
+            logger.info(f"{start_time}: {e}")
+            await asyncio.sleep(15)
             continue
                 # await asyncio.sleep(sleep_time)
                 # start_time = datetime.now(pytz.utc)
@@ -219,6 +221,10 @@ if __name__ == "__main__":
             asyncio.run(client_session.close())
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
-    logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+
+
+
+
 
 
