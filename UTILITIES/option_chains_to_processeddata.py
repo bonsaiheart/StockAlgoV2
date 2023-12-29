@@ -87,18 +87,11 @@ async def get_ta(session, ticker,date):
     if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
         df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
     else:
-        exit()
+        logger.warning(f"Bad time_sale_response data. {ticker},{date}")
         print(
-            f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
-        return None  # Or another appropriate response to indicate failure
-        # df.set_index('time', inplace=True)
-        ##change index to datetimeindex
-    df.index = pd.to_datetime(df.index)
+            f"Bad time_sale_response data. {ticker},{date}")
 
-    # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
-    #     df.to_csv("LOOKATMEMNMD.csv")
-    # if ticker == 'SPY':
-    #     df.to_csv("LOOKATMESPY.csv")
+    df.index = pd.to_datetime(df.index)
 
     def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
         """
@@ -111,6 +104,7 @@ async def get_ta(session, ticker,date):
         except Exception as e:
             print(column_name, ticker, e)
             df[column_name] = pd.NA  # or pd.nan
+            raise
 
     # Usage of safe_calculation function for each indicator
     safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,

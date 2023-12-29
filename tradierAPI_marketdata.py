@@ -29,18 +29,18 @@ async def get_option_chain(session, ticker, exp_date, headers):
     params = {"symbol": ticker, "expiration": exp_date, "greeks": "true"}
     try:
         json_response = await fetch(session, url, params, headers)
-    except OptionChainError as e:
+
+        if json_response is None:
+            raise OptionChainError(f"FaWASS NMONE?? Wow get optoin chain. chain data for {ticker} (in traideierapi.get_options_chain")
+
+        if json_response and "options" in json_response and "option" in json_response["options"]:
+            optionchain_df = pd.DataFrame(json_response["options"]["option"])
+            return optionchain_df
+        else:
+            print(f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing")
+            return None  # Or another appropriate response to indicate failure
+    except Exception as e:
         raise
-    if json_response is None:
-        raise OptionChainError(f"Failed to retrieve option chain data for {ticker} (in traideierapi.get_options_chain")
-
-    if json_response and "options" in json_response and "option" in json_response["options"]:
-        optionchain_df = pd.DataFrame(json_response["options"]["option"])
-        return optionchain_df
-    else:
-        print(f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing")
-        return None  # Or another appropriate response to indicate failure
-
 
 
 async def get_option_chains_concurrently(session, ticker, expiration_dates, headers):
@@ -53,7 +53,7 @@ async def get_option_chains_concurrently(session, ticker, expiration_dates, head
             return None
 
         return all_option_chains
-    except OptionChainError as e:
+    except Exception as e:
         raise  # Re-raise the exception to the caller
 
 
@@ -65,9 +65,9 @@ async def fetch(session, url, params, headers):
                 # print('APPLICATION IN RESPOSE TYPE JSON')
                 return await response.json()
             else:
-                raise OptionChainError(f"{params} - Unexpected content type in response from {url}: {content_type}")
+                raise OptionChainError(f"Fetch error: {content_type} with params {params} {url}")
     except Exception as e:
-        raise OptionChainError(f"Connection error to {url}: {e} with params {params}")
+        raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
 
 async def get_options_data(session, ticker,YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
@@ -223,18 +223,16 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
         print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
 
         try:
-            combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+            file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
+            combined.to_csv(file_path, mode="x")
             return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
 
         except FileExistsError as e:
             logger.error(f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
-            return None, None, None, None  # Return None values if the file already exists
-
+            raise
         except Exception as e:
             logger.error(f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
-            return None, None, None, None  # Return None values for any other exceptions
-
-            # combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv", mode="x")
+            raise
     else:
         logger.warning(f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}")
 #TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.

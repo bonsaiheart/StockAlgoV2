@@ -1,16 +1,20 @@
+from datetime import datetime, timedelta
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-from tradierAPI_marketdata import fetch
-import PrivateData.tradier_info
 import ta
+
+import PrivateData.tradier_info
 from UTILITIES.logger_config import logger
+from tradierAPI_marketdata import fetch
+
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
 
-#TODO could overhaul so anything can be done from optinchain.. lots work hmm
+
+# TODO could overhaul so anything can be done from optinchain.. lots work hmm
 async def get_ta(session, ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
@@ -26,10 +30,11 @@ async def get_ta(session, ticker):
     else:
         print(
             f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
-        return None  # Or another appropriate response to indicate failure
+        return None
         # df.set_index('time', inplace=True)
         ##change index to datetimeindex
     df.index = pd.to_datetime(df.index)
+
     # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
     #     df.to_csv("LOOKATMEMNMD.csv")
     # if ticker == 'SPY':
@@ -83,11 +88,11 @@ async def perform_operations(session,
                              last_adj_close,
                              current_price,
                              StockLastTradeTime,
-                            YYMMDD,CurrentTime
+                             YYMMDD, CurrentTime
                              ):
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
-    #TODO could pass in optionchain.
+    # TODO could pass in optionchain.
     optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv")
 
     groups = optionchain_df.groupby("ExpDate")
@@ -493,7 +498,6 @@ async def perform_operations(session,
     # Use the function
     if output_file_dailyminutes.exists():
         dailyminutes_df = pd.read_csv(output_file_dailyminutes)
-        # dailyminutes_df = dailyminutes_df.drop_duplicates(subset="CurrentTime")
         dailyminutes_df = pd.concat([dailyminutes_df, processed_data_df.head(1)], ignore_index=True)
         replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
     else:
@@ -508,16 +512,6 @@ async def perform_operations(session,
     ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
     except FileExistsError as e:
         # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
+        raise
 
-        # exit()
-        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv", mode="x",index=False)
-
-        logger.error(f"{ticker} Processed data aready exists: {CurrentTime}{e}")
-
-    return (
-        optionchain_df,
-        dailyminutes_df,
-        processed_data_df,
-        ticker,
-
-    )
+    return optionchain_df, dailyminutes_df, processed_data_df, ticker

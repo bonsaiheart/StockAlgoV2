@@ -60,10 +60,10 @@ async def handle_model_result(model_name, ticker, current_price, optionchain_df,
 
     # Handle notifications and orders
     try:
-        await send_notifications.email_me_string(model_name, CorP, ticker)
+        asyncio.create_task(send_notifications.email_me_string(model_name, CorP, ticker))
     except Exception as e:
         print(f"Email error {e}.")
-        logger.exception(f"An error occurred while emailing {e}")
+        logger.exception(f"An error occurred while creating email task {e}")
 
     callorput = 'call' if CorP == 'C' else 'put'
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
@@ -75,12 +75,15 @@ async def handle_model_result(model_name, ticker, current_price, optionchain_df,
         ))
     except Exception as e:
         print(f"Tweet error {e}.")
-        logger.exception(f"An error occurred while Tweeting {e}")
-
-    await place_option_order_sync(
-        CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-        quantity=10, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
-    )
+        logger.exception(f"An error occurred while creating tweeting task {e}")
+    if order_manager.ib.isConnected:
+        try:
+            asyncio.create_task(place_option_order_sync(
+            CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
+            quantity=10, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
+        ))
+        except Exception as e:
+            logger.exception(f"An error occurred while creating option order task {e}.")
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
 model_pairs = {
     "ModelPair1": [pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__,pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__],
@@ -150,83 +153,17 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
             if result > 0.5:
                 now = datetime.now()
                 HHMM = now.strftime("%H%M")
-                # print("Positive result: ",ticker,model_name,HHMM)
                         # Reset signal sum for the pair
-            # If the model result is positive (greater than 0.5 in your case), handle the positive result
             if not part_of_pair and result > 0:
-                await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
-
-                # Retrieve the contract details
-                upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_HR_MIN_only = get_contract_details(
-                    optionchain_df, processeddata_df, ticker, model_name
-                )
                 try:
-                    await send_notifications.email_me_string(model_name, CorP, ticker)
+                    await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
                 except Exception as e:
-                    print(f"Cemail error {e}.")
-                    logger.exception(f"An error occurred while emailin{e}")
-                try:
-                    send_notifications.email_me_string(model_name, CorP, ticker)
-                except Exception as e:
-                    print(f"Cemail error {e}.")
-                    logger.exception(f"An error occurred while emailin{e}")
-                callorput = 'call' if CorP == 'C' else 'put'
-                print(f'Positive result for {ticker} {model_name}')
-                timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
-                    try:
-                        await send_notifications.send_tweet_w_countdown_followup(
-                            ticker,
-                            current_price,
-                            upordown,
-                            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                            seconds_till_expectedprofit, model_name
-                        )
-                    except Exception as e:
-                        print(f"Tweet error {e}.")
-                        logger.exception(f"An error occurred while Tweeting {e}")
-                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
-                    try:
-                        await send_notifications.send_tweet_w_countdown_followup(
-                            ticker,
-                            current_price,
-                            upordown,
-                            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-                            seconds_till_expectedprofit, model_name
-                        )
-                    except Exception as e:
-                        print(f"Tweet error {e}.")
-                        logger.exception(f"An error occurred while Tweeting {e}")
-                #
+                    logger.exception(f"Error in handle_model_result. {e}")
 
-        #TODO uncommbent optionorder.
-                if order_manager.ib.isConnected:
-                    try:
-                        if ticker not in ["SQQQ","UVXY","SPXS"]:
-                            await place_option_order_sync(
-                                CorP, ticker, IB_option_date, contractStrike, contract_price, orderRef=ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only,
-
-                                quantity=7,take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent)
-                            now = datetime.now()
-                            HHMM = now.strftime("%H%M")
-                            print("Order placed: ",HHMM,ticker,model_name)
-
-
-                    except Exception as e:
-
-                        log_error("actions", ticker, model_name, e)
-                # await asyncio.sleep(0)
-                # Place the buy order if applicable (this part depends on your specific trading strategy)
-                # await place_buy_order_sync(
-                #     ticker, current_price, model_name, quantity=4,
-                #     take_profit_percent=stock_take_profit_percent, trail_stop_percent=stock_trail_stop_percent
-                #      )
-                except Exception as e:
-                    log_error("actions", ticker, model_name, e)
 
         except Exception as e:
             log_error("actions", ticker, model_name, e)
-
+#TODO use this log error funciton globally?
 
 # Define a function to send notifications (assuming you have this functionality in the send_notifications module)
 
