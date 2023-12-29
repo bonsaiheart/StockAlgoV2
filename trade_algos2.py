@@ -60,7 +60,7 @@ async def handle_model_result(model_name, ticker, current_price, optionchain_df,
 
     # Handle notifications and orders
     try:
-        send_notifications.email_me_string(model_name, CorP, ticker)
+        await send_notifications.email_me_string(model_name, CorP, ticker)
     except Exception as e:
         print(f"Email error {e}.")
         logger.exception(f"An error occurred while emailing {e}")
@@ -113,6 +113,9 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 stock_trail_stop_percent = None
                 option_take_profit_percent = None
                 option_trail_stop_percent = None
+            # model_output_df.to_csv('test.csv')
+            # dailyminutes_df.to_csv('test_dailymin.csv')
+
             result = model_output_df.iloc[-1]
             print(model_name,result)
             evaluated_models.add(model_name)
@@ -126,16 +129,29 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     signal_sums[pair_name] += result
                     # Check if both models in the pair have been evaluated
                     if evaluated_models.issuperset(pair_models):
-                        print(pair_name,signal_sums[pair_name])
                         if signal_sums[pair_name] > 1.5:
+                            logger.info("!!!positive pair result?", pair_name, signal_sums[pair_name])
                             #TODO change so that it uses a tp/trail fitted for the pair/combo.
                             await handle_model_result(pair_name, ticker, current_price, optionchain_df,
                                                       processeddata_df, option_take_profit_percent,
                                                       option_trail_stop_percent)
+                signal_sums[pair_name] = 0
+            # Assuming model_output_df is your DataFrame and you have defined ticker and model_name variables
+            # Get the last 3 rows of the DataFrame
+            tail = model_output_df.tail(3)
 
+            # Convert the Series to a string representation
+            # Using 'join' to concatenate the string representations of the values
+            tail_str = ', '.join(map(str, tail))
+
+            # Concatenate and print in the same row
+            print(f"{ticker} {model_name} last 3 results: {tail_str}")#TODO could use this avg. to make order!
+            # If the model result is positive handle the positive result
+            if result > 0.5:
+                now = datetime.now()
+                HHMM = now.strftime("%H%M")
+                # print("Positive result: ",ticker,model_name,HHMM)
                         # Reset signal sum for the pair
-                        signal_sums[pair_name] = 0
-                    break
             # If the model result is positive (greater than 0.5 in your case), handle the positive result
             if not part_of_pair and result > 0:
                 await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
@@ -149,8 +165,13 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 except Exception as e:
                     print(f"Cemail error {e}.")
                     logger.exception(f"An error occurred while emailin{e}")
+                try:
+                    send_notifications.email_me_string(model_name, CorP, ticker)
+                except Exception as e:
+                    print(f"Cemail error {e}.")
+                    logger.exception(f"An error occurred while emailin{e}")
                 callorput = 'call' if CorP == 'C' else 'put'
-                # print(f'Positive result for {ticker} {model_name}')
+                print(f'Positive result for {ticker} {model_name}')
                 timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
                 if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
                     try:
@@ -164,10 +185,22 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                     except Exception as e:
                         print(f"Tweet error {e}.")
                         logger.exception(f"An error occurred while Tweeting {e}")
+                if ticker in ["GOOGL","SPY","TSLA"]:#placeholder , was just for spy
+                    try:
+                        await send_notifications.send_tweet_w_countdown_followup(
+                            ticker,
+                            current_price,
+                            upordown,
+                            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+                            seconds_till_expectedprofit, model_name
+                        )
+                    except Exception as e:
+                        print(f"Tweet error {e}.")
+                        logger.exception(f"An error occurred while Tweeting {e}")
+                #
 
-                # await asyncio.sleep(0)
-        #TODO uncomment optionorder.
-                if IB.ibAPI.ib.isConnected():
+        #TODO uncommbent optionorder.
+                if order_manager.ib.isConnected:
                     try:
                         if ticker not in ["SQQQ","UVXY","SPXS"]:
                             await place_option_order_sync(
@@ -188,6 +221,8 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
                 #     ticker, current_price, model_name, quantity=4,
                 #     take_profit_percent=stock_take_profit_percent, trail_stop_percent=stock_trail_stop_percent
                 #      )
+                except Exception as e:
+                    log_error("actions", ticker, model_name, e)
 
         except Exception as e:
             log_error("actions", ticker, model_name, e)
@@ -245,10 +280,14 @@ def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     upordown = "up" if CorP == "C" else "down"
 
     # Get the current time formatted for the notification message
-    formatted_time = datetime.now().strftime("%y%m%d %H:%M EST")
-    formatted_time_HR_MIN_only = datetime.now().strftime("%H%M")
+    current_time = datetime.now()
 
-    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time,formatted_time_HR_MIN_only
+    # Full date and time format
+    formatted_time = current_time.strftime("%y%m%d %H:%M EST")
+
+    # Only time format
+    formatted_time_HMonly = current_time.strftime("%H:%M")
+    return upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time,formatted_time_HMonly
 
 
 # Main execution

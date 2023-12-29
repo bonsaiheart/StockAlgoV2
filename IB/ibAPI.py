@@ -63,7 +63,7 @@ class IBOrderManager:
             # randomclientID = random.randint(0, 999)#TODO change bac kclientid
             try:
 
-                self.ib.connect("192.168.1.119", 7497, clientId=0, timeout=45)
+                self.ib.connect("192.168.1.119", 7497, clientId=5, timeout=45)
                 print("connected.")
 
 
@@ -187,7 +187,7 @@ class IBOrderManager:
             order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
             filled_qty = sum(fill.execution.shares for fill in order_fills)
             remaining_qty = order.totalQuantity - filled_qty
-            print("filled qty:", filled_qty, "remainig qty:", remaining_qty)
+            # print("filled qty:", filled_qty, "remainig qty:", remaining_qty)
 
             oca_group = order.ocaGroup
             oca_group_remaining_qty[oca_group] = remaining_qty
