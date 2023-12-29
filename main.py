@@ -6,7 +6,7 @@ import asyncio
 import os
 import time
 import traceback
-
+import UTILITIES.transfer_dailyminutes as transfer_dailyminutes
 import pytz
 
 import IB.ibAPI
@@ -221,6 +221,9 @@ if __name__ == "__main__":
             asyncio.run(client_session.close())
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
+        ssh_client = transfer_dailyminutes.create_ssh_client('192.168.1.109', 22, 'bonsaiheart', '/home/bonsai/.ssh/id_rsa')
+        transfer_dailyminutes.scp_transfer_files(ssh_client, '/home/bonsai/Python_Projects/StockAlgoV2/data/DailyMinutes',
+                           r"PycharmProjects/StockAlgoV2/data")
 logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
 
 
