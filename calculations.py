@@ -20,6 +20,7 @@ async def get_ta(session, ticker):
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
+
     time_sale_response = await fetch(session, "https://api.tradier.com/v1/markets/timesales",
                                      params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
                                              "session_filter": "all"}, headers=headers)
@@ -45,7 +46,6 @@ async def get_ta(session, ticker):
         Safely perform a calculation for a DataFrame and handle exceptions.
         If an exception occurs, the specified column is filled with NaN.
         """
-
         try:
 
             df[column_name] = calculation_function(*args, **kwargs)
@@ -440,7 +440,10 @@ async def perform_operations(session,
             }
         )
     processed_data_df = pd.DataFrame(results)
+
+
     this_minute_ta_frame = await get_ta(session, ticker)
+
     processed_data_df["RSI"] = this_minute_ta_frame["RSI"]
     processed_data_df["RSI2"] = this_minute_ta_frame["RSI2"]
     processed_data_df["RSI14"] = this_minute_ta_frame["RSI14"]
@@ -454,8 +457,7 @@ async def perform_operations(session,
     # Calculate 200-Day EMA
     processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
-    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame[
-        "AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
+    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
     processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
     processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
 
@@ -498,6 +500,7 @@ async def perform_operations(session,
     # Use the function
     if output_file_dailyminutes.exists():
         dailyminutes_df = pd.read_csv(output_file_dailyminutes)
+        # dailyminutes_df = dailyminutes_df.drop_duplicates(subset="CurrentTime")
         dailyminutes_df = pd.concat([dailyminutes_df, processed_data_df.head(1)], ignore_index=True)
         replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
     else:
@@ -509,9 +512,9 @@ async def perform_operations(session,
     try:
         processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv", mode="x",
                                  index=False)
-    ###TODO could use this fileexists as a trigger to tell algos not to send(market clesed)
+        # print("processed data saved for",ticker)
     except FileExistsError as e:
         # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
         raise
-
+    # print(type(optionchain_df),type(dailyminutes_df),type(processed_data_df),type(ticker))
     return optionchain_df, dailyminutes_df, processed_data_df, ticker

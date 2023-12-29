@@ -68,11 +68,12 @@ async def handle_model_result(model_name, ticker, current_price, optionchain_df,
     callorput = 'call' if CorP == 'C' else 'put'
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
     try:
-        asyncio.create_task(send_notifications.send_tweet_w_countdown_followup(
-            ticker, current_price, upordown,
-            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-            seconds_till_expectedprofit, model_name
-        ))
+        # asyncio.create_task(send_notifications.send_tweet_w_countdown_followup(
+        #     ticker, current_price, upordown,
+        #     f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+        #     seconds_till_expectedprofit, model_name
+        # ))
+        pass
     except Exception as e:
         print(f"Tweet error {e}.")
         logger.exception(f"An error occurred while creating tweeting task {e}")
