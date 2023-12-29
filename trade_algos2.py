@@ -58,36 +58,35 @@ async def handle_model_result(model_name, ticker, current_price, optionchain_df,
         optionchain_df, processeddata_df, ticker, model_name
     )
 
-    # Handle notifications and orders
+    callorput = 'call' if CorP == 'C' else 'put'
+    timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
+    if order_manager.ib.isConnected:
+        try:
+            await place_option_order_sync(
+            CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
+            quantity=10, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
+        )
+        except Exception as e:
+            logger.exception(f"An error occurred while creating option order task {e}.")
     try:
-        asyncio.create_task(send_notifications.email_me_string(model_name, CorP, ticker))
+        await send_notifications.send_tweet_w_countdown_followup(
+            ticker, current_price, upordown,
+            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+            seconds_till_expectedprofit, model_name
+        )
+    except Exception as e:
+        print(f"Tweet error {e}.")
+        logger.exception(f"An error occurred while creating tweeting task {e}")
+    try:
+        await send_notifications.email_me_string(model_name, CorP, ticker)
     except Exception as e:
         print(f"Email error {e}.")
         logger.exception(f"An error occurred while creating email task {e}")
 
-    callorput = 'call' if CorP == 'C' else 'put'
-    timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(model_name)
-    try:
-        # asyncio.create_task(send_notifications.send_tweet_w_countdown_followup(
-        #     ticker, current_price, upordown,
-        #     f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-        #     seconds_till_expectedprofit, model_name
-        # ))
-        pass
-    except Exception as e:
-        print(f"Tweet error {e}.")
-        logger.exception(f"An error occurred while creating tweeting task {e}")
-    if order_manager.ib.isConnected:
-        try:
-            asyncio.create_task(place_option_order_sync(
-            CorP, ticker, IB_option_date, contractStrike, contract_price, model_name,
-            quantity=10, take_profit_percent=option_take_profit_percent, trail_stop_percent=option_trail_stop_percent
-        ))
-        except Exception as e:
-            logger.exception(f"An error occurred while creating option order task {e}.")
+
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
 model_pairs = {
-    "ModelPair1": [pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__,pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__],
+    "Buy_2hr_ensemble_pair1": [pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass.__name__,        pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1.__name__],
     # "ModelPair2": ["ModelName3", "ModelName4"],
     # Add more pairs as needed
 }
@@ -101,11 +100,14 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
     # Load your data into dataframes
     # Initialize a variable to keep track of evaluated models
     evaluated_models = set()
+    # Initialize a dictionary to track executed models
+    executed_models = set()
 
     # Iterate over each model in your model list
     for model in get_model_list():
         model_name = model.__name__
         model_output = model(dailyminutes_df)
+        evaluated_models.add(model_name)
         # print(model_output)
         try:
             # TODO make each model return signal, so they can have individual thressholds for buy/sell.
@@ -121,45 +123,41 @@ async def actions(optionchain_df, dailyminutes_df, processeddata_df, ticker, cur
             # dailyminutes_df.to_csv('test_dailymin.csv')
 
             result = model_output_df.iloc[-1]
-            print(model_name,result)
-            evaluated_models.add(model_name)
+            tail = model_output_df.tail(3)
+            tail_str = ', '.join(map(str, tail))
+            print(f"{ticker} {model_name} last 3 results: {tail_str}")#TODO could use this avg. to make order!
+
             # print('evaluated',evaluated_models)
             # Check if model is part of any pair
             part_of_pair = False
+
+            # Check if model is part of any pair
             for pair_name, pair_models in model_pairs.items():
                 if model_name in pair_models:
                     part_of_pair = True
-                    # Update signal sum for the pair
                     signal_sums[pair_name] += result
-                    # Check if both models in the pair have been evaluated
+
                     if evaluated_models.issuperset(pair_models):
-                        if signal_sums[pair_name] > 1.5:
-                            logger.info("!!!positive pair result?", pair_name, signal_sums[pair_name])
-                            #TODO change so that it uses a tp/trail fitted for the pair/combo.
+                        if signal_sums[pair_name] > .1:
+                            # Execute for pair
+                            logger.info(f"!!!positive pair result? {pair_name}: {signal_sums[pair_name]}")
+                            # TODO change so that it uses a tp/trail fitted for the pair/combo.
                             await handle_model_result(pair_name, ticker, current_price, optionchain_df,
                                                       processeddata_df, option_take_profit_percent,
                                                       option_trail_stop_percent)
-                signal_sums[pair_name] = 0
-            # Assuming model_output_df is your DataFrame and you have defined ticker and model_name variables
-            # Get the last 3 rows of the DataFrame
-            tail = model_output_df.tail(3)
+                            signal_sums[pair_name] = 0
+                            executed_models.update(pair_models)
+                        else:
+                            signal_sums[pair_name] = 0
+                        break  # Exit the loop after handling pair
 
-            # Convert the Series to a string representation
-            # Using 'join' to concatenate the string representations of the values
-            tail_str = ', '.join(map(str, tail))
-
-            # Concatenate and print in the same row
-            print(f"{ticker} {model_name} last 3 results: {tail_str}")#TODO could use this avg. to make order!
-            # If the model result is positive handle the positive result
-            if result > 0.5:
-                now = datetime.now()
-                HHMM = now.strftime("%H%M")
-                        # Reset signal sum for the pair
-            if not part_of_pair and result > 0:
-                try:
-                    await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
-                except Exception as e:
-                    logger.exception(f"Error in handle_model_result. {e}")
+            # Execute for individual model if not part of a pair or not executed as part of a pair
+            if not part_of_pair or model_name not in executed_models:
+                if result > 0:
+                    try:
+                        await handle_model_result(model_name, ticker, current_price, optionchain_df, processeddata_df, option_take_profit_percent, option_trail_stop_percent)
+                    except Exception as e:
+                        logger.exception(f"Error in handle_model_result. {e}")
 
 
         except Exception as e:
@@ -180,7 +178,7 @@ def get_model_list():
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
 
         ]  
-
+#TODO make it look for pairs first somehow?  store all orders, and take best?
 def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
     closest_exp_date = processeddata_df['ExpDate'].iloc[0]
