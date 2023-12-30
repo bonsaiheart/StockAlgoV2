@@ -93,7 +93,7 @@ Chosen_Predictor = [
 
 
 ]
-study_name = ('_3hr_40pt_down_FeatSet5')
+study_name = ('_3hr_40pt_down_FeatSet5_shuffled_except_last390test')
 n_trials =1000
 cells_forward_to_check = 60*3
 percent_down = .4  # as percent
@@ -142,18 +142,27 @@ X.reset_index(drop=True, inplace=True)
 # Function to replace infinities and adjust extrema by column in a DataFrame
 # TODO love this implimetnation, send to a utillity to use by all scripts.
 def replace_infinities_and_scale(df, factor=1.5):
+    # for col in df.columns:
+    #     # Replace infinities with NaN, then calculate max and min
+    #     max_val = df[col].replace([np.inf, -np.inf], np.nan).max()
+    #     min_val = df[col].replace([np.inf, -np.inf], np.nan).min()
+    #
+    #     # Scale max and min values by a factor based on their sign
+    #     max_val = max_val * factor if max_val >= 0 else max_val / factor
+    #     min_val = min_val * factor if min_val < 0 else min_val / factor
+    #
+    #     # Replace infinities with the scaled max and min values
+    #     df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+    #     print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
+    #new logic - :
+    # Define very large and very small numbers as placeholders for infinity
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
     for col in df.columns:
-        # Replace infinities with NaN, then calculate max and min
-        max_val = df[col].replace([np.inf, -np.inf], np.nan).max()
-        min_val = df[col].replace([np.inf, -np.inf], np.nan).min()
+        # Replace positive and negative infinity with the defined large and small numbers
+        df[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
 
-        # Scale max and min values by a factor based on their sign
-        max_val = max_val * factor if max_val >= 0 else max_val / factor
-        min_val = min_val * factor if min_val < 0 else min_val / factor
-
-        # Replace infinities with the scaled max and min values
-        df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
-        print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
 
 # Function to convert scaled data to tensors
 def convert_to_tensor(scaler, X_train, X_val,  device):
@@ -169,12 +178,12 @@ def convert_to_tensor(scaler, X_train, X_val,  device):
 
 # # # TODO#shuffle trur or false?
 X_temp,X_test, y_up_temp,y_up_test = train_test_split(
-    X, y_up, test_size=0.05,random_state=None, shuffle=False
+    X, y_up, test_size=int(6.5*60),random_state=None, shuffle=False#represents 1 market day.
 )
 
 # Split the temp set into validation and test sets
 X_train,X_val , y_up_train, y_up_val  = train_test_split(
-    X_temp, y_up_temp, test_size=0.3, random_state=None, shuffle=False
+    X_temp, y_up_temp, test_size=0.3, random_state=None, shuffle=True
 )
 # Concatenate train and validation sets
 X_trainval = pd.concat([X_train, X_val], ignore_index=True)
@@ -601,6 +610,7 @@ if input_val == "Y":
         os.makedirs(model_directory)
     model_filename_up = os.path.join(model_directory, "target_up.pth")
 
+    # Save the model
     torch.save({'features': Chosen_Predictor,
                 'input_dim': X_train_tensor.shape[1],
                 'dropout_rate': best_params["dropout_rate"],
@@ -608,7 +618,6 @@ if input_val == "Y":
                 'model_state_dict': finalmodel.state_dict(),
                 'scaler_X': finalscaler_X
                 }, model_filename_up)
-    # Save the scaler
 
     # Generate the function definition
     function_def = f"""
@@ -628,12 +637,21 @@ def {model_summary}(new_data_df):
     tempdf.dropna(subset=features, inplace=True)
     tempdf = tempdf[features]
 
+    # for col in tempdf.columns:
+    #     max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
+    #     min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
+    #     max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+    #     min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+    #     tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+    #New Logic - 
+# Function to replace infinities with very large/small numbers
+    # Define very large and very small numbers as placeholders for infinity
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
     for col in tempdf.columns:
-        max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
-        min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
-        max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
-        min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
-        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+        # Replace positive and negative infinity with the defined large and small numbers
+        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
 
     tempdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features)
     input_tensor = torch.tensor(tempdf.values, dtype=torch.float32)
@@ -651,21 +669,13 @@ def {model_summary}(new_data_df):
     # Append the new function definition to pytorch_trained_minute_models.py
     with open('../../../../../Trained_Models/pytorch_trained_minute_models.py', 'a') as file:
         file.write(function_def)
+
+    # Write information to the info file
     with open(f"../../../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         info_txt.write("This file contains information about the model.\n\n")
-        info_txt.write(
-            f"File analyzed: {DF_filename}\nStudy Name: {study_name}\nCells_Foward_to_check: {cells_forward_to_check}\n\n"
-        )
-
-        info_txt.write(
-            f"Metrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\n"
-        )
-        info_txt.write(
-            f"Predictors: {Chosen_Predictor}\n\n\n"
-            f"Best Params: {best_params}\n\n\n"
-            f"study_name: {study_name}\n\n\n"
-            f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
-            f"Threshold(sensitivity): {theshhold_down}\n"
-            f"Target Underlying Percentage: {percent_down}\n"
-            f"Threshhold positive condition cells: {threshold_cells_up}"
-            f"anticondition_cells_threshold: {anticondition_threshold_cells}\n")
+        info_txt.write(f"File analyzed: {DF_filename}\nStudy Name: {study_name}\nCells_Foward_to_check: {cells_forward_to_check}\n\n")
+        info_txt.write(f"Metrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\n")
+        info_txt.write(f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n\n\nStudy Name: {study_name}\n\n\n")
+        info_txt.write(f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n")
+        info_txt.write(f"Threshold(sensitivity): {theshhold_down}\nTarget Underlying Percentage: {percent_down}\n")
+        info_txt.write(f"Threshold positive condition cells: {threshold_cells_up}\nAnticondition_cells_threshold: {anticondition_threshold_cells}\n")
