@@ -113,13 +113,15 @@ async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_
         raise
 
 
-
+#TODO make it so that pairs are handled on their own?  not usre
 async def handle_ticker_cycle(session, ticker):
     global market_close_time_utc
     start_time = datetime.now(pytz.utc)
     max_retries = 1  # Maximum number of retries
 
     while start_time < market_close_time_utc + timedelta(seconds=0):
+    # for i in range (17):
+    #     print(i)
         now = datetime.now()
         loop_start_time_est = now.strftime("%y%m%d_%H%M")
         retries = 0
@@ -138,21 +140,22 @@ async def handle_ticker_cycle(session, ticker):
         if LAC is None:
             logger.info("LAC is None for ticker %s after %d retries", ticker, retries)
         if LAC is not None:
+            if ticker in ["SPY", "TSLA", "GOOGL","UVXY","ROKU","QQQ","SQQQ","SPXS"]:
+                try:
+                    optionchain, dailyminutes, processeddata, ticker = await calculate_operations(session,
+                                                                                                                 ticker,
+                                                                                                                 LAC,
+                                                                                                                 CurrentPrice,
+                                                                                                                 StockLastTradeTime,
+                                                                                                                 YYMMDD,
+                                                                                                                 loop_start_time_est)
+                    # print("Calculated operations successfully")
 
-            try:
-                optionchain, dailyminutes, processeddata, ticker = await calculate_operations(session,
-                                                                                                             ticker,
-                                                                                                             LAC,
-                                                                                                             CurrentPrice,
-                                                                                                             StockLastTradeTime,
-                                                                                                             YYMMDD,
-                                                                                                             loop_start_time_est)
-                # print("Calculated operations successfully")
-
-            except Exception as e:
-                logger.info(f"Error in calculate_operations for {ticker}: {e}")
-            if ticker in ["SPY", "TSLA", "GOOGL", "CHWY", "ROKU", "V"]:
+                except Exception as e:
+                    logger.info(f"Error in calculate_operations for {ticker}: {e}")
+            if ticker in ["SPY", "TSLA", "GOOGL"]:
                 asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice))
+                # await trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice)
 
         end_time = datetime.now(pytz.utc)
         elapsed_time = (end_time - start_time).total_seconds()
@@ -223,13 +226,14 @@ if __name__ == "__main__":
         with open("UTILITIES/tickerlist.txt", "r") as f:
             tickerlist = [line.strip().upper() for line in f.readlines()]
             for ticker in tickerlist:
-                try:
-                    get_dailyminutes_make_single_multiday_df(ticker)
+                if ticker == "SPY":
+                    try:
+                        get_dailyminutes_make_single_multiday_df(ticker)
 
-                except Exception as e:
-                    print(ticker, e)
+                    except Exception as e:
+                        print(ticker, e)
         ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client('192.168.1.109', 22, 'bonsaiheart', '/home/bonsai/.ssh/id_rsa')
-        eod_scp_dailyminutes_to_studiopc.scp_transfer_files(ssh_client, '/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF',
-                           r"PycharmProjects/StockAlgoV2/data")
+        eod_scp_dailyminutes_to_studiopc.scp_transfer_files(ssh_client, '/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv',
+                           r"PycharmProjects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv")
         ssh_client.close()
     logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")

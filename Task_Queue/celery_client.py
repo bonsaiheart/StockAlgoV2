@@ -22,4 +22,4 @@ def send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownse
     )
     # print(result)
 async def followup_tweet_async_cycle(ticker, current_price, tweet_id, upordown, countdownseconds):
-    asyncio.create_task(Task_Queue.task_queue.followup_tweet(ticker, current_price, tweet_id, upordown, countdownseconds))
+    await Task_Queue.task_queue.followup_tweet(ticker, current_price, tweet_id, upordown, countdownseconds)

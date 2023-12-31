@@ -48,7 +48,8 @@ class IBOrderManager:
         order_status = trade.orderStatus
 
         if order_id in self.order_events:
-            if order_status.status == 'Submitted':
+            # print(order_status.status)
+            if order_status.status == 'PreSubmitted' or order_status.status == 'Submitted':
                 self.order_events[order_id]['active'].set()
                 # del self.order_events[order_id]
 
@@ -298,7 +299,7 @@ class IBOrderManager:
                     self.order_events[trade.order.orderId] = {'active': asyncio.Event(), 'done': asyncio.Event()}
                     order_ids.append(trade.order.orderId)
 #TODO i guess this makes it stall out?
-                # await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
+                await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
 
 
         except (Exception, asyncio.exceptions.TimeoutError) as e:
@@ -346,15 +347,9 @@ class IBOrderManager:
                         contract_current_price + (contract_current_price * (take_profit_percent / 100)), 2
                     )  # Replace with your desired take profit price
 
-                    auxPrice = round(
-                        contract_current_price * trailstop_amount_percent, 2
-                    )  # Replace with your desired trailing stop percentage
-                    triggerPrice = limit_price
-
-                    # This will be our main or "parent" order
+                    orderRef= ticker+"_"+orderRef
                     parent = Order()
                     parent.orderId = self.ib.client.getReqId()
-
                     parent.action = "BUY"
                     parent.orderType = "LMT"
                     parent.totalQuantity = quantity
