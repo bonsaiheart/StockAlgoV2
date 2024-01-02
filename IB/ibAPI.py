@@ -50,11 +50,15 @@ class IBOrderManager:
         if order_id in self.order_events:
             if order_status.status == "Submitted":
                 self.order_events[order_id]["active"].set()
-                # del self.order_events[order_id]
+                del self.order_events[order_id]
 
             elif order_status.status in ["Filled", "Cancelled", "Inactive"]:
                 self.order_events[order_id]["done"].set()
-                # del self.order_events[order_id]
+                del self.order_events[order_id]
+
+                # Unsubscribe if no more interested orders are present
+                if not self.order_events:
+                    self.ib.orderStatusEvent -= self.on_order_status_change
 
     def ib_reset_and_close_pos(self):
         if not self.ib.isConnected():
@@ -350,7 +354,7 @@ class IBOrderManager:
                     }
                     order_ids.append(trade.order.orderId)
         # TODO i guess this makes it stall out?
-        # await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
+            await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
 
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logger.exception(
@@ -485,7 +489,7 @@ class IBOrderManager:
 
                     # Store the parent trade
                     parent_trade = parent.orderId  # IDK DELETE THIS
-                    order_ids = []
+                    # order_ids = []
 
                     for o in bracketOrder:
                         o.ocaType = 2
@@ -494,7 +498,7 @@ class IBOrderManager:
                             "active": asyncio.Event(),
                             "done": asyncio.Event(),
                         }
-                        order_ids.append(trade.order.orderId)
+                        # order_ids.append(trade.order.orderId)
 
                     await self.order_events[parent.orderId]["done"].wait()
 
