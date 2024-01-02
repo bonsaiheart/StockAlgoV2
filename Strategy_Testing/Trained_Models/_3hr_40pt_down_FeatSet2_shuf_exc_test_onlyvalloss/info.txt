@@ -1,0 +1,26 @@
+This file contains information about the model.
+
+File analyzed: C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv
+Study Name: _3hr_40pt_down_FeatSet2_shuffled_except_test_onlyvalloss
+Cells_Foward_to_check: 180
+
+Metrics for Target_Up:
+Precision: 0.8372092843055725
+Accuracy: 0.8897435665130615
+Recall: 0.313043475151062
+F1-Score: 0.4556961953639984
+Predictors: ['Current Stock Price', 'Current SP % Change(LAC)', 'Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'PCR-Vol', 'PCRv @CP Strike', 'PCRv Up1', 'PCRv Up2', 'PCRv Up3', 'PCRv Up4', 'PCRv Down2', 'PCRoi Up4', 'PCRoi Down3', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Up2', 'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2', 'ITM PCRv Down3', 'ITM PCRv Down4', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC', 'Net_IV/OI', 'Closest Strike to CP']
+
+
+Best Params: {'batch_size': 2935, 'dropout_rate': 0.09159667693461288, 'learning_rate': 0.0001591439445105306, 'n_layers': 3, 'n_units_l0': 756, 'n_units_l1': 1598, 'n_units_l2': 871, 'num_epochs': 92, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0077192425381583, 'layers': [756, 1598, 871]}
+
+
+Study Name: _3hr_40pt_down_FeatSet2_shuffled_except_test_onlyvalloss
+
+
+Number of Positive Samples (Target_Up): 115.0
+Number of Negative Samples (Target_Up): 665.0
+Threshold(sensitivity): 0.5
+Target Underlying Percentage: 0.4
+Threshold positive condition cells: 36.0
+Anticondition_cells_threshold: 18.0
