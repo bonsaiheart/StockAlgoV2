@@ -13,7 +13,9 @@ def save_market_schedule_to_file():
     today = datetime.utcnow().date()
     market_schedule = nyse.schedule(start_date=today, end_date=today)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
-    market_schedule["market_close_utc"] = pd.to_datetime(market_schedule["market_close"])
+    market_schedule["market_close_utc"] = pd.to_datetime(
+        market_schedule["market_close"]
+    )
 
     directory = "UTILITIES/market_schedules"
     if not os.path.exists(directory):
@@ -40,10 +42,14 @@ async def get_market_open_close_times():
 
     market_schedule = pd.read_csv(file_path, parse_dates=True, index_col=0)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
-    market_schedule["market_close_utc"] = pd.to_datetime(market_schedule["market_close"])
+    market_schedule["market_close_utc"] = pd.to_datetime(
+        market_schedule["market_close"]
+    )
 
     # Load the saved market schedule from file
-    market_schedule.index = pd.to_datetime(market_schedule.index)  # Convert index to datetime
+    market_schedule.index = pd.to_datetime(
+        market_schedule.index
+    )  # Convert index to datetime
 
     if today_timestamp in market_schedule.index:
         market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"]
@@ -60,9 +66,8 @@ async def get_market_open_close_times():
     # else:
     #     print("Today is not a trading day.")
     #     is_market_open = False
-    print("Market Open UTC: ",market_open_utc,"Market Close UTC: ",market_close_utc)
-    return market_open_utc,market_close_utc
-
+    print("Market Open UTC: ", market_open_utc, "Market Close UTC: ", market_close_utc)
+    return market_open_utc, market_close_utc
 
 
 # Call this function to check if the market is open

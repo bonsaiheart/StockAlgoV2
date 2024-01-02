@@ -4,7 +4,12 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif, RFECV
 from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_score
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSplit, cross_val_score
+from sklearn.model_selection import (
+    GridSearchCV,
+    train_test_split,
+    TimeSeriesSplit,
+    cross_val_score,
+)
 import os
 import numpy as np
 import sys
@@ -22,10 +27,12 @@ Chosen_Predictor = [
     "ITM PCR-Vol",
     "ITM PCR-OI",
     "ITM PCRv Up2",
-    "ITM PCRv Down2",   "ITM PCRv Up3",
+    "ITM PCRv Down2",
+    "ITM PCRv Up3",
     "ITM PCRv Down3",
     "ITM PCRoi Up2",
-    "ITM PCRoi Down2", "ITM PCRoi Up3",
+    "ITM PCRoi Down2",
+    "ITM PCRoi Up3",
     "ITM PCRoi Down3",
     "RSI",
     "AwesomeOsc",
@@ -47,7 +54,8 @@ threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 
 Chosen_Predictor_nobrackets = [
-    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "") for x in Chosen_Predictor
+    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "")
+    for x in Chosen_Predictor
 ]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 
@@ -55,8 +63,12 @@ Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 ml_dataframe["Target_Up"] = 0
 
-ml_dataframe["Target_Down"] |= ((ml_dataframe["Open"].shift(-1) * percent_down) < ml_dataframe["Close"]).astype(int)
-ml_dataframe["Target_Up"] |= ((ml_dataframe["Open"].shift(-1) * percent_up) > ml_dataframe["Close"]).astype(int)
+ml_dataframe["Target_Down"] |= (
+    (ml_dataframe["Open"].shift(-1) * percent_down) < ml_dataframe["Close"]
+).astype(int)
+ml_dataframe["Target_Up"] |= (
+    (ml_dataframe["Open"].shift(-1) * percent_up) > ml_dataframe["Close"]
+).astype(int)
 ml_dataframe.to_csv("tempdailymlDF.csv")
 model = RandomForestClassifier(random_state=None)
 
@@ -93,7 +105,12 @@ X_test_selected_up = feature_selector_up.transform(X_test)
 
 
 # Feature selection for Target_Down
-feature_selector_down = RFECV(estimator=model, scoring="precision", step=1, min_features_to_select=num_features_down)
+feature_selector_down = RFECV(
+    estimator=model,
+    scoring="precision",
+    step=1,
+    min_features_to_select=num_features_down,
+)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
 
@@ -142,16 +159,17 @@ print("Selected Features:", feature_names_up)
 
 
 bayes_search_up.fit(X_train_selected_up, y_up_train)
-best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
+best_features_up = [
+    Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)
+]
 print("Best features for Target_Up:", best_features_up)
 print("Best parameters for Target_Up:", bayes_search_up.best_params_)
 print("Best score for Target_Up:", bayes_search_up.best_score_)
-best_param_up = (
-    f"Best parameters for Target_Up: {bayes_search_up.best_params_}. Best precision: {bayes_search_up.best_score_}"
-)
+best_param_up = f"Best parameters for Target_Up: {bayes_search_up.best_params_}. Best precision: {bayes_search_up.best_score_}"
 model_up = bayes_search_up.best_estimator_
 importance_tuples = [
-    (feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)
+    (feature, importance)
+    for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)
 ]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 print(importance_tuples)
@@ -177,7 +195,9 @@ selected_features_down = feature_selector_down.get_support(indices=True)
 feature_names_down = X_train.columns[selected_features_down]
 print("Selected Features Down:", feature_names_down)
 bayes_search_down.fit(X_train_selected_down, y_down_train)
-best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
+best_features_down = [
+    Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)
+]
 print("Best features for Target_Down:", best_features_down)
 
 print("Best parameters for Target_Down:", bayes_search_down.best_params_)
@@ -185,7 +205,8 @@ print("Best score for Target_Down:", bayes_search_down.best_score_)
 best_param_down = f"Best parameters for Target_Down: {bayes_search_down.best_params_}. Best precision: {bayes_search_down.best_score_}"
 model_down = bayes_search_down.best_estimator_
 importance_tuples = [
-    (feature, importance) for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)
+    (feature, importance)
+    for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)
 ]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 

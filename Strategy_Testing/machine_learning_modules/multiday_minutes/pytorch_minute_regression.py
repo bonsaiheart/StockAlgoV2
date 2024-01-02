@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 from torch.utils.data import DataLoader, TensorDataset
 import os
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
 """Remember to apply the same transformations to any new data you feed into the model, using the X_scaler and y_scaler objects.
 After you have trained your model and made predictions, you can use the y_scaler to transform the predictions back into the original scale, like so:
 
@@ -35,9 +36,11 @@ Remember that X_scaler and y_up_scaler should be saved along with the trained mo
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-DF_filename = r"../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = (
+    r"../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+)
 
-frames_to_lookahead = -45  #must be negative to look forwards.
+frames_to_lookahead = -45  # must be negative to look forwards.
 
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
@@ -62,29 +65,48 @@ print(ml_dataframe.columns)
 #        'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
 #        'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
 #        'RSI14', 'RSI2', 'AwesomeOsc5_34']
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','PCRoi Up1','PCRoi Down1','ITM PCR-OI','ITM PCRoi Up1','ITM PCRoi Down1','ITM Contracts %','Net ITM IV','NIV highers(-)lowers1-4']
+Chosen_Predictor = [
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "B1/B2",
+    "B2/B1",
+    "PCRoi Up1",
+    "PCRoi Down1",
+    "ITM PCR-OI",
+    "ITM PCRoi Up1",
+    "ITM PCRoi Down1",
+    "ITM Contracts %",
+    "Net ITM IV",
+    "NIV highers(-)lowers1-4",
+]
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
 
-ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(frames_to_lookahead)
-ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(frames_to_lookahead)
+ml_dataframe["Target_Down"] = ml_dataframe["Current Stock Price"].shift(
+    frames_to_lookahead
+)
+ml_dataframe["Target_Up"] = ml_dataframe["Current Stock Price"].shift(
+    frames_to_lookahead
+)
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
-ml_dataframe.reset_index(drop=True,inplace=True)
+ml_dataframe.reset_index(drop=True, inplace=True)
 X = ml_dataframe[Chosen_Predictor]
 # X.reset_index(drop=True, inplace=True)
-y_up = ml_dataframe["Target_Up"].values.reshape(-1,1)
+y_up = ml_dataframe["Target_Up"].values.reshape(-1, 1)
 y_down = ml_dataframe["Target_Down"]
 # Sequentially split the data into train, validation, and test sets
 train_ratio = 0.7
 val_ratio = 0.15
 test_ratio = 0.15
 idx_train = int(train_ratio * X.shape[0])
-idx_val = int((train_ratio + val_ratio)* X.shape[0])
-print('y_up_shape: ',y_up.shape,idx_val,idx_train)
-#split data sequentially
-tscv = TimeSeriesSplit(n_splits=5)  # You can adjust the number of splits (folds) as needed
+idx_val = int((train_ratio + val_ratio) * X.shape[0])
+print("y_up_shape: ", y_up.shape, idx_val, idx_train)
+# split data sequentially
+tscv = TimeSeriesSplit(
+    n_splits=5
+)  # You can adjust the number of splits (folds) as needed
 
 for train_val_index, test_index in tscv.split(X):
     X_train_val, X_test = X.iloc[train_val_index], X.iloc[test_index]
@@ -92,14 +114,19 @@ for train_val_index, test_index in tscv.split(X):
     y_down_train_val, y_down_test = y_down[train_val_index], y_down[test_index]
 
     # Further split the training and validation sets
-    num_train_val_splits = 4  # You can adjust the number of splits for training and validation
+    num_train_val_splits = (
+        4  # You can adjust the number of splits for training and validation
+    )
 
     tscv_train_val = TimeSeriesSplit(n_splits=num_train_val_splits)
 
     for train_index, val_index in tscv_train_val.split(X_train_val):
         X_train, X_val = X_train_val.iloc[train_index], X_train_val.iloc[val_index]
         y_up_train, y_up_val = y_up_train_val[train_index], y_up_train_val[val_index]
-        y_down_train, y_down_val = y_down_train_val[train_index], y_down_train_val[val_index]
+        y_down_train, y_down_val = (
+            y_down_train_val[train_index],
+            y_down_train_val[val_index],
+        )
 
 X_scaler = StandardScaler()
 y_up_scaler = StandardScaler()
@@ -142,13 +169,15 @@ y_up_val_unscaled = y_up_scaler.inverse_transform(y_up_val_scaled)
 y_up_test_unscaled = y_up_scaler.inverse_transform(y_up_test_scaled)
 y_up_train_unscaled = y_up_scaler.inverse_transform(y_up_train_scaled)
 
+
 def save_training_info(model_summary, best_params, mse, mae, r2):
-    with open(model_summary + '_info.txt', 'w') as f:
+    with open(model_summary + "_info.txt", "w") as f:
         f.write(f"Best Model - Hyperparameters: {best_params}\n")
         f.write(f"MSE for Best Model: {mse}\n")
         f.write(f"MAE for Best Model: {mae}\n")
         f.write(f"R^2 for Best Model: {r2}\n")
         f.write(f"Chosen Predictors: {Chosen_Predictor}\n")
+
 
 class RegressionModel(nn.Module):
     def __init__(self, input_size, hidden_size, dropout_rate):
@@ -161,11 +190,11 @@ class RegressionModel(nn.Module):
         self.dropout3 = nn.Dropout(dropout_rate)
         self.fc4 = nn.Linear(hidden_size, hidden_size)
         self.dropout4 = nn.Dropout(dropout_rate)
-        self.fc5 = nn.Linear(hidden_size, hidden_size//2)
+        self.fc5 = nn.Linear(hidden_size, hidden_size // 2)
         self.dropout5 = nn.Dropout(dropout_rate)
-        self.fc6 = nn.Linear(hidden_size//2, hidden_size//4)
+        self.fc6 = nn.Linear(hidden_size // 2, hidden_size // 4)
         self.dropout6 = nn.Dropout(dropout_rate)
-        self.fc7 = nn.Linear(hidden_size//4, 1)
+        self.fc7 = nn.Linear(hidden_size // 4, 1)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
@@ -184,22 +213,29 @@ class RegressionModel(nn.Module):
         return x  # Reshape predictions to 1D tensor
 
 
-def create_model(input_size, learning_rate, hidden_size, dropout_rate, optimizer_type='Adam', momentum=0):
+def create_model(
+    input_size,
+    learning_rate,
+    hidden_size,
+    dropout_rate,
+    optimizer_type="Adam",
+    momentum=0,
+):
     model = RegressionModel(input_size, hidden_size, dropout_rate)
     optimizer = None
-    if optimizer_type == 'SGD':
+    if optimizer_type == "SGD":
         optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
-    elif optimizer_type == 'Adam':
+    elif optimizer_type == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    elif optimizer_type == 'Adagrad':
+    elif optimizer_type == "Adagrad":
         optimizer = optim.Adagrad(model.parameters(), lr=learning_rate)
-    elif optimizer_type == 'RMSprop':
+    elif optimizer_type == "RMSprop":
         optimizer = optim.RMSprop(model.parameters(), lr=learning_rate)
-    elif optimizer_type == 'Adamax':
+    elif optimizer_type == "Adamax":
         optimizer = optim.Adamax(model.parameters(), lr=learning_rate)
-    elif optimizer_type == 'Adadelta':
+    elif optimizer_type == "Adadelta":
         optimizer = optim.Adadelta(model.parameters(), lr=learning_rate)
-    elif optimizer_type == 'LBFGS':
+    elif optimizer_type == "LBFGS":
         optimizer = optim.LBFGS(model.parameters(), lr=learning_rate)
     else:
         raise ValueError("Optimizer type not recognized")
@@ -214,19 +250,30 @@ def evaluate_model(model, X_test_tensor, y_up_test_unscaled, y_up_scaler):
         predicted_values_scaled = model(X_test_tensor).detach().cpu().numpy()
         # Move the predictions back to CPU (if needed for further processing)
     # Unsqueeze the y_test_unscaled tensor to match the shape of predicted_values
-##TODO just uncomented below y_up line.
+    ##TODO just uncomented below y_up line.
     predicted_values = y_up_scaler.inverse_transform(predicted_values_scaled)
 
     # Calculate error metrics
     mse = mean_squared_error(y_up_test_unscaled, predicted_values)
     mae = mean_absolute_error(y_up_test_unscaled, predicted_values)
-    #TODO changed r2 to scaled
+    # TODO changed r2 to scaled
     r2 = r2_score(y_up_test_unscaled, predicted_values)
 
     return mse, mae, r2
+
+
 # Add scaling for y_val in the training loop and X_test for prediction
-def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor,
-                batch_size, num_epochs):
+def train_model(
+    model,
+    optimizer,
+    criterion,
+    X_train_tensor,
+    y_up_train_tensor,
+    X_val_tensor,
+    y_up_val_tensor,
+    batch_size,
+    num_epochs,
+):
     # Inside the training loop
     model.to(device)
     X_train_tensor = X_train_tensor.to(device)
@@ -234,11 +281,10 @@ def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, 
     train_dataset = TensorDataset(X_train_tensor, y_up_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-
-    best_loss = float('inf')
+    best_loss = float("inf")
     patience = 10
     counter = 0
-    last_average_loss = float('inf')  # New variable to track the previous average loss
+    last_average_loss = float("inf")  # New variable to track the previous average loss
     best_model_state = None  # New variable to save the best model state
 
     val_dataset = TensorDataset(X_val_tensor, y_up_val_tensor)
@@ -263,18 +309,25 @@ def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, 
                 val_outputs = model(X_val_batch)
                 val_loss = criterion(val_outputs, y_val_batch)
                 val_losses.append(val_loss.item())
-        #threshhold for early stop
-        min_delta=1e-4
-        average_loss = sum(val_losses) / len(val_losses)  # Calculate the average validation loss for the current epoch
-        if average_loss < best_loss:  # If the current average loss is better than the best seen so far
+        # threshhold for early stop
+        min_delta = 1e-4
+        average_loss = sum(val_losses) / len(
+            val_losses
+        )  # Calculate the average validation loss for the current epoch
+        if (
+            average_loss < best_loss
+        ):  # If the current average loss is better than the best seen so far
             best_loss = average_loss
             best_model_state = model.state_dict()  # Save the current state of the model
             counter = 0
         else:
             if (
-                    last_average_loss - average_loss) < min_delta:  # If the decrease in average loss is smaller than a threshold
+                last_average_loss - average_loss
+            ) < min_delta:  # If the decrease in average loss is smaller than a threshold
                 counter += 1
-            if counter >= patience:  # If we have seen no improvement for a number of epochs specified by the patience parameter
+            if (
+                counter >= patience
+            ):  # If we have seen no improvement for a number of epochs specified by the patience parameter
                 print("Early stopping triggered")
         last_average_loss = average_loss  # Update the last average loss
         model.train()
@@ -283,37 +336,49 @@ def train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, 
     model.load_state_dict(best_model_state)  # Always restore the best model
 
 
-def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor):
+def train_and_evaluate_models(
+    X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
+):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     y_up_val_tensor = y_up_val_tensor
 
     # Grid Search for Hyperparameter Optimization
     input_size = X_train.shape[1]
-# """
-#     Best Model - Hyperparameters: {'batch_size': 38400, 'dropout_rate': 0.3, 'hidden_size': 1500, 'learning_rate': 0.0005, 'num_epochs': 50}
-# """
+    # """
+    #     Best Model - Hyperparameters: {'batch_size': 38400, 'dropout_rate': 0.3, 'hidden_size': 1500, 'learning_rate': 0.0005, 'num_epochs': 50}
+    # """
 
     param_grid = {
-        'learning_rate': [.001, .0001, .00001],
-        'hidden_size': [1500, 2500, 5000],
-        'dropout_rate': [0, .1, .2, .3],
-        'num_epochs': [75, 150, 300],
-        'batch_size': [1000, 2048, 3000, 5000],  # Add a comma here
-        'optimizer': ["SGD", "Adam", "Adagrad", "RMSprop", "Adamax", "Adadelta", "LBFGS"],
-        'momentum': [0, 0.9]
+        "learning_rate": [0.001, 0.0001, 0.00001],
+        "hidden_size": [1500, 2500, 5000],
+        "dropout_rate": [0, 0.1, 0.2, 0.3],
+        "num_epochs": [75, 150, 300],
+        "batch_size": [1000, 2048, 3000, 5000],  # Add a comma here
+        "optimizer": [
+            "SGD",
+            "Adam",
+            "Adagrad",
+            "RMSprop",
+            "Adamax",
+            "Adadelta",
+            "LBFGS",
+        ],
+        "momentum": [0, 0.9],
     }
 
     grid_search_results = []
 
-
     for params in ParameterGrid(param_grid):
         print("Training model with parameters:", params)
 
-        model, optimizer, criterion = create_model(input_size, learning_rate=params['learning_rate'],
-                                                   optimizer=params['optimizer'],
-                                                   hidden_size=params['hidden_size'],
-                                                   dropout_rate=params['dropout_rate'])
+        model, optimizer, criterion = create_model(
+            input_size,
+            learning_rate=params["learning_rate"],
+            optimizer=params["optimizer"],
+            hidden_size=params["hidden_size"],
+            dropout_rate=params["dropout_rate"],
+        )
 
         # Move the model, optimizer, and criterion to the appropriate device
         model.to(device)
@@ -322,53 +387,79 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
         X_val_tensor = X_val_tensor.to(device)
         y_up_val_tensor = y_up_val_tensor.to(device)
 
-        train_model(model, optimizer, criterion, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor,
-                    batch_size=params['batch_size'], num_epochs=params['num_epochs'])
+        train_model(
+            model,
+            optimizer,
+            criterion,
+            X_train_tensor,
+            y_up_train_tensor,
+            X_val_tensor,
+            y_up_val_tensor,
+            batch_size=params["batch_size"],
+            num_epochs=params["num_epochs"],
+        )
 
         # Transform the validation data back to the original scale
         # Transform the validation data back to the original scale on the CPU
-        y_up_val_unscaled = y_up_scaler.inverse_transform(y_up_val_tensor.detach().cpu().numpy())
-        mse, mae, r2 = evaluate_model(model, X_val_tensor, y_up_val_unscaled, y_up_scaler)
+        y_up_val_unscaled = y_up_scaler.inverse_transform(
+            y_up_val_tensor.detach().cpu().numpy()
+        )
+        mse, mae, r2 = evaluate_model(
+            model, X_val_tensor, y_up_val_unscaled, y_up_scaler
+        )
 
-        grid_search_results.append({
-            'params': params,
-            'mse': mse,
-            'mae': mae,
-            'r2': r2
-        })
+        grid_search_results.append({"params": params, "mse": mse, "mae": mae, "r2": r2})
     print(grid_search_results)
     # Find the best model based on R-squared
-    best_model_result = max(grid_search_results, key=lambda x: x['r2'])
+    best_model_result = max(grid_search_results, key=lambda x: x["r2"])
     print(best_model_result)
-    best_params = best_model_result['params']
+    best_params = best_model_result["params"]
 
     # Train the best model with the full training set
-    best_model, _, _ = create_model(input_size, learning_rate=best_params['learning_rate'],
-                                    hidden_size=best_params['hidden_size'],
-                                    dropout_rate=best_params['dropout_rate'])
-    train_model(best_model, optimizer, criterion, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor,
-                batch_size=best_params['batch_size'], num_epochs=best_params['num_epochs'])
+    best_model, _, _ = create_model(
+        input_size,
+        learning_rate=best_params["learning_rate"],
+        hidden_size=best_params["hidden_size"],
+        dropout_rate=best_params["dropout_rate"],
+    )
+    train_model(
+        best_model,
+        optimizer,
+        criterion,
+        X_train_tensor,
+        y_up_train_tensor,
+        X_val_tensor,
+        y_up_val_tensor,
+        batch_size=best_params["batch_size"],
+        num_epochs=best_params["num_epochs"],
+    )
 
     # Evaluate the best model on the test set
-    y_up_test_unscaled = y_up_scaler.inverse_transform(y_up_test_tensor.detach().numpy())
-    mse, mae, r2 = evaluate_model(best_model, X_test_tensor, y_up_test_unscaled, y_up_scaler)
+    y_up_test_unscaled = y_up_scaler.inverse_transform(
+        y_up_test_tensor.detach().numpy()
+    )
+    mse, mae, r2 = evaluate_model(
+        best_model, X_test_tensor, y_up_test_unscaled, y_up_scaler
+    )
 
     print("Best Model - Hyperparameters:", best_params)
     print("MSE for Best Model:", mse)
     print("MAE for Best Model:", mae)
     print("R^2 for Best Model:", r2)
     # Save the best model and scalers
-    input_val = input("Would you like to save the best model and scalers? y/n: ").upper()
+    input_val = input(
+        "Would you like to save the best model and scalers? y/n: "
+    ).upper()
     if input_val == "Y":
         model_summary = input("Save this best model as: ")
         model_directory = os.path.join("../../Trained_Models", f"{model_summary}")
         if not os.path.exists(model_directory):
             os.makedirs(model_directory)
         info = {
-            'feature_columns': Chosen_Predictor,
-            'X_scaler': X_scaler,
-            'y_up_scaler': y_up_scaler,
-            'y_down_scaler': y_down_scaler
+            "feature_columns": Chosen_Predictor,
+            "X_scaler": X_scaler,
+            "y_up_scaler": y_up_scaler,
+            "y_down_scaler": y_down_scaler,
         }
         info_filename = os.path.join(model_directory, "info.pkl")
         joblib.dump(info, info_filename)
@@ -379,8 +470,11 @@ def train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y
         torch.save(best_model.state_dict(), model_filename_up)
         save_training_info(model_summary, best_params, mse, mae, r2)
 
+
 # Call the function for grid search and model training
-train_and_evaluate_models(X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor)
+train_and_evaluate_models(
+    X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
+)
 
 
 """"""

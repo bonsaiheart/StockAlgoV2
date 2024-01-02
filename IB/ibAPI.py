@@ -12,7 +12,7 @@ project_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(project_dir, "errorlog")
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
-logging.getLogger('ib_insync').setLevel(logging.WARNING)
+logging.getLogger("ib_insync").setLevel(logging.WARNING)
 # Explicitly add the handler for ib_insync
 # logging.getLogger('ib_insync').addHandler(logger.handlers[0])
 
@@ -48,28 +48,26 @@ class IBOrderManager:
         order_status = trade.orderStatus
 
         if order_id in self.order_events:
-            # print(order_status.status)
-            if order_status.status == 'PreSubmitted' or order_status.status == 'Submitted':
-                self.order_events[order_id]['active'].set()
+            if order_status.status == "Submitted":
+                self.order_events[order_id]["active"].set()
                 # del self.order_events[order_id]
 
-            elif order_status.status in ['Filled', 'Cancelled', 'Inactive']:
-                self.order_events[order_id]['done'].set()
+            elif order_status.status in ["Filled", "Cancelled", "Inactive"]:
+                self.order_events[order_id]["done"].set()
                 # del self.order_events[order_id]
 
     def ib_reset_and_close_pos(self):
-
         if not self.ib.isConnected():
             print("~~~ Connecting ~~~")
             # randomclientID = random.randint(0, 999)#TODO change bac kclientid
             try:
-
                 self.ib.connect("192.168.1.119", 7497, clientId=5, timeout=45)
                 print("connected.")
 
-
             except (Exception, asyncio.exceptions.TimeoutError) as e:
-                logging.getLogger().error("Connection error or error reset posistions.: %s", e)
+                logging.getLogger().error(
+                    "Connection error or error reset posistions.: %s", e
+                )
                 print("~~Connection/closepositions error:", e)
         self.reset_all()
         logger.info("Reset all positions/closed open orders.")
@@ -86,11 +84,11 @@ class IBOrderManager:
             size = position.position
 
             # Determine the action ('BUY' to close a short position, 'SELL' to close a long position)
-            action = 'BUY' if size < 0 else 'SELL'
+            action = "BUY" if size < 0 else "SELL"
 
             # Create a market order to close the position
             close_order = MarketOrder(action, abs(size))
-            contract.exchange = 'SMART'  # Specify the exchange
+            contract.exchange = "SMART"  # Specify the exchange
             # Send the order
             # print(contract)
             self.ib.placeOrder(contract, close_order)
@@ -100,7 +98,9 @@ class IBOrderManager:
         if not self.ib.isConnected():
             print("~~~ Connecting ~~~")
             try:
-                await self.ib.connectAsync("192.168.1.109", 7497, clientId=0, timeout=45)
+                await self.ib.connectAsync(
+                    "192.168.1.109", 7497, clientId=0, timeout=45
+                )
             except Exception as e:
                 logging.getLogger().error("Connection error: %s", e)
                 # print("~~Connection error:", e)
@@ -115,7 +115,10 @@ class IBOrderManager:
 
     async def get_execution_price(self, parent_order_id):
         for trade in self.ib.trades():
-            if trade.order.orderId == parent_order_id and trade.orderStatus.status == 'Filled':
+            if (
+                trade.order.orderId == parent_order_id
+                and trade.orderStatus.status == "Filled"
+            ):
                 return trade.orderStatus.avgFillPrice
         return None
 
@@ -139,7 +142,7 @@ class IBOrderManager:
             # print("action",action)
             # print(order.parentId , order.action,trade.contract)
             # print(trade.contract,contract)
-            if trade.order.action == 'SELL' and trade.contract == contract:
+            if trade.order.action == "SELL" and trade.contract == contract:
                 # print("childorders trades",trade)
                 child_orders_list.append(trade.order)
 
@@ -147,7 +150,9 @@ class IBOrderManager:
         return child_orders_list
 
     async def getTrade(self, order):
-        trade = next((trade for trade in self.ib.trades() if trade.order is order), None)
+        trade = next(
+            (trade for trade in self.ib.trades() if trade.order is order), None
+        )
 
         return trade
 
@@ -167,7 +172,9 @@ class IBOrderManager:
 
                 return on_cancel_order_event
 
-            on_cancel_order_event = make_on_cancel_order_event(order.orderId, order_cancelled)
+            on_cancel_order_event = make_on_cancel_order_event(
+                order.orderId, order_cancelled
+            )
             self.ib.cancelOrderEvent += on_cancel_order_event
             event_listeners.append(on_cancel_order_event)
             self.ib.cancelOrder(order)
@@ -185,7 +192,9 @@ class IBOrderManager:
         oca_group_remaining_qty = {}
         fills = ib.fills()
         for order in oca_group_orders:
-            order_fills = [fill for fill in fills if fill.execution.orderId == order.orderId]
+            order_fills = [
+                fill for fill in fills if fill.execution.orderId == order.orderId
+            ]
             filled_qty = sum(fill.execution.shares for fill in order_fills)
             remaining_qty = order.totalQuantity - filled_qty
             # print("filled qty:", filled_qty, "remainig qty:", remaining_qty)
@@ -195,18 +204,42 @@ class IBOrderManager:
 
         return oca_group_remaining_qty
 
-    async def cancel_and_replace_orders(self, contract, action, CorP, ticker, exp, strike, contract_current_price,
-                                        quantity,
-                                        orderRef, take_profit_percent, trailstop_amount_percent):
-        child_orders_objs_list = await self.find_child_orders_with_details(contract, action)
+    async def cancel_and_replace_orders(
+        self,
+        contract,
+        action,
+        CorP,
+        ticker,
+        exp,
+        strike,
+        contract_current_price,
+        quantity,
+        orderRef,
+        take_profit_percent,
+        trailstop_amount_percent,
+    ):
+        child_orders_objs_list = await self.find_child_orders_with_details(
+            contract, action
+        )
         if not child_orders_objs_list:
-            print("No children for ",ticker)
-            await self.placeOptionBracketOrder(CorP, ticker, exp, strike, contract_current_price, quantity, orderRef,
-                                               take_profit_percent, trailstop_amount_percent,
-                                               check_opposite_orders=False)
+            print("No children for ", ticker)
+            await self.placeOptionBracketOrder(
+                CorP,
+                ticker,
+                exp,
+                strike,
+                contract_current_price,
+                quantity,
+                orderRef,
+                take_profit_percent,
+                trailstop_amount_percent,
+                check_opposite_orders=False,
+            )
 
         else:
-            oca_group_remaining_qty = await self.cancel_oca_group_orders(child_orders_objs_list)
+            oca_group_remaining_qty = await self.cancel_oca_group_orders(
+                child_orders_objs_list
+            )
             order_details = {}
             for order in child_orders_objs_list:
                 oca_group = order.ocaGroup
@@ -226,8 +259,7 @@ class IBOrderManager:
                         "parentID": order.parentId,
                         "percentOffset": order.percentOffset,
                         "orderRef": order.orderRef,
-                        "remainingQty": remaining_qty
-
+                        "remainingQty": remaining_qty,
                     }
                 elif order.orderType == "LMT":
                     order_details[order.ocaGroup]["takeProfit"] = {
@@ -235,8 +267,7 @@ class IBOrderManager:
                         "limitPrice": order.lmtPrice,
                         "parentID": order.parentId,
                         "orderRef": order.orderRef,
-                        "remainingQty": remaining_qty
-
+                        "remainingQty": remaining_qty,
                     }
             # print("ORDER DEATAILS DICT", order_details)
             await self.placeOptionBracketOrder(
@@ -249,7 +280,8 @@ class IBOrderManager:
                 orderRef=orderRef,
                 take_profit_percent=take_profit_percent,
                 trailstop_amount_percent=trailstop_amount_percent,
-                check_opposite_orders=False)
+                check_opposite_orders=False,
+            )
 
             # trade.orderStatus.ActiveStates
             await self.replace_child_orders(order_details, contract)
@@ -259,7 +291,9 @@ class IBOrderManager:
             for ocaGroup, child_order_details in order_details.items():
                 quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
                 ticker_contract = contract
-                qualified_contract = await self.ib.qualifyContractsAsync(ticker_contract)
+                qualified_contract = await self.ib.qualifyContractsAsync(
+                    ticker_contract
+                )
                 takeProfit = Order()
                 takeProfit.orderId = self.ib.client.getReqId()
                 takeProfit.action = "SELL"
@@ -269,10 +303,17 @@ class IBOrderManager:
                 takeProfit.transmit = True
                 takeProfit.tif = "GTC"
                 # Use stored take profit details if available
-                if order_details and order_details[ocaGroup]["takeProfit"]["type"] == "LMT":
-                    takeProfit.lmtPrice = order_details[ocaGroup]["takeProfit"]["limitPrice"]
+                if (
+                    order_details
+                    and order_details[ocaGroup]["takeProfit"]["type"] == "LMT"
+                ):
+                    takeProfit.lmtPrice = order_details[ocaGroup]["takeProfit"][
+                        "limitPrice"
+                    ]
                     takeProfit.ocaGroup = takeProfit.orderId
-                    takeProfit.orderRef = order_details[ocaGroup]["takeProfit"]["orderRef"]
+                    takeProfit.orderRef = order_details[ocaGroup]["takeProfit"][
+                        "orderRef"
+                    ]
 
                 stopLoss = Order()
                 stopLoss.action = "SELL"
@@ -284,9 +325,16 @@ class IBOrderManager:
                 stopLoss.transmit = True
                 stopLoss.tif = "GTC"
                 # Use stored trailing stop details if available
-                if order_details and order_details[ocaGroup]["stopLoss"]["type"] == "TRAIL":
-                    stopLoss.trailStopPrice = order_details[ocaGroup]["stopLoss"]["trailStopPrice"]
-                    stopLoss.trailingPercent = order_details[ocaGroup]["stopLoss"]["trailingPercent"]
+                if (
+                    order_details
+                    and order_details[ocaGroup]["stopLoss"]["type"] == "TRAIL"
+                ):
+                    stopLoss.trailStopPrice = order_details[ocaGroup]["stopLoss"][
+                        "trailStopPrice"
+                    ]
+                    stopLoss.trailingPercent = order_details[ocaGroup]["stopLoss"][
+                        "trailingPercent"
+                    ]
                     stopLoss.ocaGroup = takeProfit.orderId
                     stopLoss.orderRef = order_details[ocaGroup]["stopLoss"]["orderRef"]
                 bracketOrder = [takeProfit, stopLoss]
@@ -296,26 +344,33 @@ class IBOrderManager:
                     o.ocaType = 2
                     trade = ib.placeOrder(qualified_contract[0], o)
 
-                    self.order_events[trade.order.orderId] = {'active': asyncio.Event(), 'done': asyncio.Event()}
+                    self.order_events[trade.order.orderId] = {
+                        "active": asyncio.Event(),
+                        "done": asyncio.Event(),
+                    }
                     order_ids.append(trade.order.orderId)
-#TODO i guess this makes it stall out?
-                await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
-
+        # TODO i guess this makes it stall out?
+        # await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
 
         except (Exception, asyncio.exceptions.TimeoutError) as e:
-            logger.exception(f"An error occurred while replace child orders.{ticker_contract},: {e}")
+            logger.exception(
+                f"An error occurred while replace child orders.{ticker_contract},: {e}"
+            )
 
-    async def placeOptionBracketOrder(self,
-                                      CorP,
-                                      ticker,
-                                      exp,
-                                      strike,
-                                      contract_current_price,
-                                      quantity=1,
-                                      orderRef=None,
-                                      take_profit_percent=3,
-                                      trailstop_amount_percent=3,
-                                      check_opposite_orders=True, parent_tif="GTD"):
+    async def placeOptionBracketOrder(
+        self,
+        CorP,
+        ticker,
+        exp,
+        strike,
+        contract_current_price,
+        quantity=1,
+        orderRef=None,
+        take_profit_percent=3,
+        trailstop_amount_percent=3,
+        check_opposite_orders=True,
+        parent_tif="GTD",
+    ):
         if take_profit_percent == None:
             take_profit_percent = 3
         if trailstop_amount_percent == None:
@@ -329,27 +384,50 @@ class IBOrderManager:
                 try:
                     print("Checking opposite orders.")
                     action = "SELL"  # Adjust based on your logic
-                    await self.cancel_and_replace_orders(qualified_contract[0], action, CorP, ticker, exp, strike,
-                                                         contract_current_price,
-                                                         quantity, orderRef, take_profit_percent,
-                                                         trailstop_amount_percent)
+                    await self.cancel_and_replace_orders(
+                        qualified_contract[0],
+                        action,
+                        CorP,
+                        ticker,
+                        exp,
+                        strike,
+                        contract_current_price,
+                        quantity,
+                        orderRef,
+                        take_profit_percent,
+                        trailstop_amount_percent,
+                    )
                     # ib.sleep(5)
                 except (Exception, asyncio.exceptions.TimeoutError) as e:
-                    logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
+                    logger.exception(
+                        f"An error occurred while optionbracketorder.{ticker},: {e}"
+                    )
             else:
                 try:
-                    gtddelta = (datetime.datetime.now() + datetime.timedelta(seconds=10)).strftime("%Y%m%d %H:%M:%S")
+                    gtddelta = (
+                        datetime.datetime.now() + datetime.timedelta(seconds=10)
+                    ).strftime("%Y%m%d %H:%M:%S")
 
                     contract_current_price = round(contract_current_price, 2)
                     quantity = quantity  # Replace with the desired order quantity
-                    limit_price = contract_current_price  # Replace with your desired limit price
+                    limit_price = (
+                        contract_current_price  # Replace with your desired limit price
+                    )
                     take_profit_price = round(
-                        contract_current_price + (contract_current_price * (take_profit_percent / 100)), 2
+                        contract_current_price
+                        + (contract_current_price * (take_profit_percent / 100)),
+                        2,
                     )  # Replace with your desired take profit price
 
-                    orderRef= ticker+"_"+orderRef
+                    auxPrice = round(
+                        contract_current_price * trailstop_amount_percent, 2
+                    )  # Replace with your desired trailing stop percentage
+                    triggerPrice = limit_price
+
+                    # This will be our main or "parent" order
                     parent = Order()
                     parent.orderId = self.ib.client.getReqId()
+
                     parent.action = "BUY"
                     parent.orderType = "LMT"
                     parent.totalQuantity = quantity
@@ -386,8 +464,11 @@ class IBOrderManager:
                     # stopLoss.trailStopPrice = limit_price - trailAmount
                     # stopLoss.trailStopPrice = .5
                     # I  think the big issue HERE was that percent was a whole number like 3, so it was doin some weird thinkg.
-                    stopLoss.trailStopPrice = round(contract_current_price * ((100 - trailstop_amount_percent) / 100),
-                                                    2)
+                    stopLoss.trailStopPrice = round(
+                        contract_current_price
+                        * ((100 - trailstop_amount_percent) / 100),
+                        2,
+                    )
                     # stopLoss.trailingPercent = 99
                     stopLoss.trailingPercent = trailstop_amount_percent
 
@@ -404,16 +485,19 @@ class IBOrderManager:
                     self.ib.orderStatusEvent += self.on_order_status_change
 
                     # Store the parent trade
-                    parent_trade = parent.orderId #IDK DELETE THIS
+                    parent_trade = parent.orderId  # IDK DELETE THIS
                     order_ids = []
 
                     for o in bracketOrder:
                         o.ocaType = 2
                         trade = ib.placeOrder(qualified_contract[0], o)
-                        self.order_events[trade.order.orderId] = {'active': asyncio.Event(), 'done': asyncio.Event()}
+                        self.order_events[trade.order.orderId] = {
+                            "active": asyncio.Event(),
+                            "done": asyncio.Event(),
+                        }
                         order_ids.append(trade.order.orderId)
 
-                    await self.order_events[parent.orderId]['done'].wait()
+                    await self.order_events[parent.orderId]["done"].wait()
 
                     # await asyncio.gather(*(self.order_events[orderId]['done'].wait() for orderId in order_ids))
 
@@ -421,16 +505,22 @@ class IBOrderManager:
                     return parent_trade
 
                 except (Exception, asyncio.exceptions.TimeoutError) as e:
-                    logger.exception(f"An error occurred while optionbracketorder.{ticker},: {e}")
+                    logger.exception(
+                        f"An error occurred while optionbracketorder.{ticker},: {e}"
+                    )
         else:
-            logger.warning(f"Too many open orders (18+){ticker_contract} {orderRef} .  Skipping order placement.")
+            logger.warning(
+                f"Too many open orders (18+){ticker_contract} {orderRef} .  Skipping order placement."
+            )
 
     # ib.disconnect()
     async def can_place_new_order(self, contract, threshold=18):
         # Fetch open orders
         open_trades = self.ib.openTrades()
         # Count orders for the specified contract
-        count = sum(1 for trade in open_trades if trade.contract.conId == contract.conId)
+        count = sum(
+            1 for trade in open_trades if trade.contract.conId == contract.conId
+        )
         print(f"{count} open orders for {contract.localSymbol}.")
         # Return True if below threshold, False otherwise
         return count < threshold

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+
 import matplotlib.pyplot as plt
 import numpy as np
 import optuna
@@ -29,108 +29,183 @@ from torchmetrics import Precision, Accuracy, Recall, F1Score
 DF_filename = r"C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv"
 # TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
-ml_dataframe = pd.read_csv(DF_filename)
+ml_dataframe = pd.read_csv(
+    DF_filename, low_memory=False
+)  # low memory false because i need ot remove columsn that are relics like model output and unnamed.
 for col in ml_dataframe.columns:
-    ml_dataframe[col] = pd.to_numeric(ml_dataframe[col], errors='coerce')
+    ml_dataframe[col] = pd.to_numeric(ml_dataframe[col], errors="coerce")
+# set_best_params_manually = {
+#     "batch_size": 2295,
+#     "dropout_rate": 0.1956805168069912,
+#     "learning_rate": 0.0006924438743970371,
+#     "n_layers": 2,
+#     "n_units_l0": 1681,
+#     "n_units_l1": 271,
+#     "optimizer": "Adam",
+#     "positivecase_weight_up": 1.0812601618252304,
+# }
+# TODO the actual features for og ptmincalssa1 were ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCRoi Up1', 'PCRoi Down1', 'ITM PCR-OI', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM Contracts %', 'Net ITM IV', 'NIV highers(-)lowers1-4', 'Net_IV/OI', 'Net ITM_IV/ITM_OI']
+# OG Feature set.
+# Chosen_Predictor = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCRoi Up1', 'PCRoi Down1', 'ITM PCR-OI', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM Contracts %', 'Net ITM IV', 'NIV highers(-)lowers1-4', 'Net_IV/OI', 'Net ITM_IV/ITM_OI']
 
-#FEATURE SET 1?
+# FEATURE SET 1?
 # Chosen_Predictor= ['Bonsai Ratio', 'ITM PCR-Vol','Net_IV','NIV 2Higher Strike', 'NIV 2Lower Strike', 'Net ITM IV']
 
-set_best_params_manually = {'batch_size': 2295, 'dropout_rate': 0.1956805168069912, 'learning_rate': 0.0006924438743970371, 'n_layers': 2, 'n_units_l0': 1681, 'n_units_l1': 271, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0812601618252304}
-# Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
+
+# Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'n_units_l0': 2350}
+
+# TODO THESE weree the actual features?  from the tf version"""Positive Samples (Target_Up): 48.0Cells_Foward_to_check: 180
+# Number of Negative Samples (Target_Up): 376.0
+# Threshold Up (sensitivity): 0.5
+# Target Underlying Percentage Up: 0.4.
 
 
-#FEATURE SET 2
+# FEATURE SET 2
 # by looking at corr table and eliminating features that have different signs (- or +) for correlating 10,15,20,30min later price, and 15,30 min max change.
 # That gave me this froim te list above:
-# Chosen_Predictor = ["Current Stock Price",
-#                     "Current SP % Change(LAC)",
-#                     "Bonsai Ratio",
-#                     "Bonsai Ratio 2",
-#                     "B1/B2",
-#                     "PCR-Vol",
-#                     "PCRv @CP Strike",
-#                     "PCRv Up1",
-#                     "PCRv Up2",
-#                     "PCRv Up3",
-#                     "PCRv Up4",
-#                     "PCRv Down2",
-#                     "PCRoi Up4",
-#                     "PCRoi Down3",
-#                     "ITM PCR-Vol",
-#                     "ITM PCRv Up1",
-#                     "ITM PCRv Up2",
-#                     "ITM PCRv Up3",
-#                     "ITM PCRv Up4",
-#                     "ITM PCRv Down1",
-#                     "ITM PCRv Down2",
-#
-#                     "ITM PCRv Down3",
-#                     "ITM PCRv Down4",
-#                     "Net_IV",
-#                     "Net ITM IV",
-#                     "Net IV MP",
-#                     "Net IV LAC",
-#                     "Net_IV/OI",
+Chosen_Predictor = [
+    "Current Stock Price",
+    "Current SP % Change(LAC)",
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "B1/B2",
+    "PCR-Vol",
+    "PCRv @CP Strike",
+    "PCRv Up1",
+    "PCRv Up2",
+    "PCRv Up3",
+    "PCRv Up4",
+    "PCRv Down2",
+    "PCRoi Up4",
+    "PCRoi Down3",
+    "ITM PCR-Vol",
+    "ITM PCRv Up1",
+    "ITM PCRv Up2",
+    "ITM PCRv Up3",
+    "ITM PCRv Up4",
+    "ITM PCRv Down1",
+    "ITM PCRv Down2",
+    "ITM PCRv Down3",
+    "ITM PCRv Down4",
+    "Net_IV",
+    "Net ITM IV",
+    "Net IV MP",
+    "Net IV LAC",
+    "Net_IV/OI",
+    "Closest Strike to CP",
+]
 
-#                     "Closest Strike to CP",
-#
-#                     ]
-# TODO scale  based on data ranges/types
+# Feature set 3
+
 # Chosen_Predictor = [
 #     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
 # ]
-#Feature set 4
+
+# Feature set 4
+
 # Chosen_Predictor = [  'Bonsai Ratio','Bonsai Ratio 2', 'PCRv Down1', 'PCRv Down2',
 #                    'PCRoi Down3', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Down1',
 #                     'ITM PCRv Down2', 'Net_IV', 'Net ITM IV',  'NIV Current Strike',
 #                       'RSI', 'RSI2', 'RSI14', 'AwesomeOsc',
 #                     'AwesomeOsc5_34']
-#FEATRUE SET 5, original feature set form 3hrptminclass
-Chosen_Predictor = [
-    'Current SP % Change(LAC)','B1/B2', 'B2/B1',  'PCRv @CP Strike','PCRoi @CP Strike','PCRv Up1', 'PCRv Down1','PCRoi Up4','PCRoi Down3' ,'ITM PCR-Vol','ITM PCR-OI', 'Net IV LAC',
-    'RSI14', 'AwesomeOsc5_34',
 
+# Feature set 5     , original feature set form 3hrptminclass
 
-]
-study_name = ('_3hr_40pt_down_FeatSet5_shuffled_except_last390test')
-n_trials =1000
-cells_forward_to_check = 60*3
-percent_down = .4  # as percent
+# Chosen_Predictor = [
+#     "Current SP % Change(LAC)",
+#     "B1/B2",
+#     "B2/B1",
+#     "PCRv @CP Strike",
+#     "PCRoi @CP Strike",
+#     "PCRv Up1",
+#     "PCRv Down1",
+#     "PCRoi Up4",
+#     "PCRoi Down3",
+#     "ITM PCR-Vol",
+#     "ITM PCR-OI",
+#     "Net IV LAC",
+#     "RSI14",
+#     "AwesomeOsc5_34",
+# ]
 
+# Feature Set 6, original feature set form 3hrptminclass and sorta Feat set 2
+# Chosen_Predictor = [
+#     "Current SP % Change(LAC)",
+#     "Bonsai Ratio",
+#                     "B1/B2",
+# "PCR-Vol",
+#     "PCRv @CP Strike",
+#     "PCRv Up1",
+#     "PCRv Down1",
+#     "PCRoi Up3",
+#     "PCRoi Down3",
+#     "ITM PCR-Vol",
+#     "ITM PCR-OI",
+#     "Net_IV",                "Net ITM IV",
+#                    "Closest Strike to CP",
+# ]
+
+#
+# Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'n_units_l0': 2350}
+
+# TODO THESE weree the actual features?  from the tf version"""Positive Samples (Target_Up): 48.0Cells_Foward_to_check: 180
+# Number of Negative Samples (Target_Up): 376.0
+# Threshold Up (sensitivity): 0.5
+# Target Underlying Percentage Up: 0.4.
+# Best Params for og spy3hrptmincalss: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350, "positivecase_weight_up": 1}
+
+set_best_params_manually = {
+    "learning_rate": 0.002973181466202932,
+    "num_epochs": 365,
+    "batch_size": 2500,
+    "optimizer": "Adam",
+    "dropout_rate": 0.05,
+    "num_hidden_units": 2350,
+    "positivecase_weight_up": 1,
+    "n_layers": 1,
+}
+study_name = "_3hr_40pt_down_FeatSet2_shuffled_except_test_onlyvalloss"
+test_size = int(2 * 6.5 * 60)
+n_trials = 10000
+cells_forward_to_check = 60 * 3
+percent_down = 0.4  # as percent
 
 threshold_cells_up = cells_forward_to_check * 0.2
-#The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
-anticondition_threshold_cells = cells_forward_to_check * .1  # was .7
+# The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
+anticondition_threshold_cells = cells_forward_to_check * 0.1  # was .7
 theshhold_down = 0.5  ###TODO these dont do any
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print('device: ', device)
+print("device: ", device)
 
 print(ml_dataframe.columns)
 # ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 #     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 # ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
 # ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 print("Length of ml_dataframe:", length)
-ml_dataframe["Target_Up"] = 0
-ml_dataframe = ml_dataframe.copy()
+# Prepare and add the new column
+new_columns = pd.DataFrame({"Target_Up": np.zeros(len(ml_dataframe))})
+ml_dataframe = pd.concat([ml_dataframe, new_columns], axis=1)
 targetUpCounter = 0
 anticondition_UpCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
     condition_met_up = shifted_values < (
-                ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"] * (percent_down / 100)))
+        ml_dataframe["Current Stock Price"]
+        - (ml_dataframe["Current Stock Price"] * (percent_down / 100))
+    )
     anticondition_up = shifted_values >= ml_dataframe["Current Stock Price"]
     targetUpCounter += condition_met_up.astype(int)
     anticondition_UpCounter += anticondition_up.astype(int)
 ml_dataframe["Target_Up"] = (
-        (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells)
+    (targetUpCounter >= threshold_cells_up)
+    & (anticondition_UpCounter <= anticondition_threshold_cells)
 ).astype(int)
 ml_dataframe.dropna(subset=["Target_Up"], inplace=True)
 y_up = ml_dataframe["Target_Up"]
@@ -138,6 +213,7 @@ X = ml_dataframe[Chosen_Predictor]
 
 # Reset index
 X.reset_index(drop=True, inplace=True)
+
 
 # Function to replace infinities and adjust extrema by column in a DataFrame
 # TODO love this implimetnation, send to a utillity to use by all scripts.
@@ -154,21 +230,22 @@ def replace_infinities_and_scale(df, factor=1.5):
     #     # Replace infinities with the scaled max and min values
     #     df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
     #     print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
-    #new logic - :
+    # new logic - :
     # Define very large and very small numbers as placeholders for infinity
     very_large_number = 1e15  # Placeholder for positive infinity
     very_small_number = -1e15  # Placeholder for negative infinity
 
     for col in df.columns:
         # Replace positive and negative infinity with the defined large and small numbers
-        df[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        df[col].replace(
+            [np.inf, -np.inf], [very_large_number, very_small_number], inplace=True
+        )
 
 
 # Function to convert scaled data to tensors
-def convert_to_tensor(scaler, X_train, X_val,  device):
+def convert_to_tensor(scaler, X_train, X_val, device):
     X_train_scaled = scaler.fit_transform(X_train)
     X_val_scaled = scaler.transform(X_val)
-
 
     return (
         torch.tensor(X_train_scaled, dtype=torch.float32).to(device),
@@ -177,12 +254,16 @@ def convert_to_tensor(scaler, X_train, X_val,  device):
 
 
 # # # TODO#shuffle trur or false?
-X_temp,X_test, y_up_temp,y_up_test = train_test_split(
-    X, y_up, test_size=int(6.5*60),random_state=None, shuffle=False#represents 1 market day.
+X_temp, X_test, y_up_temp, y_up_test = train_test_split(
+    X,
+    y_up,
+    test_size=test_size,
+    random_state=None,
+    shuffle=False,  # represents 1 market day.
 )
 
 # Split the temp set into validation and test sets
-X_train,X_val , y_up_train, y_up_val  = train_test_split(
+X_train, X_val, y_up_train, y_up_val = train_test_split(
     X_temp, y_up_temp, test_size=0.3, random_state=None, shuffle=True
 )
 # Concatenate train and validation sets
@@ -215,7 +296,9 @@ scaler = RobustScaler()
 X_train_tensor, X_val_tensor = convert_to_tensor(scaler, X_train, X_val, device)
 
 # Print lengths of datasets
-print(f"Train length: {len(X_train_tensor)}, Validation length: {len(X_val_tensor)}, Test length: {len(X_test_tensor)}")
+print(
+    f"Train length: {len(X_train_tensor)}, Validation length: {len(X_val_tensor)}, Test length: {len(X_test_tensor)}"
+)
 
 # Calculate the number of positive and negative samples in each set
 num_positive_up_train = y_up_train_tensor.sum().item()
@@ -230,9 +313,10 @@ num_negative_up_trainval = num_negative_up_train + num_negative_up_val
 num_positive_up_trainval = num_positive_up_train + num_positive_up_val
 
 
-
 def print_dataset_statistics(stage, num_positive, num_negative):
-    ratio = num_positive / num_negative if num_negative else float('inf')  # Avoid division by zero
+    ratio = (
+        num_positive / num_negative if num_negative else float("inf")
+    )  # Avoid division by zero
     print(f"{stage} ratio of pos/neg up: {ratio:.2f}")
     print(f"{stage} num_positive_up: {num_positive}")
     print(f"{stage} num_negative_up: {num_negative}\n")
@@ -242,15 +326,18 @@ print_dataset_statistics("Train", num_positive_up_train, num_negative_up_train)
 print_dataset_statistics("Validation", num_positive_up_val, num_negative_up_val)
 print_dataset_statistics("Test", num_positive_up_test, num_negative_up_test)
 
+
 def plot_learning_curves(train_losses, val_losses):
     plt.figure(figsize=(12, 6))
-    plt.plot(train_losses, label='Training Loss')
-    plt.plot(val_losses, label='Validation Loss')
-    plt.title('Learning Curves')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
+    plt.plot(train_losses, label="Training Loss")
+    plt.plot(val_losses, label="Validation Loss")
+    plt.title("Learning Curves")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
     plt.legend()
     plt.show()
+
+
 class DynamicNNwithDropout(nn.Module):
     def __init__(self, input_dim, layers, dropout_rate):
         super(DynamicNNwithDropout, self).__init__()
@@ -278,16 +365,22 @@ def feature_importance(model, X_val, y_val):
     model.eval()
     with torch.no_grad():
         baseline_output = model(X_val)
-        baseline_metric = f1_score(y_val.cpu().numpy(), (baseline_output > 0.5).cpu().numpy())
+        baseline_metric = f1_score(
+            y_val.cpu().numpy(), (baseline_output > 0.5).cpu().numpy()
+        )
 
     importances = {}
-    for i, col in enumerate(Chosen_Predictor):  # Assuming Chosen_Predictor contains feature names
+    for i, col in enumerate(
+        Chosen_Predictor
+    ):  # Assuming Chosen_Predictor contains feature names
         temp_val = X_val.clone()
         temp_val[:, i] = torch.randperm(temp_val[:, i].size(0))
 
         with torch.no_grad():
             shuff_output = model(temp_val)
-            shuff_metric = f1_score(y_val.cpu().numpy(), (shuff_output > 0.5).cpu().numpy())
+            shuff_metric = f1_score(
+                y_val.cpu().numpy(), (shuff_output > 0.5).cpu().numpy()
+            )
 
         drop_in_metric = baseline_metric - shuff_metric
         importances[col] = drop_in_metric
@@ -297,9 +390,13 @@ def feature_importance(model, X_val, y_val):
 
 def train_model(hparams, X_train, y_train, X_val, y_val):
     positivecase_weight_up = hparams["positivecase_weight_up"]
-    weight_positive_up = (num_negative_up_train / num_positive_up_train) * positivecase_weight_up
+    weight_positive_up = (
+        num_negative_up_train / num_positive_up_train
+    ) * positivecase_weight_up
     best_model_state_dict = None
-    model = DynamicNNwithDropout(X_train.shape[1], hparams['layers'], hparams['dropout_rate']).to(device)
+    model = DynamicNNwithDropout(
+        X_train.shape[1], hparams["layers"], hparams["dropout_rate"]
+    ).to(device)
 
     model.train()
 
@@ -320,9 +417,9 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
 
     # num_epochs = hparams["num_epochs"]
     batch_size = hparams["batch_size"]
-    f1 = torchmetrics.F1Score(num_classes=2, average='binary', task='binary').to(device)
-    prec = Precision(num_classes=2, average='binary', task='binary').to(device)
-    recall = Recall(num_classes=2, average='binary', task='binary').to(device)
+    f1 = torchmetrics.F1Score(num_classes=2, average="binary", task="binary").to(device)
+    prec = Precision(num_classes=2, average="binary", task="binary").to(device)
+    recall = Recall(num_classes=2, average="binary", task="binary").to(device)
 
     best_f1_score = 0.0  # Track the best F1 score
     best_prec_score = 0.0  # Track the best F1 score
@@ -333,18 +430,17 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
     epochs_sum = 0
     best_epoch = 0  # Initialize variable to save the best epoch
 
-    best_val_loss = float('inf')  # Initialize best validation loss
+    best_val_loss = float("inf")  # Initialize best validation loss
     patience = 20  # Early stopping patience; how many epochs to wait
     counter = 0  # Initialize counter for early stopping
     train_losses, val_losses = [], []
 
     for epoch in range(1000):
-
         # Training step
         model.train()
         for i in range(0, len(X_train), batch_size):
-            X_batch = X_train[i: i + batch_size]
-            y_batch = y_train[i: i + batch_size]
+            X_batch = X_train[i : i + batch_size]
+            y_batch = y_train[i : i + batch_size]
 
             # Skip the batch if it has only one sample. works well when the occasional skipping of small batches won't significantly impact the overall training process,
             if X_batch.shape[0] <= 1:
@@ -353,9 +449,8 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             y_batch = y_batch.unsqueeze(1)  # was wrong shape?
             optimizer.zero_grad()
 
-            train_output= model(X_batch)
+            train_output = model(X_batch)
             train_loss = criterion(train_output, y_batch)
-
 
             train_loss.backward()
             optimizer.step()
@@ -364,7 +459,6 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
         model.eval()
         # Validation step
         with torch.no_grad():
-
             val_outputs = model(X_val)
             val_loss = criterion(val_outputs, y_val.unsqueeze(1))
             val_losses.append(val_loss.item())
@@ -382,9 +476,7 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
             best_val_loss = val_loss
             best_model_state_dict = model.state_dict()
             counter = 0  # Reset counter when validation loss improves
-            best_epoch = epoch  # Save the epoch where the best F1 score was found
-
-
+            best_epoch = epoch  # Save the epoch where the best  score was found
 
         else:
             counter += 1  # Increment counter if validation loss doesn't improve
@@ -396,15 +488,18 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
         # Early stopping
         if counter >= patience:
             print(f"Early stopping triggered at epoch {epoch}.")
-            model.load_state_dict(best_model_state_dict)  # Load the best model
+            if best_model_state_dict is not None:
+                model.load_state_dict(best_model_state_dict)  # Load the best model
             break
         # model.train()
         # print( f"VALIDATION Epoch: {epoch + 1}, PrecisionScore: {PrecisionScore.item()}, Training Loss: {loss.item()}, Validation Loss: {val_loss.item()}, F1 Score: {F1Score.item()} ")
     # print(best_epoch_val_preds.sum(),y_val.sum())
     # Calculate average scores
-    avg_val_f1_score = sum_f1_score / epoch
-    avg_val_precision_score = sum_prec_score / epoch
-    avg_val_recall_score = sum_recall_score / epoch  # Calculate average recall score
+    avg_val_f1_score = sum_f1_score / epochs_sum
+    avg_val_precision_score = sum_prec_score / epochs_sum
+    avg_val_recall_score = (
+        sum_recall_score / epochs_sum
+    )  # Calculate average recall score
 
     test_outputs = model(X_test_tensor)
     # print(test_outputs)
@@ -414,17 +509,40 @@ def train_model(hparams, X_train, y_train, X_val, y_val):
     testPrecisionScore = prec(test_predictions, y_up_test_tensor)
     testRecallScore = recall(test_predictions, y_up_test_tensor)
 
-    print('val avg prec/f1/recall:  ', avg_val_precision_score, avg_val_f1_score, avg_val_recall_score)
-    print('test prec/f1/recall: ', testPrecisionScore.item(), testF1Score.item(), testRecallScore.item())
+    print(
+        "val avg prec/f1/recall:  ",
+        avg_val_precision_score,
+        avg_val_f1_score,
+        avg_val_recall_score,
+    )
+    print(
+        "test prec/f1/recall: ",
+        testPrecisionScore.item(),
+        testF1Score.item(),
+        testRecallScore.item(),
+    )
 
-    return best_val_loss, avg_val_f1_score, avg_val_precision_score, best_model_state_dict, testF1Score, testPrecisionScore, best_epoch,val_loss
+    return (
+        best_val_loss,
+        avg_val_f1_score,
+        avg_val_precision_score,
+        best_model_state_dict,
+        testF1Score,
+        testPrecisionScore,
+        best_epoch,
+        val_loss,
+    )
     # Return the best F1 score after all epochs
 
 
 def train_final_model(hparams, Xtrainval, ytrainval):
     positivecase_weight_up = hparams["positivecase_weight_up"]
-    weight_positive_up = (num_negative_up_trainval / num_positive_up_trainval) * positivecase_weight_up
-    model = DynamicNNwithDropout(X_train.shape[1], hparams['layers'], hparams['dropout_rate']).to(device)
+    weight_positive_up = (
+        num_negative_up_trainval / num_positive_up_trainval
+    ) * positivecase_weight_up
+    model = DynamicNNwithDropout(
+        X_train.shape[1], hparams["layers"], hparams["dropout_rate"]
+    ).to(device)
 
     model.train()
     weight = torch.Tensor([weight_positive_up]).to(device)
@@ -448,8 +566,8 @@ def train_final_model(hparams, Xtrainval, ytrainval):
         # Training step
         model.train()
         for i in range(0, len(Xtrainval), batch_size):
-            X_batch = Xtrainval[i: i + batch_size]
-            y_batch = ytrainval[i: i + batch_size]
+            X_batch = Xtrainval[i : i + batch_size]
+            y_batch = ytrainval[i : i + batch_size]
 
             y_batch = y_batch.unsqueeze(1)  # was wrong shape?
             optimizer.zero_grad()
@@ -462,29 +580,47 @@ def train_final_model(hparams, Xtrainval, ytrainval):
 
     return best_model_state_dict
 
+
 # Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350}
+
 
 # Define Optuna Objective
 def objective(trial):
-        # Define the hyperparameter search space
-    learning_rate = trial.suggest_float("learning_rate", 0.00001, .1, log=True)  # 0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 100, 1000)  # 3800 #230  291
+    # Define the hyperparameter search space
+    learning_rate = trial.suggest_float(
+        "learning_rate", 0.00001, 0.1, log=True
+    )  # 0003034075497582067
+    # num_epochs = trial.suggest_int("num_epochs", 100, 1000)  # 3800 #230  291  using early stop and then passsing "best epoch"
     batch_size = trial.suggest_int("batch_size", 50, 3500)  # 10240  3437
-        # Add more parameters as needed
+    # Add more parameters as needed
     #     # TODO the rounds with SGD seemed to be closer val/test. values.
-    optimizer_name = trial.suggest_categorical("optimizer", ["Adam", "SGD","RMSprop", "Adagrad"])  # ,"RMSprop", "Adagrad"
-    dropout_rate = trial.suggest_float("dropout_rate", 0, .5)  # 30311980533100547  16372372692286732
+    optimizer_name = trial.suggest_categorical(
+        "optimizer", ["Adam", "SGD", "RMSprop", "Adagrad"]
+    )  # ,"RMSprop", "Adagrad"
+    dropout_rate = trial.suggest_float(
+        "dropout_rate", 0, 0.5
+    )  # 30311980533100547  16372372692286732
     # using layers now instead of setting num_hidden.
     n_layers = trial.suggest_int("n_layers", 1, 6)
     layers = []
     for i in range(n_layers):
         layers.append(trial.suggest_int(f"n_units_l{i}", 32, 2500))
     # num_hidden_units = trial.suggest_int("num_hidden_units", 50, 3500)#2560 #83 125 63
-    positivecase_weight_up = trial.suggest_float("positivecase_weight_up", 1,
-                                                 20)  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
+    positivecase_weight_up = trial.suggest_float(
+        "positivecase_weight_up", 1, 20
+    )  # 1.2 gave me .57 precisoin #was 20 and 18 its a multiplier
 
     # Call the train_model function with the current hyperparameters
-    best_val_loss, f1_score, prec_score, best_model_state_dict, testF1Score, testPrecisionScore, best_epoch,val_loss = train_model(
+    (
+        best_val_loss,
+        f1_score,
+        prec_score,
+        best_model_state_dict,
+        testF1Score,
+        testPrecisionScore,
+        best_epoch,
+        val_loss,
+    ) = train_model(
         {
             "learning_rate": learning_rate,
             "optimizer": optimizer_name,  # Include optimizer name here
@@ -496,25 +632,33 @@ def objective(trial):
             "layers": layers
             # Add more hyperparameters as needed
         },
-        X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
+        X_train_tensor,
+        y_up_train_tensor,
+        X_val_tensor,
+        y_up_val_tensor,
     )
-#TODO Include Regularization Hyperparameters: If overfitting is a concern, consider including L1/L2 regularization hyperparameters in your tuning.
+    # TODO Include Regularization Hyperparameters: If overfitting is a concern, consider including L1/L2 regularization hyperparameters in your tuning.
     # Plot the learning curves TODO
     # plot_learning_curves(train_losses, val_losses)
-    alpha = .5
+    alpha = 0.5
 
-    blended_score = (alpha * (1 - prec_score)) + ((1 - alpha) * (1 - f1_score)) + (alpha * (1 - testPrecisionScore)) + (
-                (1 - alpha) * (1 - testF1Score))
+    blended_score = (
+        (alpha * (1 - prec_score))
+        + ((1 - alpha) * (1 - f1_score))
+        + (alpha * (1 - testPrecisionScore))
+        + ((1 - alpha) * (1 - testF1Score))
+    )
 
-    # return best_val_loss
-    return (val_loss+(1-testPrecisionScore))/2
+    return val_loss
+    # return (val_loss+(1-testPrecisionScore))/2
     # return prec_score  # Optuna will try to maximize this value
 
 
 ##Comment out to skip the hyperparameter selection.  Swap "best_params".
 try:
-    study = optuna.load_study(study_name=f'{study_name}',
-                              storage=f'sqlite:///{study_name}.db')
+    study = optuna.load_study(
+        study_name=f"{study_name}", storage=f"sqlite:///{study_name}.db"
+    )
     print("Study Loaded.")
     try:
         best_params_up = study.best_params
@@ -526,34 +670,71 @@ try:
     except Exception as e:
         print(e)
 except KeyError:
-    study = optuna.create_study(direction="minimize", study_name=f'{study_name}',
-                                storage=f'sqlite:///{study_name}.db')
+    study = optuna.create_study(
+        direction="minimize",
+        study_name=f"{study_name}",
+        storage=f"sqlite:///{study_name}.db",
+    )
 "Keyerror, new optuna study created."  #
 
 # TODO changed trials from 100
-study.optimize(objective, n_trials=n_trials)  # You can change the number of trials as needed
-best_params = study.best_params
-# best_params = set_best_params_manually
-# best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
+# study.optimize(
+#     objective, n_trials=n_trials
+# # )  # You can change the number of trials as needed
+# for trial in study.trials:
+#     # Extracting trial information
+#     trial_number = trial.number
+#     trial_params = trial.params
+#     trial_value = trial.value
+#
+#     # Print or process the trial information as needed
+#     print(f"Trial {trial_number}: Value = {trial_value}, Params = {trial_params}")
+# best_params = study.best_params
+best_params ={'batch_size': 2935, 'dropout_rate': 0.09159667693461288, 'learning_rate': 0.0001591439445105306, 'n_layers': 3, 'n_units_l0': 756, 'n_units_l1': 1598, 'n_units_l2': 871, 'num_epochs': 953, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0077192425381583}# best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
 # best_params={'batch_size': 881, 'dropout_rate': 0.32727848596144893, 'learning_rate': 0.0006858665963457134, 'n_layers': 2, 'n_units_l0': 110, 'n_units_l1': 29, 'num_epochs': 308, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0015016778402561}
 print("Best Hyperparameters:", best_params)
+# Iterate through all trials in the study
+for trial in study.trials:
+    # Extracting trial information
+    trial_number = trial.number
+    trial_params = trial.params
+    trial_value = trial.value
 
-n_layers = best_params['n_layers']
-layers = [best_params[f'n_units_l{i}'] for i in range(n_layers)]
-best_params['layers'] = layers
+    # Print or process the trial information as needed
+    print(f"Trial {trial_number}: Value = {trial_value}, Params = {trial_params}")
+# n_layers = best_params["n_layers"]
+# layers = [best_params[f"n_units_l{i}"] for i in range(n_layers)]
+pattern = "n_units_l"
+layers = [best_params[key] for key in best_params if key.startswith(pattern)]
+
+best_params["layers"] = layers
 ## Train the model with the best hyperparameters
 
-(best_val_loss, best_f1_score, best_prec_score, best_model_state_dict, testF1Score, testPrecisionScore,
- best_epoch,val_loss) = train_model(
-    best_params, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor)
-best_params['num_epochs'] = best_epoch
-#TODO must be better way to get
-n_layers = best_params['n_layers']
-layers = [best_params[f'n_units_l{i}'] for i in range(n_layers)]
-best_params['layers'] = layers
-(best_model_state_dict) = train_final_model(best_params, X_trainval_tensor, y_trainval_tensor)
+(
+    best_val_loss,
+    best_f1_score,
+    best_prec_score,
+    best_model_state_dict,
+    testF1Score,
+    testPrecisionScore,
+    best_epoch,
+    val_loss,
+) = train_model(
+    best_params, X_train_tensor, y_up_train_tensor, X_val_tensor, y_up_val_tensor
+)
+best_params["num_epochs"] = best_epoch
+# TODO must be better way to get
+n_layers = best_params["n_layers"]
+print(best_params)
+layers = [best_params[f"n_units_l{i}"] for i in range(n_layers)]
+best_params["layers"] = layers
+(best_model_state_dict) = train_final_model(
+    best_params, X_trainval_tensor, y_trainval_tensor
+)
 
-finalmodel = DynamicNNwithDropout(X_train.shape[1], best_params['layers'], best_params['dropout_rate']).to(device)
+finalmodel = DynamicNNwithDropout(
+    X_train.shape[1], best_params["layers"], best_params["dropout_rate"]
+).to(device)
 # Load the saved state_dict into the model
 finalmodel.load_state_dict(best_model_state_dict)
 finalmodel.eval()
@@ -563,15 +744,25 @@ predicted_probabilities_up = finalmodel(X_test_tensor).detach().cpu().numpy()
 # print("predicted_prob up:",predicted_probabilities_up)
 predicted_probabilities_up = (predicted_probabilities_up > theshhold_down).astype(int)
 # print("predicted_prob up:",predicted_probabilities_up)
-predicted_up_tensor = torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
+predicted_up_tensor = (
+    torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
+)
 num_positives_up = np.sum(predicted_probabilities_up)
 
 task = "binary"
 # move metric to same device as tensors
-precision_up = Precision(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
-accuracy_up = Accuracy(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
-recall_up = Recall(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
-f1_up = F1Score(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_up_test_tensor)
+precision_up = Precision(num_classes=2, average="binary", task=task).to(device)(
+    predicted_up_tensor, y_up_test_tensor
+)
+accuracy_up = Accuracy(num_classes=2, average="binary", task=task).to(device)(
+    predicted_up_tensor, y_up_test_tensor
+)
+recall_up = Recall(num_classes=2, average="binary", task=task).to(device)(
+    predicted_up_tensor, y_up_test_tensor
+)
+f1_up = F1Score(num_classes=2, average="binary", task=task).to(device)(
+    predicted_up_tensor, y_up_test_tensor
+)
 
 # Print Number of Positive and Negative Samples
 num_positive_samples_up = sum(y_up_test_tensor)
@@ -584,9 +775,14 @@ print("Recall:", recall_up)
 print("F1-Score:", f1_up, "\n")
 
 print("Best Hyperparameters:", best_params)
-print(f"Number of positive predictions for 'up': {sum(x[0] for x in predicted_probabilities_up)}")
+print(
+    f"Number of positive predictions for 'up': {sum(x[0] for x in predicted_probabilities_up)}"
+)
 print("Number of Positive Samples(Target_Up):", num_positive_samples_up)
-print("Number of Total Samples(Target_Up):", num_positive_samples_up + num_negative_samples_up)
+print(
+    "Number of Total Samples(Target_Up):",
+    num_positive_samples_up + num_negative_samples_up,
+)
 
 # TODO figure out why
 # Number of positive predictions for 'up': 0
@@ -611,18 +807,22 @@ if input_val == "Y":
     model_filename_up = os.path.join(model_directory, "target_up.pth")
 
     # Save the model
-    torch.save({'features': Chosen_Predictor,
-                'input_dim': X_train_tensor.shape[1],
-                'dropout_rate': best_params["dropout_rate"],
-                'layers': best_params["layers"],
-                'model_state_dict': finalmodel.state_dict(),
-                'scaler_X': finalscaler_X
-                }, model_filename_up)
+    torch.save(
+        {
+            "features": Chosen_Predictor,
+            "input_dim": X_train_tensor.shape[1],
+            "dropout_rate": best_params["dropout_rate"],
+            "layers": best_params["layers"],
+            "model_state_dict": finalmodel.state_dict(),
+            "scaler_X": finalscaler_X,
+        },
+        model_filename_up,
+    )
 
     # Generate the function definition
     function_def = f"""
 def {model_summary}(new_data_df):
-    checkpoint = torch.load(f'{{base_dir}}/{model_summary}/target_up.pth', map_location=torch.device('cpu'))
+    checkpoint = torch.load(f'{{base_dir}}/{model_summary}/target_up.pth', map_location=torch.device('device'))
     features = checkpoint['features']
     dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
@@ -637,15 +837,6 @@ def {model_summary}(new_data_df):
     tempdf.dropna(subset=features, inplace=True)
     tempdf = tempdf[features]
 
-    # for col in tempdf.columns:
-    #     max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
-    #     min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
-    #     max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
-    #     min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
-    #     tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
-    #New Logic - 
-# Function to replace infinities with very large/small numbers
-    # Define very large and very small numbers as placeholders for infinity
     very_large_number = 1e15  # Placeholder for positive infinity
     very_small_number = -1e15  # Placeholder for negative infinity
 
@@ -653,7 +844,7 @@ def {model_summary}(new_data_df):
         # Replace positive and negative infinity with the defined large and small numbers
         tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
 
-    tempdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features)
+    tesmpdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features,index=tempdf.index)
     input_tensor = torch.tensor(tempdf.values, dtype=torch.float32)
     predictions = loaded_model(input_tensor)
     predictions_prob = torch.sigmoid(predictions)
@@ -663,19 +854,34 @@ def {model_summary}(new_data_df):
     result = new_data_df.copy()
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series.values
-    return result
-    """
+    return result["Predictions"], 0.3, 0.5, 20, 20    """
 
-    # Append the new function definition to pytorch_trained_minute_models.py
-    with open('../../../../../Trained_Models/pytorch_trained_minute_models.py', 'a') as file:
+    # Append the new function definition to pytorch_trained_minute_models.py#TODO if it exists, replace?
+    with open(
+        "../../../../../Trained_Models/pytorch_trained_minute_models.py", "a"
+    ) as file:
         file.write(function_def)
 
     # Write information to the info file
-    with open(f"../../../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
+    with open(
+        f"../../../../../Trained_Models/{model_summary}/info.txt", "w"
+    ) as info_txt:
         info_txt.write("This file contains information about the model.\n\n")
-        info_txt.write(f"File analyzed: {DF_filename}\nStudy Name: {study_name}\nCells_Foward_to_check: {cells_forward_to_check}\n\n")
-        info_txt.write(f"Metrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\n")
-        info_txt.write(f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n\n\nStudy Name: {study_name}\n\n\n")
-        info_txt.write(f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n")
-        info_txt.write(f"Threshold(sensitivity): {theshhold_down}\nTarget Underlying Percentage: {percent_down}\n")
-        info_txt.write(f"Threshold positive condition cells: {threshold_cells_up}\nAnticondition_cells_threshold: {anticondition_threshold_cells}\n")
+        info_txt.write(
+            f"File analyzed: {DF_filename}\nStudy Name: {study_name}\nCells_Foward_to_check: {cells_forward_to_check}\n\n"
+        )
+        info_txt.write(
+            f"Metrics for Target_Up:\nPrecision: {precision_up}\nAccuracy: {accuracy_up}\nRecall: {recall_up}\nF1-Score: {f1_up}\n"
+        )
+        info_txt.write(
+            f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n\n\nStudy Name: {study_name}\n\n\n"
+        )
+        info_txt.write(
+            f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
+        )
+        info_txt.write(
+            f"Threshold(sensitivity): {theshhold_down}\nTarget Underlying Percentage: {percent_down}\n"
+        )
+        info_txt.write(
+            f"Threshold positive condition cells: {threshold_cells_up}\nAnticondition_cells_threshold: {anticondition_threshold_cells}\n"
+        )

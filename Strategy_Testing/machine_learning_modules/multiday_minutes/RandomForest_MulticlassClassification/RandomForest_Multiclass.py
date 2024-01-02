@@ -12,8 +12,14 @@ import pandas as pd
 from joblib import dump
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score, \
-    classification_report
+from sklearn.metrics import (
+    f1_score,
+    precision_score,
+    recall_score,
+    accuracy_score,
+    roc_auc_score,
+    classification_report,
+)
 from sklearn.metrics import log_loss
 from sklearn.model_selection import TimeSeriesSplit, StratifiedKFold
 from sklearn.preprocessing import RobustScaler
@@ -27,10 +33,12 @@ from torchmetrics import Precision
 # Restore the warning filter (if needed)
 # warnings.filterwarnings("default", category=Warning)
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = (
+    r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+)
 # TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
-'''use lasso?# Sample data
+"""use lasso?# Sample data
 data = load_iris()
 X, y = data.data, data.target
 
@@ -44,34 +52,53 @@ selected_features = np.where(lasso.coef_ != 0)[0]
 
 # Train Random Forest on selected features
 rf = RandomForestClassifier()
-rf.fit(X[:, selected_features], y)'''
+rf.fit(X[:, selected_features], y)"""
 
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio', 'Bonsai Ratio 2', 'ITM PCR-Vol', 'ITM PCRoi Up1', 'RSI14', 'AwesomeOsc5_34',
 #                     'Net_IV']
-Chosen_Predictor = ['LastTradeTime', 'Current Stock Price' ,
- 'Maximum Pain' ,'Bonsai Ratio', 'Bonsai Ratio 2' ,'B1/B2' ,'B2/B1', 'PCR-Vol',
- 'PCRv Up1', 'PCRv Up2', 'PCRv Up3',
- 'PCRv Down3' ,'PCRoi Up4',
- 'PCRoi Down2', 'PCRoi Down4' ,'ITM PCR-Vol' , 'ITM PCRv Up1',
- 'ITM PCRv Up2' ,'ITM PCRv Up3',
-                    'NIV highers(-)lowers1-4', 'NIV 1-4 % from mean']
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
-    lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
+Chosen_Predictor = [
+    "LastTradeTime",
+    "Current Stock Price",
+    "Maximum Pain",
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "B1/B2",
+    "B2/B1",
+    "PCR-Vol",
+    "PCRv Up1",
+    "PCRv Up2",
+    "PCRv Up3",
+    "PCRv Down3",
+    "PCRoi Up4",
+    "PCRoi Down2",
+    "PCRoi Down4",
+    "ITM PCR-Vol",
+    "ITM PCRv Up1",
+    "ITM PCRv Up2",
+    "ITM PCRv Up3",
+    "NIV highers(-)lowers1-4",
+    "NIV 1-4 % from mean",
+]
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+    lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
+)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+    lambda x: x.timestamp()
+)
+ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"] / (60 * 60 * 24 * 7)
 
 cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.2  # how many rows must achieve target %
 threshold_cells_down = cells_forward_to_check * 0.2
-percent_up = .3  # target percetage.
-percent_down = .3  # target percentage for downward movement.
+percent_up = 0.3  # target percetage.
+percent_down = 0.3  # target percentage for downward movement.
 
-anticondition_threshold_cells_up = cells_forward_to_check * .2  # was .7
-anticondition_threshold_cells_down = cells_forward_to_check * .2  # Adjust as needed
+anticondition_threshold_cells_up = cells_forward_to_check * 0.2  # was .7
+anticondition_threshold_cells_down = cells_forward_to_check * 0.2  # Adjust as needed
 
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
@@ -86,9 +113,13 @@ ml_dataframe["Target"] = LITTLE_MOVEMENT  # Default to little movement
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
     condition_met_up = shifted_values > (
-            ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"] * (percent_up / 100)))
+        ml_dataframe["Current Stock Price"]
+        + (ml_dataframe["Current Stock Price"] * (percent_up / 100))
+    )
     condition_met_down = shifted_values < (
-            ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"] * (percent_down / 100)))
+        ml_dataframe["Current Stock Price"]
+        - (ml_dataframe["Current Stock Price"] * (percent_down / 100))
+    )
 
     anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
     anticondition_down = shifted_values >= ml_dataframe["Current Stock Price"]
@@ -101,12 +132,18 @@ for i in range(1, cells_forward_to_check + 1):
 ml_dataframe["Target"] = LITTLE_MOVEMENT
 
 # Assign upward trend only if condition for upward movement is met AND anticondition for upward movement is not met
-ml_dataframe.loc[(target_Counter >= threshold_cells_up) & (
-            anticondition_UpCounter <= anticondition_threshold_cells_up), "Target"] = UPWARD
+ml_dataframe.loc[
+    (target_Counter >= threshold_cells_up)
+    & (anticondition_UpCounter <= anticondition_threshold_cells_up),
+    "Target",
+] = UPWARD
 
 # Assign downward trend only if condition for downward movement is met AND anticondition for downward movement is not met
-ml_dataframe.loc[(target_Counter <= threshold_cells_down) & (
-            anticondition_DownCounter <= anticondition_threshold_cells_down), "Target"] = DOWNWARD
+ml_dataframe.loc[
+    (target_Counter <= threshold_cells_down)
+    & (anticondition_DownCounter <= anticondition_threshold_cells_down),
+    "Target",
+] = DOWNWARD
 
 ml_dataframe.dropna(subset=["Target"], inplace=True)
 y = ml_dataframe["Target"].copy()
@@ -149,17 +186,28 @@ for column in X.columns:
 
 # Update X to only include the selected features
 # X = X[selected_features]
-print('diddly doo,, there was sno seletion!'
-      '')
+print("diddly doo,, there was sno seletion!" "")
 count_downward = ml_dataframe[ml_dataframe["Target"] == DOWNWARD].shape[0]
 print(f"There are {count_downward} entries labeled as DOWNWARD.")
 
 nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
 inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
-neginf_indices = np.argwhere(np.isneginf(X.to_numpy()))  # Convert DataFrame to NumPy array
-print("NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found.")
-print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infinite values found.")
-print("Negative Infinite values found at indices:" if len(neginf_indices) > 0 else "No negative infinite values found.")
+neginf_indices = np.argwhere(
+    np.isneginf(X.to_numpy())
+)  # Convert DataFrame to NumPy array
+print(
+    "NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found."
+)
+print(
+    "Infinite values found at indices:"
+    if len(inf_indices) > 0
+    else "No infinite values found."
+)
+print(
+    "Negative Infinite values found at indices:"
+    if len(neginf_indices) > 0
+    else "No negative infinite values found."
+)
 
 #
 test_set_percentage = 0.2  # Specify the percentage of the data to use as a test set
@@ -186,22 +234,23 @@ print("Total positives in y:", y.sum(), "Total positives in y_test:", y_test.sum
 scaler_X_trainval = RobustScaler().fit(X)
 scaler_y_trainval = RobustScaler().fit(y.values.reshape(-1, 1))
 
-'''Metrics & Model Selection: You're storing the best model based on the F1 score. This is okay if F1 is the most important metric for your problem. If not, you might want to adjust this logic. Also, you could consider saving the models from all the folds and using a voting mechanism for predictions if you want to leverage the power of ensemble predictions'''
+"""Metrics & Model Selection: You're storing the best model based on the F1 score. This is okay if F1 is the most important metric for your problem. If not, you might want to adjust this logic. Also, you could consider saving the models from all the folds and using a voting mechanism for predictions if you want to leverage the power of ensemble predictions"""
+
 
 def train_model(param_dict, X, y, final_classifier=None):
     # Extract hyperparameters from param_dict
-    n_estimators = param_dict['n_estimators']
-    max_depth = param_dict['max_depth']
-    min_samples_split = param_dict['min_samples_split']
-    min_samples_leaf = param_dict['min_samples_leaf']
+    n_estimators = param_dict["n_estimators"]
+    max_depth = param_dict["max_depth"]
+    min_samples_split = param_dict["min_samples_split"]
+    min_samples_leaf = param_dict["min_samples_leaf"]
     # max_features = param_dict['max_features']
-    bootstrap = param_dict['bootstrap']
-    class_weight_multiplier = param_dict['class_weight_multiplier']
-    balanced_weights = compute_class_weight('balanced', classes=[0, 1, 2], y=y)
+    bootstrap = param_dict["bootstrap"]
+    class_weight_multiplier = param_dict["class_weight_multiplier"]
+    balanced_weights = compute_class_weight("balanced", classes=[0, 1, 2], y=y)
     class_weights = {
         0: balanced_weights[0],
         1: class_weight_multiplier * balanced_weights[1],
-        2: class_weight_multiplier * balanced_weights[2]
+        2: class_weight_multiplier * balanced_weights[2],
     }
 
     best_model = None
@@ -217,9 +266,13 @@ def train_model(param_dict, X, y, final_classifier=None):
     # class1_all_folds_avg_precision,  class2_all_folds_avg_precision,  class1and2avg_all_folds_avg_precision= 0,0,0
     # class1_all_folds_avg_recall,  class2_all_folds_avg_recall,  class1and2avg_all_folds_avg_recall= 0,0,0
     # class1and2avg_all_folds_avg_accuracy = 0
-    class1_total_f1, class2_total_f1, class1and2avg_total_f1 = 0,0,0
-    class1_total_precision,  class2_total_precision,  class1and2avg_total_precision= 0,0,0
-    class1_total_recall,  class2_total_recall,  class1and2avg_total_recall= 0,0,0
+    class1_total_f1, class2_total_f1, class1and2avg_total_f1 = 0, 0, 0
+    class1_total_precision, class2_total_precision, class1and2avg_total_precision = (
+        0,
+        0,
+        0,
+    )
+    class1_total_recall, class2_total_recall, class1and2avg_total_recall = 0, 0, 0
     class1and2avg_total_accuracy = 0
     for train_index, val_index in tscv.split(X_np):
         X_train, X_val = X_np[train_index], X_np[val_index]
@@ -231,26 +284,25 @@ def train_model(param_dict, X, y, final_classifier=None):
         X_val = scaler_X.transform(X_val)
 
         rf_params = {
-
-            'n_estimators': n_estimators,
-            'max_depth': max_depth,
-            'min_samples_split': min_samples_split,
-            'min_samples_leaf': min_samples_leaf,
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "min_samples_split": min_samples_split,
+            "min_samples_leaf": min_samples_leaf,
             # 'max_features': max_features,
-            'bootstrap': bootstrap,
-            'class_weight': class_weights  # Add this line
-
+            "bootstrap": bootstrap,
+            "class_weight": class_weights,  # Add this line
         }
 
         if final_classifier is not None:
             rf_classifier = final_classifier
         else:
-
             rf_classifier = RandomForestClassifier(**rf_params)
             rf_classifier.fit(X_train, y_train)
 
         y_pred = rf_classifier.predict_proba(X_val)
-        y_pred_binary = np.argmax(y_pred, axis=1)  # Get the class with the highest probability
+        y_pred_binary = np.argmax(
+            y_pred, axis=1
+        )  # Get the class with the highest probability
         # print("truth: ", y_val.iloc[0], "binary_pred: ", y_pred_binary[0], "valprediction: ", y_pred[0])
         # print("truth: ", y_val.iloc[60], "binary_pred: ", y_pred_binary[60], "valprediction: ", y_pred[60])
         try:
@@ -260,25 +312,41 @@ def train_model(param_dict, X, y, final_classifier=None):
         logloss = log_loss(y_val, y_pred)
 
         # F1 for classes 1 and 2
-        f1_class_1 = f1_score(y_val, y_pred_binary, average=None ,labels=[1],zero_division=0)
-        f1_class_2 = f1_score(y_val, y_pred_binary, average=None, labels=[2],zero_division=0)
-        avg_f1_1_2 = f1_score(y_val, y_pred_binary, average='weighted', labels=[1, 2],zero_division=0)
+        f1_class_1 = f1_score(
+            y_val, y_pred_binary, average=None, labels=[1], zero_division=0
+        )
+        f1_class_2 = f1_score(
+            y_val, y_pred_binary, average=None, labels=[2], zero_division=0
+        )
+        avg_f1_1_2 = f1_score(
+            y_val, y_pred_binary, average="weighted", labels=[1, 2], zero_division=0
+        )
 
         # Precision for classes 1 and 2
-        precision_class_1 = precision_score(y_val, y_pred_binary, average=None, labels=[1],zero_division=0)
-        precision_class_2 = precision_score(y_val, y_pred_binary, average=None, labels=[2],zero_division=0)
-        avg_precision_1_2 = precision_score(y_val, y_pred_binary, average=None, labels=[1, 2],zero_division=0)
+        precision_class_1 = precision_score(
+            y_val, y_pred_binary, average=None, labels=[1], zero_division=0
+        )
+        precision_class_2 = precision_score(
+            y_val, y_pred_binary, average=None, labels=[2], zero_division=0
+        )
+        avg_precision_1_2 = precision_score(
+            y_val, y_pred_binary, average=None, labels=[1, 2], zero_division=0
+        )
 
         # Recall for classes 1 and 2
         recall_class_1 = recall_score(y_val, y_pred_binary, average=None, labels=[1])
         recall_class_2 = recall_score(y_val, y_pred_binary, average=None, labels=[2])
-        avg_recall_1_2 = recall_score(y_val, y_pred_binary, average='weighted', labels=[1, 2])
+        avg_recall_1_2 = recall_score(
+            y_val, y_pred_binary, average="weighted", labels=[1, 2]
+        )
 
         # Accuracy (specifically for classes 1 and 2)
         # For this, you'd need to filter out class 0 predictions and true values, then compute accuracy
         recall_class_1 = recall_score(y_val, y_pred_binary, average=None, labels=[1])
         recall_class_2 = recall_score(y_val, y_pred_binary, average=None, labels=[2])
-        avg_recall_1_2 = recall_score(y_val, y_pred_binary, average='weighted', labels=[1, 2])
+        avg_recall_1_2 = recall_score(
+            y_val, y_pred_binary, average="weighted", labels=[1, 2]
+        )
         # Accuracy (specifically for classes 1 and 2)
         # For this, you'd need to filter out class 0 predictions and true values, then compute accuracy
         y_val_filtered_mask = (y_val == 1) | (y_val == 2)
@@ -287,9 +355,11 @@ def train_model(param_dict, X, y, final_classifier=None):
 
         accuracy_1_2 = accuracy_score(y_val_filtered, y_pred_binary_filtered)
 
-        f1 = f1_score(y_val, y_pred_binary, average='micro',zero_division=0)
-        precision = precision_score(y_val, y_pred_binary, average='micro',zero_division=0)
-        recall = recall_score(y_val, y_pred_binary, average='micro')
+        f1 = f1_score(y_val, y_pred_binary, average="micro", zero_division=0)
+        precision = precision_score(
+            y_val, y_pred_binary, average="micro", zero_division=0
+        )
+        recall = recall_score(y_val, y_pred_binary, average="micro")
         accuracy = accuracy_score(y_val, y_pred_binary)
         # f1_class_1 = f1_score(y_val, y_pred_binary, average='macro', labels=[1])
         # precision_class_1 = precision_score(y_val, y_pred_binary, average='macro', labels=[1])
@@ -316,30 +386,30 @@ def train_model(param_dict, X, y, final_classifier=None):
         num_folds += 1
         # report = classification_report(y_val, y_pred_binary, output_dict=True)
         # print(report)
-#TODO figure out how to use f1 and precition so that it doesnt just preditc all precioins all positive
-        # class_reports.append(report)
+    # TODO figure out how to use f1 and precition so that it doesnt just preditc all precioins all positive
+    # class_reports.append(report)
     avg_accuracy = total_accuracy / num_folds
     avg_logloss = sum(log_loss_scores) / num_folds
     avg_f1 = total_f1 / num_folds
     avg_precision = total_precision / num_folds
     avg_recall = total_recall / num_folds
     avg_auc = sum(auc_scores) / num_folds
-    all_folds_f1_class_1 = class1_total_f1 /num_folds
-    all_folds_f1_class_2 = class2_total_f1/ num_folds
-    all_folds_avg_f1_1_2 =  class1and2avg_total_f1/num_folds
+    all_folds_f1_class_1 = class1_total_f1 / num_folds
+    all_folds_f1_class_2 = class2_total_f1 / num_folds
+    all_folds_avg_f1_1_2 = class1and2avg_total_f1 / num_folds
 
     # Precision for classes 1 and 2
-    all_folds_precision_class_1 =  class1_total_precision/num_folds
-    all_folds_precision_class_2 =  class2_total_precision/num_folds
-    all_folds_avg_precision_1_2 = class1and2avg_total_precision/num_folds
+    all_folds_precision_class_1 = class1_total_precision / num_folds
+    all_folds_precision_class_2 = class2_total_precision / num_folds
+    all_folds_avg_precision_1_2 = class1and2avg_total_precision / num_folds
 
     # Recall for classes 1 and 2
-    all_folds_recall_class_1 = class1_total_recall/num_folds
-    all_folds_recall_class_2 = class2_total_recall/num_folds
-    all_folds_avg_recall_1_2 =class1and2avg_total_recall/num_folds
+    all_folds_recall_class_1 = class1_total_recall / num_folds
+    all_folds_recall_class_2 = class2_total_recall / num_folds
+    all_folds_avg_recall_1_2 = class1and2avg_total_recall / num_folds
 
     # Accuracy (specifically for classes 1 and 2)
-    all_folds_avg_accuracy_1_2 =  class1and2avg_total_accuracy/num_folds
+    all_folds_avg_accuracy_1_2 = class1and2avg_total_accuracy / num_folds
 
     # avg_class_report = {}
     # for report in class_reports:
@@ -353,18 +423,18 @@ def train_model(param_dict, X, y, final_classifier=None):
     #                 avg_class_report[key][metric] = 0
     #             avg_class_report[key][metric] += score / len(class_reports)
 
-
     # print("class report: ", avg_class_report)
     print(
-        f'class1and2avg_all_folds_avg_f1: {all_folds_avg_f1_1_2}, all_folds_avg_precision_1_2: {all_folds_avg_precision_1_2}, class1and2avg_all_folds_avg_recall: {all_folds_avg_recall_1_2}, , avg_auc: {avg_auc}, avg_logloss: {avg_logloss}')
+        f"class1and2avg_all_folds_avg_f1: {all_folds_avg_f1_1_2}, all_folds_avg_precision_1_2: {all_folds_avg_precision_1_2}, class1and2avg_all_folds_avg_recall: {all_folds_avg_recall_1_2}, , avg_auc: {avg_auc}, avg_logloss: {avg_logloss}"
+    )
     return {
-        'class1and2avg_all_folds_avg_accuracy': all_folds_avg_accuracy_1_2,
-        'class1and2avg_all_folds_avg_f1': all_folds_avg_f1_1_2,
-        'class1and2avg_all_folds_avg_precision': all_folds_avg_precision_1_2,
-        'class1and2avg_all_folds_avg_recall': all_folds_avg_recall_1_2,
-        'avg_auc': avg_auc,
-        'avg_logloss': avg_logloss,
-        'best_model': best_model
+        "class1and2avg_all_folds_avg_accuracy": all_folds_avg_accuracy_1_2,
+        "class1and2avg_all_folds_avg_f1": all_folds_avg_f1_1_2,
+        "class1and2avg_all_folds_avg_precision": all_folds_avg_precision_1_2,
+        "class1and2avg_all_folds_avg_recall": all_folds_avg_recall_1_2,
+        "avg_auc": avg_auc,
+        "avg_logloss": avg_logloss,
+        "best_model": best_model,
     }
 
 
@@ -383,30 +453,33 @@ def objective(trial):
     classes_to_control = [1, 2]
     class_weight_multiplier = trial.suggest_float("class_weight_multiplier", 1.0, 20.0)
 
-
     # class_weights = 'balanced'
     param_dict = {
-        'class_weight_multiplier': class_weight_multiplier,
-
-        'n_estimators': n_estimators,
-        'max_depth': max_depth,
-        'min_samples_split': min_samples_split,
-        'min_samples_leaf': min_samples_leaf,
+        "class_weight_multiplier": class_weight_multiplier,
+        "n_estimators": n_estimators,
+        "max_depth": max_depth,
+        "min_samples_split": min_samples_split,
+        "min_samples_leaf": min_samples_leaf,
         # 'max_features': max_features,
-        'bootstrap': bootstrap,
-        'n_jobs': n_jobs
-
+        "bootstrap": bootstrap,
+        "n_jobs": n_jobs,
     }
 
     results = train_model(param_dict, X, y)
-    class1and2avg_all_folds_avg_accuracy =results['class1and2avg_all_folds_avg_accuracy'],
-    class1and2avg_all_folds_avg_f1 =results['class1and2avg_all_folds_avg_f1'],
-    class1and2avg_all_folds_avg_precision =results['class1and2avg_all_folds_avg_precision'],
-    class1and2avg_all_folds_avg_recall = results['class1and2avg_all_folds_avg_recall'],
-    avg_logloss = results['avg_logloss']
-    avg_auc = results['avg_auc']
+    class1and2avg_all_folds_avg_accuracy = (
+        results["class1and2avg_all_folds_avg_accuracy"],
+    )
+    class1and2avg_all_folds_avg_f1 = (results["class1and2avg_all_folds_avg_f1"],)
+    class1and2avg_all_folds_avg_precision = (
+        results["class1and2avg_all_folds_avg_precision"],
+    )
+    class1and2avg_all_folds_avg_recall = (
+        results["class1and2avg_all_folds_avg_recall"],
+    )
+    avg_logloss = results["avg_logloss"]
+    avg_auc = results["avg_auc"]
     print(class1and2avg_all_folds_avg_f1)
-    alpha = .3
+    alpha = 0.3
     # combined_metric = (alpha * (1 - avg_f1)) + ((1 - alpha) * (1 - avg_precision))
     return class1and2avg_all_folds_avg_f1
 
@@ -423,8 +496,10 @@ def objective(trial):
 # ################
 while True:
     try:
-        study = optuna.load_study(study_name='class1and2avg_all_folds_avg_f1_1',
-                                  storage='sqlite:///class1and2avg_all_folds_avg_f1_1.db')
+        study = optuna.load_study(
+            study_name="class1and2avg_all_folds_avg_f1_1",
+            storage="sqlite:///class1and2avg_all_folds_avg_f1_1.db",
+        )
         print("Study Loaded.")
         try:
             best_params = study.best_params
@@ -438,13 +513,18 @@ while True:
         except Exception as e:
             print(e)
     except KeyError:
-        study = optuna.create_study(direction="maximize", study_name='class1and2avg_all_folds_avg_f1_1',
-                                    storage='sqlite:///class1and2avg_all_folds_avg_f1_1'
-                                            '.db')
+        study = optuna.create_study(
+            direction="maximize",
+            study_name="class1and2avg_all_folds_avg_f1_1",
+            storage="sqlite:///class1and2avg_all_folds_avg_f1_1" ".db",
+        )
     "Keyerror, new optuna study created."  #
     # TODO add a second loop of test, wehre if it doesnt achieve x score, the trial fails.)
 
-    study.optimize(objective, n_trials=1000, )  # callbacks=[early_stopping_opt]
+    study.optimize(
+        objective,
+        n_trials=1000,
+    )  # callbacks=[early_stopping_opt]
     #
     best_params = study.best_params
     # best_params = {'bootstrap': False, 'class_weight_multiplier': 18.921505709138085,
@@ -459,7 +539,7 @@ while True:
 
     results = train_model(best_params, X, y, final_classifier=final_rf_classifier)
 
-    trained_model = results['best_model']
+    trained_model = results["best_model"]
 
     # plt.barh(range(X.shape[1]), feature_importances[sorted_idx])
     # plt.yticks(range(X.shape[1]), X.columns[sorted_idx])
@@ -469,13 +549,14 @@ while True:
     # selector = SelectFromModel(RandomForestClassifier, threshold=0.1)
     # X_new = selector.transform(X_test)
     # Now use trained_rf to predict on your test data
-    if results['best_model'] == None:
+    if results["best_model"] == None:
         continue
     else:
         X_test_scaled = scaler_X_trainval.transform(X_test)
         y_test_pred_probs = trained_model.predict_proba(X_test_scaled)
-        y_test_pred = np.argmax(y_test_pred_probs,
-                                axis=1)  # print(y_test_pred[0],y_test_pred[10],y_test_pred[20],y_test_pred[-1])
+        y_test_pred = np.argmax(
+            y_test_pred_probs, axis=1
+        )  # print(y_test_pred[0],y_test_pred[10],y_test_pred[20],y_test_pred[-1])
         # binary_predictions = (y_test_pred > threshold).astype(int)
 
         # indexes = np.where(y_test == 1)[0]
@@ -483,14 +564,18 @@ while True:
         # print(values_at_indexes)
 
         # Compute metrics
-        f1 = f1_score(y_test, y_test_pred, average='weighted',zero_division=0)
-        precision = precision_score(y_test, y_test_pred, average='weighted',zero_division=0)
+        f1 = f1_score(y_test, y_test_pred, average="weighted", zero_division=0)
+        precision = precision_score(
+            y_test, y_test_pred, average="weighted", zero_division=0
+        )
         print(5)
 
-        recall = recall_score(y_test, y_test_pred, average='weighted')
-        accuracy = accuracy_score(y_test, y_test_pred, average='weighted')
-        if f1 < 0.75 and precision < .75:
-            print("Test F1 score and prec. are not above 0.75. Restarting optimization.")
+        recall = recall_score(y_test, y_test_pred, average="weighted")
+        accuracy = accuracy_score(y_test, y_test_pred, average="weighted")
+        if f1 < 0.75 and precision < 0.75:
+            print(
+                "Test F1 score and prec. are not above 0.75. Restarting optimization."
+            )
             print("Test Metrics:")
             print("F1:", f1)
             print("Precision:", precision)
@@ -542,5 +627,9 @@ if input_val == "Y":
     with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         info_txt.write("This file contains information about the model.\n\n")
         info_txt.write(f"File analyzed: {DF_filename}\n\n")
-        info_txt.write(f"Metrics:\nPrecision: {precision}\nAccuracy: {accuracy}\nRecall: {recall}\nF1-Score: {f1}\n")
-        info_txt.write(f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n")
+        info_txt.write(
+            f"Metrics:\nPrecision: {precision}\nAccuracy: {accuracy}\nRecall: {recall}\nF1-Score: {f1}\n"
+        )
+        info_txt.write(
+            f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n"
+        )

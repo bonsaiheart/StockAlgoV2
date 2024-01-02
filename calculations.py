@@ -15,31 +15,103 @@ real_auth = PrivateData.tradier_info.real_auth
 
 
 # TODO could overhaul so anything can be done from optinchain.. lots work hmm
+# async def get_ta(session, ticker):
+#     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
+#     end = datetime.today().strftime("%Y-%m-%d %H:%M")
+#     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+#
+#
+#     time_sale_response = await fetch(session, "https://api.tradier.com/v1/markets/timesales",
+#                                      params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
+#                                              "session_filter": "all"}, headers=headers)
+#
+#     if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
+#         df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
+#
+#     else:
+#         print(
+#             f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
+#         return None
+#         # df.set_index('time', inplace=True)
+#         ##change index to datetimeindex
+#     df.index = pd.to_datetime(df.index)
+#
+#     # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
+#     #     df.to_csv("LOOKATMEMNMD.csv")
+#     # if ticker == 'SPY':
+#     #     df.to_csv("LOOKATMESPY.csv")
+#
+#     def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
+#         """
+#         Safely perform a calculation for a DataFrame and handle exceptions.
+#         If an exception occurs, the specified column is filled with NaN.
+#         """
+#         try:
+#
+#             df[column_name] = calculation_function(*args, **kwargs)
+#         except Exception as e:
+#             # print(column_name, ticker, e)
+#             logger.warning(
+#                 f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__},error={e}.  This is usually caused by missing data from yfinance.")
+#             df[column_name] = pd.NA  # or pd.nan
+#
+#     # Usage of safe_calculation function for each indicator
+#     safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,
+#                      window2=5, fillna=False)
+#     safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5,
+#                      window2=34, fillna=False)
+#     # For MACD
+#     macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+#     signal_line = macd_object.macd_signal
+#     safe_calculation(df, "MACD", macd_object.macd)
+#     safe_calculation(df, "Signal_Line", signal_line)
+#
+#     # For EMAs
+#     safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)
+#     safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["close"], window=200, fillna=False)
+#
+#     # For RSI
+#     safe_calculation(df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False)
+#     safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False)
+#     safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False)
+#
+#     groups = df.groupby(df.index.date)
+#     group_dates = list(groups.groups.keys())
+#     lastgroup = group_dates[-1]
+#     ta_data = groups.get_group(lastgroup)
+#     this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
+#     return this_minute_ta_frame
 async def get_ta(session, ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
+    time_sale_response = await fetch(
+        session,
+        "https://api.tradier.com/v1/markets/timesales",
+        params={
+            "symbol": ticker,
+            "interval": "1min",
+            "start": start,
+            "end": end,
+            "session_filter": "all",
+        },
+        headers=headers,
+    )
 
-    time_sale_response = await fetch(session, "https://api.tradier.com/v1/markets/timesales",
-                                     params={"symbol": ticker, "interval": "1min", "start": start, "end": end,
-                                             "session_filter": "all"}, headers=headers)
-
-    if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
+    if (
+        time_sale_response
+        and "series" in time_sale_response
+        and "data" in time_sale_response["series"]
+    ):
         df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
-
     else:
         print(
-            f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None")
+            f"Failed to retrieve options data for ticker {ticker}: json_response or required keys are missing or None"
+        )
         return None
-        # df.set_index('time', inplace=True)
-        ##change index to datetimeindex
-    df.index = pd.to_datetime(df.index)
 
-    # if ticker == 'MNMD':  mndm keeps having:"cant divide by sting mulitple stuff
-    #     df.to_csv("LOOKATMEMNMD.csv")
-    # if ticker == 'SPY':
-    #     df.to_csv("LOOKATMESPY.csv")
+    df.index = pd.to_datetime(df.index)
 
     def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
         """
@@ -47,33 +119,195 @@ async def get_ta(session, ticker):
         If an exception occurs, the specified column is filled with NaN.
         """
         try:
-
             df[column_name] = calculation_function(*args, **kwargs)
         except Exception as e:
-            # print(column_name, ticker, e)
             logger.warning(
-                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__},error={e}.  This is usually caused by missing data from yfinance.")
-            df[column_name] = pd.NA  # or pd.nan
+                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__},error={e}.  This is usually caused by missing data from yfinance."
+            )
+            df[column_name] = pd.NA
 
     # Usage of safe_calculation function for each indicator
-    safe_calculation(df, "AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=1,
-                     window2=5, fillna=False)
-    safe_calculation(df, "AwesomeOsc5_34", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5,
-                     window2=34, fillna=False)
+    safe_calculation(
+        df,
+        "AwesomeOsc",
+        ta.momentum.awesome_oscillator,
+        high=df["high"],
+        low=df["low"],
+        window1=1,
+        window2=5,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "AwesomeOsc5_34",
+        ta.momentum.awesome_oscillator,
+        high=df["high"],
+        low=df["low"],
+        window1=5,
+        window2=34,
+        fillna=False,
+    )
+
     # For MACD
-    macd_object = ta.trend.MACD(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    macd_object = ta.trend.MACD(
+        close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+    )
     signal_line = macd_object.macd_signal
     safe_calculation(df, "MACD", macd_object.macd)
     safe_calculation(df, "Signal_Line", signal_line)
 
     # For EMAs
-    safe_calculation(df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False)
-    safe_calculation(df, "EMA_200", ta.trend.ema_indicator, close=df["close"], window=200, fillna=False)
+    safe_calculation(
+        df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False
+    )
+    safe_calculation(
+        df,
+        "EMA_200",
+        ta.trend.ema_indicator,
+        close=df["close"],
+        window=200,
+        fillna=False,
+    )
 
     # For RSI
-    safe_calculation(df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False)
-    safe_calculation(df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False)
-    safe_calculation(df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False)
+    safe_calculation(
+        df, "RSI1", ta.momentum.rsi, close=df["close"], window=1, fillna=False
+    )
+
+    safe_calculation(
+        df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False
+    )
+    safe_calculation(
+        df, "RSI3", ta.momentum.rsi, close=df["close"], window=3, fillna=False
+    )
+    safe_calculation(
+        df, "RSI4", ta.momentum.rsi, close=df["close"], window=4, fillna=False
+    )
+    safe_calculation(
+        df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False
+    )
+    safe_calculation(
+        df, "RSI5", ta.momentum.rsi, close=df["close"], window=5, fillna=False
+    )  # column "RSI" == RSI5.. I'm trying to swap over but hte old data is still using RSI; so Thsi is to make swap easy. eventually when i ddrop old stuff or mergy? idk its late.
+    safe_calculation(
+        df, "RSI6", ta.momentum.rsi, close=df["close"], window=6, fillna=False
+    )
+    safe_calculation(
+        df, "RSI7", ta.momentum.rsi, close=df["close"], window=7, fillna=False
+    )
+
+    safe_calculation(
+        df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False
+    )
+
+    # Additional Indicators
+    safe_calculation(
+        df, "SMA_20", ta.trend.sma_indicator, close=df["close"], window=20, fillna=False
+    )
+    safe_calculation(
+        df,
+        "ADX",
+        ta.trend.adx,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        window=14,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "CCI",
+        ta.trend.cci,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        window=20,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "Williams_R",
+        ta.momentum.WilliamsR,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        lbp=14,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "VO",
+        ta.volume.volume_oscillator,
+        volume=df["volume"],
+        window_slow=26,
+        window_fast=12,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "CMF",
+        ta.volume.chaikin_money_flow,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        volume=df["volume"],
+        window=20,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "EoM",
+        ta.volume.ease_of_movement,
+        high=df["high"],
+        low=df["low"],
+        volume=df["volume"],
+        window=14,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "OBV",
+        ta.volume.on_balance_volume,
+        close=df["close"],
+        volume=df["volume"],
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "MFI",
+        ta.volume.money_flow_index,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        volume=df["volume"],
+        window=14,
+        fillna=False,
+    )
+    keltner_channel = ta.volatility.KeltnerChannel(
+        high=df["high"], low=df["low"], close=df["close"], window=20, window_atr=10
+    )
+    safe_calculation(
+        df,
+        "Keltner_Upper",
+        keltner_channel.keltner_channel_hband_indicator,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "Keltner_Lower",
+        keltner_channel.keltner_channel_lband_indicator,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "VPT",
+        ta.volume.volume_price_trend,
+        close=df["close"],
+        volume=df["volume"],
+        fillna=False,
+    )
+    aroon = ta.trend.AroonIndicator(close=df["close"], window=25)
+    safe_calculation(df, "Aroon_Oscillator", aroon.aroon_oscillator, fillna=False)
 
     groups = df.groupby(df.index.date)
     group_dates = list(groups.groups.keys())
@@ -83,17 +317,21 @@ async def get_ta(session, ticker):
     return this_minute_ta_frame
 
 
-async def perform_operations(session,
-                             ticker,
-                             last_adj_close,
-                             current_price,
-                             StockLastTradeTime,
-                             YYMMDD, CurrentTime
-                             ):
+async def perform_operations(
+    session,
+    ticker,
+    last_adj_close,
+    current_price,
+    StockLastTradeTime,
+    YYMMDD,
+    CurrentTime,
+):
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
     # TODO could pass in optionchain.
-    optionchain_df = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv")
+    optionchain_df = pd.read_csv(
+        f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv"
+    )
 
     groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
@@ -103,20 +341,30 @@ async def perform_operations(session,
         call_LASTPRICExOI_list = []
         put_LASTPRICExOI_list = []
         call_price_dict = (
-            group.loc[group["Call_LastPrice"] >= 0, ["Strike", "Call_LastPrice"]].set_index("Strike").to_dict()
+            group.loc[group["Call_LastPrice"] >= 0, ["Strike", "Call_LastPrice"]]
+            .set_index("Strike")
+            .to_dict()
         )
 
         strike = group["Strike"]
         # print("strike column for group",strike)
         # pain is ITM puts/calls
         calls_LASTPRICExOI_dict = (
-            group.loc[group["Calls_lastPriceXoi"] >= 0, ["Strike", "Calls_lastPriceXoi"]].set_index("Strike").to_dict()
+            group.loc[
+                group["Calls_lastPriceXoi"] >= 0, ["Strike", "Calls_lastPriceXoi"]
+            ]
+            .set_index("Strike")
+            .to_dict()
         )
         puts_LASTPRICExOI_dict = (
-            group.loc[group["Puts_lastPriceXoi"] >= 0, ["Strike", "Puts_lastPriceXoi"]].set_index("Strike").to_dict()
+            group.loc[group["Puts_lastPriceXoi"] >= 0, ["Strike", "Puts_lastPriceXoi"]]
+            .set_index("Strike")
+            .to_dict()
         )
 
-        ITM_CallsVol = group.loc[(group["Strike"] <= current_price), "Call_Volume"].sum()
+        ITM_CallsVol = group.loc[
+            (group["Strike"] <= current_price), "Call_Volume"
+        ].sum()
         ITM_PutsVol = group.loc[(group["Strike"] >= current_price), "Put_Volume"].sum()
         ITM_CallsOI = group.loc[(group["Strike"] <= current_price), "Call_OI"].sum()
         ITM_PutsOI = group.loc[(group["Strike"] >= current_price), "Put_OI"].sum()
@@ -141,10 +389,26 @@ async def perform_operations(session,
         ITM_Avg_Net_IV = ITM_Call_IV - ITM_Put_IV
         Net_IV = Call_IV - Put_IV
 
-        PC_Ratio_Vol = all_PutsVol / all_CallsVol if all_CallsVol != 0 and not np.isnan(all_CallsVol) else np.nan
-        ITM_PC_Ratio_Vol = ITM_PutsVol / ITM_CallsVol if ITM_CallsVol != 0 and not np.isnan(ITM_CallsVol) else np.nan
-        PC_Ratio_OI = all_PutsOI / all_CallsOI if all_CallsOI != 0 and not np.isnan(all_CallsOI) else np.nan
-        ITM_PC_Ratio_OI = ITM_PutsOI / ITM_CallsOI if ITM_CallsOI != 0 and not np.isnan(ITM_CallsOI) else np.nan
+        PC_Ratio_Vol = (
+            all_PutsVol / all_CallsVol
+            if all_CallsVol != 0 and not np.isnan(all_CallsVol)
+            else np.nan
+        )
+        ITM_PC_Ratio_Vol = (
+            ITM_PutsVol / ITM_CallsVol
+            if ITM_CallsVol != 0 and not np.isnan(ITM_CallsVol)
+            else np.nan
+        )
+        PC_Ratio_OI = (
+            all_PutsOI / all_CallsOI
+            if all_CallsOI != 0 and not np.isnan(all_CallsOI)
+            else np.nan
+        )
+        ITM_PC_Ratio_OI = (
+            ITM_PutsOI / ITM_CallsOI
+            if ITM_CallsOI != 0 and not np.isnan(ITM_CallsOI)
+            else np.nan
+        )
 
         # DFSxOI_dict = (
         #     group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
@@ -162,11 +426,17 @@ async def perform_operations(session,
             itmPuts_dollarsFromStrikeXoiSum = group.loc[
                 (group["Strike"] > strikeprice), "Puts_dollarsFromStrikeXoi"
             ].sum()
-            call_LASTPRICExOI = calls_LASTPRICExOI_dict.get("Calls_lastPriceXoi", {}).get(strikeprice, 0)
-            put_LASTPRICExOI = puts_LASTPRICExOI_dict.get("Puts_lastPriceXoi", {}).get(strikeprice, 0)
+            call_LASTPRICExOI = calls_LASTPRICExOI_dict.get(
+                "Calls_lastPriceXoi", {}
+            ).get(strikeprice, 0)
+            put_LASTPRICExOI = puts_LASTPRICExOI_dict.get("Puts_lastPriceXoi", {}).get(
+                strikeprice, 0
+            )
             # call_DFSxOI = calls_DFSxOI_dict.get("Calls_dollarsFromStrikeXoi", {}).get(strikeprice, 0)
             # put_DFSxOI = puts_DFSxOI_dict.get("Puts_dollarsFromStrikeXoi", {}).get(strikeprice, 0)
-            pain_value = itmPuts_dollarsFromStrikeXoiSum + itmCalls_dollarsFromStrikeXoiSum
+            pain_value = (
+                itmPuts_dollarsFromStrikeXoiSum + itmCalls_dollarsFromStrikeXoiSum
+            )
             pain_list.append((strikeprice, pain_value))
             strike_LASTPRICExOI = call_LASTPRICExOI + put_LASTPRICExOI
             strike_LASTPRICExOI_list.append((strikeprice, strike_LASTPRICExOI))
@@ -177,15 +447,31 @@ async def perform_operations(session,
         highest_premium_call = max(call_LASTPRICExOI_list, key=lambda x: x[1])[0]
         highest_premium_put = max(put_LASTPRICExOI_list, key=lambda x: x[1])[0]
         max_pain = min(pain_list, key=lambda x: x[1])[0]
-        top_five_calls = group.loc[group["Call_OI"] > 0].sort_values(by="Call_OI", ascending=False).head(5)
-        top_five_calls_dict = top_five_calls[["Strike", "Call_OI"]].set_index("Strike").to_dict()["Call_OI"]
-        top_five_puts = group.loc[group["Put_OI"] > 0].sort_values(by="Put_OI", ascending=False).head(5)
-        top_five_puts_dict = top_five_puts[["Strike", "Put_OI"]].set_index("Strike").to_dict()["Put_OI"]
+        top_five_calls = (
+            group.loc[group["Call_OI"] > 0]
+            .sort_values(by="Call_OI", ascending=False)
+            .head(5)
+        )
+        top_five_calls_dict = (
+            top_five_calls[["Strike", "Call_OI"]]
+            .set_index("Strike")
+            .to_dict()["Call_OI"]
+        )
+        top_five_puts = (
+            group.loc[group["Put_OI"] > 0]
+            .sort_values(by="Put_OI", ascending=False)
+            .head(5)
+        )
+        top_five_puts_dict = (
+            top_five_puts[["Strike", "Put_OI"]].set_index("Strike").to_dict()["Put_OI"]
+        )
 
         ### FINDING CLOSEST STRIKE TO LAc
         # target number from column A
         # calculate difference between target and each value in column B
-        optionchain_df["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
+        optionchain_df["strike_lac_diff"] = group["Strike"].apply(
+            lambda x: abs(x - last_adj_close)
+        )
         ###############################
         if not group.empty:
             smallest_change_from_lac = optionchain_df["strike_lac_diff"].abs().idxmin()
@@ -195,10 +481,16 @@ async def perform_operations(session,
             current_price_index = group["Strike"].sub(current_price).abs().idxmin()
 
             # Create a list of higher and lower strike indexes
-            higher_strike_indexes = [i for i in range(current_price_index + 1, current_price_index + 5) if
-                                     i in group.index]
-            lower_strike_indexes = [i for i in range(current_price_index - 1, current_price_index - 5, -1) if
-                                    i in group.index]
+            higher_strike_indexes = [
+                i
+                for i in range(current_price_index + 1, current_price_index + 5)
+                if i in group.index
+            ]
+            lower_strike_indexes = [
+                i
+                for i in range(current_price_index - 1, current_price_index - 5, -1)
+                if i in group.index
+            ]
 
             # Initialize the lists for the closest strikes
             closest_higher_strikes = group.loc[higher_strike_indexes, "Strike"].tolist()
@@ -216,7 +508,11 @@ async def perform_operations(session,
             closest_lower_strikes = [None] * 4
 
         # Create the strikeindex_abovebelow list
-        strikeindex_abovebelow = closest_lower_strikes[::-1] + [closest_strike_currentprice] + closest_higher_strikes
+        strikeindex_abovebelow = (
+            closest_lower_strikes[::-1]
+            + [closest_strike_currentprice]
+            + closest_higher_strikes
+        )
         closest_lower_strike4 = strikeindex_abovebelow[0]
         closest_lower_strike3 = strikeindex_abovebelow[1]
         closest_lower_strike2 = strikeindex_abovebelow[2]
@@ -231,11 +527,15 @@ async def perform_operations(session,
         ##Gettting pcr-vol for individual strikes above/below CP(closest to current price strike)
         def calculate_pcr_ratio(put_data, call_data):
             if np.isnan(put_data) or np.isnan(call_data) or call_data == 0:
-                return np.inf if call_data == 0 and put_data != 0 and not np.isnan(put_data) else np.nan
+                return (
+                    np.inf
+                    if call_data == 0 and put_data != 0 and not np.isnan(put_data)
+                    else np.nan
+                )
             else:
                 return put_data / call_data
 
-        group_strike = group.groupby('Strike')
+        group_strike = group.groupby("Strike")
 
         # Initialize dictionaries for storing PCR values
         strike_PCRv_dict = {}
@@ -245,7 +545,11 @@ async def perform_operations(session,
 
         # Calculate PCR values for all strikes in strikeindex_abovebelow
         for strikeabovebelow in strikeindex_abovebelow:
-            strike_data = group_strike.get_group(strikeabovebelow) if strikeabovebelow is not None else None
+            strike_data = (
+                group_strike.get_group(strikeabovebelow)
+                if strikeabovebelow is not None
+                else None
+            )
 
             if strike_data is None:
                 strike_PCRv_dict[strikeabovebelow] = np.nan
@@ -253,10 +557,13 @@ async def perform_operations(session,
                 strike_ITMPCRv_dict[strikeabovebelow] = np.nan
                 strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
                 continue
-            strike_PCRv_dict[strikeabovebelow] = calculate_pcr_ratio(strike_data["Put_Volume"].values[0],
-                                                                     strike_data["Call_Volume"].values[0])
-            strike_PCRoi_dict[strikeabovebelow] = calculate_pcr_ratio(strike_data["Put_OI"].values[0],
-                                                                      strike_data["Call_OI"].values[0])
+            strike_PCRv_dict[strikeabovebelow] = calculate_pcr_ratio(
+                strike_data["Put_Volume"].values[0],
+                strike_data["Call_Volume"].values[0],
+            )
+            strike_PCRoi_dict[strikeabovebelow] = calculate_pcr_ratio(
+                strike_data["Put_OI"].values[0], strike_data["Call_OI"].values[0]
+            )
 
             # Calculate ITM PCR values for strikes above and below the current strike
             # For puts, the strike is higher
@@ -284,44 +591,94 @@ async def perform_operations(session,
                 return None
             else:
                 strike_data = group_strike.get_group(strike)
-                ratio_v = calculate_pcr_ratio(strike_data["Put_Volume"].values[0], strike_data["Call_Volume"].values[0])
-                ratio_oi = calculate_pcr_ratio(strike_data["Put_OI"].values[0], strike_data["Call_OI"].values[0])
+                ratio_v = calculate_pcr_ratio(
+                    strike_data["Put_Volume"].values[0],
+                    strike_data["Call_Volume"].values[0],
+                )
+                ratio_oi = calculate_pcr_ratio(
+                    strike_data["Put_OI"].values[0], strike_data["Call_OI"].values[0]
+                )
                 call_iv = strike_data["Call_IV"].sum()
                 put_iv = strike_data["Put_IV"].sum()
                 net_iv = call_iv - put_iv
                 return ratio_v, ratio_oi, call_iv, put_iv, net_iv
 
         # Calculate PCR values for the closest strike to LAC
-        PC_Ratio_Vol_Closest_Strike_LAC, PC_Ratio_OI_Closest_Strike_LAC, Call_IV_Closest_Strike_LAC, Put_IV_Closest_Strike_LAC, Net_IV_Closest_Strike_LAC = get_ratio_and_iv(
-            closest_strike_lac)
+        (
+            PC_Ratio_Vol_Closest_Strike_LAC,
+            PC_Ratio_OI_Closest_Strike_LAC,
+            Call_IV_Closest_Strike_LAC,
+            Put_IV_Closest_Strike_LAC,
+            Net_IV_Closest_Strike_LAC,
+        ) = get_ratio_and_iv(closest_strike_lac)
         # Calculate PCR values for the closest strike to CP
-        PCRv_cp_strike, PCRoi_cp_strike, _, _, _ = get_ratio_and_iv(closest_strike_currentprice)
+        PCRv_cp_strike, PCRoi_cp_strike, _, _, _ = get_ratio_and_iv(
+            closest_strike_currentprice
+        )
 
         # Calculate PCR values for Max Pain strike
-        PC_Ratio_Vol_atMP, PC_Ratio_OI_atMP, Net_Call_IV_at_MP, Net_Put_IV_at_MP, Net_IV_at_MP = get_ratio_and_iv(
-            max_pain)
+        (
+            PC_Ratio_Vol_atMP,
+            PC_Ratio_OI_atMP,
+            Net_Call_IV_at_MP,
+            Net_Put_IV_at_MP,
+            Net_IV_at_MP,
+        ) = get_ratio_and_iv(max_pain)
 
-        NIV_CurrentStrike = get_ratio_and_iv(closest_strike_currentprice)[
-            4] if closest_strike_currentprice is not None else np.nan
-        NIV_1HigherStrike = get_ratio_and_iv(closest_higher_strike1)[
-            4] if closest_higher_strike1 is not None else np.nan
-        NIV_2HigherStrike = get_ratio_and_iv(closest_higher_strike2)[
-            4] if closest_higher_strike2 is not None else np.nan
-        NIV_3HigherStrike = get_ratio_and_iv(closest_higher_strike3)[
-            4] if closest_higher_strike3 is not None else np.nan
-        NIV_4HigherStrike = get_ratio_and_iv(closest_higher_strike4)[
-            4] if closest_higher_strike4 is not None else np.nan
-        NIV_1LowerStrike = get_ratio_and_iv(closest_lower_strike1)[4] if closest_lower_strike1 is not None else np.nan
-        NIV_2LowerStrike = get_ratio_and_iv(closest_lower_strike2)[4] if closest_lower_strike2 is not None else np.nan
-        NIV_3LowerStrike = get_ratio_and_iv(closest_lower_strike3)[4] if closest_lower_strike3 is not None else np.nan
-        NIV_4LowerStrike = get_ratio_and_iv(closest_lower_strike4)[4] if closest_lower_strike4 is not None else np.nan
+        NIV_CurrentStrike = (
+            get_ratio_and_iv(closest_strike_currentprice)[4]
+            if closest_strike_currentprice is not None
+            else np.nan
+        )
+        NIV_1HigherStrike = (
+            get_ratio_and_iv(closest_higher_strike1)[4]
+            if closest_higher_strike1 is not None
+            else np.nan
+        )
+        NIV_2HigherStrike = (
+            get_ratio_and_iv(closest_higher_strike2)[4]
+            if closest_higher_strike2 is not None
+            else np.nan
+        )
+        NIV_3HigherStrike = (
+            get_ratio_and_iv(closest_higher_strike3)[4]
+            if closest_higher_strike3 is not None
+            else np.nan
+        )
+        NIV_4HigherStrike = (
+            get_ratio_and_iv(closest_higher_strike4)[4]
+            if closest_higher_strike4 is not None
+            else np.nan
+        )
+        NIV_1LowerStrike = (
+            get_ratio_and_iv(closest_lower_strike1)[4]
+            if closest_lower_strike1 is not None
+            else np.nan
+        )
+        NIV_2LowerStrike = (
+            get_ratio_and_iv(closest_lower_strike2)[4]
+            if closest_lower_strike2 is not None
+            else np.nan
+        )
+        NIV_3LowerStrike = (
+            get_ratio_and_iv(closest_lower_strike3)[4]
+            if closest_lower_strike3 is not None
+            else np.nan
+        )
+        NIV_4LowerStrike = (
+            get_ratio_and_iv(closest_lower_strike4)[4]
+            if closest_lower_strike4 is not None
+            else np.nan
+        )
 
         ###TODO error handling for scalar divide of zero denominator
 
         Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
-                (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI))
+            (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
+        )
         Bonsai2_Ratio = ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI)) * (
-                (all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
+            (all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI)
+        )
         round(strike_PCRv_dict[closest_higher_strike1], 3),
 
         results.append(
@@ -399,39 +756,63 @@ async def perform_operations(session,
                 ###Positive number means NIV highers are higher, and price will drop.
                 # TODO should do as percentage change from total niv numbers to see if its big diff.
                 "NIV highers(-)lowers1-2": (NIV_1HigherStrike + NIV_2HigherStrike)
-                                           - (NIV_1LowerStrike + NIV_2LowerStrike),
+                - (NIV_1LowerStrike + NIV_2LowerStrike),
                 "NIV highers(-)lowers1-4": (
-                                                   NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike
-                                           )
-                                           - (
-                                                   NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
+                    NIV_1HigherStrike
+                    + NIV_2HigherStrike
+                    + NIV_3HigherStrike
+                    + NIV_4HigherStrike
+                )
+                - (
+                    NIV_1LowerStrike
+                    + NIV_2LowerStrike
+                    + NIV_3LowerStrike
+                    + NIV_4LowerStrike
+                ),
                 "NIV 1-2 % from mean": (
-                                               ((NIV_1HigherStrike + NIV_2HigherStrike) - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike))
-                                               / ((
-                                                          NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)
-                                       )
-                                       * 100,
+                    (
+                        (NIV_1HigherStrike + NIV_2HigherStrike)
+                        - (NIV_1LowerStrike + NIV_2LowerStrike)
+                    )
+                    / (
+                        (
+                            NIV_1HigherStrike
+                            + NIV_2HigherStrike
+                            + NIV_1LowerStrike
+                            + NIV_2LowerStrike
+                        )
+                        / 4
+                    )
+                )
+                * 100,
                 "NIV 1-4 % from mean": (
-                                               (
-                                                       NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike)
-                                               - (
-                                                       NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)
-                                               / (
-                                                       (
-                                                               NIV_1HigherStrike
-                                                               + NIV_2HigherStrike
-                                                               + NIV_3HigherStrike
-                                                               + NIV_4HigherStrike
-                                                               + NIV_1LowerStrike
-                                                               + NIV_2LowerStrike
-                                                               + NIV_3LowerStrike
-                                                               + NIV_4LowerStrike
-                                                       )
-                                                       / 8
-                                               )
-                                       )
-                                       * 100,
+                    (
+                        NIV_1HigherStrike
+                        + NIV_2HigherStrike
+                        + NIV_3HigherStrike
+                        + NIV_4HigherStrike
+                    )
+                    - (
+                        NIV_1LowerStrike
+                        + NIV_2LowerStrike
+                        + NIV_3LowerStrike
+                        + NIV_4LowerStrike
+                    )
+                    / (
+                        (
+                            NIV_1HigherStrike
+                            + NIV_2HigherStrike
+                            + NIV_3HigherStrike
+                            + NIV_4HigherStrike
+                            + NIV_1LowerStrike
+                            + NIV_2LowerStrike
+                            + NIV_3LowerStrike
+                            + NIV_4LowerStrike
+                        )
+                        / 8
+                    )
+                )
+                * 100,
                 ##TODO swap (/) with result = np.divide(x, y)
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
@@ -440,7 +821,6 @@ async def perform_operations(session,
             }
         )
     processed_data_df = pd.DataFrame(results)
-
 
     this_minute_ta_frame = await get_ta(session, ticker)
 
@@ -457,7 +837,9 @@ async def perform_operations(session,
     # Calculate 200-Day EMA
     processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
 
-    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame["AwesomeOsc5_34"]  # this_minute_ta_frame['exp_date'] = '230427.0'
+    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame[
+        "AwesomeOsc5_34"
+    ]  # this_minute_ta_frame['exp_date'] = '230427.0'
     processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
     processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
 
@@ -472,8 +854,12 @@ async def perform_operations(session,
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     output_dir_dailyminutes = Path(f"data/DailyMinutes/{ticker}")
     output_file_dailyminutes = Path(f"data/DailyMinutes/{ticker}/{ticker}_{YYMMDD}.csv")
-    output_dir_dailyminutes_w_algo_results = Path(f"data/DailyMinutes_w_algo_results/{ticker}")
-    output_dir_dailyminutes_w_algo_results.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir_dailyminutes_w_algo_results = Path(
+        f"data/DailyMinutes_w_algo_results/{ticker}"
+    )
+    output_dir_dailyminutes_w_algo_results.mkdir(
+        mode=0o755, parents=True, exist_ok=True
+    )
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
 
     def replace_inf(df):
@@ -501,17 +887,26 @@ async def perform_operations(session,
     if output_file_dailyminutes.exists():
         dailyminutes_df = pd.read_csv(output_file_dailyminutes)
         # dailyminutes_df = dailyminutes_df.drop_duplicates(subset="CurrentTime")
-        dailyminutes_df = pd.concat([dailyminutes_df, processed_data_df.head(1)], ignore_index=True)
-        replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
+        dailyminutes_df = pd.concat(
+            [dailyminutes_df, processed_data_df.head(1)], ignore_index=True
+        )
+        replace_inf(
+            dailyminutes_df
+        )  # It will only run if inf or -inf values are present
     else:
         dailyminutes_df = pd.concat([processed_data_df.head(1)], ignore_index=True)
-        replace_inf(dailyminutes_df)  # It will only run if inf or -inf values are present
+        replace_inf(
+            dailyminutes_df
+        )  # It will only run if inf or -inf values are present
 
     dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
 
     try:
-        processed_data_df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv", mode="x",
-                                 index=False)
+        processed_data_df.to_csv(
+            f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv",
+            mode="x",
+            index=False,
+        )
         # print("processed data saved for",ticker)
     except FileExistsError as e:
         # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")

@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
+
 def convert_date_format(date_str):
     """Converts YYMMDD to YYYY-MM-DD."""
     year = date_str[:2]
@@ -47,12 +48,14 @@ def generate_and_save_max_pain_for_ticker(ticker, base_dir="data/ProcessedData")
     df = df.sort_index(axis=0, ascending=True)
     df = df.sort_index(axis=1, ascending=True)
 
-
     # Convert columns to datetime for ensuring accuracy in min and max functions
-    converted_dates = [convert_date_format(str(col)) if isinstance(col, str) else col for col in df.columns]
+    converted_dates = [
+        convert_date_format(str(col)) if isinstance(col, str) else col
+        for col in df.columns
+    ]
     print(df.columns)
     print(converted_dates)
-    df.columns = pd.to_datetime(converted_dates, format='%Y-%m-%d', errors='ignore')
+    df.columns = pd.to_datetime(converted_dates, format="%Y-%m-%d", errors="ignore")
     print(df.dtypes)
 
     print("DF Columns:", df.columns)
@@ -64,25 +67,39 @@ def generate_and_save_max_pain_for_ticker(ticker, base_dir="data/ProcessedData")
     print("Stock Data Index:", stock_data.index)
 
     # Transpose df and join with stock_data
-    combined_frame = df.T.join(stock_data, how='left')
+    combined_frame = df.T.join(stock_data, how="left")
 
     # Add 'ExpDate' as a column from the index
-    combined_frame['ExpDate'] = combined_frame.index
+    combined_frame["ExpDate"] = combined_frame.index
 
     # Reorder the columns to get OHLC columns first
-    cols = ['ExpDate', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'] + [col for col in combined_frame.columns
-                                                                                 if col not in ['ExpDate','Open', 'High', 'Low',
-                                                                                                'Close', 'Adj Close',
-                                                                                                'Volume', 'ExpDate']]
+    cols = ["ExpDate", "Open", "High", "Low", "Close", "Adj Close", "Volume"] + [
+        col
+        for col in combined_frame.columns
+        if col
+        not in [
+            "ExpDate",
+            "Open",
+            "High",
+            "Low",
+            "Close",
+            "Adj Close",
+            "Volume",
+            "ExpDate",
+        ]
+    ]
     combined_frame = combined_frame[cols]
 
     # Save the combined DataFrame without an additional index column
     combined_frame.to_csv(f"MP_EXP_{ticker}.csv", index=False)
+
+
 def process_all_tickers(base_dir="data/ProcessedData"):
     for ticker in os.listdir(base_dir):
-        if ticker in ['SPY', 'TSLA']:
+        if ticker in ["SPY", "TSLA"]:
             print(ticker)
             generate_and_save_max_pain_for_ticker(ticker, base_dir)
+
 
 # Run the function
 process_all_tickers()

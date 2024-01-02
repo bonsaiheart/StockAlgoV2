@@ -15,7 +15,9 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.utils import compute_class_weight
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = (
+    "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+)
 ml_dataframe = pd.read_csv(DF_filename)
 """TODO  as of scikit-learn version 0.23, you can now add feature names to your datasets, which will prevent this warning from occurring. Here is how you can do it:
 # 
@@ -37,16 +39,23 @@ ml_dataframe = pd.read_csv(DF_filename)
 """
 
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
-Chosen_Predictor = ['LastTradeTime', 'Current Stock Price',
+Chosen_Predictor = [
+    "LastTradeTime",
+    "Current Stock Price",
     "Bonsai Ratio",
     "Bonsai Ratio 2",
     "B1/B2",
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
+    "PCRv Up3",
+    "PCRv Up2",
+    "PCRv Down3",
+    "PCRv Down2",
     "PCRv Up4",
     "PCRv Down4",
     "ITM PCRv Up3",
-    "ITM PCRv Down3", "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+    "ITM PCRv Down3",
+    "ITM PCRv Up4",
+    "ITM PCRv Down2",
+    "ITM PCRv Up2",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -76,11 +85,14 @@ Chosen_Predictor = ['LastTradeTime', 'Current Stock Price',
 #                     'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
-    lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+    lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
+)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+    lambda x: x.timestamp()
+)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"] / (60 * 60 * 24 * 7)
+ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
 
 ##this many cells must meet the percentup/down requiremnet.
 cells_forward_to_check = 180
@@ -101,10 +113,22 @@ num_features_down = 7
 threshold_up = 0.5
 threshold_down = 0.5
 parameters = {
-    "max_depth": (10,20, 30,40),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    "max_depth": (
+        10,
+        20,
+        30,
+        40,
+    ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
     # ###up 100/2/1300,down 80/3/1000
-    "min_samples_split": (2, 5,10),  # 5//5/2     5                      71123                  for 15   2, 3,
-    "n_estimators": (800,1500,)  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+    "min_samples_split": (
+        2,
+        5,
+        10,
+    ),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "n_estimators": (
+        800,
+        1500,
+    ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 # 120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
 # 30cells - up80.4.900 down  80.2.1300
@@ -117,7 +141,8 @@ ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 Chosen_Predictor_nobrackets = [
-    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "") for x in Chosen_Predictor
+    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "")
+    for x in Chosen_Predictor
 ]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 length = ml_dataframe.shape[0]
@@ -133,12 +158,14 @@ anticondition_DownCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
     condition_met_up = shifted_values > (
-            ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"] * percent_up))
+        ml_dataframe["Current Stock Price"]
+        + (ml_dataframe["Current Stock Price"] * percent_up)
+    )
     anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
 
-    condition_met_down = (
-            ml_dataframe["Current Stock Price"].shift(-i) < (
-            ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"] * percent_down))
+    condition_met_down = ml_dataframe["Current Stock Price"].shift(-i) < (
+        ml_dataframe["Current Stock Price"]
+        - (ml_dataframe["Current Stock Price"] * percent_down)
     )
     anticondition_down = shifted_values >= ml_dataframe["Current Stock Price"]
 
@@ -148,12 +175,13 @@ for i in range(1, cells_forward_to_check + 1):
     anticondition_UpCounter += anticondition_up.astype(int)
     anticondition_DownCounter += anticondition_down.astype(int)
     ml_dataframe["Target_Up"] = (
-            (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+        (targetUpCounter >= threshold_cells_up)
+        & (anticondition_UpCounter <= anticondition_threshold_cells_up)
     ).astype(int)
 
     ml_dataframe["Target_Down"] = (
-            (targetDownCounter >= threshold_cells_down) & (
-            anticondition_DownCounter <= anticondition_threshold_cells_down)
+        (targetDownCounter >= threshold_cells_down)
+        & (anticondition_DownCounter <= anticondition_threshold_cells_down)
     ).astype(int)
 
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
@@ -181,10 +209,6 @@ for column in X.columns:
 X.reset_index(drop=True, inplace=True)
 
 
-
-
-
-
 # TODO add this stuff in
 # best_score = 0
 # best_k = 0
@@ -208,31 +232,37 @@ X.reset_index(drop=True, inplace=True)
 # Use the first 3 splits for hyperparameter tuning
 tscv = TimeSeriesSplit(n_splits=5)
 
-#manual split
+# manual split
 train_size = int(len(X) * 0.8)  # Assuming 80% train, 20% test split
 
 X_train, X_test = X[:train_size], X[train_size:]
 y_up_train, y_up_test = y_up[:train_size], y_up[train_size:]
 y_down_train, y_down_test = y_down[:train_size], y_down[train_size:]
 model_up = RandomForestClassifier()
-print('Performing Gridsearch Up...')
+print("Performing Gridsearch Up...")
 # grid_search_up = GridSearchCV(estimator=model_up, param_grid=parameters,
 #                               cv=TimeSeriesSplit(n_splits=2).split(X_train), scoring="f1")
 # grid_search_up.fit(X_train, y_up_train)
 # best_params_up = grid_search_up.best_params_
-best_params_up =  {"max_depth": 100, "min_samples_split": 2000, "n_estimators": 3000  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+best_params_up = {
+    "max_depth": 100,
+    "min_samples_split": 2000,
+    "n_estimators": 3000,  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
 # Perform GridSearchCV for 'down' model
 model_down = RandomForestClassifier()
-print('Performing Gridsearch Down...')
+print("Performing Gridsearch Down...")
 
 # grid_search_down = GridSearchCV(estimator=model_down, param_grid=parameters,
 #                                 cv=TimeSeriesSplit(n_splits=2).split(X_train), scoring="f1")
 # grid_search_down.fit(X_train, y_down_train)
 # best_params_down = grid_search_down.best_params_
-best_params_down =  {"max_depth": 100, "min_samples_split": 2000, "n_estimators": 3000  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
-                     }
-print('best params up: ',best_params_up,'best params down: ',best_params_down)
+best_params_down = {
+    "max_depth": 100,
+    "min_samples_split": 2000,
+    "n_estimators": 3000,  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+}
+print("best params up: ", best_params_up, "best params down: ", best_params_down)
 # for train_index, val_index in tscv.split(X_train):
 #     X_train_fold, X_val_fold = X_train.iloc[train_index], X_train.iloc[val_index]
 #     y_up_train_fold, y_up_val_fold = y_up_train.iloc[train_index], y_up_train.iloc[val_index]
@@ -356,21 +386,31 @@ print('best params up: ',best_params_up,'best params down: ',best_params_down)
 
 # 2. Train the model on the entire training set using the best features and hyperparameters
 # Calculate balanced class weights for 'up' model
-class_weights_up = compute_class_weight('balanced', classes=[0, 1], y=y_up_train)
-custom_weights_up = {0: class_weights_up[0], 1: class_weights_up[1] * positivecase_weight_up_multiplier}
+class_weights_up = compute_class_weight("balanced", classes=[0, 1], y=y_up_train)
+custom_weights_up = {
+    0: class_weights_up[0],
+    1: class_weights_up[1] * positivecase_weight_up_multiplier,
+}
 
 # Calculate balanced class weights for 'down' model
-class_weights_down = compute_class_weight('balanced', classes=[0, 1], y=y_down_train)
-custom_weights_down = {0: class_weights_down[0], 1: class_weights_down[1] * positivecase_weight_down_multiplier}
+class_weights_down = compute_class_weight("balanced", classes=[0, 1], y=y_down_train)
+custom_weights_down = {
+    0: class_weights_down[0],
+    1: class_weights_down[1] * positivecase_weight_down_multiplier,
+}
 
 # Train the 'up' model with custom weights
-final_model_up = RandomForestClassifier(**best_params_up, class_weight=custom_weights_up)
+final_model_up = RandomForestClassifier(
+    **best_params_up, class_weight=custom_weights_up
+)
 final_model_up.fit(X_train, y_up_train)
-print('yupsum',y_up_test.sum())
-print('ydownsum',y_down_test.sum())
+print("yupsum", y_up_test.sum())
+print("ydownsum", y_down_test.sum())
 
 # Train the 'down' model with custom weights
-final_model_down = RandomForestClassifier(**best_params_down, class_weight=custom_weights_down)
+final_model_down = RandomForestClassifier(
+    **best_params_down, class_weight=custom_weights_down
+)
 final_model_down.fit(X_train, y_down_train)
 
 # 3. Evaluate the final model on the test set
@@ -378,13 +418,27 @@ predicted_probabilities_up_final = final_model_up.predict_proba(X_test)
 predicted_up_final = (predicted_probabilities_up_final[:, 1] > threshold_up).astype(int)
 
 predicted_probabilities_down_final = final_model_down.predict_proba(X_test)
-predicted_down_final = (predicted_probabilities_down_final[:, 1] > threshold_down).astype(int)
+predicted_down_final = (
+    predicted_probabilities_down_final[:, 1] > threshold_down
+).astype(int)
 accuracy_up = accuracy_score(y_up_test, predicted_up_final)
 precision_up = precision_score(y_up_test, predicted_up_final)
 recall_up = recall_score(y_up_test, predicted_up_final)
 f1_up = f1_score(y_up_test, predicted_up_final)
-print('leny',len(y_up_test),'yuptestsum',y_up_test.sum(),'ydowntestsum',y_down_test.sum())
-print('predictedupsum',predicted_up_final.sum(),'predicteddownsum',predicted_down_final.sum())
+print(
+    "leny",
+    len(y_up_test),
+    "yuptestsum",
+    y_up_test.sum(),
+    "ydowntestsum",
+    y_down_test.sum(),
+)
+print(
+    "predictedupsum",
+    predicted_up_final.sum(),
+    "predicteddownsum",
+    predicted_down_final.sum(),
+)
 print("Metrics for Target_Up:")
 print(f"Accuracy: {accuracy_up:.4f}")
 print(f"Precision: {precision_up:.4f}")
@@ -404,7 +458,6 @@ print(f"Precision: {precision_down:.4f}")
 print(f"Recall: {recall_down:.4f}")
 print(f"F1 Score: {f1_down:.4f}")
 # This code will print the accuracy, precision, recall, and F1 score for both the "up" and "down"
-
 
 
 # # You can then compute the performance metrics (like accuracy, F1 score, etc.) using `predicted_up_final` and `predicted_down_final`
@@ -464,6 +517,7 @@ print(f"F1 Score: {f1_down:.4f}")
 #
 #     print("Metrics for Target_Up:", accuracy_up, precision_up, recall_up, f1_up)
 #     print("Metrics for Target_Down:", accuracy_down, precision_down, recall_down, f1_down)
+
 
 def save_file_with_shorter_name(data, file_path):
     try:

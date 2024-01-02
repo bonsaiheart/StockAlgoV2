@@ -8,10 +8,11 @@ import Trained_Models.trained_minute_models  # Import your module
 from Trained_Models import trained_minute_models
 from Trained_Models import pytorch_trained_minute_models
 
+
 def get_model_names(module):
     model_names = []
     for name, obj in inspect.getmembers(module):
-        if inspect.isfunction(obj) and name != 'load_model':  # Exclude 'load_model'
+        if inspect.isfunction(obj) and name != "load_model":  # Exclude 'load_model'
             model_names.append(name)
     return model_names
 
@@ -22,31 +23,40 @@ module_names = [
     pytorch_trained_minute_models,
 ]
 
+
 def forward_rolling_min(series, window):
     return series.shift(-window + 1).rolling(window=window, min_periods=1).min()
+
 
 def forward_rolling_max(series, window):
     return series.shift(-window + 1).rolling(window=window, min_periods=1).max()
 
+
 # Function to apply predictions to DataFrame
 def apply_predictions_to_df(module_name, df, filename):
-    columns_to_keep = ["LastTradeTime", "Current Stock Price", '1HR_later_Price',
-'2HR_later_Price',
-'3HR_later_Price',
-'4HR_later_Price',
-'5HR_later_Price']
-    df['4hourslater% change'] = ((df['Current Stock Price'] - df['Current Stock Price'].shift(-240)) / df[
-        'Current Stock Price'].shift(-240)) * 100
-    df['1HR_later_Price'] = df['Current Stock Price'].shift(-60)
-    df['2HR_later_Price'] = df['Current Stock Price'].shift(-120)
-    df['3HR_later_Price'] = df['Current Stock Price'].shift(-180)
-    df['4HR_later_Price'] = df['Current Stock Price'].shift(-240)
-    df['5HR_later_Price'] = df['Current Stock Price'].shift(-300)
+    columns_to_keep = [
+        "LastTradeTime",
+        "Current Stock Price",
+        "1HR_later_Price",
+        "2HR_later_Price",
+        "3HR_later_Price",
+        "4HR_later_Price",
+        "5HR_later_Price",
+    ]
+    df["4hourslater% change"] = (
+        (df["Current Stock Price"] - df["Current Stock Price"].shift(-240))
+        / df["Current Stock Price"].shift(-240)
+    ) * 100
+    df["1HR_later_Price"] = df["Current Stock Price"].shift(-60)
+    df["2HR_later_Price"] = df["Current Stock Price"].shift(-120)
+    df["3HR_later_Price"] = df["Current Stock Price"].shift(-180)
+    df["4HR_later_Price"] = df["Current Stock Price"].shift(-240)
+    df["5HR_later_Price"] = df["Current Stock Price"].shift(-300)
     # Calculate future high and low prices
     timeframes = [20, 60, 120, 180, 240]  # 20min, 1hr, 2hr, 3hr, 4hr in minutes
     for t in timeframes:
-        df[f'High_{t}min'] = forward_rolling_max(df['Current Stock Price'], t)
-        df[f'Low_{t}min'] = forward_rolling_min(df['Current Stock Price'], t)
+        df[f"High_{t}min"] = forward_rolling_max(df["Current Stock Price"], t)
+        df[f"Low_{t}min"] = forward_rolling_min(df["Current Stock Price"], t)
 
     # Keep only the specified columns
 
@@ -55,30 +65,43 @@ def apply_predictions_to_df(module_name, df, filename):
         for model_name in model_names:
             # print(model_namesme)
             # if model_name == "Buy_20min_05pct_ptclass_A1" or model_name=='Sell_20min_05pct_ptclass_S1':
-                print(f"Applying model: {model_name}")
-                model_func = getattr(module, model_name)
-                result = model_func(df)
+            print(f"Applying model: {model_name}")
+            model_func = getattr(module, model_name)
+            result = model_func(df)
 
-                if isinstance(result, tuple):
-                    df[model_name], stock_takeprofit, stock_stoploss,option_takeprofit,option_stoploss = result
-                else:
-                    df[model_name] = result
+            if isinstance(result, tuple):
+                (
+                    df[model_name],
+                    stock_takeprofit,
+                    stock_stoploss,
+                    option_takeprofit,
+                    option_stoploss,
+                ) = result
+            else:
+                df[model_name] = result
 
-                columns_to_keep.append(model_name)
-    df = df[columns_to_keep + [f'High_{t}min' for t in timeframes] + [f'Low_{t}min' for t in timeframes]]
+            columns_to_keep.append(model_name)
+    df = df[
+        columns_to_keep
+        + [f"High_{t}min" for t in timeframes]
+        + [f"Low_{t}min" for t in timeframes]
+    ]
 
     # df = df[columns_to_keep]
     df.to_csv(f"newnewnew_algooutput_{filename}")
 
+
 # Directory containing CSV files
 dir = "../data/historical_multiday_minute_DF"
-prefixes_to_match = ["SPY","GOOG","TSLA"]  # Add your prefixes here
+prefixes_to_match = ["SPY", "GOOG", "TSLA"]  # Add your prefixes here
 
 for filename in os.listdir(dir):
     filepath = os.path.join(dir, filename)
 
     # Check if the filename ends with ".csv" and starts with any of the specified prefixes
-    if filename.endswith(".csv") and any(filename.startswith(prefix) for prefix in prefixes_to_match):
+    if filename.endswith(".csv") and any(
+        filename.startswith(prefix) for prefix in prefixes_to_match
+    ):
         df = pd.read_csv(filepath)
         apply_predictions_to_df(module_names, df, filename)
 # threshold = 1e10

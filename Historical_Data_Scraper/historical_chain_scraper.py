@@ -83,12 +83,16 @@ def get_and_write_data(firstpage, lastpage):
 
             while retry_count < max_retries:
                 try:
-                    response = requests.get(f"https://chartexchange.com/symbol/opra-{subdir}")
+                    response = requests.get(
+                        f"https://chartexchange.com/symbol/opra-{subdir}"
+                    )
                     response.raise_for_status()
 
                     break  # Break out of the retry loop if the request is successful
                 except RequestException as e:
-                    error_log_file.write(f"Error occurred while retrieving subdirectory {subdir}: {e}\n")
+                    error_log_file.write(
+                        f"Error occurred while retrieving subdirectory {subdir}: {e}\n"
+                    )
                     error_log_file.write(f"max retries {subdir}: {e}\n")
                     retry_count += 1
                     time.sleep(1)  # Wait for 1 second before retrying
@@ -116,11 +120,20 @@ def get_and_write_data(firstpage, lastpage):
                 option_type = match_symbol.group(3).upper()
                 price = float(match_symbol.group(4))
                 formatted_strike_price = f"{price:.2f}".replace(".", "").zfill(8)
-                option_contract = f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
+                option_contract = (
+                    f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
+                )
 
                 for match in matches:
                     print(option_contract)
-                    data_row = [option_contract, symbol, expiration_date, option_type, formatted_strike_price, *match]
+                    data_row = [
+                        option_contract,
+                        symbol,
+                        expiration_date,
+                        option_type,
+                        formatted_strike_price,
+                        *match,
+                    ]
                     writer.writerow(data_row)
         # Remove successfully processed subdirectories from the missed_subdirs list
 
@@ -155,12 +168,16 @@ def process_missed_subdirs(writer):
 
             while retry_count < max_retries:
                 try:
-                    response = requests.get(f"https://chartexchange.com/symbol/opra-{subdir}")
+                    response = requests.get(
+                        f"https://chartexchange.com/symbol/opra-{subdir}"
+                    )
                     response.raise_for_status()
                     print(response)
                     break  # Break out of the retry loop if the request is successful
                 except RequestException as e:
-                    error_log_file.write(f"Error occurred while retrieving subdirectory {subdir}: {e}\n")
+                    error_log_file.write(
+                        f"Error occurred while retrieving subdirectory {subdir}: {e}\n"
+                    )
                     retry_count += 1
                     time.sleep(1)  # Wait for 1 second before retrying
 
@@ -186,11 +203,20 @@ def process_missed_subdirs(writer):
                 option_type = match_symbol.group(3).upper()
                 price = float(match_symbol.group(4))
                 formatted_strike_price = f"{price:.2f}".replace(".", "").zfill(8)
-                option_contract = f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
+                option_contract = (
+                    f"{symbol}{expiration_date}{option_type}{formatted_strike_price}"
+                )
 
                 for match in matches:
                     print(option_contract)
-                    data_row = [option_contract, symbol, expiration_date, option_type, formatted_strike_price, *match]
+                    data_row = [
+                        option_contract,
+                        symbol,
+                        expiration_date,
+                        option_type,
+                        formatted_strike_price,
+                        *match,
+                    ]
                     writer.writerow(data_row)
 
             print(f"Processing missed subdir: {subdir}, missed page: {page}")

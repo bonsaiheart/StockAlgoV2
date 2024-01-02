@@ -4,7 +4,12 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif, RFECV
 from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_score
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSplit, cross_val_score
+from sklearn.model_selection import (
+    GridSearchCV,
+    train_test_split,
+    TimeSeriesSplit,
+    cross_val_score,
+)
 import os
 import numpy as np
 import sys
@@ -13,7 +18,20 @@ from skopt import BayesSearchCV, Optimizer
 DF_filename = "../../../Historical_Data_Scraper/data/Historical_Processed_ChainData/SPY_w_OHLC.csv"
 ml_dataframe = pd.read_csv(DF_filename)
 
-Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','RSI','AwesomeOsc']
+Chosen_Predictor = [
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "B1/B2",
+    "B2/B1",
+    "ITM PCR-Vol",
+    "ITM PCR-OI",
+    "ITM PCRv Up2",
+    "ITM PCRv Down2",
+    "ITM PCRoi Up2",
+    "ITM PCRoi Down2",
+    "RSI",
+    "AwesomeOsc",
+]
 
 ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1', 'B1/B2', 'PCRv Up4']
@@ -21,7 +39,7 @@ cells_forward_to_check = 2
 ##this many cells must meet the percentup/down requiremnet.
 threshold_cells_up = cells_forward_to_check * 0.6
 threshold_cells_down = cells_forward_to_check * 0.6
-#TODO add Beta to the percent, to make it more applicable across tickers.
+# TODO add Beta to the percent, to make it more applicable across tickers.
 percent_up = 2
 percent_down = -2
 ###this many cells cannot be < current price for up, >
@@ -30,7 +48,7 @@ anticondition_threshold_cells_up = cells_forward_to_check * 0
 anticondition_threshold_cells_down = cells_forward_to_check * 0
 
 ####multiplier for positive class weight.  It is already "balanced".  This should put more importance on the positive cases.
-positivecase_weight_up = 20   ###changed these from 20 7/12
+positivecase_weight_up = 20  ###changed these from 20 7/12
 
 positivecase_weight_down = 20
 ###changed these from 20 7/12
@@ -46,24 +64,41 @@ threshold_down = 0.7
 
 
 parameters = {
-    "max_depth": (10,50, 100,140 ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
+    "max_depth": (
+        10,
+        50,
+        100,
+        140,
+    ),  # 50//70/65  100      up 65/3/1400  down 85/5/1300         71123 for 15 min  100/80
     # ###up 100/2/1300,down 80/3/1000
-    "min_samples_split": (2, 3,6,10,15),  # 5//5/2     5                      71123                  for 15   2, 3,
-    "n_estimators": (1000 ,1500,2000,2500 ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
+    "min_samples_split": (
+        2,
+        3,
+        6,
+        10,
+        15,
+    ),  # 5//5/2     5                      71123                  for 15   2, 3,
+    "n_estimators": (
+        1000,
+        1500,
+        2000,
+        2500,
+    ),  # 1300//1600/1300/1400/1400  71123for 15 ,1000, 1300, ,
 }
-#120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
-#30cells - up80.4.900 down  80.2.1300
-#45 cells Target_Up: {'max_depth': 40, 'min_samples_split': 2, 'n_estimators': 900}Down: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
-#60cells up=60.2.800  down= 60.2.1250 1 hr=Target_Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}Target_Down: {'max_depth': 30, 'min_samples_split': 4, 'n_estimators': 800}
+# 120 cells own: {'max_depth': 30, 'min_samples_split': 3, 'n_estimators': 900}Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
+# 30cells - up80.4.900 down  80.2.1300
+# 45 cells Target_Up: {'max_depth': 40, 'min_samples_split': 2, 'n_estimators': 900}Down: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}
+# 60cells up=60.2.800  down= 60.2.1250 1 hr=Target_Up: {'max_depth': 30, 'min_samples_split': 2, 'n_estimators': 800}Target_Down: {'max_depth': 30, 'min_samples_split': 4, 'n_estimators': 800}
 ##TODO make param_up/param_down.  up = 'max_depth': 40, 'min_samples_split': 7, 'n_estimators': 1000
-#down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
+# down=max_depth': 90, 'min_samples_split': 2, 'n_estimators': 1450
 ####TODO REMEMBER I MADE LOTS OF CHANGES DEBUGGING 7/5/23
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 Chosen_Predictor_nobrackets = [
-    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "") for x in Chosen_Predictor
+    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "")
+    for x in Chosen_Predictor
 ]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 length = ml_dataframe.shape[0]
@@ -93,11 +128,13 @@ for i in range(1, cells_forward_to_check + 1):
     anticondition_UpCounter += anticondition_up.astype(int)
     anticondition_DownCounter += anticondition_down.astype(int)
     ml_dataframe["Target_Up"] = (
-        (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+        (targetUpCounter >= threshold_cells_up)
+        & (anticondition_UpCounter <= anticondition_threshold_cells_up)
     ).astype(int)
 
     ml_dataframe["Target_Down"] = (
-        (targetDownCounter >= threshold_cells_down) & (anticondition_DownCounter <= anticondition_threshold_cells_down)
+        (targetDownCounter >= threshold_cells_down)
+        & (anticondition_DownCounter <= anticondition_threshold_cells_down)
     ).astype(int)
 
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
@@ -123,14 +160,20 @@ X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_s
 feature_selector_up = SelectKBest(score_func=mutual_info_classif)
 # Calculate class weights
 num_positive_up = sum(y_up_train)  # Number of positive cases in the training set
-num_negative_up = len(y_up_train) - num_positive_up  # Number of negative cases in the training set
+num_negative_up = (
+    len(y_up_train) - num_positive_up
+)  # Number of negative cases in the training set
 weight_negative_up = 1.0
 weight_positive_up = (num_negative_up / num_positive_up) * positivecase_weight_up
 
 num_positive_down = sum(y_down_train)  # Number of positive cases in the training set
-num_negative_down = len(y_down_train) - num_positive_down  # Number of negative cases in the training set
+num_negative_down = (
+    len(y_down_train) - num_positive_down
+)  # Number of negative cases in the training set
 weight_negative_down = 1.0
-weight_positive_down = (num_negative_down / num_positive_down) * positivecase_weight_down
+weight_positive_down = (
+    num_negative_down / num_positive_down
+) * positivecase_weight_down
 print(
     "num_positive_up= ",
     num_positive_up,
@@ -141,8 +184,18 @@ print(
     "negative_down= ",
     num_negative_down,
 )
-print("weight_positve_up: ", weight_positive_up, "//weight_negative_up: ", weight_negative_up)
-print("weight_positve_down: ", weight_positive_down, "//weight_negative_down: ", weight_negative_down)
+print(
+    "weight_positve_up: ",
+    weight_positive_up,
+    "//weight_negative_up: ",
+    weight_negative_up,
+)
+print(
+    "weight_positve_down: ",
+    weight_positive_down,
+    "//weight_negative_down: ",
+    weight_negative_down,
+)
 # Define custom class weights as a dictionary
 custom_weights_up = {
     0: weight_negative_up,
@@ -170,23 +223,30 @@ print("Shape of X_train_selected_down:", X_train_selected_down.shape, "\n")
 tscv = TimeSeriesSplit(n_splits=5)
 
 # scoring = 'precision'
-grid_search_up = GridSearchCV(estimator=model_up, param_grid=parameters, cv=tscv, scoring="precision")
+grid_search_up = GridSearchCV(
+    estimator=model_up, param_grid=parameters, cv=tscv, scoring="precision"
+)
 
 print("Performing GridSearchCV UP...\n")
 grid_search_up.fit(X_train_selected_up, y_up_train)
-best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
+best_features_up = [
+    Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)
+]
 print("Best features for Target_Up:", best_features_up)
 
 print("Best parameters for Target_Up:", grid_search_up.best_params_)
 print("Best score for Target_Up:", grid_search_up.best_score_)
-best_param_up = (
-    f"Best parameters for Target_Up: {grid_search_up.best_params_}. Best precision: {grid_search_up.best_score_}"
-)
+best_param_up = f"Best parameters for Target_Up: {grid_search_up.best_params_}. Best precision: {grid_search_up.best_score_}"
 model_up = grid_search_up.best_estimator_
-X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up > 0)] = sys.float_info.max
-X_train_selected_up[np.isinf(X_train_selected_up) & (X_train_selected_up < 0)] = -sys.float_info.max
+X_train_selected_up[
+    np.isinf(X_train_selected_up) & (X_train_selected_up > 0)
+] = sys.float_info.max
+X_train_selected_up[
+    np.isinf(X_train_selected_up) & (X_train_selected_up < 0)
+] = -sys.float_info.max
 importance_tuples = [
-    (feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)
+    (feature, importance)
+    for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)
 ]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 for feature, importance in importance_tuples:
@@ -196,22 +256,25 @@ selected_features_up = feature_selector_up.get_support(indices=True)
 feature_names_up = X_train.columns[selected_features_up]
 print("Selected Features Up:", feature_names_up)
 
-grid_search_down = GridSearchCV(estimator=model_down, param_grid=parameters, cv=tscv, scoring="precision")
+grid_search_down = GridSearchCV(
+    estimator=model_down, param_grid=parameters, cv=tscv, scoring="precision"
+)
 print("Performing GridSearchCV DOWN...", "\n")
 grid_search_down.fit(X_train_selected_down, y_down_train)
-best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
+best_features_down = [
+    Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)
+]
 print("Best features for Target_Down:", best_features_down)
 selected_features_down = feature_selector_down.get_support(indices=True)
 
 print("Best parameters for Target_Down:", grid_search_down.best_params_)
 print("Best score for Target_Down:", grid_search_down.best_score_, "\n")
-best_param_down = (
-    f"Best parameters for Target_Down: {grid_search_down.best_params_}. Best precision: {grid_search_down.best_score_}"
-)
+best_param_down = f"Best parameters for Target_Down: {grid_search_down.best_params_}. Best precision: {grid_search_down.best_score_}"
 model_down = grid_search_down.best_estimator_
 
 importance_tuples = [
-    (feature, importance) for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)
+    (feature, importance)
+    for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)
 ]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 

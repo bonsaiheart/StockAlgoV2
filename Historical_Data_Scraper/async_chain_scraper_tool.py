@@ -47,7 +47,9 @@ async def process_subdirectory(session, subdir, writer):
                         writer.writerow(data_row)
                     file.close()
         except ClientError as e:
-            error_log_file.write(f"Error occurred while retrieving subdirectory {subdir}: {e}\n")
+            error_log_file.write(
+                f"Error occurred while retrieving subdirectory {subdir}: {e}\n"
+            )
             error_log_file.write(f"max retries {subdir}: {e}\n")
 
 
@@ -90,7 +92,9 @@ async def foo(session, url, writer):
         # Process the subdirectories concurrently
         tasks = []
         for _ in range(max_concurrency):
-            task = asyncio.create_task(process_subdirectories(queue, session, writer, sem))
+            task = asyncio.create_task(
+                process_subdirectories(queue, session, writer, sem)
+            )
             tasks.append(task)
 
         # Wait for all tasks to complete
@@ -119,7 +123,9 @@ async def get_and_write_data(firstpage, lastpage):
                     await asyncio.gather(*page_tasks)
 
             except ClientError as e:
-                error_log_file.write(f"Error occurred while retrieving page {page}: {e}\n")
+                error_log_file.write(
+                    f"Error occurred while retrieving page {page}: {e}\n"
+                )
 
                 # Save the current progress
                 with open("last_processed.txt", "w") as f:
@@ -129,7 +135,9 @@ async def get_and_write_data(firstpage, lastpage):
 
             # Save the last processed values of page
             with open("last_processed.txt", "w") as f:
-                f.write(str(page + 1) + "\n")  # Add 1 to account for the current iteration
+                f.write(
+                    str(page + 1) + "\n"
+                )  # Add 1 to account for the current iteration
 
             # Save the missed subdirectories to a file for later processing
             with open("missed_subdirs.txt", "a") as f:
@@ -155,12 +163,18 @@ def process_missed_subdirs():
 
                 while retry_count < max_retries:
                     try:
-                        response = requests.get(f"https://chartexchange.com/symbol/opra-{subdir}")
+                        response = requests.get(
+                            f"https://chartexchange.com/symbol/opra-{subdir}"
+                        )
                         response.raise_for_status()
                         break  # Break out of the retry loop if the request is successful
                     except RequestException as e:
-                        error_log_file.write(f"Error occurred while retrieving subdirectory {subdir}: {e}\n")
-                        error_log_file.write(f"max retries while doing the missed subdir: {subdir}: {e}\n")
+                        error_log_file.write(
+                            f"Error occurred while retrieving subdirectory {subdir}: {e}\n"
+                        )
+                        error_log_file.write(
+                            f"max retries while doing the missed subdir: {subdir}: {e}\n"
+                        )
                         retry_count += 1
                         time.sleep(1)  # Wait for 1 second before retrying
 
@@ -182,7 +196,9 @@ def process_missed_subdirs():
                     option_type = match_symbol.group(3).upper()
                     strike_price = float(match_symbol.group(4))
                     formatted_exp_date = expiration_date[2:]
-                    formatted_strike_price = f"{int(strike_price * 1000):08d}".replace(".", "").zfill(8)
+                    formatted_strike_price = f"{int(strike_price * 1000):08d}".replace(
+                        ".", ""
+                    ).zfill(8)
 
                     option_contract = f"{symbol}{formatted_exp_date}{option_type}{formatted_strike_price}"
 

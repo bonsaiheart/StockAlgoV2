@@ -106,7 +106,7 @@ yf_ticker_obj = yf.Ticker(ticker)
 # print(end_date)
 
 # Fetch price data in bulk
-#added this read, so i can comment out above
+# added this read, so i can comment out above
 # ###combined = pd.read_csv('combined_data.csv')
 # combined = combined.sort_values(by=["Date", "ExpDate", "Strike"])
 # start_date = combined['Date'].min()
@@ -114,7 +114,7 @@ yf_ticker_obj = yf.Ticker(ticker)
 # end_date = combined['Date'].max()
 # price_data = yf_ticker_obj.history(start=start_date, end=end_date)
 #
-#TODO add OPEN HIGH LOW
+# TODO add OPEN HIGH LOW
 # # Map price data to the corresponding rows in the combined DataFrame
 # price_data['Date'] = pd.to_datetime(price_data.index).strftime("%Y-%m-%d")
 #
@@ -184,18 +184,20 @@ combined = pd.read_csv("data/historical_optionchain/SPY.csv")
 
 results = []
 #
-combined = combined.dropna(subset=['Current Price'])
+combined = combined.dropna(subset=["Current Price"])
 
 groups = combined.groupby("Date")
 # divide into groups by exp date, call info from group.
-for Date,  group,in groups:
-
+for (
+    Date,
+    group,
+) in groups:
     # date_str = str(Date)
     # date_obj = datetime.strptime(date_str, "%Y%m%d")
     # formatted_date = date_obj.strftime("%Y-%m-%d")
     formatted_date = str(Date)
-    current_price = combined.loc[combined['Date'] == Date, 'Current Price'].iloc[0]
-    print(Date,current_price)
+    current_price = combined.loc[combined["Date"] == Date, "Current Price"].iloc[0]
+    print(Date, current_price)
     pain_list = []
     strike_LASTPRICExOI_list = []
     call_LASTPRICExOI_list = []
@@ -204,9 +206,15 @@ for Date,  group,in groups:
     # AwesomeOsc = combined['AwesomeOsc']
     strike = group["Strike"]
 
-    ITM_CallsVol = group.loc[(group["Strike"] <= group["Current Price"]), "Call_Volume"].sum()
-    ITM_PutsVol = group.loc[(group["Strike"] >= group["Current Price"]), "Put_Volume"].sum()
-    ITM_CallsOI = group.loc[(group["Strike"] <= group["Current Price"]), "Call_OI"].sum()
+    ITM_CallsVol = group.loc[
+        (group["Strike"] <= group["Current Price"]), "Call_Volume"
+    ].sum()
+    ITM_PutsVol = group.loc[
+        (group["Strike"] >= group["Current Price"]), "Put_Volume"
+    ].sum()
+    ITM_CallsOI = group.loc[
+        (group["Strike"] <= group["Current Price"]), "Call_OI"
+    ].sum()
     ITM_PutsOI = group.loc[(group["Strike"] >= group["Current Price"]), "Put_OI"].sum()
     ITM_OI = ITM_CallsOI + ITM_PutsOI
     all_CallsVol = group.Call_Volume.sum()
@@ -215,7 +223,6 @@ for Date,  group,in groups:
     all_CallsOI = group.Call_OI.sum()
     all_PutsOI = group.Put_OI.sum()
     all_OI = all_PutsOI + all_CallsOI
-
 
     if all_CallsVol != 0 and not np.isnan(all_CallsVol):
         PC_Ratio_Vol = all_PutsVol / all_CallsVol
@@ -227,7 +234,6 @@ for Date,  group,in groups:
     else:
         ITM_PC_Ratio_Vol = np.nan
 
-
     if all_CallsOI != 0 and not np.isnan(all_CallsOI):
         PC_Ratio_OI = all_PutsOI / all_CallsOI
     else:
@@ -237,7 +243,6 @@ for Date,  group,in groups:
         ITM_PC_Ratio_OI = ITM_PutsOI / ITM_CallsOI
     else:
         ITM_PC_Ratio_OI = np.nan
-
 
     for strikeprice in strike:
         itmCalls_dollarsFromStrikeXoiSum = group.loc[
@@ -250,14 +255,9 @@ for Date,  group,in groups:
         pain_value = itmPuts_dollarsFromStrikeXoiSum + itmCalls_dollarsFromStrikeXoiSum
         pain_list.append((strikeprice, pain_value))
 
-
-
     max_pain = min(pain_list, key=lambda x: x[1])[0]
 
-
-
     if not group.empty:
-
         current_price_index = group["Strike"].sub(current_price).abs().idxmin()
         closest_strike_currentprice = group.loc[current_price_index, "Strike"]
         ###RETURNS index of strike closest to CP
@@ -275,7 +275,6 @@ for Date,  group,in groups:
         lower_strike_index4 = current_price_index - 4
         # get the strikes for the closest higher and lower strikes
         try:
-
             closest_strike_currentprice = group.loc[current_price_index, "Strike"]
 
         except KeyError as e:
@@ -354,34 +353,54 @@ for Date,  group,in groups:
         if strike == None:
             strike_PCRv_dict[strike] = np.nan
         else:
-            strikeindex_abovebelowput_volume = group.loc[group["Strike"] == strike, "Put_Volume"].values[0]
-            strikeindex_abovebelowcall_volume = group.loc[group["Strike"] == strike, "Call_Volume"].values[0]
+            strikeindex_abovebelowput_volume = group.loc[
+                group["Strike"] == strike, "Put_Volume"
+            ].values[0]
+            strikeindex_abovebelowcall_volume = group.loc[
+                group["Strike"] == strike, "Call_Volume"
+            ].values[0]
             if strikeindex_abovebelowcall_volume == 0:
                 strike_PCRv_dict[strike] = np.nan
             else:
-                strike_PCRv_dict[strike] = strikeindex_abovebelowput_volume / strikeindex_abovebelowcall_volume
+                strike_PCRv_dict[strike] = (
+                    strikeindex_abovebelowput_volume / strikeindex_abovebelowcall_volume
+                )
 
     for strike in strikeindex_abovebelow:
         if strike == None:
             strike_PCRoi_dict[strike] = np.nan
         else:
-            strikeindex_abovebelowput_oi = group.loc[group["Strike"] == strike, "Put_OI"].values[0]
-            strikeindex_abovebelowcall_oi = group.loc[group["Strike"] == strike, "Call_OI"].values[0]
+            strikeindex_abovebelowput_oi = group.loc[
+                group["Strike"] == strike, "Put_OI"
+            ].values[0]
+            strikeindex_abovebelowcall_oi = group.loc[
+                group["Strike"] == strike, "Call_OI"
+            ].values[0]
             if strikeindex_abovebelowcall_oi == 0:
                 strike_PCRoi_dict[strike] = np.nan
             else:
-                strike_PCRoi_dict[strike] = strikeindex_abovebelowput_oi / strikeindex_abovebelowcall_oi
+                strike_PCRoi_dict[strike] = (
+                    strikeindex_abovebelowput_oi / strikeindex_abovebelowcall_oi
+                )
 
         ##CP PCR V/oi
-        cp_put_vol = group.loc[group["Strike"] == closest_strike_currentprice, "Put_Volume"].values[0]
-        cp_call_vol = group.loc[group["Strike"] == closest_strike_currentprice, "Call_Volume"].values[0]
+        cp_put_vol = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Put_Volume"
+        ].values[0]
+        cp_call_vol = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Call_Volume"
+        ].values[0]
         if np.isnan(cp_put_vol) or np.isnan(cp_call_vol) or cp_call_vol == 0:
             PCRv_cp_strike = np.nan
         else:
             PCRv_cp_strike = cp_put_vol / cp_call_vol
 
-        cp_put_OI = group.loc[group["Strike"] == closest_strike_currentprice, "Put_OI"].values[0]
-        cp_call_OI = group.loc[group["Strike"] == closest_strike_currentprice, "Call_OI"].values[0]
+        cp_put_OI = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Put_OI"
+        ].values[0]
+        cp_call_OI = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Call_OI"
+        ].values[0]
         if np.isnan(cp_put_OI) or np.isnan(cp_call_OI) or cp_call_OI == 0:
             PCRoi_cp_strike = np.nan
         else:
@@ -409,34 +428,47 @@ for Date,  group,in groups:
             if strikeabovebelow == None:
                 strike_ITMPCRv_dict[strikeabovebelow] = np.nan
             else:
-                strike_ITMPCRvput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_Volume"].sum()
-                strike_ITMPCRvcall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_Volume"].sum()
+                strike_ITMPCRvput_volume = group.loc[
+                    (group["Strike"] >= strikeabovebelow), "Put_Volume"
+                ].sum()
+                strike_ITMPCRvcall_volume = group.loc[
+                    (group["Strike"] <= strikeabovebelow), "Call_Volume"
+                ].sum()
                 if strike_ITMPCRvcall_volume == 0:
                     strike_ITMPCRv_dict[strikeabovebelow] = np.nan
                 else:
-                    strike_ITMPCRv_dict[strikeabovebelow] = strike_ITMPCRvput_volume / strike_ITMPCRvcall_volume
+                    strike_ITMPCRv_dict[strikeabovebelow] = (
+                        strike_ITMPCRvput_volume / strike_ITMPCRvcall_volume
+                    )
 
         for strikeabovebelow in strikeindex_abovebelow:
             if strikeabovebelow == None:
                 strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
             else:
-                strike_ITMPCRoiput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_OI"].sum()
-                strike_ITMPCRoicall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_OI"].sum()
+                strike_ITMPCRoiput_volume = group.loc[
+                    (group["Strike"] >= strikeabovebelow), "Put_OI"
+                ].sum()
+                strike_ITMPCRoicall_volume = group.loc[
+                    (group["Strike"] <= strikeabovebelow), "Call_OI"
+                ].sum()
                 if strike_ITMPCRoicall_volume == 0:
                     strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
                 else:
-                    strike_ITMPCRoi_dict[strikeabovebelow] = strike_ITMPCRoiput_volume / strike_ITMPCRoicall_volume
+                    strike_ITMPCRoi_dict[strikeabovebelow] = (
+                        strike_ITMPCRoiput_volume / strike_ITMPCRoicall_volume
+                    )
 
         ###TODO use above/below lac strikes instead of just closest.
         ##LAC V/oi PCR
 
-        if np.isnan(PC_Ratio_Vol_atMP) or np.isnan(PC_Ratio_OI_atMP) or PC_Ratio_OI_atMP == 0:
+        if (
+            np.isnan(PC_Ratio_Vol_atMP)
+            or np.isnan(PC_Ratio_OI_atMP)
+            or PC_Ratio_OI_atMP == 0
+        ):
             PCR_vol_OI_at_MP = np.nan
         else:
             PCR_vol_OI_at_MP = round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3)
-
-
-
 
         ###TODO error handling for scalar divide of zero denominator
 
@@ -444,27 +476,31 @@ for Date,  group,in groups:
         (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
     )
     Bonsai2_Ratio = (
-        (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
+        (
+            all_PutsOI == 0
+            or ITM_PutsOI == 0
+            or all_CallsOI == 0
+            or ITM_CallsVol == 0
+            or ITM_CallsOI == 0
+        )
         and float("inf")
         or ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
         * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
     )
 
-
-
     results.append(
         {
             ###TODO change all price data to percentage change?
             ###TODO change closest strike to average of closest above/closest below
-            "Date":Date,
+            "Date": Date,
             # "ExpDate": ,
             "Current Stock Price": float(current_price),
             # "Current SP % Change(LAC)": round(float(price_change_percent), 2),
             "Maximum Pain": max_pain,
             "Bonsai Ratio": round(Bonsai_Ratio, 5),
             "Bonsai Ratio 2": round(Bonsai2_Ratio, 5),
-            "B1/B2":round((Bonsai_Ratio/Bonsai2_Ratio),4),
-            "B2/B1":round((Bonsai2_Ratio/Bonsai_Ratio),4),
+            "B1/B2": round((Bonsai_Ratio / Bonsai2_Ratio), 4),
+            "B2/B1": round((Bonsai2_Ratio / Bonsai_Ratio), 4),
             # 'Bonsai_2 %change': bonsai2_percent_change,
             "PCR-Vol": round(PC_Ratio_Vol, 3),
             "PCR-OI": round(PC_Ratio_OI, 3),
@@ -511,38 +547,37 @@ for Date,  group,in groups:
             # "ITM OI": ITM_OI,
             # "Total OI": all_OI,
             # "ITM Contracts %": ITM_OI / all_OI,
-#             "Net_IV": round(Net_IV, 3),
-#             "Net ITM IV": round(ITM_Avg_Net_IV, 3),
-#             "Net IV MP": round(Net_IV_at_MP, 3),
-#             "Net IV LAC": round(Net_IV_Closest_Strike_LAC, 3),
-#             "NIV Current Strike": round(NIV_CurrentStrike, 3),
-#             "NIV 1Higher Strike": round(NIV_1HigherStrike, 3),
-#             "NIV 1Lower Strike": round(NIV_1LowerStrike, 3),
-#             "NIV 2Higher Strike": round(NIV_2HigherStrike, 3),
-#             "NIV 2Lower Strike": round(NIV_2LowerStrike, 3),
-#             "NIV 3Higher Strike": round(NIV_3HigherStrike, 3),
-#             "NIV 3Lower Strike": round(NIV_3LowerStrike, 3),
-#             "NIV 4Higher Strike": round(NIV_4HigherStrike, 3),
-#             "NIV 4Lower Strike": round(NIV_4LowerStrike, 3),
-#             ###Positive number means NIV highers are higher, and price will drop.
-#             #TODO should do as percentage change from total niv numbers to see if its big diff.
-#             "NIV highers(-)lowers1-2": (
-#                                                    NIV_1HigherStrike + NIV_2HigherStrike ) - (
-#                                                    NIV_1LowerStrike + NIV_2LowerStrike ),
-#
-#             "NIV highers(-)lowers1-4": (NIV_1HigherStrike+NIV_2HigherStrike+NIV_3HigherStrike+NIV_4HigherStrike)-(NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike+NIV_4LowerStrike),
-#             "NIV 1-2 % from mean": (
-#                     ((NIV_1HigherStrike + NIV_2HigherStrike) - (
-#                                                NIV_1LowerStrike + NIV_2LowerStrike))/((NIV_1HigherStrike+NIV_2HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike)/4))*100,
-#
-#             "NIV 1-4 % from mean": (
-#                 (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
-#                                                    NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)/((NIV_1HigherStrike+NIV_2HigherStrike+ NIV_3HigherStrike + NIV_4HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike + NIV_4LowerStrike)/8))*100,
-# ##TODO swap (/) with result = np.divide(x, y)
-#             "Net_IV/OI": Net_IV / all_OI,
-#             "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
-#             "Closest Strike to CP": closest_strike_currentprice,
-
+            #             "Net_IV": round(Net_IV, 3),
+            #             "Net ITM IV": round(ITM_Avg_Net_IV, 3),
+            #             "Net IV MP": round(Net_IV_at_MP, 3),
+            #             "Net IV LAC": round(Net_IV_Closest_Strike_LAC, 3),
+            #             "NIV Current Strike": round(NIV_CurrentStrike, 3),
+            #             "NIV 1Higher Strike": round(NIV_1HigherStrike, 3),
+            #             "NIV 1Lower Strike": round(NIV_1LowerStrike, 3),
+            #             "NIV 2Higher Strike": round(NIV_2HigherStrike, 3),
+            #             "NIV 2Lower Strike": round(NIV_2LowerStrike, 3),
+            #             "NIV 3Higher Strike": round(NIV_3HigherStrike, 3),
+            #             "NIV 3Lower Strike": round(NIV_3LowerStrike, 3),
+            #             "NIV 4Higher Strike": round(NIV_4HigherStrike, 3),
+            #             "NIV 4Lower Strike": round(NIV_4LowerStrike, 3),
+            #             ###Positive number means NIV highers are higher, and price will drop.
+            #             #TODO should do as percentage change from total niv numbers to see if its big diff.
+            #             "NIV highers(-)lowers1-2": (
+            #                                                    NIV_1HigherStrike + NIV_2HigherStrike ) - (
+            #                                                    NIV_1LowerStrike + NIV_2LowerStrike ),
+            #
+            #             "NIV highers(-)lowers1-4": (NIV_1HigherStrike+NIV_2HigherStrike+NIV_3HigherStrike+NIV_4HigherStrike)-(NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike+NIV_4LowerStrike),
+            #             "NIV 1-2 % from mean": (
+            #                     ((NIV_1HigherStrike + NIV_2HigherStrike) - (
+            #                                                NIV_1LowerStrike + NIV_2LowerStrike))/((NIV_1HigherStrike+NIV_2HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike)/4))*100,
+            #
+            #             "NIV 1-4 % from mean": (
+            #                 (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike) - (
+            #                                                    NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)/((NIV_1HigherStrike+NIV_2HigherStrike+ NIV_3HigherStrike + NIV_4HigherStrike+NIV_1LowerStrike+NIV_2LowerStrike+NIV_3LowerStrike + NIV_4LowerStrike)/8))*100,
+            # ##TODO swap (/) with result = np.divide(x, y)
+            #             "Net_IV/OI": Net_IV / all_OI,
+            #             "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
+            #             "Closest Strike to CP": closest_strike_currentprice,
         }
     )
 
@@ -556,6 +591,6 @@ output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
 df.to_csv(f"data/Historical_Processed_ChainData/{ticker}.csv", mode="x", index=False)
 
-def make_df_for_backtesting():
 
-    make_test_df.daily_series_prep_for_backtest(ticker,df)
+def make_df_for_backtesting():
+    make_test_df.daily_series_prep_for_backtest(ticker, df)

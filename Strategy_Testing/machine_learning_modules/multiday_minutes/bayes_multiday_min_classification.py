@@ -4,7 +4,12 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif, RFECV
 from sklearn.metrics import precision_score, accuracy_score, recall_score, f1_score
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV, train_test_split, TimeSeriesSplit, cross_val_score
+from sklearn.model_selection import (
+    GridSearchCV,
+    train_test_split,
+    TimeSeriesSplit,
+    cross_val_score,
+)
 import os
 import numpy as np
 import sys
@@ -20,7 +25,9 @@ from skopt import BayesSearchCV, Optimizer
 # ticker_dir = os.path.join(processed_dir, ticker)
 
 
-DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = (
+    "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+)
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # Chosen_Timeframe = "15 min later change %"
@@ -28,25 +35,78 @@ print(ml_dataframe.columns)
 # Chosen_Timeframe3 = "5 min later change %"
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','B1/B2','B2/B1','ITM PCR-Vol','ITM PCR-OI','ITM PCRv Up2','ITM PCRv Down2','ITM PCRoi Up2','ITM PCRoi Down2','Net_IV','Net ITM IV','NIV 2Higher Strike','NIV 2Lower Strike','NIV highers(-)lowers1-4','NIV 1-4 % from mean','RSI','AwesomeOsc']
 Chosen_Predictor = [
-'Maximum Pain', 'Bonsai Ratio',
-       'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCR-Vol', 'PCR-OI',
-       'PCRv @CP Strike', 'PCRoi @CP Strike', 'PCRv Up1', 'PCRv Up2',
-       'PCRv Up3', 'PCRv Up4', 'PCRv Down1', 'PCRv Down2', 'PCRv Down3',
-       'PCRv Down4', 'PCRoi Up1', 'PCRoi Up2', 'PCRoi Up3', 'PCRoi Up4',
-       'PCRoi Down1', 'PCRoi Down2', 'PCRoi Down3', 'PCRoi Down4',
-       'ITM PCR-Vol', 'ITM PCR-OI', 'ITM PCRv Up1', 'ITM PCRv Up2',
-       'ITM PCRv Up3', 'ITM PCRv Up4', 'ITM PCRv Down1', 'ITM PCRv Down2',
-       'ITM PCRv Down3', 'ITM PCRv Down4', 'ITM PCRoi Up1', 'ITM PCRoi Up2',
-       'ITM PCRoi Up3', 'ITM PCRoi Up4', 'ITM PCRoi Down1', 'ITM PCRoi Down2',
-       'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM OI', 'Total OI',
-       'ITM Contracts %', 'Net_IV', 'Net ITM IV', 'Net IV MP', 'Net IV LAC',
-       'NIV Current Strike', 'NIV 1Higher Strike', 'NIV 1Lower Strike',
-       'NIV 2Higher Strike', 'NIV 2Lower Strike', 'NIV 3Higher Strike',
-       'NIV 3Lower Strike', 'NIV 4Higher Strike', 'NIV 4Lower Strike',
-       'NIV highers(-)lowers1-2', 'NIV highers(-)lowers1-4',
-       'NIV 1-2 % from mean', 'NIV 1-4 % from mean', 'Net_IV/OI',
-       'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
-       'RSI14', 'RSI2', 'AwesomeOsc5_34' ]
+    "Maximum Pain",
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "B1/B2",
+    "B2/B1",
+    "PCR-Vol",
+    "PCR-OI",
+    "PCRv @CP Strike",
+    "PCRoi @CP Strike",
+    "PCRv Up1",
+    "PCRv Up2",
+    "PCRv Up3",
+    "PCRv Up4",
+    "PCRv Down1",
+    "PCRv Down2",
+    "PCRv Down3",
+    "PCRv Down4",
+    "PCRoi Up1",
+    "PCRoi Up2",
+    "PCRoi Up3",
+    "PCRoi Up4",
+    "PCRoi Down1",
+    "PCRoi Down2",
+    "PCRoi Down3",
+    "PCRoi Down4",
+    "ITM PCR-Vol",
+    "ITM PCR-OI",
+    "ITM PCRv Up1",
+    "ITM PCRv Up2",
+    "ITM PCRv Up3",
+    "ITM PCRv Up4",
+    "ITM PCRv Down1",
+    "ITM PCRv Down2",
+    "ITM PCRv Down3",
+    "ITM PCRv Down4",
+    "ITM PCRoi Up1",
+    "ITM PCRoi Up2",
+    "ITM PCRoi Up3",
+    "ITM PCRoi Up4",
+    "ITM PCRoi Down1",
+    "ITM PCRoi Down2",
+    "ITM PCRoi Down3",
+    "ITM PCRoi Down4",
+    "ITM OI",
+    "Total OI",
+    "ITM Contracts %",
+    "Net_IV",
+    "Net ITM IV",
+    "Net IV MP",
+    "Net IV LAC",
+    "NIV Current Strike",
+    "NIV 1Higher Strike",
+    "NIV 1Lower Strike",
+    "NIV 2Higher Strike",
+    "NIV 2Lower Strike",
+    "NIV 3Higher Strike",
+    "NIV 3Lower Strike",
+    "NIV 4Higher Strike",
+    "NIV 4Lower Strike",
+    "NIV highers(-)lowers1-2",
+    "NIV highers(-)lowers1-4",
+    "NIV 1-2 % from mean",
+    "NIV 1-4 % from mean",
+    "Net_IV/OI",
+    "Net ITM_IV/ITM_OI",
+    "Closest Strike to CP",
+    "RSI",
+    "AwesomeOsc",
+    "RSI14",
+    "RSI2",
+    "AwesomeOsc5_34",
+]
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','PCRoi Up1','ITM PCRoi Up1', 'Net IV LAC']
 
 ##had highest corr for 3-5 hours with these:
@@ -72,7 +132,8 @@ threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 
 Chosen_Predictor_nobrackets = [
-    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "") for x in Chosen_Predictor
+    x.replace("/", "").replace(",", "_").replace(" ", "_").replace("-", "")
+    for x in Chosen_Predictor
 ]
 Chosen_Predictor_formatted = "_".join(Chosen_Predictor_nobrackets)
 
@@ -83,8 +144,12 @@ ml_dataframe["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 ml_dataframe["Target_Up"] = 0
 for i in range(1, cells_forward_to_check + 1):
     ###TODO pretty sure should be postive numbers.
-    ml_dataframe["Target_Down"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) < percent_down).astype(int)
-    ml_dataframe["Target_Up"] |= (ml_dataframe["Current SP % Change(LAC)"].shift(-i) > percent_up).astype(int)
+    ml_dataframe["Target_Down"] |= (
+        ml_dataframe["Current SP % Change(LAC)"].shift(-i) < percent_down
+    ).astype(int)
+    ml_dataframe["Target_Up"] |= (
+        ml_dataframe["Current SP % Change(LAC)"].shift(-i) > percent_up
+    ).astype(int)
 # ml_dataframe["Target_Down"] = ml_dataframe["Target_Down"].astype(int)
 # ml_dataframe["Target_Up"] = ((ml_dataframe[Chosen_Timeframe] > percent_up) | (ml_dataframe[Chosen_Timeframe2] > percent_up)| (ml_dataframe[Chosen_Timeframe3] > percent_up)).astype(int)
 # ml_dataframe["Target_Down"] = ((ml_dataframe[Chosen_Timeframe] < percent_down) | (ml_dataframe[Chosen_Timeframe2] < percent_down)| (ml_dataframe[Chosen_Timeframe3] < percent_down)).astype(int)
@@ -127,7 +192,12 @@ X_test_selected_up = feature_selector_up.transform(X_test)
 
 
 # Feature selection for Target_Down
-feature_selector_down = RFECV(estimator=model, scoring="precision", step=1, min_features_to_select=num_features_down)
+feature_selector_down = RFECV(
+    estimator=model,
+    scoring="precision",
+    step=1,
+    min_features_to_select=num_features_down,
+)
 X_train_selected_down = feature_selector_down.fit_transform(X_train, y_down_train)
 X_test_selected_down = feature_selector_down.transform(X_test)
 
@@ -175,16 +245,17 @@ print("Selected Features:", feature_names_up)
 
 
 bayes_search_up.fit(X_train_selected_up, y_up_train)
-best_features_up = [Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)]
+best_features_up = [
+    Chosen_Predictor[i] for i in feature_selector_up.get_support(indices=True)
+]
 print("Best features for Target_Up:", best_features_up)
 print("Best parameters for Target_Up:", bayes_search_up.best_params_)
 print("Best score for Target_Up:", bayes_search_up.best_score_)
-best_param_up = (
-    f"Best parameters for Target_Up: {bayes_search_up.best_params_}. Best precision: {bayes_search_up.best_score_}"
-)
+best_param_up = f"Best parameters for Target_Up: {bayes_search_up.best_params_}. Best precision: {bayes_search_up.best_score_}"
 model_up = bayes_search_up.best_estimator_
 importance_tuples = [
-    (feature, importance) for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)
+    (feature, importance)
+    for feature, importance in zip(Chosen_Predictor, model_up.feature_importances_)
 ]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 print(importance_tuples)
@@ -210,7 +281,9 @@ selected_features_down = feature_selector_down.get_support(indices=True)
 feature_names_down = X_train.columns[selected_features_down]
 print("Selected Features Down:", feature_names_down)
 bayes_search_down.fit(X_train_selected_down, y_down_train)
-best_features_down = [Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)]
+best_features_down = [
+    Chosen_Predictor[i] for i in feature_selector_down.get_support(indices=True)
+]
 print("Best features for Target_Down:", best_features_down)
 
 print("Best parameters for Target_Down:", bayes_search_down.best_params_)
@@ -218,7 +291,8 @@ print("Best score for Target_Down:", bayes_search_down.best_score_)
 best_param_down = f"Best parameters for Target_Down: {bayes_search_down.best_params_}. Best precision: {bayes_search_down.best_score_}"
 model_down = bayes_search_down.best_estimator_
 importance_tuples = [
-    (feature, importance) for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)
+    (feature, importance)
+    for feature, importance in zip(Chosen_Predictor, model_down.feature_importances_)
 ]
 importance_tuples = sorted(importance_tuples, key=lambda x: x[1], reverse=True)
 
@@ -312,12 +386,18 @@ predicted_probabilities_down_new = model_down.predict_proba(X_new_selected_down)
 
 # Apply the threshold to obtain binary predictions
 predicted_up_new = (predicted_probabilities_up_new[:, 1] > threshold_up).astype(int)
-predicted_down_new = (predicted_probabilities_down_new[:, 1] > threshold_down).astype(int)
+predicted_down_new = (predicted_probabilities_down_new[:, 1] > threshold_down).astype(
+    int
+)
 new_data["Target_Down"] = 0  # Initialize "Target_Down" column with zeros
 new_data["Target_Up"] = 0
 for i in range(1, cells_forward_to_check + 1):
-    new_data["Target_Down"] |= (new_data["Current SP % Change(LAC)"].shift(-i) < percent_down).astype(int)
-    new_data["Target_Up"] |= (new_data["Current SP % Change(LAC)"].shift(-i) > percent_up).astype(int)
+    new_data["Target_Down"] |= (
+        new_data["Current SP % Change(LAC)"].shift(-i) < percent_down
+    ).astype(int)
+    new_data["Target_Up"] |= (
+        new_data["Current SP % Change(LAC)"].shift(-i) > percent_up
+    ).astype(int)
 # new_data["Target_Up"] = ((new_data[Chosen_Timeframe] > percent_up) | (new_data[Chosen_Timeframe2] > percent_up)| (new_data[Chosen_Timeframe3] > percent_up)).astype(int)
 # new_data["Target_Down"] = ((new_data[Chosen_Timeframe] < percent_down) | (new_data[Chosen_Timeframe2] < percent_down)| (new_data[Chosen_Timeframe3] < percent_down)).astype(int).astype(int)
 

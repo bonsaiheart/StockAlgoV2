@@ -16,7 +16,7 @@ import joblib
 import os
 
 DF_filename = r"../../../data/historical_multiday_minute_DF/Copy of SPY_historical_multiday_min.csv"
-#TODO add early stop or no?
+# TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 #
 # early_stopping = EarlyStopping(patience=5, restore_best_weights=True)
@@ -31,13 +31,21 @@ print(ml_dataframe.columns)
 Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
-    "B1/B2", 'ITM PCR-Vol',
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
+    "B1/B2",
+    "ITM PCR-Vol",
+    "PCRv Up3",
+    "PCRv Up2",
+    "PCRv Down3",
+    "PCRv Down2",
+    "ITM PCRoi Up1",
+    "ITM PCRoi Down1",
+    "ITM PCRv Up3",
+    "Net_IV",
+    "Net ITM IV",
     "ITM PCRv Down3",
-    "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+    "ITM PCRv Up4",
+    "ITM PCRv Down2",
+    "ITM PCRv Up2",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -64,14 +72,14 @@ Chosen_Predictor = [
 #        'Net ITM_IV/ITM_OI', 'RSI', 'AwesomeOsc',
 #        'RSI14', 'RSI2', 'AwesomeOsc5_34']
 ##changed from %change LAC to factoring in % change of stock price.
-cells_forward_to_check = 2*60
+cells_forward_to_check = 2 * 60
 threshold_cells_up = cells_forward_to_check * 0.1
 threshold_cells_down = cells_forward_to_check * 0.1
-percent_up = .01  #.01 = 1%
-percent_down = .01
-anticondition_threshold_cells_up = cells_forward_to_check * 1  #was .7
+percent_up = 0.01  # .01 = 1%
+percent_down = 0.01
+anticondition_threshold_cells_up = cells_forward_to_check * 1  # was .7
 anticondition_threshold_cells_down = cells_forward_to_check * 1
-positivecase_weight_up = 20  #was 20 and 18
+positivecase_weight_up = 20  # was 20 and 18
 positivecase_weight_down = 20
 
 # num_features_up = '8'
@@ -91,11 +99,15 @@ anticondition_UpCounter = 0
 anticondition_DownCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
-    condition_met_up = shifted_values > (ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"]*percent_up))
+    condition_met_up = shifted_values > (
+        ml_dataframe["Current Stock Price"]
+        + (ml_dataframe["Current Stock Price"] * percent_up)
+    )
     anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
 
-    condition_met_down = (
-        ml_dataframe["Current Stock Price"].shift(-i) < (ml_dataframe["Current Stock Price"] - (ml_dataframe["Current Stock Price"]*percent_down))
+    condition_met_down = ml_dataframe["Current Stock Price"].shift(-i) < (
+        ml_dataframe["Current Stock Price"]
+        - (ml_dataframe["Current Stock Price"] * percent_down)
     )
     anticondition_down = shifted_values >= ml_dataframe["Current Stock Price"]
 
@@ -105,11 +117,13 @@ for i in range(1, cells_forward_to_check + 1):
     anticondition_UpCounter += anticondition_up.astype(int)
     anticondition_DownCounter += anticondition_down.astype(int)
     ml_dataframe["Target_Up"] = (
-        (targetUpCounter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+        (targetUpCounter >= threshold_cells_up)
+        & (anticondition_UpCounter <= anticondition_threshold_cells_up)
     ).astype(int)
 
     ml_dataframe["Target_Down"] = (
-        (targetDownCounter >= threshold_cells_down) & (anticondition_DownCounter <= anticondition_threshold_cells_down)
+        (targetDownCounter >= threshold_cells_down)
+        & (anticondition_DownCounter <= anticondition_threshold_cells_down)
     ).astype(int)
 
 ml_dataframe.dropna(subset=["Target_Up", "Target_Down"], inplace=True)
@@ -119,7 +133,7 @@ X = ml_dataframe[Chosen_Predictor]
 X.reset_index(drop=True, inplace=True)
 
 X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_split(
-    X, y_up, y_down, test_size=0.2, random_state=None,shuffle=False
+    X, y_up, y_down, test_size=0.2, random_state=None, shuffle=False
 )
 
 num_positive_up = sum(y_up_train)
@@ -128,36 +142,43 @@ weight_negative_up = 1.0
 weight_positive_up = (num_negative_up / num_positive_up) * positivecase_weight_up
 
 num_positive_down = sum(y_down_train)
-print('num_positive_down:', num_positive_down)
-print('num_positive_up:', num_positive_up)
+print("num_positive_down:", num_positive_down)
+print("num_positive_up:", num_positive_up)
 num_negative_down = len(y_down_train) - num_positive_down
 weight_negative_down = 1.0
-weight_positive_down = (num_negative_down / num_positive_down) * positivecase_weight_down
+weight_positive_down = (
+    num_negative_down / num_positive_down
+) * positivecase_weight_down
 
 
 custom_weights_up = {0: weight_negative_up, 1: weight_positive_up}
 custom_weights_down = {0: weight_negative_down, 1: weight_positive_down}
 
 
-
 # Define your neural network model using TensorFlow
-model_up_nn = Sequential([
-    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
-    Dense(32, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
-model_down_nn = Sequential([
-    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
-    Dense(32, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
+model_up_nn = Sequential(
+    [
+        Dense(64, activation="relu", input_shape=(X_train.shape[1],)),
+        Dense(32, activation="relu"),
+        Dense(32, activation="relu"),
+        Dense(1, activation="sigmoid"),
+    ]
+)
+model_down_nn = Sequential(
+    [
+        Dense(64, activation="relu", input_shape=(X_train.shape[1],)),
+        Dense(32, activation="relu"),
+        Dense(32, activation="relu"),
+        Dense(1, activation="sigmoid"),
+    ]
+)
 
 # Compile the models with binary cross-entropy loss for binary classification
-model_up_nn.compile(optimizer=Adam(), loss='binary_crossentropy',               metrics=[Precision()])
+model_up_nn.compile(optimizer=Adam(), loss="binary_crossentropy", metrics=[Precision()])
 
-model_down_nn.compile(optimizer=Adam(), loss='binary_crossentropy',               metrics=[Precision()])
+model_down_nn.compile(
+    optimizer=Adam(), loss="binary_crossentropy", metrics=[Precision()]
+)
 
 
 # Train the models on your data
@@ -171,8 +192,12 @@ predicted_probabilities_down = model_down_nn.predict(X_test)
 threshold_up_formatted = int(threshold_up * 10)
 threshold_down_formatted = int(threshold_down * 10)
 
-predicted_up = (predicted_probabilities_up[:, 0] > threshold_up_formatted / 10).astype(int)
-predicted_down = (predicted_probabilities_down[:, 0] > threshold_down_formatted / 10).astype(int)
+predicted_up = (predicted_probabilities_up[:, 0] > threshold_up_formatted / 10).astype(
+    int
+)
+predicted_down = (
+    predicted_probabilities_down[:, 0] > threshold_down_formatted / 10
+).astype(int)
 
 precision_up = precision_score(y_up_test, predicted_up)
 accuracy_up = accuracy_score(y_up_test, predicted_up)
@@ -226,7 +251,9 @@ print("F1-Score:", f1_down, "\n")
 loss_down, metric_down = model_down_nn.evaluate(X_test, y_down_test, verbose=0)
 # Assuming `model` is your trained Keras model and `X_test` and `y_test` are your testing data and labels
 loss_up, metric_up = model_up_nn.evaluate(X_test, y_up_test, verbose=0)
-print(f"Loss up: {loss_up}, Loss down: {loss_down}, metric up: {metric_up}, metric down: {metric_down}")
+print(
+    f"Loss up: {loss_up}, Loss down: {loss_down}, metric up: {metric_up}, metric down: {metric_down}"
+)
 
 # Save the models using joblib
 input_val = input("Would you like to save these models? y/n: ").upper()
