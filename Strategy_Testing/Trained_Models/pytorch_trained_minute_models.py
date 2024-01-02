@@ -136,7 +136,7 @@ def SPY_2hr_50pct_Down_PTNNclass(new_data_df):
         # Apply the same max_val and min_val to training, validation, and test sets
         tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
-    tempdf = pd.DataFrame(tempdf.values, columns=features)
+    tempdf = pd.DataFrame(tempdf.values, columns=features,index=tempdf.index)
 
     # scale the new data features and generate predictions
 

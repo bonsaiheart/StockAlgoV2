@@ -224,25 +224,13 @@ async def get_ta(session, ticker):
         window=20,
         fillna=False,
     )
-    safe_calculation(
-        df,
-        "Williams_R",
-        ta.momentum.WilliamsR,
-        high=df["high"],
-        low=df["low"],
-        close=df["close"],
-        lbp=14,
-        fillna=False,
-    )
-    safe_calculation(
-        df,
-        "VO",
-        ta.volume.volume_oscillator,
-        volume=df["volume"],
-        window_slow=26,
-        window_fast=12,
-        fillna=False,
-    )
+    williams_r_object = ta.momentum.WilliamsRIndicator(high=df["high"], low=df["low"], close=df["close"], lbp=14, fillna=False)
+    safe_calculation(df, "Williams_R", williams_r_object.williams_r)
+    pvo_object = ta.momentum.PercentageVolumeOscillator(volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    safe_calculation(df, "PVO", pvo_object.pvo)
+    ppo_object = ta.momentum.PercentagePriceOscillator(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    safe_calculation(df, "PPO", ppo_object.ppo)
+
     safe_calculation(
         df,
         "CMF",
@@ -290,13 +278,11 @@ async def get_ta(session, ticker):
         df,
         "Keltner_Upper",
         keltner_channel.keltner_channel_hband_indicator,
-        fillna=False,
     )
     safe_calculation(
         df,
         "Keltner_Lower",
         keltner_channel.keltner_channel_lband_indicator,
-        fillna=False,
     )
     safe_calculation(
         df,
@@ -306,8 +292,8 @@ async def get_ta(session, ticker):
         volume=df["volume"],
         fillna=False,
     )
-    aroon = ta.trend.AroonIndicator(close=df["close"], window=25)
-    safe_calculation(df, "Aroon_Oscillator", aroon.aroon_oscillator, fillna=False)
+    # aroon = ta.trend.AroonIndicator(close=df["close"], window=25)
+    # safe_calculation(df, "Aroon_Oscillator", aroon.aroon_oscillator, fillna=False)
 
     groups = df.groupby(df.index.date)
     group_dates = list(groups.groups.keys())
@@ -823,32 +809,8 @@ async def perform_operations(
     processed_data_df = pd.DataFrame(results)
 
     this_minute_ta_frame = await get_ta(session, ticker)
-
-    processed_data_df["RSI"] = this_minute_ta_frame["RSI"]
-    processed_data_df["RSI2"] = this_minute_ta_frame["RSI2"]
-    processed_data_df["RSI14"] = this_minute_ta_frame["RSI14"]
-    processed_data_df["AwesomeOsc"] = this_minute_ta_frame["AwesomeOsc"]
-    processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
-    processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
-
-    # Calculate 50-Day EMA
-    processed_data_df["EMA_50"] = this_minute_ta_frame["EMA_50"]
-
-    # Calculate 200-Day EMA
-    processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
-
-    processed_data_df["AwesomeOsc5_34"] = this_minute_ta_frame[
-        "AwesomeOsc5_34"
-    ]  # this_minute_ta_frame['exp_date'] = '230427.0'
-    processed_data_df["MACD"] = this_minute_ta_frame["MACD"]
-    processed_data_df["Signal_Line"] = this_minute_ta_frame["Signal_Line"]
-
-    # Calculate 50-Day EMA
-    processed_data_df["EMA_50"] = this_minute_ta_frame["EMA_50"]
-
-    # Calculate 200-Day EMA
-    processed_data_df["EMA_200"] = this_minute_ta_frame["EMA_200"]
-
+    for column in this_minute_ta_frame.columns:
+        processed_data_df[column] = this_minute_ta_frame[column]
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)

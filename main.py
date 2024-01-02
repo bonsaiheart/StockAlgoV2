@@ -232,7 +232,7 @@ async def main():
         tasks = []
         # delay_interval = .1
         for i, ticker in enumerate(tickerlist):
-            await asyncio.sleep(0.1)  # This will stagger the start times
+            await asyncio.sleep(0.5)  # This will stagger the start times
             tasks.append(asyncio.create_task(handle_ticker_cycle(session, ticker)))
         await asyncio.gather(*tasks)
         print("OVER AT:", datetime.now())

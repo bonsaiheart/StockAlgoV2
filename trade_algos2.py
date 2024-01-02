@@ -105,6 +105,8 @@ async def handle_model_result(
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
         model_name
     )
+    # orderRef =  ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only
+
     if order_manager.ib.isConnected:
         try:
             await place_option_order_sync(
@@ -113,7 +115,8 @@ async def handle_model_result(
                 IB_option_date,
                 contractStrike,
                 contract_price,
-                model_name,
+                orderRef=ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only
+                ,
                 quantity=10,
                 take_profit_percent=option_take_profit_percent,
                 trail_stop_percent=option_trail_stop_percent,
@@ -166,7 +169,7 @@ async def actions(
     # Iterate over each model in your model list
     for model in get_model_list():
         model_name = model.__name__
-        model_output = model(dailyminutes_df.tail(1))
+        model_output = model(dailyminutes_df.tail(1))#error wehen trying to use taill.
         evaluated_models.add(model_name)
         # print(model_output)
         try:
@@ -191,7 +194,7 @@ async def actions(
             # dailyminutes_df.to_csv('test_dailymin.csv')
 
             result = model_output_df.iloc[-1]
-            tail = model_output_df.tail(3)
+            tail = model_output_df.tail(1)
             tail_str = ", ".join(map(str, tail))
             print(
                 f"{ticker} {model_name} last 3 results: {tail_str}"
@@ -264,7 +267,7 @@ def get_model_list():
         pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
         # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
-    ]
+        pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss    ]
 
 
 # TODO make it look for pairs first somehow?  store all orders, and take best?

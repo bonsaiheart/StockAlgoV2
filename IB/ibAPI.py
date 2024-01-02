@@ -418,7 +418,6 @@ class IBOrderManager:
                         + (contract_current_price * (take_profit_percent / 100)),
                         2,
                     )  # Replace with your desired take profit price
-
                     auxPrice = round(
                         contract_current_price * trailstop_amount_percent, 2
                     )  # Replace with your desired trailing stop percentage
@@ -510,11 +509,11 @@ class IBOrderManager:
                     )
         else:
             logger.warning(
-                f"Too many open orders (18+){ticker_contract} {orderRef} .  Skipping order placement."
+                f"Too many open orders (15 on either side of contract is max){ticker_contract} {orderRef} .  Skipping order placement."
             )
 
     # ib.disconnect()
-    async def can_place_new_order(self, contract, threshold=18):
+    async def can_place_new_order(self, contract, threshold=13):#15 open orders on either side is MAX.
         # Fetch open orders
         open_trades = self.ib.openTrades()
         # Count orders for the specified contract
