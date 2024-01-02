@@ -15,10 +15,10 @@ logging.getLogger("ib_insync").setLevel(logging.WARNING)
 # ib_insync.util.
 # Connect to the IB API with a unique client ID
 try:
-    ib.connect("192.168.1.109", 7497, clientId=0, timeout=45)
+    ib.connect("192.168.1.109", 7497, clientId=1, timeout=45)
     print("Connected.")
 except (Exception, asyncio.exceptions.TimeoutError) as e:
-    logging.getLogger().error("Connection error or error reset positions: %s", e)
+    logging.getLogger().error("Connection error or error reset postions: %s", e)
     print("Connection/close positions error:", e)
     # for fill in ib.fills():
     #     if fill.contract.secType != 'OPT':

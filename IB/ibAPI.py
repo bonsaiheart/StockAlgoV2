@@ -24,6 +24,7 @@ class IBOrderManager:
         self.ib = ib
         self.pending_orders = {}
         self.order_events = {}
+        self.is_subscribed_onorderstatuschange = False  # Add a flag to track the subscription status
 
     # def on_order_status_change(self, trade):
     #     order_id = trade.order.orderId
@@ -50,15 +51,25 @@ class IBOrderManager:
         if order_id in self.order_events:
             if order_status.status == "Submitted":
                 self.order_events[order_id]["active"].set()
-                del self.order_events[order_id]
+                asyncio.create_task(self.delayed_event_deletion(order_id))
+
 
             elif order_status.status in ["Filled", "Cancelled", "Inactive"]:
                 self.order_events[order_id]["done"].set()
-                del self.order_events[order_id]
+                asyncio.create_task(self.delayed_event_deletion(order_id))
 
                 # Unsubscribe if no more interested orders are present
-                if not self.order_events:
-                    self.ib.orderStatusEvent -= self.on_order_status_change
+                # if not self.order_events:
+                #     self.ib.orderStatusEvent -= self.on_order_status_change
+            if not self.order_events:
+                    if self.is_subscribed:
+                        self.ib.orderStatusEvent -= self.on_order_status_change
+                        self.is_subscribed_onorderstatuschange = False  # Reset the subscription flag
+
+    async def delayed_event_deletion(self, order_id, delay=60):
+        await asyncio.sleep(delay)
+        if order_id in self.order_events:
+            del self.order_events[order_id]
 
     def ib_reset_and_close_pos(self):
         if not self.ib.isConnected():
@@ -189,7 +200,7 @@ class IBOrderManager:
         # Detach event listeners
         for listener in event_listeners:
             self.ib.cancelOrderEvent -= listener
-
+            print("listeneres: ",listener)
         # Rest of your method...
 
         # New approach to calculate remaining quantities for each OCA group
@@ -379,6 +390,9 @@ class IBOrderManager:
             take_profit_percent = 3
         if trailstop_amount_percent == None:
             trailstop_amount_percent = 3
+        if not self.is_subscribed_onorderstatuschange:
+            self.ib.orderStatusEvent += self.on_order_status_change
+            self.is_subscribed_onorderstatuschange = True  # Set the flag to indicate subscription
 
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         qualified_contract = await self.ib.qualifyContractsAsync(ticker_contract)
@@ -485,7 +499,7 @@ class IBOrderManager:
 
                     bracketOrder = [parent, takeProfit, stopLoss]
 
-                    self.ib.orderStatusEvent += self.on_order_status_change
+                    # self.ib.orderStatusEvent += self.on_order_status_change
 
                     # Store the parent trade
                     parent_trade = parent.orderId  # IDK DELETE THIS
