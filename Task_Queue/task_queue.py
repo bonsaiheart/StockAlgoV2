@@ -5,10 +5,16 @@ from datetime import datetime, timedelta
 import requests
 from PrivateData import tradier_info
 import PrivateData.twitter_info
+
 # from Task_Queue.task_queue_cellery_bossman import app as app
 from dateutil import parser
 from celery import Celery
-app = Celery("StockAlgoV2_followup_tweet", broker="redis://localhost:6379/0", backend="redis://localhost:6379/0")
+
+app = Celery(
+    "StockAlgoV2_followup_tweet",
+    broker="redis://localhost:6379/0",
+    backend="redis://localhost:6379/0",
+)
 
 
 def reply_tweet_1_hour_later(message, tweet_id):
@@ -37,7 +43,9 @@ def reply_tweet_1_hour_later(message, tweet_id):
 
 # #
 @app.task
-def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, countdownseconds):
+def wait_60_minutes_and_send_tweet(
+    ticker, current_price, tweet_id, upordown, countdownseconds
+):
     old_price = float(current_price)
 
     # wait_time = timedelta(minutes=60)
@@ -45,7 +53,10 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
     # while datetime.now() < end_time:
     #     pass
 
-    headers = {"Authorization": f"Bearer {tradier_info.real_auth}", "Accept": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {tradier_info.real_auth}",
+        "Accept": "application/json",
+    }
 
     # Calculate the start and end times
     current_time = datetime.now()
@@ -59,7 +70,9 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
         "session_filter": "all",
     }
 
-    response = requests.get("https://api.tradier.com/v1/markets/timesales", params=params, headers=headers)
+    response = requests.get(
+        "https://api.tradier.com/v1/markets/timesales", params=params, headers=headers
+    )
 
     json_response = response.json()
 
@@ -78,8 +91,14 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
     lows = [values["low"] for values in time_high_low_dict.values()]
     highest_price = max(highs)
     lowest_price = min(lows)
-    highest_price_time = next(key for key, value in time_high_low_dict.items() if value["high"] == highest_price)
-    lowest_price_time = next(key for key, value in time_high_low_dict.items() if value["low"] == lowest_price)
+    highest_price_time = next(
+        key
+        for key, value in time_high_low_dict.items()
+        if value["high"] == highest_price
+    )
+    lowest_price_time = next(
+        key for key, value in time_high_low_dict.items() if value["low"] == lowest_price
+    )
 
     if upordown == "up":
         reply_tweet_1_hour_later(
@@ -91,6 +110,8 @@ def wait_60_minutes_and_send_tweet(ticker, current_price, tweet_id, upordown, co
             f"As of {lowest_price_time} EST, ${ticker} was ${lowest_price}. Down ${round(old_price - lowest_price, 3)}, or %{round(((old_price - lowest_price) / lowest_price) * 100, 3)} from entry.",
             tweet_id,
         )
+
+
 async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownseconds):
     old_price = float(current_price)
     await asyncio.sleep(countdownseconds)
@@ -99,7 +120,10 @@ async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownsec
     # while datetime.now() < end_time:
     #     pass
 
-    headers = {"Authorization": f"Bearer {tradier_info.real_auth}", "Accept": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {tradier_info.real_auth}",
+        "Accept": "application/json",
+    }
 
     # Calculate the start and end times
     current_time = datetime.now()
@@ -113,7 +137,9 @@ async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownsec
         "session_filter": "all",
     }
 
-    response = requests.get("https://api.tradier.com/v1/markets/timesales", params=params, headers=headers)
+    response = requests.get(
+        "https://api.tradier.com/v1/markets/timesales", params=params, headers=headers
+    )
 
     json_response = response.json()
 
@@ -132,8 +158,14 @@ async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownsec
     lows = [values["low"] for values in time_high_low_dict.values()]
     highest_price = max(highs)
     lowest_price = min(lows)
-    highest_price_time = next(key for key, value in time_high_low_dict.items() if value["high"] == highest_price)
-    lowest_price_time = next(key for key, value in time_high_low_dict.items() if value["low"] == lowest_price)
+    highest_price_time = next(
+        key
+        for key, value in time_high_low_dict.items()
+        if value["high"] == highest_price
+    )
+    lowest_price_time = next(
+        key for key, value in time_high_low_dict.items() if value["low"] == lowest_price
+    )
 
     if upordown == "up":
         reply_tweet_1_hour_later(
@@ -145,4 +177,3 @@ async def followup_tweet(ticker, current_price, tweet_id, upordown, countdownsec
             f"As of {lowest_price_time} EST, ${ticker} was ${lowest_price}. Down ${round(old_price - lowest_price, 3)}, or %{round(((old_price - lowest_price) / lowest_price) * 100, 3)} from entry.",
             tweet_id,
         )
-

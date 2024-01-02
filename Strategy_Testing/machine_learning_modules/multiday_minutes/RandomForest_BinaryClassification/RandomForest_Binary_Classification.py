@@ -10,7 +10,13 @@ import optuna
 import pandas as pd
 from joblib import dump
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score, roc_auc_score
+from sklearn.metrics import (
+    f1_score,
+    precision_score,
+    recall_score,
+    accuracy_score,
+    roc_auc_score,
+)
 from sklearn.metrics import log_loss
 from sklearn.model_selection import TimeSeriesSplit, KFold
 from sklearn.preprocessing import RobustScaler
@@ -23,10 +29,12 @@ simplefilter("ignore", category=RuntimeWarning)
 # Restore the warning filter (if needed)
 # warnings.filterwarnings("default", category=Warning)
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = (
+    r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+)
 # TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
-'''use lasso?# Sample data
+"""use lasso?# Sample data
 data = load_iris()
 X, y = data.data, data.target
 
@@ -40,24 +48,31 @@ selected_features = np.where(lasso.coef_ != 0)[0]
 
 # Train Random Forest on selected features
 rf = RandomForestClassifier()
-rf.fit(X[:, selected_features], y)'''
+rf.fit(X[:, selected_features], y)"""
 
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # ##had highest corr for 3-5 hours with these:
-Chosen_Predictor = ['Bonsai Ratio', 'Bonsai Ratio 2', 'ITM PCR-Vol', 'ITM PCRv Up1','ITM PCRv Down1', 'RSI14',
-                    'Net_IV']
+Chosen_Predictor = [
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "ITM PCR-Vol",
+    "ITM PCRv Up1",
+    "ITM PCRv Down1",
+    "RSI14",
+    "Net_IV",
+]
 # ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
 #     lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
 # ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
 
 cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5  # how many rows must achieve target %
-num_trials = 1 #before using best params on test.
+num_trials = 1  # before using best params on test.
 
-percent_up = .35  # target percetage.
-anticondition_threshold_cells_up = cells_forward_to_check * .2  # was .7
+percent_up = 0.35  # target percetage.
+anticondition_threshold_cells_up = cells_forward_to_check * 0.2  # was .7
 ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
 length = ml_dataframe.shape[0]
 ml_dataframe["Target"] = 0
@@ -66,12 +81,15 @@ anticondition_UpCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
     condition_met_up = shifted_values > (
-            ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"] * (percent_up / 100)))
+        ml_dataframe["Current Stock Price"]
+        + (ml_dataframe["Current Stock Price"] * (percent_up / 100))
+    )
     anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
     target_Counter += condition_met_up.astype(int)
     anticondition_UpCounter += anticondition_up.astype(int)
 ml_dataframe["Target"] = (
-        (target_Counter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+    (target_Counter >= threshold_cells_up)
+    & (anticondition_UpCounter <= anticondition_threshold_cells_up)
 ).astype(int)
 ml_dataframe.dropna(subset=["Target"], inplace=True)
 y = ml_dataframe["Target"].copy()
@@ -84,10 +102,22 @@ X[Chosen_Predictor] = np.clip(X[Chosen_Predictor], -largenumber, largenumber)
 
 nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
 inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
-neginf_indices = np.argwhere(np.isneginf(X.to_numpy()))  # Convert DataFrame to NumPy array
-print("NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found.")
-print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infinite values found.")
-print("Negative Infinite values found at indices:" if len(neginf_indices) > 0 else "No negative infinite values found.")
+neginf_indices = np.argwhere(
+    np.isneginf(X.to_numpy())
+)  # Convert DataFrame to NumPy array
+print(
+    "NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found."
+)
+print(
+    "Infinite values found at indices:"
+    if len(inf_indices) > 0
+    else "No infinite values found."
+)
+print(
+    "Negative Infinite values found at indices:"
+    if len(neginf_indices) > 0
+    else "No negative infinite values found."
+)
 
 #
 from sklearn.model_selection import train_test_split
@@ -96,24 +126,35 @@ from sklearn.model_selection import train_test_split
 test_set_percentage = 0.02  # Specify the percentage of the data to use as a test set
 
 # Split the data into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_set_percentage,shuffle=False)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=test_set_percentage, shuffle=False
+)
 
 # If your data is a time series and should not be shuffled, use:
 # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_set_percentage, shuffle=False)
 
-print("Xlength: ", len(X), "XTestlen: ", len(X_test), "positive in y: ", y.sum(), "positive in ytest: ", y_test.sum())
+print(
+    "Xlength: ",
+    len(X),
+    "XTestlen: ",
+    len(X_test),
+    "positive in y: ",
+    y.sum(),
+    "positive in ytest: ",
+    y_test.sum(),
+)
 
-'''Metrics & Model Selection: You're storing the best model based on the F1 score. This is okay if F1 is the most important metric for your problem. If not, you might want to adjust this logic. Also, you could consider saving the models from all the folds and using a voting mechanism for predictions if you want to leverage the power of ensemble predictions'''
+"""Metrics & Model Selection: You're storing the best model based on the F1 score. This is okay if F1 is the most important metric for your problem. If not, you might want to adjust this logic. Also, you could consider saving the models from all the folds and using a voting mechanism for predictions if you want to leverage the power of ensemble predictions"""
 
 
 def train_model(param_dict, X, y, final_classifier=None):
     # Extract hyperparameters from param_dict
-    n_estimators = param_dict['n_estimators']
-    max_depth = param_dict['max_depth']
-    min_samples_split = param_dict['min_samples_split']
-    min_samples_leaf = param_dict['min_samples_leaf']
-    max_features = param_dict['max_features']
-    bootstrap = param_dict['bootstrap']
+    n_estimators = param_dict["n_estimators"]
+    max_depth = param_dict["max_depth"]
+    min_samples_split = param_dict["min_samples_split"]
+    min_samples_leaf = param_dict["min_samples_leaf"]
+    max_features = param_dict["max_features"]
+    bootstrap = param_dict["bootstrap"]
 
     best_model = None
 
@@ -135,13 +176,13 @@ def train_model(param_dict, X, y, final_classifier=None):
         X_val = scaler_X.transform(X_val)
 
         rf_params = {
-            'n_estimators': n_estimators,
-            'max_depth': max_depth,
-            'min_samples_split': min_samples_split,
-            'min_samples_leaf': min_samples_leaf,
-            'max_features': max_features,
-            'bootstrap': bootstrap,
-        'class_weight': 'balanced'
+            "n_estimators": n_estimators,
+            "max_depth": max_depth,
+            "min_samples_split": min_samples_split,
+            "min_samples_leaf": min_samples_leaf,
+            "max_features": max_features,
+            "bootstrap": bootstrap,
+            "class_weight": "balanced",
         }
 
         if final_classifier is not None:
@@ -184,15 +225,16 @@ def train_model(param_dict, X, y, final_classifier=None):
         best_model = rf_classifier
 
     print(
-        f'avg_accuracy: {best_accuracy}, avg_f1: {best_f1}, avg_precision: {best_precision}, avg_recall: {best_recall}, avg_auc: {avg_auc}, avg_logloss: {avg_logloss}')
+        f"avg_accuracy: {best_accuracy}, avg_f1: {best_f1}, avg_precision: {best_precision}, avg_recall: {best_recall}, avg_auc: {avg_auc}, avg_logloss: {avg_logloss}"
+    )
     return {
-        'avg_accuracy': best_accuracy,
-        'avg_f1': best_f1,
-        'avg_precision': best_precision,
-        'avg_recall': best_recall,
-        'avg_auc': avg_auc,
-        'avg_logloss': avg_logloss,
-        'best_model': best_model,
+        "avg_accuracy": best_accuracy,
+        "avg_f1": best_f1,
+        "avg_precision": best_precision,
+        "avg_recall": best_recall,
+        "avg_auc": avg_auc,
+        "avg_logloss": avg_logloss,
+        "best_model": best_model,
     }
 
 
@@ -208,23 +250,22 @@ def objective(trial):
     n_jobs = trial.suggest_categorical("n_jobs", [-1])
 
     param_dict = {
-        'n_estimators': n_estimators,
-        'max_depth': max_depth,
-        'min_samples_split': min_samples_split,
-        'min_samples_leaf': min_samples_leaf,
-        'max_features': max_features,
-        'bootstrap': bootstrap,
-        'n_jobs':n_jobs
-
+        "n_estimators": n_estimators,
+        "max_depth": max_depth,
+        "min_samples_split": min_samples_split,
+        "min_samples_leaf": min_samples_leaf,
+        "max_features": max_features,
+        "bootstrap": bootstrap,
+        "n_jobs": n_jobs,
     }
 
     results = train_model(param_dict, X_train, y_train)
-    avg_f1 = results['avg_f1']
-    avg_precision = results['avg_precision']
-    avg_logloss = results['avg_logloss']
-    avg_auc = results['avg_auc']
+    avg_f1 = results["avg_f1"]
+    avg_precision = results["avg_precision"]
+    avg_logloss = results["avg_logloss"]
+    avg_auc = results["avg_auc"]
 
-    alpha = .3
+    alpha = 0.3
     combined_metric = (alpha * (1 - avg_f1)) + ((1 - alpha) * (1 - avg_precision))
     return avg_f1
 
@@ -241,8 +282,9 @@ def objective(trial):
 # ################
 while True:
     try:
-        study = optuna.load_study(study_name='rf_spy_3hr35percent',
-                                  storage='sqlite:///rf_spy_3hr35percent.db')
+        study = optuna.load_study(
+            study_name="rf_spy_3hr35percent", storage="sqlite:///rf_spy_3hr35percent.db"
+        )
         print("Study Loaded.")
         try:
             best_params = study.best_params
@@ -256,13 +298,18 @@ while True:
         except Exception as e:
             print(e)
     except KeyError:
-        study = optuna.create_study(direction="maximize", study_name='rf_spy_3hr35percent',
-                                    storage='sqlite:///rf_spy_3hr35percent'
-                                            '.db')
+        study = optuna.create_study(
+            direction="maximize",
+            study_name="rf_spy_3hr35percent",
+            storage="sqlite:///rf_spy_3hr35percent" ".db",
+        )
     "Keyerror, new optuna study created."  #
     # TODO add a second loop of test, wehre if it doesnt achieve x score, the trial fails.)
 
-    study.optimize(objective, n_trials=num_trials, )  # callbacks=[early_stopping_opt]
+    study.optimize(
+        objective,
+        n_trials=num_trials,
+    )  # callbacks=[early_stopping_opt]
 
     best_params = study.best_params
     X_Scaler = RobustScaler().fit(X_train)
@@ -273,7 +320,6 @@ while True:
 
     print("~~~~training model using best params.~~~~")
 
-
     # plt.barh(range(X.shape[1]), feature_importances[sorted_idx])
     # plt.yticks(range(X.shape[1]), X.columns[sorted_idx])
     # plt.xlabel("Random Forest Feature Importance")
@@ -282,8 +328,6 @@ while True:
     # selector = SelectFromModel(RandomForestClassifier, threshold=0.1)
     # X_new = selector.transform(X_test)
     # Now use trained_rf to predict on your test data
-
-
 
     threshold = 0.5
     y_test_pred = trained_model.predict(X_test_scaled)
@@ -299,7 +343,7 @@ while True:
     precision = precision_score(y_test, binary_predictions)
     recall = recall_score(y_test, binary_predictions)
     accuracy = accuracy_score(y_test, binary_predictions)
-    if f1 < 0.7 and precision < .7:
+    if f1 < 0.7 and precision < 0.7:
         print("Test F1 score and prec. are not above 0.75. Restarting optimization.")
         print("Test Metrics:")
         print("F1:", f1)
@@ -352,5 +396,9 @@ if input_val == "Y":
     with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         info_txt.write("This file contains information about the model.\n\n")
         info_txt.write(f"File analyzed: {DF_filename}\n\n")
-        info_txt.write(f"Metrics:\nPrecision: {precision}\nAccuracy: {accuracy}\nRecall: {recall}\nF1-Score: {f1}\n")
-        info_txt.write(f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n")
+        info_txt.write(
+            f"Metrics:\nPrecision: {precision}\nAccuracy: {accuracy}\nRecall: {recall}\nF1-Score: {f1}\n"
+        )
+        info_txt.write(
+            f"Predictors: {Chosen_Predictor}\n\n\nBest Params: {best_params}\n"
+        )

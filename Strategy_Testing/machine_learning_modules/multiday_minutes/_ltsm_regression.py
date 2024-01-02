@@ -14,15 +14,19 @@ from keras_tuner.tuners import RandomSearch
 import tensorflow as tf
 
 
-print(tf.config.list_physical_devices('GPU'))
+print(tf.config.list_physical_devices("GPU"))
 # Check GPU support
-gpus = tf.config.list_physical_devices('GPU')
+gpus = tf.config.list_physical_devices("GPU")
 if gpus:
     print("GPU support detected.")
 else:
-    print("No GPU support detected. Make sure you have installed the GPU version of TensorFlow and have compatible hardware.")
+    print(
+        "No GPU support detected. Make sure you have installed the GPU version of TensorFlow and have compatible hardware."
+    )
 
-DF_filename = "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+DF_filename = (
+    "../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
+)
 ml_dataframe = pd.read_csv(DF_filename)
 
 # Define the chosen predictors
@@ -49,7 +53,8 @@ Chosen_Predictor = [
     "PCRv Up4",
     "PCRv Down4",
     "ITM PCRv Up3",
-    "ITM PCRv Down3","ITM PCRv Up4",
+    "ITM PCRv Down3",
+    "ITM PCRv Up4",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -57,16 +62,24 @@ Chosen_Predictor = [
     "RSI2",
     "AwesomeOsc",
 ]
-tuner_checkpoint_dir = 'tunerA1'
+tuner_checkpoint_dir = "tunerA1"
 num_features_to_select = "all"
 sequence_length = 1000  # up to 500 I've tried.
 # how many cells forward the target "current price" is.
 cells_forward_to_predict = 60
-ml_dataframe[f'Price % change {cells_forward_to_predict}min Later'] = (
-    ml_dataframe["Current Stock Price"].pct_change(periods=-cells_forward_to_predict) * 100 )
-ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price % change {cells_forward_to_predict}min Later'], inplace=True)
-target_column = ml_dataframe[f'Price % change {cells_forward_to_predict}min Later']
-ml_dataframe.dropna(subset=Chosen_Predictor + [f'Price % change {cells_forward_to_predict}min Later'], inplace=True)
+ml_dataframe[f"Price % change {cells_forward_to_predict}min Later"] = (
+    ml_dataframe["Current Stock Price"].pct_change(periods=-cells_forward_to_predict)
+    * 100
+)
+ml_dataframe.dropna(
+    subset=Chosen_Predictor + [f"Price % change {cells_forward_to_predict}min Later"],
+    inplace=True,
+)
+target_column = ml_dataframe[f"Price % change {cells_forward_to_predict}min Later"]
+ml_dataframe.dropna(
+    subset=Chosen_Predictor + [f"Price % change {cells_forward_to_predict}min Later"],
+    inplace=True,
+)
 
 # Preprocess the data
 data = ml_dataframe[Chosen_Predictor].values
@@ -106,16 +119,15 @@ for train_index, test_index in tscv.split(data_scaled):
     train_target = target_scaled[train_index]
     test_target = target_scaled[test_index]
 
-
     # Create the input sequences and corresponding labels
     X_train, y_train = [], []
     for i in range(sequence_length, len(train_data)):
-        X_train.append(train_data[i - sequence_length:i])
+        X_train.append(train_data[i - sequence_length : i])
         y_train.append(train_target[i])
 
     X_test, y_test = [], []
     for i in range(sequence_length, len(test_data)):
-        X_test.append(test_data[i - sequence_length:i])
+        X_test.append(test_data[i - sequence_length : i])
         y_test.append(test_target[i])
 
     # Convert the data to numpy arrays
@@ -125,23 +137,39 @@ for train_index, test_index in tscv.split(data_scaled):
     # Define the model inside the loop to ensure it's re-initialized in each iteration
     def build_model(hp):
         model = Sequential()
-        model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32), return_sequences=True,
-                       input_shape=(sequence_length, len(Chosen_Predictor))))
-        model.add(LSTM(units=hp.Int('units', min_value=32, max_value=512, step=32), return_sequences=False))
+        model.add(
+            LSTM(
+                units=hp.Int("units", min_value=32, max_value=512, step=32),
+                return_sequences=True,
+                input_shape=(sequence_length, len(Chosen_Predictor)),
+            )
+        )
+        model.add(
+            LSTM(
+                units=hp.Int("units", min_value=32, max_value=512, step=32),
+                return_sequences=False,
+            )
+        )
         model.add(Dense(units=1))
-        model.compile(optimizer='adam', loss='mse')
+        model.compile(optimizer="adam", loss="mse")
         return model
 
     # Perform hyperparameter tuning with Keras Tuner
     tuner = RandomSearch(
         build_model,
-        objective='val_loss',
+        objective="val_loss",
         max_trials=10,
-        directory='ITSM_Regression_Models',
-        project_name=tuner_checkpoint_dir
+        directory="ITSM_Regression_Models",
+        project_name=tuner_checkpoint_dir,
     )
 
-    tuner.search(X_train, y_train, epochs=100, validation_data=(X_test, y_test), callbacks=[EarlyStopping(patience=10)])
+    tuner.search(
+        X_train,
+        y_train,
+        epochs=100,
+        validation_data=(X_test, y_test),
+        callbacks=[EarlyStopping(patience=10)],
+    )
 
     # Get the best model and its hyperparameters
     best_model = tuner.get_best_models(1)[0]
@@ -166,22 +194,24 @@ for train_index, test_index in tscv.split(data_scaled):
     r2_test_scores.append(r2_test)
 
     # Save the f-values in a text file
-    with open('info.txt', 'a') as f:
-        f.write(str(tuner.oracle.get_best_trials(1)[0].score) + '\n')
+    with open("info.txt", "a") as f:
+        f.write(str(tuner.oracle.get_best_trials(1)[0].score) + "\n")
 
-importance_dict = dict(zip(selected_feature_indices, best_model.layers[0].get_weights()[0].sum(axis=0)))
+importance_dict = dict(
+    zip(selected_feature_indices, best_model.layers[0].get_weights()[0].sum(axis=0))
+)
 sorted_importance = sorted(importance_dict.items(), key=lambda x: x[1], reverse=True)
 for feature, importance in sorted_importance:
     print(f"{feature}: {importance}")
 
 print("\nBest Hyperparameters:")
 print(best_params.values)
-print(f'MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})')
-print(f'MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})')
-print(f'R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})')
-print(f'MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})')
-print(f'MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})')
-print(f'R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})')
+print(f"MSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})")
+print(f"MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})")
+print(f"R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})")
+print(f"MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})")
+print(f"MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})")
+print(f"R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})")
 
 # Save the model, scalers, selected features, and best hyperparameters
 save_model = input("Do you want to save the model? (y/n): ")
@@ -199,26 +229,30 @@ if save_model.lower() == "y":
     best_model.save_weights(os.path.join(model_dir, "model_weights.h5"))
 
     # Save the data scaler
-    with open(os.path.join(model_dir, "data_scaler.pkl"), 'wb') as file:
+    with open(os.path.join(model_dir, "data_scaler.pkl"), "wb") as file:
         pickle.dump(scaler, file)
 
     # Save the target scaler
-    with open(os.path.join(model_dir, "target_scaler.pkl"), 'wb') as file:
+    with open(os.path.join(model_dir, "target_scaler.pkl"), "wb") as file:
         pickle.dump(target_scaler, file)
 
     # Save the selected features
-    with open(os.path.join(model_dir, "model_info.txt"), 'w') as file:
+    with open(os.path.join(model_dir, "model_info.txt"), "w") as file:
         file.write("Cells Forward to Predict: " + str(cells_forward_to_predict) + "\n")
         file.write("Sequence Length: " + str(sequence_length) + "\n")
         file.write("Chosen Predictor Features:\n")
         file.write("\n".join(Chosen_Predictor))
-        file.write('\nBest Parameters:\n')
+        file.write("\nBest Parameters:\n")
         file.write(str(best_params.values))
-        file.write(f"\nMSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})\n"
-                   f"MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})\n"
-                   f"R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})\n"
-                   f"MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})\n"
-                   f"MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})\n"
-                   f"R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})")
+        file.write(
+            f"\nMSE train: {np.mean(mse_train_scores)} (+/- {np.std(mse_train_scores)})\n"
+            f"MAE train: {np.mean(mae_train_scores)} (+/- {np.std(mae_train_scores)})\n"
+            f"R^2 train: {np.mean(r2_train_scores)} (+/- {np.std(r2_train_scores)})\n"
+            f"MSE test: {np.mean(mse_test_scores)} (+/- {np.std(mse_test_scores)})\n"
+            f"MAE test: {np.mean(mae_test_scores)} (+/- {np.std(mae_test_scores)})\n"
+            f"R^2 test: {np.mean(r2_test_scores)} (+/- {np.std(r2_test_scores)})"
+        )
 
-    print(f"Saved the model '{model_name}', scalers, selected features, and best hyperparameters.")
+    print(
+        f"Saved the model '{model_name}', scalers, selected features, and best hyperparameters."
+    )

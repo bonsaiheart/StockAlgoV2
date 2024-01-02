@@ -10,15 +10,21 @@ import PrivateData
 import PrivateData.email
 from Task_Queue import celery_client
 from UTILITIES.logger_config import logger
+
 # min_tweet_interval = datetime.timedelta(minutes=60)  # Minimum interval between tweets (5 minutes)
 
-async def send_tweet_w_countdown_followup(ticker, current_price, upordown, message, countdownseconds, modelname):
+
+async def send_tweet_w_countdown_followup(
+    ticker, current_price, upordown, message, countdownseconds, modelname
+):
     min_tweet_interval = datetime.timedelta(minutes=countdownseconds // 60)
     print(f"~~~Sending ${ticker} Tweet~~~")
 
     directory = "UTILITIES/Send_Notifications/last_tweet_timestamps"
     os.makedirs(directory, exist_ok=True)
-    timestamp_file_path = os.path.join(directory, f"last_tweet_timestamp_{modelname}_{ticker}.txt")
+    timestamp_file_path = os.path.join(
+        directory, f"last_tweet_timestamp_{modelname}_{ticker}.txt"
+    )
     current_time = datetime.datetime.now()
 
     bearer_token = PrivateData.twitter_info.bearer_token
@@ -42,7 +48,10 @@ async def send_tweet_w_countdown_followup(ticker, current_price, upordown, messa
     except FileNotFoundError:
         last_tweet_time = None
 
-    if last_tweet_time is None or (current_time - last_tweet_time) >= min_tweet_interval:
+    if (
+        last_tweet_time is None
+        or (current_time - last_tweet_time) >= min_tweet_interval
+    ):
         try:
             response = client.create_tweet(text=message)
             tweet_id = response.data["id"]
@@ -50,18 +59,22 @@ async def send_tweet_w_countdown_followup(ticker, current_price, upordown, messa
 
             with open(timestamp_file_path, "w") as file:
                 file.write(current_time.isoformat())
-#TODO go back to docker?
+            # TODO go back to docker?
             # celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
-            await celery_client.followup_tweet_async_cycle(ticker, current_price, tweet_id, upordown, countdownseconds)
+            await celery_client.followup_tweet_async_cycle(
+                ticker, current_price, tweet_id, upordown, countdownseconds
+            )
         except Exception as e:
             # print(f"Error while sending tweet: {e}")
-            logger.error(f"An error occurred while trying to tweet for {ticker}: {e}", exc_info=False)
+            logger.error(
+                f"An error occurred while trying to tweet for {ticker}: {e}",
+                exc_info=False,
+            )
     else:
         print(last_tweet_time, "too close to last tweet time")
 
 
 async def email_me_string(model_name, callorput, ticker):
-
     message = model_name
     smtp_host = PrivateData.email.smtp_host
     smtp_port = PrivateData.email.smtp_port
@@ -77,7 +90,7 @@ async def email_me_string(model_name, callorput, ticker):
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    body = MIMEText(f"{str(ticker)}* {message}" )
+    body = MIMEText(f"{str(ticker)}* {message}")
     msg.attach(body)
 
     server = smtplib.SMTP(smtp_host, smtp_port)
@@ -87,9 +100,12 @@ async def email_me_string(model_name, callorput, ticker):
     server.quit()
 
     print("Email sent!")
+
+
 # email_me_string("sdf","dd","sdf")
 
 # send_tweet("spy","3","up","test")
+
 
 # email_me_string("Buy_1hr_Ptminfakerrrhah","C","SPY")
 def email_me(filepath):
@@ -114,7 +130,10 @@ def email_me(filepath):
         part = MIMEBase("application", "octet-stream")
         part.set_payload(f.read())
         encoders.encode_base64(part)
-        part.add_header("Content-Disposition", f'attachment; filename="{csv_file_path.split("/")[-1]}"')
+        part.add_header(
+            "Content-Disposition",
+            f'attachment; filename="{csv_file_path.split("/")[-1]}"',
+        )
         msg.attach(part)
 
     # Send the email using SMTP

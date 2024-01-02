@@ -21,13 +21,21 @@ print(ml_dataframe.columns)
 Chosen_Predictor = [
     "Bonsai Ratio",
     "Bonsai Ratio 2",
-    "B1/B2", 'ITM PCR-Vol',
-    "PCRv Up3", "PCRv Up2",
-    "PCRv Down3", "PCRv Down2",
-'ITM PCRoi Up1','ITM PCRoi Down1',
-    "ITM PCRv Up3", 'Net_IV', 'Net ITM IV',
+    "B1/B2",
+    "ITM PCR-Vol",
+    "PCRv Up3",
+    "PCRv Up2",
+    "PCRv Down3",
+    "PCRv Down2",
+    "ITM PCRoi Up1",
+    "ITM PCRoi Down1",
+    "ITM PCRv Up3",
+    "Net_IV",
+    "Net ITM IV",
     "ITM PCRv Down3",
-    "ITM PCRv Up4", "ITM PCRv Down2", "ITM PCRv Up2",
+    "ITM PCRv Up4",
+    "ITM PCRv Down2",
+    "ITM PCRv Up2",
     "ITM PCRv Down4",
     "RSI14",
     "AwesomeOsc5_34",
@@ -54,22 +62,26 @@ X_train, X_test, y_up_train, y_up_test, y_down_train, y_down_test = train_test_s
 )
 
 # Define your neural network model using TensorFlow
-model_up_nn = Sequential([
-    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
-    Dense(32, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(1)
-])
-model_down_nn = Sequential([
-    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
-    Dense(32, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(1)
-])
+model_up_nn = Sequential(
+    [
+        Dense(64, activation="relu", input_shape=(X_train.shape[1],)),
+        Dense(32, activation="relu"),
+        Dense(32, activation="relu"),
+        Dense(1),
+    ]
+)
+model_down_nn = Sequential(
+    [
+        Dense(64, activation="relu", input_shape=(X_train.shape[1],)),
+        Dense(32, activation="relu"),
+        Dense(32, activation="relu"),
+        Dense(1),
+    ]
+)
 
 # Compile the models with Mean Squared Error loss for regression task
-model_up_nn.compile(optimizer=Adam(), loss='mean_squared_error')
-model_down_nn.compile(optimizer=Adam(), loss='mean_squared_error')
+model_up_nn.compile(optimizer=Adam(), loss="mean_squared_error")
+model_down_nn.compile(optimizer=Adam(), loss="mean_squared_error")
 
 # Train the models on your data
 model_up_nn.fit(X_train, y_up_train, epochs=50, batch_size=32)
@@ -103,6 +115,4 @@ with open(f"../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
     info_txt.write(
         f"File analyzed: {DF_filename}\nMSE for Up Model: {mse_up}\nMSE for Down Model: {mse_down}\n"
     )
-    info_txt.write(
-        f"Predictors: {Chosen_Predictor}\n"
-    )
+    info_txt.write(f"Predictors: {Chosen_Predictor}\n")

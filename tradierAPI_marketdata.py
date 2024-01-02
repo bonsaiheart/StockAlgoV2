@@ -11,6 +11,8 @@ from UTILITIES.logger_config import logger
 
 class OptionChainError(Exception):
     pass
+
+
 # import webullAPI
 # Add a small constant to denominators taper_acc = PrivateData.tradier_info.paper_acc
 paper_auth = PrivateData.tradier_info.paper_auth
@@ -21,7 +23,7 @@ real_auth = PrivateData.tradier_info.real_auth
 YYMMDD = datetime.today().strftime("%y%m%d")
 
 # TODO for now this ignores the divede by zero warnings.
-np.seterr(divide='ignore', invalid='ignore')
+np.seterr(divide="ignore", invalid="ignore")
 
 
 async def get_option_chain(session, ticker, exp_date, headers):
@@ -31,13 +33,21 @@ async def get_option_chain(session, ticker, exp_date, headers):
         json_response = await fetch(session, url, params, headers)
 
         if json_response is None:
-            raise OptionChainError(f"FaWASS NMONE?? Wow get optoin chain. chain data for {ticker} (in traideierapi.get_options_chain")
+            raise OptionChainError(
+                f"FaWASS NMONE?? Wow get optoin chain. chain data for {ticker} (in traideierapi.get_options_chain"
+            )
 
-        if json_response and "options" in json_response and "option" in json_response["options"]:
+        if (
+            json_response
+            and "options" in json_response
+            and "option" in json_response["options"]
+        ):
             optionchain_df = pd.DataFrame(json_response["options"]["option"])
             return optionchain_df
         else:
-            print(f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing")
+            print(
+                f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing"
+            )
             return None  # Or another appropriate response to indicate failure
     except Exception as e:
         raise
@@ -45,7 +55,10 @@ async def get_option_chain(session, ticker, exp_date, headers):
 
 async def get_option_chains_concurrently(session, ticker, expiration_dates, headers):
     try:
-        tasks = [get_option_chain(session, ticker, exp_date, headers) for exp_date in expiration_dates]
+        tasks = [
+            get_option_chain(session, ticker, exp_date, headers)
+            for exp_date in expiration_dates
+        ]
         all_option_chains = await asyncio.gather(*tasks)
 
         # Check if any of the option chains is None and return None immediately
@@ -65,22 +78,36 @@ async def fetch(session, url, params, headers):
                 # print('APPLICATION IN RESPOSE TYPE JSON')
                 return await response.json()
             else:
-                raise OptionChainError(f"Fetch error: {content_type} with params {params} {url}")
+                raise OptionChainError(
+                    f"Fetch error: {content_type} with params {params} {url}"
+                )
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
 
-async def get_options_data(session, ticker,YYMMDD_HHMM):
+
+async def get_options_data(session, ticker, YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
     tasks = []
     # Add tasks to tasks list
 
+    tasks.append(
+        fetch(
+            session,
+            "https://api.tradier.com/v1/markets/quotes",
+            params={"symbols": ticker, "greeks": "false"},
+            headers=headers,
+        )
+    )
 
-    tasks.append(fetch(session, "https://api.tradier.com/v1/markets/quotes",
-                       params={"symbols": ticker, "greeks": "false"}, headers=headers))
-
-    tasks.append(fetch(session, "https://api.tradier.com/v1/markets/options/expirations",
-                       params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"}, headers=headers))
+    tasks.append(
+        fetch(
+            session,
+            "https://api.tradier.com/v1/markets/options/expirations",
+            params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"},
+            headers=headers,
+        )
+    )
 
     # Wait for all tasks to complete
     responses = await asyncio.gather(*tasks)
@@ -88,9 +115,9 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
     quotes_response = responses[0]
     expirations_response = responses[1]
 
-
-
-    quote_df = pd.DataFrame.from_dict(quotes_response["quotes"]["quote"], orient="index").T
+    quote_df = pd.DataFrame.from_dict(
+        quotes_response["quotes"]["quote"], orient="index"
+    ).T
     LAC = quote_df.at[0, "prevclose"]
     open = quote_df.at[0, "open"]
     # print(open)
@@ -108,8 +135,9 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
     StockLastTradeTime_str = StockLastTradeTime_datetime.strftime("%y%m%d_%H%M")
     StockLastTradeTime_YMD = StockLastTradeTime_datetime.strftime("%y%m%d")
 
-    StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime("%y%m%d_%H%M")
-
+    StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime(
+        "%y%m%d_%H%M"
+    )
 
     expirations = expirations_response["expirations"]["expiration"]
     expiration_dates = [expiration["date"] for expiration in expirations]
@@ -117,7 +145,9 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
     callsChain = []
     putsChain = []
     try:
-        all_option_chains = await get_option_chains_concurrently(session, ticker, expiration_dates, headers)
+        all_option_chains = await get_option_chains_concurrently(
+            session, ticker, expiration_dates, headers
+        )
     except OptionChainError as e:
         raise  # Re-raise the exception to the caller
 
@@ -143,13 +173,30 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
         df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
     # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
-    columns_to_keep = ['symbol', 'trade_date', 'last', 'bid', 'ask', 'change', 'change_percentage', 'volume',
-                       'open_interest', 'ExpDate', 'Strike', 'lastPriceXoi', 'impliedVolatility',
-                       'dollarsFromStrikeXoi']
+    columns_to_keep = [
+        "symbol",
+        "trade_date",
+        "last",
+        "bid",
+        "ask",
+        "change",
+        "change_percentage",
+        "volume",
+        "open_interest",
+        "ExpDate",
+        "Strike",
+        "lastPriceXoi",
+        "impliedVolatility",
+        "dollarsFromStrikeXoi",
+    ]
 
     # Columns to drop (all columns that are not in 'columns_to_keep')
-    columns_to_drop_calls = [col for col in calls_df.columns if col not in columns_to_keep]
-    columns_to_drop_puts = [col for col in puts_df.columns if col not in columns_to_keep]
+    columns_to_drop_calls = [
+        col for col in calls_df.columns if col not in columns_to_keep
+    ]
+    columns_to_drop_puts = [
+        col for col in puts_df.columns if col not in columns_to_keep
+    ]
 
     # Drop unnecessary columns
     calls_df = calls_df.drop(columns_to_drop_calls, axis=1)
@@ -169,7 +216,6 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
         "greeks": "greeks",
         "impliedVolatility": "impliedVolatility",
         "dollarsFromStrike": "dollarsFromStrike",
-
         "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
         "lastPriceXoi": "lastPriceXoi",
     }
@@ -228,14 +274,22 @@ async def get_options_data(session, ticker,YYMMDD_HHMM):
             return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
 
         except FileExistsError as e:
-            logger.error(f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
+            logger.error(
+                f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
+            )
             raise
         except Exception as e:
-            logger.error(f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}")
+            logger.error(
+                f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
+            )
             raise
     else:
-        logger.warning(f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}")
-#TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
+        logger.warning(
+            f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
+        )
 
 
-#TODO added open high low close avg vol last vol... but didnt do anything with it yet
+# TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
+
+
+# TODO added open high low close avg vol last vol... but didnt do anything with it yet

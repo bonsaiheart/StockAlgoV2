@@ -37,23 +37,38 @@ DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_histori
 #                     'Net ITM_IV/ITM_OI', 'Closest Strike to CP', 'RSI', 'AwesomeOsc',
 #                     'RSI14', 'RSI2', 'AwesomeOsc5_34']
 # ##had highest corr for 3-5 hours with these:
-Chosen_Predictor = ['LastTradeTime', 'Current Stock Price', 'Current SP % Change(LAC)', 'Maximum Pain','Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
+Chosen_Predictor = [
+    "LastTradeTime",
+    "Current Stock Price",
+    "Current SP % Change(LAC)",
+    "Maximum Pain",
+    "Bonsai Ratio",
+    "Bonsai Ratio 2",
+    "ITM PCR-Vol",
+    "ITM PCRoi Up1",
+    "RSI14",
+    "AwesomeOsc5_34",
+    "Net_IV",
+]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print('device: ', device)
+print("device: ", device)
 ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(
-    lambda x: datetime.strptime(str(x), '%y%m%d_%H%M') if not pd.isna(x) else np.nan)
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'].apply(lambda x: x.timestamp())
-ml_dataframe['LastTradeTime'] = ml_dataframe['LastTradeTime'] / (60 * 60 * 24 * 7)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+    lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
+)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+    lambda x: x.timestamp()
+)
+ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"] / (60 * 60 * 24 * 7)
 
-ml_dataframe['ExpDate'] = ml_dataframe['ExpDate'].astype(float)
+ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
 
 cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
 threshold_cells_up = cells_forward_to_check * 0.5  # how many rows must achieve target %
-percent_up = .4  # target percetage.
-anticondition_threshold_cells_up = cells_forward_to_check * .7  # was .7
+percent_up = 0.4  # target percetage.
+anticondition_threshold_cells_up = cells_forward_to_check * 0.7  # was .7
 
 
 positivecase_weight = 1  # Your desired multiplier
@@ -69,12 +84,15 @@ anticondition_UpCounter = 0
 for i in range(1, cells_forward_to_check + 1):
     shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
     condition_met_up = shifted_values > (
-            ml_dataframe["Current Stock Price"] + (ml_dataframe["Current Stock Price"] * (percent_up / 100)))
+        ml_dataframe["Current Stock Price"]
+        + (ml_dataframe["Current Stock Price"] * (percent_up / 100))
+    )
     anticondition_up = shifted_values <= ml_dataframe["Current Stock Price"]
     target_Counter += condition_met_up.astype(int)
     anticondition_UpCounter += anticondition_up.astype(int)
 ml_dataframe["Target"] = (
-        (target_Counter >= threshold_cells_up) & (anticondition_UpCounter <= anticondition_threshold_cells_up)
+    (target_Counter >= threshold_cells_up)
+    & (anticondition_UpCounter <= anticondition_threshold_cells_up)
 ).astype(int)
 ml_dataframe.dropna(subset=["Target"], inplace=True)
 y = ml_dataframe["Target"].copy()
@@ -83,16 +101,27 @@ X.reset_index(drop=True, inplace=True)
 y.reset_index(drop=True, inplace=True)
 
 
-
 # largenumber = 1e5
 # X[Chosen_Predictor] = np.clip(X[Chosen_Predictor], -largenumber, largenumber)
 
 nan_indices = np.argwhere(np.isnan(X.to_numpy()))  # Convert DataFrame to NumPy array
 inf_indices = np.argwhere(np.isinf(X.to_numpy()))  # Convert DataFrame to NumPy array
-neginf_indices = np.argwhere(np.isneginf(X.to_numpy()))  # Convert DataFrame to NumPy array
-print("NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found.")
-print("Infinite values found at indices:" if len(inf_indices) > 0 else "No infinite values found.")
-print("Negative Infinite values found at indices:" if len(neginf_indices) > 0 else "No negative infinite values found.")
+neginf_indices = np.argwhere(
+    np.isneginf(X.to_numpy())
+)  # Convert DataFrame to NumPy array
+print(
+    "NaN values found at indices:" if len(nan_indices) > 0 else "No NaN values found."
+)
+print(
+    "Infinite values found at indices:"
+    if len(inf_indices) > 0
+    else "No infinite values found."
+)
+print(
+    "Negative Infinite values found at indices:"
+    if len(neginf_indices) > 0
+    else "No negative infinite values found."
+)
 
 #
 test_set_percentage = 0.2  # Specify the percentage of the data to use as a test set
@@ -102,6 +131,7 @@ X_test = X[split_index:]
 y_test = y[split_index:]
 X = X[:split_index]
 y = y[:split_index]
+
 
 class BinaryClassificationNNwithDropout(nn.Module):
     def __init__(self, input_dim, num_hidden_units, dropout_rate):
@@ -154,23 +184,48 @@ class ClassNN_BatchNorm_DropoutA1(nn.Module):
         return self.layers(x)
 
 
-def create_optimizer(optimizer_name, learning_rate, momentum,  model_parameters,weight_decay=0,):
+def create_optimizer(
+    optimizer_name,
+    learning_rate,
+    momentum,
+    model_parameters,
+    weight_decay=0,
+):
     if optimizer_name == "SGD":
-        return torch.optim.SGD(model_parameters, lr=learning_rate, momentum=momentum, weight_decay=weight_decay)
+        return torch.optim.SGD(
+            model_parameters,
+            lr=learning_rate,
+            momentum=momentum,
+            weight_decay=weight_decay,
+        )
     elif optimizer_name == "Adam":
-        return torch.optim.Adam(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.Adam(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     elif optimizer_name == "AdamW":
-        return torch.optim.AdamW(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.AdamW(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     elif optimizer_name == "RMSprop":
-        return torch.optim.RMSprop(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.RMSprop(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     elif optimizer_name == "Adagrad":
-        return torch.optim.Adagrad(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.Adagrad(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     elif optimizer_name == "Adamax":
-        return torch.optim.Adamax(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.Adamax(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     elif optimizer_name == "Adadelta":
-        return torch.optim.Adadelta(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.Adadelta(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     elif optimizer_name == "LBFGS":
-        return torch.optim.LBFGS(model_parameters, lr=learning_rate, weight_decay=weight_decay)
+        return torch.optim.LBFGS(
+            model_parameters, lr=learning_rate, weight_decay=weight_decay
+        )
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
 
@@ -194,9 +249,9 @@ def create_optimizer(optimizer_name, learning_rate, momentum,  model_parameters,
 #     return loss
 
 
-f1 = F1Score(num_classes=2, average='weighted', task='binary').to(device)
-prec = Precision(num_classes=2, average='weighted', task='binary').to(device)
-recall = Recall(num_classes=2, average='weighted', task='binary').to(device)
+f1 = F1Score(num_classes=2, average="weighted", task="binary").to(device)
+prec = Precision(num_classes=2, average="weighted", task="binary").to(device)
+recall = Recall(num_classes=2, average="weighted", task="binary").to(device)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -209,13 +264,12 @@ def compute_metrics(outputs, labels, threshold=0.5):
     return f1_score_value, precision_value, recall_value
 
 
-
 def train_model_with_time_series_cv(hparams, X, y):
     tscv = TimeSeriesSplit(n_splits=2)
     X_np = X.to_numpy()
     best_model_state_dict = None
 
-    best_f1, best_precision, best_recall, best_val_loss = 0, 0, 0, float('inf')
+    best_f1, best_precision, best_recall, best_val_loss = 0, 0, 0, float("inf")
     total_f1, total_precision, total_recall, total_val_loss = 0, 0, 0, 0
     num_folds = 0
     total_num_epochs = 0  # Initialize before entering the fold loop
@@ -237,23 +291,37 @@ def train_model_with_time_series_cv(hparams, X, y):
 
         X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
         X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
-        y_train_tensor = torch.tensor(y_train.values.reshape(-1, 1), dtype=torch.float32).to(device)
-        y_val_tensor = torch.tensor(y_val.values.reshape(-1, 1), dtype=torch.float32).to(device)
+        y_train_tensor = torch.tensor(
+            y_train.values.reshape(-1, 1), dtype=torch.float32
+        ).to(device)
+        y_val_tensor = torch.tensor(
+            y_val.values.reshape(-1, 1), dtype=torch.float32
+        ).to(device)
         batch_size = hparams["batch_size"]
         train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=False, drop_last=True
+        )
         val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
         num_layers = hparams["num_layers"]
         # print( hparams['dropout_rate'],num_layers)
-        model = ClassNN_BatchNorm_DropoutA1(X_train.shape[1], hparams["num_hidden_units"],  hparams.get('dropout_rate', 0),
-                                            num_layers).to(
-            device)
-        optimizer = create_optimizer(hparams["optimizer"], hparams["learning_rate"], hparams.get("momentum", 0),
-                                      model.parameters(),hparams.get("weight_decay",0))
+        model = ClassNN_BatchNorm_DropoutA1(
+            X_train.shape[1],
+            hparams["num_hidden_units"],
+            hparams.get("dropout_rate", 0),
+            num_layers,
+        ).to(device)
+        optimizer = create_optimizer(
+            hparams["optimizer"],
+            hparams["learning_rate"],
+            hparams.get("momentum", 0),
+            model.parameters(),
+            hparams.get("weight_decay", 0),
+        )
         model.train()
         # Calculate class weights
-        class_weights = compute_class_weight('balanced', classes=[0, 1], y=y_train)
+        class_weights = compute_class_weight("balanced", classes=[0, 1], y=y_train)
 
         # Get the weight for the positive class (class 1)
         balanced_weight = class_weights[1]
@@ -268,12 +336,14 @@ def train_model_with_time_series_cv(hparams, X, y):
         optimizer_name = hparams["optimizer"]
         num_epochs = hparams["num_epochs"]
 
-        if hparams.get("lr_scheduler") == 'StepLR':
+        if hparams.get("lr_scheduler") == "StepLR":
             lr_scheduler = StepLR(optimizer, hparams["step_size"], hparams["gamma"])
-        elif hparams.get("lr_scheduler") == 'ExponentialLR':
+        elif hparams.get("lr_scheduler") == "ExponentialLR":
             lr_scheduler = ExponentialLR(optimizer, hparams["gamma"])
-        elif hparams.get("lr_scheduler") == 'ReduceLROnPlateau':
-            lr_scheduler = ReduceLROnPlateau(optimizer, patience=hparams["lrpatience"], mode='min')
+        elif hparams.get("lr_scheduler") == "ReduceLROnPlateau":
+            lr_scheduler = ReduceLROnPlateau(
+                optimizer, patience=hparams["lrpatience"], mode="min"
+            )
         else:
             lr_scheduler = None
         l1_lambda = hparams.get("l1_lambda", 0)  # L1 regularization coefficient
@@ -290,10 +360,12 @@ def train_model_with_time_series_cv(hparams, X, y):
             loss = None  # Define loss outside the inner loop
             for X_batch, y_batch in train_loader:
                 if optimizer_name == "LBFGS":
+
                     def closure():
                         nonlocal loss  # Refer to the outer scope's loss variable
                         optimizer.zero_grad()
                         outputs = model(X_batch)
+
                     #     loss = criterion(outputs, y_batch)
                     #
                     #     l1_reg = torch.tensor(0., requires_grad=True).to(device)
@@ -310,7 +382,7 @@ def train_model_with_time_series_cv(hparams, X, y):
                     # print(outputs)
                     loss = criterion(outputs, y_batch)
                     # Add L1 regularization to loss
-                    l1_reg = torch.tensor(0., requires_grad=True).to(device)
+                    l1_reg = torch.tensor(0.0, requires_grad=True).to(device)
                     for param in model.parameters():
                         l1_reg += torch.norm(param, 1)
                     loss += l1_lambda * l1_reg
@@ -335,12 +407,14 @@ def train_model_with_time_series_cv(hparams, X, y):
                     # all_val_labels.extend(y_val_batch.tolist())
                     val_loss = criterion(val_outputs, y_val_batch)
                     # Add L1 regularization to validation loss
-                    l1_val_reg = torch.tensor(0.).to(device)
+                    l1_val_reg = torch.tensor(0.0).to(device)
                     for param in model.parameters():
                         l1_val_reg += torch.norm(param, 1)
                     val_loss += l1_lambda * l1_val_reg
 
-                    epoch_sum_val_loss += val_loss.item() * len(y_val_batch)  # Multiply by batch size
+                    epoch_sum_val_loss += val_loss.item() * len(
+                        y_val_batch
+                    )  # Multiply by batch size
                     epoch_total_samples += len(y_val_batch)
             all_val_outputs_tensor = torch.cat(all_val_outputs, dim=0)
             all_val_labels_tensor = torch.cat(all_val_labels, dim=0)
@@ -362,13 +436,12 @@ def train_model_with_time_series_cv(hparams, X, y):
 
                 patience_counter = 0
 
-
             else:
                 patience_counter += 1
             # if isinstance(lr_scheduler, ReduceLROnPlateau):
             #     lr_scheduler.step(epoch_avg_val_loss)
 
-                # Only reset the counter if the validation loss improved
+            # Only reset the counter if the validation loss improved
             patience = 20
             if patience_counter >= patience:
                 print(f"Early stopping triggered at fold {fold+1},  epoch {epoch + 1}")
@@ -387,17 +460,18 @@ def train_model_with_time_series_cv(hparams, X, y):
         avg_val_loss = total_val_loss / num_folds
 
         return {
-            'best_f1': best_f1,
-            'best_precision': best_precision,
-            'best_recall': best_recall,
-            'best_val_loss': best_val_loss,
-            'avg_f1': avg_f1,
-            'avg_precision': avg_precision,
-            'avg_recall': avg_recall,
-            'avg_val_loss': avg_val_loss,
-            'avg_val_loss_per_epoch_across_folds': avg_val_loss_per_epoch_across_folds,
-            'best_model_state_dict': best_model_state_dict
+            "best_f1": best_f1,
+            "best_precision": best_precision,
+            "best_recall": best_recall,
+            "best_val_loss": best_val_loss,
+            "avg_f1": avg_f1,
+            "avg_precision": avg_precision,
+            "avg_recall": avg_recall,
+            "avg_val_loss": avg_val_loss,
+            "avg_val_loss_per_epoch_across_folds": avg_val_loss_per_epoch_across_folds,
+            "best_model_state_dict": best_model_state_dict,
         }
+
 
 def train_model_full_dataset(hparams, X, y):
     X_np = X.to_numpy()
@@ -414,7 +488,9 @@ def train_model_full_dataset(hparams, X, y):
 
     # Convert to PyTorch tensors
     X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32).to(device)
-    y_train_tensor = torch.tensor(y_train.reshape(-1, 1), dtype=torch.float32).to(device)
+    y_train_tensor = torch.tensor(y_train.reshape(-1, 1), dtype=torch.float32).to(
+        device
+    )
     X_test_tensor = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
     y_test_tensor = torch.tensor(y_val.reshape(-1, 1), dtype=torch.float32).to(device)
 
@@ -423,15 +499,30 @@ def train_model_full_dataset(hparams, X, y):
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     val_dataset = TensorDataset(X_test_tensor, y_test_tensor)
 
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-    loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    val_loader = DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=True, drop_last=True
+    )
+    loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True, drop_last=True
+    )
 
     # Initialize model and optimizer
-    model = ClassNN_BatchNorm_DropoutA1(X_np.shape[1], hparams["num_hidden_units"], hparams.get('dropout_rate', 0), hparams["num_layers"]).to(device)
-    optimizer = create_optimizer(hparams["optimizer"], hparams["learning_rate"], hparams.get("momentum", 0), model.parameters(), hparams.get("weight_decay", 0))
+    model = ClassNN_BatchNorm_DropoutA1(
+        X_np.shape[1],
+        hparams["num_hidden_units"],
+        hparams.get("dropout_rate", 0),
+        hparams["num_layers"],
+    ).to(device)
+    optimizer = create_optimizer(
+        hparams["optimizer"],
+        hparams["learning_rate"],
+        hparams.get("momentum", 0),
+        model.parameters(),
+        hparams.get("weight_decay", 0),
+    )
 
     # Loss function
-    class_weights = compute_class_weight('balanced', classes=[0, 1], y=y_train)
+    class_weights = compute_class_weight("balanced", classes=[0, 1], y=y_train)
     balanced_weight = class_weights[1]
     final_weight = balanced_weight * positivecase_weight
     weight = torch.Tensor([final_weight]).to(device)
@@ -440,17 +531,19 @@ def train_model_full_dataset(hparams, X, y):
 
     l1_lambda = hparams.get("l1_lambda", 0)
 
-    if hparams.get("lr_scheduler") == 'StepLR':
+    if hparams.get("lr_scheduler") == "StepLR":
         lr_scheduler = StepLR(optimizer, hparams["step_size"], hparams["gamma"])
-    elif hparams.get("lr_scheduler") == 'ExponentialLR':
+    elif hparams.get("lr_scheduler") == "ExponentialLR":
         lr_scheduler = ExponentialLR(optimizer, hparams["gamma"])
-    elif hparams.get("lr_scheduler") == 'ReduceLROnPlateau':
-        lr_scheduler = ReduceLROnPlateau(optimizer, patience=hparams["lrpatience"], mode='min')
+    elif hparams.get("lr_scheduler") == "ReduceLROnPlateau":
+        lr_scheduler = ReduceLROnPlateau(
+            optimizer, patience=hparams["lrpatience"], mode="min"
+        )
     else:
         lr_scheduler = None
     # Training loop
     num_epochs = hparams["num_epochs"]
-    best_val_loss = float('inf')  # Initialize with a high value
+    best_val_loss = float("inf")  # Initialize with a high value
 
     for epoch in range(num_epochs):
         all_val_outputs = []
@@ -460,10 +553,12 @@ def train_model_full_dataset(hparams, X, y):
         loss = None  # Define loss outside the inner loop
         for X_batch, y_batch in loader:
             if optimizer_name == "LBFGS":
+
                 def closure():
                     nonlocal loss  # Refer to the outer scope's loss variable
                     optimizer.zero_grad()
                     outputs = model(X_batch)
+
                 #     loss = criterion(outputs, y_batch)
                 #
                 #     l1_reg = torch.tensor(0., requires_grad=True).to(device)
@@ -480,14 +575,16 @@ def train_model_full_dataset(hparams, X, y):
                 # print(outputs)
                 loss = criterion(outputs, y_batch)
                 # Add L1 regularization to loss
-                l1_reg = torch.tensor(0., requires_grad=True).to(device)
+                l1_reg = torch.tensor(0.0, requires_grad=True).to(device)
                 for param in model.parameters():
                     l1_reg += torch.norm(param, 1)
                 loss += l1_lambda * l1_reg
                 loss.backward()
                 optimizer.step()
                 if lr_scheduler is not None:
-                    if isinstance(lr_scheduler, StepLR) or isinstance(lr_scheduler, ExponentialLR):
+                    if isinstance(lr_scheduler, StepLR) or isinstance(
+                        lr_scheduler, ExponentialLR
+                    ):
                         lr_scheduler.step()
         model.eval()
         # Validation step
@@ -511,12 +608,14 @@ def train_model_full_dataset(hparams, X, y):
                 # all_val_labels.extend(y_val_batch.tolist())
                 val_loss = criterion(val_outputs, y_val_batch)
                 # Add L1 regularization to validation loss
-                l1_val_reg = torch.tensor(0.).to(device)
+                l1_val_reg = torch.tensor(0.0).to(device)
                 for param in model.parameters():
                     l1_val_reg += torch.norm(param, 1)
                 val_loss += l1_lambda * l1_val_reg
 
-                epoch_sum_val_loss += val_loss.item() * len(y_val_batch)  # Multiply by batch size
+                epoch_sum_val_loss += val_loss.item() * len(
+                    y_val_batch
+                )  # Multiply by batch size
                 epoch_total_samples += len(y_val_batch)
         all_val_outputs_tensor = torch.cat(all_val_outputs, dim=0)
         all_val_labels_tensor = torch.cat(all_val_labels, dim=0)
@@ -539,7 +638,6 @@ def train_model_full_dataset(hparams, X, y):
 
             patience_counter = 0
 
-
         else:
             patience_counter += 1
         # if isinstance(lr_scheduler, ReduceLROnPlateau):
@@ -552,23 +650,35 @@ def train_model_full_dataset(hparams, X, y):
 
     X_test_scaled = scaler_X.transform(X_test)
     X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32).to(device)
-    y_test_tensor = torch.tensor(y_test.values, dtype=torch.float32).squeeze().to(device)
+    y_test_tensor = (
+        torch.tensor(y_test.values, dtype=torch.float32).squeeze().to(device)
+    )
 
     predicted_probabilities = model(X_test_tensor).detach().cpu().numpy()
     predicted_binary = (predicted_probabilities > threshold_up).astype(int)
-    predicted_up_tensor = torch.tensor(predicted_binary, dtype=torch.float32).squeeze().to(device)
+    predicted_up_tensor = (
+        torch.tensor(predicted_binary, dtype=torch.float32).squeeze().to(device)
+    )
     num_positives_up = np.sum(predicted_binary)
     task = "binary"
-    precision_up = Precision(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_test_tensor)
-    accuracy_up = Accuracy(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_test_tensor)
-    recall_up = Recall(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_test_tensor)
-    f1_up = F1Score(num_classes=2, average='binary', task=task).to(device)(predicted_up_tensor, y_test_tensor)
+    precision_up = Precision(num_classes=2, average="binary", task=task).to(device)(
+        predicted_up_tensor, y_test_tensor
+    )
+    accuracy_up = Accuracy(num_classes=2, average="binary", task=task).to(device)(
+        predicted_up_tensor, y_test_tensor
+    )
+    recall_up = Recall(num_classes=2, average="binary", task=task).to(device)(
+        predicted_up_tensor, y_test_tensor
+    )
+    f1_up = F1Score(num_classes=2, average="binary", task=task).to(device)(
+        predicted_up_tensor, y_test_tensor
+    )
     # Print Number of Positive and Negative Samples
     num_positive_samples = sum(y_test)
     # num_negative_samples_up = len(y_up_test_tensor) - num_positive_samples_up
-    print('Total outcomes: ', len(y_test))
+    print("Total outcomes: ", len(y_test))
     print(f"Test Number of positive predictions: {num_positives_up}")
-    print('# True positive samples: ',y_test_tensor.sum())
+    print("# True positive samples: ", y_test_tensor.sum())
 
     print("\nMetrics for Test Target_Up:", "\n")
     print("Test Precision:", precision_up)
@@ -580,18 +690,20 @@ def train_model_full_dataset(hparams, X, y):
     # print('selected features: ',selected_features)
 
     result_dict = {
-        'model': model,
-        'scaler_X': scaler_X,
-        'precision_up': precision_up.item(),
-        'accuracy_up': accuracy_up.item(),
-        'recall_up': recall_up.item(),
-        'f1_up': f1_up.item(),
-        'num_positives_up': num_positives_up,
-        'num_positive_samples': num_positive_samples,
-        'len_y_test': len(y_test)
+        "model": model,
+        "scaler_X": scaler_X,
+        "precision_up": precision_up.item(),
+        "accuracy_up": accuracy_up.item(),
+        "recall_up": recall_up.item(),
+        "f1_up": f1_up.item(),
+        "num_positives_up": num_positives_up,
+        "num_positive_samples": num_positive_samples,
+        "len_y_test": len(y_test),
     }
 
     return result_dict
+
+
 # Define Optuna Objective
 def objective(trial):
     print(datetime.now())
@@ -600,15 +712,25 @@ def objective(trial):
     step_size = None
     gamma = None
     lrpatience = None
-    learning_rate = trial.suggest_float("learning_rate", .00001, 0.01, log=True)  # 0003034075497582067
-    num_epochs = trial.suggest_int("num_epochs", 5, 500) #230  291  400-700
-    batch_size = trial.suggest_int('batch_size', 2, 2400)  # 2000make sure its smaller than val dataset
+    learning_rate = trial.suggest_float(
+        "learning_rate", 0.00001, 0.01, log=True
+    )  # 0003034075497582067
+    num_epochs = trial.suggest_int("num_epochs", 5, 500)  # 230  291  400-700
+    batch_size = trial.suggest_int(
+        "batch_size", 2, 2400
+    )  # 2000make sure its smaller than val dataset
 
-    num_hidden_units = trial.suggest_int("num_hidden_units", 800,4000)  # 2560 #83 125 63  #7000
-    weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1,log=True)  # Adding L2 regularization parameter
-    l1_lambda = trial.suggest_float("l1_lambda", 1e-2, 1e-1,log=True)  # l1 regssss
+    num_hidden_units = trial.suggest_int(
+        "num_hidden_units", 800, 4000
+    )  # 2560 #83 125 63  #7000
+    weight_decay = trial.suggest_float(
+        "weight_decay", 1e-5, 1e-1, log=True
+    )  # Adding L2 regularization parameter
+    l1_lambda = trial.suggest_float("l1_lambda", 1e-2, 1e-1, log=True)  # l1 regssss
 
-    optimizer_name = trial.suggest_categorical("optimizer", ["Adam","SGD" ])  #"AdamW", "RMSprop","SGD"
+    optimizer_name = trial.suggest_categorical(
+        "optimizer", ["Adam", "SGD"]
+    )  # "AdamW", "RMSprop","SGD"
     num_layers = trial.suggest_int("num_layers", 1, 5)  # example
     if num_layers == 1:
         dropout_rate = 0
@@ -616,24 +738,25 @@ def objective(trial):
         dropout_rate = trial.suggest_float("dropout_rate", 0.4, 0.8)
     #
     if optimizer_name == "SGD":
-        momentum = trial.suggest_float('momentum', 0, 0.9)  # Only applicable if using SGD with momentum
+        momentum = trial.suggest_float(
+            "momentum", 0, 0.9
+        )  # Only applicable if using SGD with momentum
     else:
-
         momentum = None  # Default value if not using SGD
 
+    lr_scheduler_name = trial.suggest_categorical(
+        "lr_scheduler", ["StepLR", "ReduceLROnPlateau"]
+    )
 
-    lr_scheduler_name = trial.suggest_categorical('lr_scheduler', ['StepLR', 'ReduceLROnPlateau'])
+    if lr_scheduler_name == "StepLR":
+        step_size = trial.suggest_int("step_size", 5, 50)
+        gamma = trial.suggest_float("gamma", 0.1, 1)
 
-    if lr_scheduler_name == 'StepLR':
-        step_size = trial.suggest_int('step_size', 5, 50)
-        gamma = trial.suggest_float('gamma', 0.1, 1)
-
-    elif lr_scheduler_name == 'ReduceLROnPlateau':
-        lrpatience = trial.suggest_int('lrpatience', 5, 20)
+    elif lr_scheduler_name == "ReduceLROnPlateau":
+        lrpatience = trial.suggest_int("lrpatience", 5, 20)
 
     # Call the train_model function with the current hyperparameters
     result = train_model_full_dataset(
-
         {
             "l1_lambda": l1_lambda,
             "learning_rate": learning_rate,
@@ -643,7 +766,6 @@ def objective(trial):
             "num_epochs": num_epochs,
             "batch_size": batch_size,
             "dropout_rate": dropout_rate,
-
             "num_hidden_units": num_hidden_units,
             "weight_decay": weight_decay,
             "lr_scheduler": lr_scheduler_name,  # Pass the scheduler instance here
@@ -652,7 +774,8 @@ def objective(trial):
             "step_size": step_size,  # Add step_size parameter for StepLR
             # Add more hyperparameters as needed
         },
-        X, y
+        X,
+        y,
     )
     # best_f1 = result['best_f1']
     # best_precision = result['best_precision']
@@ -670,21 +793,20 @@ def objective(trial):
     # alpha = .3
     # return avg_val_loss  # Note this is actually criterion, which is currently mae.
     #    # return prec_score  # Optuna will try to maximize this value
-    precision_up = result['precision_up']
-    accuracy_up = result['accuracy_up']
-    recall_up = result['recall_up']
-    f1_up = result['f1_up']
-    alpha = .5
+    precision_up = result["precision_up"]
+    accuracy_up = result["accuracy_up"]
+    recall_up = result["recall_up"]
+    f1_up = result["f1_up"]
+    alpha = 0.5
 
     combined_metric = (alpha * (1 - f1_up)) + ((1 - alpha) * (1 - precision_up))
 
     return combined_metric
+
+
 ##TODO a
 try:
-
-
-    study = optuna.load_study(study_name='study3',
-                              storage='sqlite:///study3.db')
+    study = optuna.load_study(study_name="study3", storage="sqlite:///study3.db")
     print("Study Loaded.")
     try:
         best_params = study.best_params
@@ -699,8 +821,9 @@ try:
     except Exception as e:
         print(e)
 except KeyError:
-    study = optuna.create_study(direction="minimize", study_name='study3',
-                                storage='sqlite:///study3.db')
+    study = optuna.create_study(
+        direction="minimize", study_name="study3", storage="sqlite:///study3.db"
+    )
 "Keyerror, new optuna study created."  #
 
 study.optimize(objective, n_trials=5000)
@@ -725,15 +848,15 @@ print("~~~~training model using best params.~~~~")
 result = train_model_full_dataset(best_params, X, y)
 
 # Access the metrics, model, and scaler
-trained_model = result['model']
-scaler_X = result['scaler_X']
-precision_up = result['precision_up']
-accuracy_up = result['accuracy_up']
-recall_up = result['recall_up']
-f1_up = result['f1_up']
-num_positives_up = result['num_positives_up']
-num_positive_samples = result['num_positive_samples']
-len_y_test = result['len_y_test']
+trained_model = result["model"]
+scaler_X = result["scaler_X"]
+precision_up = result["precision_up"]
+accuracy_up = result["accuracy_up"]
+recall_up = result["recall_up"]
+f1_up = result["f1_up"]
+num_positives_up = result["num_positives_up"]
+num_positive_samples = result["num_positive_samples"]
+len_y_test = result["len_y_test"]
 
 # Now you can print or use these values as needed
 # print("Test Precision:", precision_up)
@@ -742,35 +865,33 @@ len_y_test = result['len_y_test']
 # print("Test F1-Score:", f1_up)
 
 
-
 input_val = input("Would you like to save these models? y/n: ").upper()
 if input_val == "Y":
     model_summary = input("Save this set of models as: ")
     model_directory = os.path.join("../../../Trained_Models", f"{model_summary}")
     if not os.path.exists(model_directory):
         os.makedirs(model_directory)
-    model_filename_up = os.path.join(model_directory, "tar"
-                                                      "get_up.pth")
+    model_filename_up = os.path.join(model_directory, "tar" "get_up.pth")
     save_dict = {
-        'model_class': trained_model.__class__.__name__,
-        'features': Chosen_Predictor,
-        'input_dim': X.shape[1],
-        "l1_lambda": best_params.get('l1_lambda'),
-        "learning_rate": best_params.get('learning_rate'),
-        "optimizer": best_params.get('optimizer'),
-        "num_layers": best_params.get('num_layers'),
-        "momentum": best_params.get('momentum'),
-        "num_epochs": best_params.get('num_epochs'),
-        "batch_size": best_params.get('batch_size'),
-        "dropout_rate": best_params.get('dropout_rate'),
-        "num_hidden_units": best_params.get('num_hidden_units'),
-        "weight_decay": best_params.get('weight_decay'),
-        "lr_scheduler": best_params.get('scheduler'),
-        "lrpatience": best_params.get('lrpatience'),
-        "gamma": best_params.get('gamma'),
-        "step_size": best_params.get('step_size'),
-        'scaler_X': scaler_X,
-        'model_state_dict': trained_model.state_dict(),
+        "model_class": trained_model.__class__.__name__,
+        "features": Chosen_Predictor,
+        "input_dim": X.shape[1],
+        "l1_lambda": best_params.get("l1_lambda"),
+        "learning_rate": best_params.get("learning_rate"),
+        "optimizer": best_params.get("optimizer"),
+        "num_layers": best_params.get("num_layers"),
+        "momentum": best_params.get("momentum"),
+        "num_epochs": best_params.get("num_epochs"),
+        "batch_size": best_params.get("batch_size"),
+        "dropout_rate": best_params.get("dropout_rate"),
+        "num_hidden_units": best_params.get("num_hidden_units"),
+        "weight_decay": best_params.get("weight_decay"),
+        "lr_scheduler": best_params.get("scheduler"),
+        "lrpatience": best_params.get("lrpatience"),
+        "gamma": best_params.get("gamma"),
+        "step_size": best_params.get("step_size"),
+        "scaler_X": scaler_X,
+        "model_state_dict": trained_model.state_dict(),
     }
 
     # Remove keys with None values
@@ -795,4 +916,5 @@ with open(f"../../../Trained_Models/{model_summary}/info.txt", "w") as info_txt:
         f"Threshold Up (sensitivity): {threshold_up}\n"
         f"Target Underlying Percentage Up: {percent_up}\n"
         f"Anticondition: {anticondition_UpCounter}\n"
-        f"Weight multiplier: {positivecase_weight}")
+        f"Weight multiplier: {positivecase_weight}"
+    )
