@@ -99,17 +99,17 @@ async def handle_model_result(
         IB_option_date,
         formatted_time,
         formatted_time_HR_MIN_only,
-    ) = get_contract_details(optionchain_df, processeddata_df, ticker, model_name)
+    ) = await get_contract_details(optionchain_df, processeddata_df, ticker, model_name)
 
     callorput = "call" if CorP == "C" else "put"
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
         model_name
     )
-    # orderRef =  ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only
+    orderRef =  ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only
 
     if order_manager.ib.isConnected:
         try:
-            await place_option_order_sync(
+            parent_trade_success=await place_option_order_sync(
                 CorP,
                 ticker,
                 IB_option_date,
@@ -121,8 +121,10 @@ async def handle_model_result(
                 take_profit_percent=option_take_profit_percent,
                 trail_stop_percent=option_trail_stop_percent,
             )
-        except Exception as e:
-            logger.exception(f"An error occurred while creating option order task {e}.")
+        except Exception as trade_e:
+
+            logger.exception(f"An error occurred while creating option order task {trade_e}.")
+
     try:
         await send_notifications.send_tweet_w_countdown_followup(
             ticker,
@@ -140,6 +142,7 @@ async def handle_model_result(
     except Exception as e:
         print(f"Email error {e}.")
         logger.exception(f"An error occurred while creating email task {e}")
+
 
 
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
@@ -217,7 +220,7 @@ async def actions(
                                 f"!!!positive pair result? {pair_name}: {signal_sums[pair_name]}"
                             )
                             # TODO change so that it uses a tp/trail fitted for the pair/combo.
-                            await handle_model_result(
+                            successfultrade=await handle_model_result(
                                 pair_name,
                                 ticker,
                                 current_price,
@@ -236,7 +239,7 @@ async def actions(
             if not part_of_pair or model_name not in executed_models:
                 if result > 0.5:
                     try:
-                        await handle_model_result(
+                        successfultrade=await handle_model_result(
                             model_name,
                             ticker,
                             current_price,
@@ -245,11 +248,14 @@ async def actions(
                             option_take_profit_percent,
                             option_trail_stop_percent,
                         )
+                        if successfultrade:
+                            return successfultrade
                     except Exception as e:
                         logger.exception(f"Error in handle_model_result. {e}")
 
         except Exception as e:
             log_error("actions", ticker, model_name, e)
+
 
 
 # TODO use this log error funciton globally?
@@ -271,7 +277,7 @@ def get_model_list():
 
 
 # TODO make it look for pairs first somehow?  store all orders, and take best?
-def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
+async def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
     # Extract the closest expiration date and strikes list
     closest_exp_date = processeddata_df["ExpDate"].iloc[0]
     closest_strikes_list = processeddata_df[

@@ -49,65 +49,34 @@ class IBOrderManager:
         order_status = trade.orderStatus
 
         if order_id in self.order_events:
-            if order_status.status == "Submitted":
+            if order_status.status == "Submitted"or order_status.status=="PreSubmitted":
+                print("ORDERSTATUS submitted: ",order_status.status)
                 self.order_events[order_id]["active"].set()
                 asyncio.create_task(self.delayed_event_deletion(order_id))
+                # del self.order_events[order_id]
 
 
-            elif order_status.status in ["Filled", "Cancelled", "Inactive"]:
+            elif order_status.status in ["Filled", "Cancelled", "Inactive","ApiCancelled"]:
                 self.order_events[order_id]["done"].set()
-                asyncio.create_task(self.delayed_event_deletion(order_id))
+                asyncio.create_task(self.delayed_event_deletion(order_id))#TODO i think these are causeing the destroyed taks  error?
+                # del self.order_events[order_id]
 
                 # Unsubscribe if no more interested orders are present
                 # if not self.order_events:
                 #     self.ib.orderStatusEvent -= self.on_order_status_change
             if not self.order_events:
-                    if self.is_subscribed:
+                    if self.is_subscribed_onorderstatuschange == True:
                         self.ib.orderStatusEvent -= self.on_order_status_change
                         self.is_subscribed_onorderstatuschange = False  # Reset the subscription flag
 
     async def delayed_event_deletion(self, order_id, delay=60):
         await asyncio.sleep(delay)
         if order_id in self.order_events:
-            del self.order_events[order_id]
-
-    def ib_reset_and_close_pos(self):
-        if not self.ib.isConnected():
-            print("~~~ Connecting ~~~")
-            # randomclientID = random.randint(0, 999)#TODO change bac kclientid
             try:
-                self.ib.connect("192.168.1.119", 7497, clientId=5, timeout=45)
-                print("connected.")
-
-            except (Exception, asyncio.exceptions.TimeoutError) as e:
-                logging.getLogger().error(
-                    "Connection error or error reset posistions.: %s", e
-                )
-                print("~~Connection/closepositions error:", e)
-        self.reset_all()
-        logger.info("Reset all positions/closed open orders.")
-
-    def reset_all(self):
-        self.ib.reqGlobalCancel()
-
-        positions = self.ib.positions()
-        # print(positions)
-        for position in positions:
-            contract = position.contract
-            # contract = ib.qualifyContracts(contract)[0]
-            # print(contract)
-            size = position.position
-
-            # Determine the action ('BUY' to close a short position, 'SELL' to close a long position)
-            action = "BUY" if size < 0 else "SELL"
-
-            # Create a market order to close the position
-            close_order = MarketOrder(action, abs(size))
-            contract.exchange = "SMART"  # Specify the exchange
-            # Send the order
-            # print(contract)
-            self.ib.placeOrder(contract, close_order)
-        logger.info("Reset all positions/closed open orders.")
+                del self.order_events[order_id]
+            except Exception as e:
+                print(e)
+                logger.error(e)
 
     async def ib_connect(self):
         if not self.ib.isConnected():
@@ -153,16 +122,14 @@ class IBOrderManager:
         child_orders_list = []
         # Filter open orders to find child orders for the given contract
         for trade in self.ib.openTrades():
-            # trade = await getTrade(order)
-            # print("action",action)
-            # print(order.parentId , order.action,trade.contract)
-            # print(trade.contract,contract)
-            if trade.order.action == "SELL" and trade.contract == contract:
-                # print("childorders trades",trade)
-                child_orders_list.append(trade.order)
+            if trade.order.action == action and trade.contract == contract:
+                # Check if the order status is active or pending (e.g., "Submitted", "PreSubmitted")
+                if trade.orderStatus.status in ["Submitted", "PreSubmitted"]:
+                    print("childorderstatus:",trade.orderStatus.status)
+                    child_orders_list.append(trade.order)
 
-        # print('childorders trade obj:', child_orders)
         return child_orders_list
+
 
     async def getTrade(self, order):
         trade = next(
@@ -177,6 +144,11 @@ class IBOrderManager:
         event_listeners = []
 
         for order in oca_group_orders:
+            trade = await self.getTrade(order)
+            if trade and trade.orderStatus.status in ['Cancelled',"ApiCancelled",'Filled','Inactive']:
+                print(f"Skipping cancellation for order {order.orderId} as it's already {trade.orderStatus.status}")
+                continue
+
             order_cancelled = asyncio.Event()
             cancellation_events.append((order, order_cancelled))
 
@@ -184,24 +156,30 @@ class IBOrderManager:
                 def on_cancel_order_event(trade: Trade):
                     if trade.order.orderId == order_id:
                         event.set()
-
                 return on_cancel_order_event
 
-            on_cancel_order_event = make_on_cancel_order_event(
-                order.orderId, order_cancelled
-            )
+            on_cancel_order_event = make_on_cancel_order_event(order.orderId, order_cancelled)
             self.ib.cancelOrderEvent += on_cancel_order_event
             event_listeners.append(on_cancel_order_event)
-            self.ib.cancelOrder(order)
 
-        # Wait for all cancellations to complete
-        await asyncio.gather(*(event.wait() for _, event in cancellation_events))
+            try:
+                self.ib.cancelOrder(order)
+            except Exception as e:
+                print(f"Error cancelling order {order.orderId}: {e}")
+                order_cancelled.set()  # Set the event to avoid waiting indefinitely
+                continue
 
-        # Detach event listeners
+        # Wait for all cancellations to complete with a timeout
+        try:
+            await asyncio.wait([event.wait() for _, event in cancellation_events], timeout=30)
+        except Exception as e:
+            logger.error(e)
+        listener_sum=0
         for listener in event_listeners:
+            listener_sum +=1
             self.ib.cancelOrderEvent -= listener
-            print("listeneres: ",listener)
         # Rest of your method...
+        print("listener sum: ",listener_sum)
 
         # New approach to calculate remaining quantities for each OCA group
         oca_group_remaining_qty = {}
@@ -302,7 +280,10 @@ class IBOrderManager:
             await self.replace_child_orders(order_details, contract)
 
     async def replace_child_orders(self, order_details, contract):
+
         try:
+            order_ids = []
+
             for ocaGroup, child_order_details in order_details.items():
                 quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
                 ticker_contract = contract
@@ -353,7 +334,6 @@ class IBOrderManager:
                     stopLoss.ocaGroup = takeProfit.orderId
                     stopLoss.orderRef = order_details[ocaGroup]["stopLoss"]["orderRef"]
                 bracketOrder = [takeProfit, stopLoss]
-                order_ids = []
 
                 for o in bracketOrder:
                     o.ocaType = 2
@@ -365,8 +345,9 @@ class IBOrderManager:
                     }
                     order_ids.append(trade.order.orderId)
         # TODO i guess this makes it stall out?
-            await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids))
 
+            waitforchildren =await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids),return_exceptions=True)
+            print("waitforchildren",waitforchildren)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logger.exception(
                 f"An error occurred while replace child orders.{ticker_contract},: {e}"

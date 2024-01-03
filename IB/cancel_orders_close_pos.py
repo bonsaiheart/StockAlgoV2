@@ -1,7 +1,10 @@
 from UTILITIES.logger_config import logger
 from ibAPI import *
 from ibAPI import ib  # Import the ib instance from ibAPI.py
+async def getTrade(order):
+    trade = next((trade for trade in ib.trades() if trade.order is order), None)
 
+    return trade
 # TODO set up logger
 # Initialization and global variables
 project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -46,8 +49,33 @@ except (Exception, asyncio.exceptions.TimeoutError) as e:
     logger.info("Reset all positions/closed open orders.")
 
 
-def reset_all():
+async def reset_all():
     ib.reqGlobalCancel()
+    # Replace these with the actual permIds of your orders
+    sell_order_permId = 1998945247
+    perm_Id = 1862637265
+    trades = ib.trades()
+    for trade in trades:
+        if trade.order.permId == perm_Id:
+            print(trade)
+    # print(openorders)
+    # Retrieve the orders using their permId
+    # sell_order = next((order for order in ib.orders() if order.permId == sell_order_permId), None)
+    # buy_order = next((order for order in ib.orders() if order.permId == buy_order_permId), None)
+    #
+    # # Check the status and potentially cancel the sell order
+    # if sell_order and sell_order.orderStatus.status in ["Submitted", "PreSubmitted"]:
+    #     print(f"Sell order {sell_order_permId} is active. Attempting to cancel...")
+    #     ib.cancelOrder(sell_order)
+    # else:
+    #     print(f"Sell order {sell_order_permId} status: {sell_order.orderStatus.status if sell_order else 'Order not found'}")
+    #
+    # # Check the status and potentially cancel the buy order
+    # if buy_order and buy_order.orderStatus.status in ["Submitted", "PreSubmitted"]:
+    #     print(f"Buy order {buy_order_permId} is active. Attempting to cancel...")
+    #     ib.cancelOrder(buy_order)
+    # else:
+    #     print(f"Buy order {buy_order_permId} status: {buy_order.orderStatus.status if buy_order else 'Order not found'}")
 
     positions = ib.positions()
     # print(positions)
@@ -69,13 +97,10 @@ def reset_all():
     logger.info("Reset all positions/closed open orders.")
 
 
-reset_all()
+asyncio.run(reset_all())
 
 
-async def getTrade(order):
-    trade = next((trade for trade in ib.trades() if trade.order is order), None)
 
-    return trade
 
 
 # Define a callback function for the cancelOrderEvent
