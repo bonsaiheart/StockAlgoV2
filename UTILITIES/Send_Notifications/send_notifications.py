@@ -60,18 +60,20 @@ async def send_tweet_w_countdown_followup(
             with open(timestamp_file_path, "w") as file:
                 file.write(current_time.isoformat())
             # TODO go back to docker?
-            # celery_client.send_to_celery_1_hour(ticker, current_price, tweet_id, upordown, countdownseconds)
-            await celery_client.followup_tweet_async_cycle(
+            celery_client.send_to_celery_1_hour(
                 ticker, current_price, tweet_id, upordown, countdownseconds
             )
+            # Use script async?
+            # await celery_client.followup_tweet_async_cycle(
+            #     ticker, current_price, tweet_id, upordown, countdownseconds
+            # )
         except Exception as e:
-            # print(f"Error while sending tweet: {e}")
             logger.error(
                 f"An error occurred while trying to tweet for {ticker}: {e}",
                 exc_info=False,
             )
     else:
-        print(last_tweet_time, "too close to last tweet time")
+        print("too close to last tweet time", last_tweet_time)
 
 
 async def email_me_string(model_name, callorput, ticker):

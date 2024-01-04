@@ -105,45 +105,44 @@ async def handle_model_result(
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
         model_name
     )
-    orderRef =  ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only
+    orderRef = ticker + "_" + model_name + "_" + formatted_time_HR_MIN_only
 
     if order_manager.ib.isConnected:
         try:
-            parent_trade_success=await place_option_order_sync(
+            parent_trade_success = await place_option_order_sync(
                 CorP,
                 ticker,
                 IB_option_date,
                 contractStrike,
                 contract_price,
-                orderRef=ticker+"_"+model_name+"_"+formatted_time_HR_MIN_only
-                ,
+                orderRef=ticker + "_" + model_name + "_" + formatted_time_HR_MIN_only,
                 quantity=10,
                 take_profit_percent=option_take_profit_percent,
                 trail_stop_percent=option_trail_stop_percent,
             )
         except Exception as trade_e:
+            logger.exception(
+                f"An error occurred while creating option order task {trade_e}."
+            )
 
-            logger.exception(f"An error occurred while creating option order task {trade_e}.")
-
-    try:
-        await send_notifications.send_tweet_w_countdown_followup(
-            ticker,
-            current_price,
-            upordown,
-            f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-            seconds_till_expectedprofit,
-            model_name,
-        )
-    except Exception as e:
-        print(f"Tweet error {e}.")
-        logger.exception(f"An error occurred while creating tweeting task {e}")
-    try:
-        await send_notifications.email_me_string(model_name, CorP, ticker)
-    except Exception as e:
-        print(f"Email error {e}.")
-        logger.exception(f"An error occurred while creating email task {e}")
-
-
+    # try:
+    #     await send_notifications.send_tweet_w_countdown_followup(
+    #         ticker,
+    #         current_price,
+    #         upordown,
+    #         f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+    #         seconds_till_expectedprofit,
+    #         model_name,
+    #     )
+    # except Exception as e:
+    #     print(f"Tweet error {e}.")
+    #     logger.exception(f"An error occurred while creating tweeting task {e}")
+    # try:
+    #     await send_notifications.email_me_string(model_name, CorP, ticker)
+    # except Exception as e:
+    #     print(f"Email error {e}.")
+    #     logger.exception(f"An error occurred while creating email task {e}")
+    #
 
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
 model_pairs = {
@@ -172,7 +171,9 @@ async def actions(
     # Iterate over each model in your model list
     for model in get_model_list():
         model_name = model.__name__
-        model_output = model(dailyminutes_df.tail(1))#error wehen trying to use taill.
+        model_output = model(
+            dailyminutes_df.tail(1)
+        )  # error wehen trying to use taill.. either missing data(and used to return whatever row had all features.
         evaluated_models.add(model_name)
         # print(model_output)
         try:
@@ -220,7 +221,7 @@ async def actions(
                                 f"!!!positive pair result? {pair_name}: {signal_sums[pair_name]}"
                             )
                             # TODO change so that it uses a tp/trail fitted for the pair/combo.
-                            successfultrade=await handle_model_result(
+                            successfultrade = await handle_model_result(
                                 pair_name,
                                 ticker,
                                 current_price,
@@ -237,9 +238,9 @@ async def actions(
 
             # Execute for individual model if not part of a pair or not executed as part of a pair
             if not part_of_pair or model_name not in executed_models:
-                if result > 0.5:
+                if result > 0.0:
                     try:
-                        successfultrade=await handle_model_result(
+                        successfultrade = await handle_model_result(
                             model_name,
                             ticker,
                             current_price,
@@ -257,7 +258,6 @@ async def actions(
             log_error("actions", ticker, model_name, e)
 
 
-
 # TODO use this log error funciton globally?
 
 # Define a function to send notifications (assuming you have this functionality in the send_notifications module)
@@ -273,7 +273,8 @@ def get_model_list():
         pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
         # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
-        pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss    ]
+        pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
+    ]
 
 
 # TODO make it look for pairs first somehow?  store all orders, and take best?

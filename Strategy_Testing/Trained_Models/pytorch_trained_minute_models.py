@@ -136,7 +136,7 @@ def SPY_2hr_50pct_Down_PTNNclass(new_data_df):
         # Apply the same max_val and min_val to training, validation, and test sets
         tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
-    tempdf = pd.DataFrame(tempdf.values, columns=features,index=tempdf.index)
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
 
     # scale the new data features and generate predictions
 
@@ -1105,16 +1105,20 @@ def Buy_3hr_PTminClassSPYA1(new_data_df):
 #     result.loc[prediction_series.index, "Predictions"] = prediction_series.values
 #     return result["Predictions"], .5, .5, 10, 10
 
+
 def _3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss(new_data_df):
-    checkpoint = torch.load(f'{base_dir}/_3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss/target_up.pth', map_location=torch.device(device))
-    features = checkpoint['features']
-    dropout_rate = checkpoint['dropout_rate']
-    input_dim = checkpoint['input_dim']
-    layers = checkpoint['layers']
-    scaler_X = checkpoint['scaler_X']
+    checkpoint = torch.load(
+        f"{base_dir}/_3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss/target_up.pth",
+        map_location=torch.device(device),
+    )
+    features = checkpoint["features"]
+    dropout_rate = checkpoint["dropout_rate"]
+    input_dim = checkpoint["input_dim"]
+    layers = checkpoint["layers"]
+    scaler_X = checkpoint["scaler_X"]
 
     loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
-    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.load_state_dict(checkpoint["model_state_dict"])
     loaded_model.eval()
 
     tempdf = new_data_df.copy()
@@ -1126,9 +1130,13 @@ def _3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col].replace(
+            [np.inf, -np.inf], [very_large_number, very_small_number], inplace=True
+        )
 
-    tempdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features, index=tempdf.index)
+    tempdf = pd.DataFrame(
+        scaler_X.transform(tempdf), columns=features, index=tempdf.index
+    )
     input_tensor = torch.tensor(tempdf.values, dtype=torch.float32)
     predictions = loaded_model(input_tensor)
     predictions_prob = torch.sigmoid(predictions)

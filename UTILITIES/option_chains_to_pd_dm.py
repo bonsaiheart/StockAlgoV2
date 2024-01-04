@@ -77,7 +77,8 @@ def str_YYMMDD_HHMM_to_datetime(date_str):
 semaphore = asyncio.Semaphore(
     5000
 )  # Adjust the number 10 to your desired concurrency limit
-#TODO get the times form the optionchainfiles.  use them along iwth optionchain.csv's open high low close average volume last volume. to make yf.download data equivalent.
+# TODO get the times form the optionchainfiles.  use them along iwth optionchain.csv's open high low close average volume last volume. to make yf.download data equivalent.
+
 
 async def get_ta(ticker, date):
     date = str_YYMMDD_HHMM_to_datetime(date)

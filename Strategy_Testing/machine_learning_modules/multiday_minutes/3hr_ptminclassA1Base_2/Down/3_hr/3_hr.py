@@ -690,7 +690,18 @@ except KeyError:
 #     # Print or process the trial information as needed
 #     print(f"Trial {trial_number}: Value = {trial_value}, Params = {trial_params}")
 # best_params = study.best_params
-best_params ={'batch_size': 2935, 'dropout_rate': 0.09159667693461288, 'learning_rate': 0.0001591439445105306, 'n_layers': 3, 'n_units_l0': 756, 'n_units_l1': 1598, 'n_units_l2': 871, 'num_epochs': 953, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0077192425381583}# best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
+best_params = {
+    "batch_size": 2935,
+    "dropout_rate": 0.09159667693461288,
+    "learning_rate": 0.0001591439445105306,
+    "n_layers": 3,
+    "n_units_l0": 756,
+    "n_units_l1": 1598,
+    "n_units_l2": 871,
+    "num_epochs": 953,
+    "optimizer": "Adam",
+    "positivecase_weight_up": 1.0077192425381583,
+}  # best_params={'batch_size': 824, 'dropout_rate': 0.025564321641021875, 'learning_rate': 0.009923900109174951, 'num_epochs': 348, 'num_hidden_units': 886, 'optimizer': 'Adam'}
 # best_params={'batch_size': 881, 'dropout_rate': 0.32727848596144893, 'learning_rate': 0.0006858665963457134, 'n_layers': 2, 'n_units_l0': 110, 'n_units_l1': 29, 'num_epochs': 308, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0015016778402561}
 print("Best Hyperparameters:", best_params)
 # Iterate through all trials in the study

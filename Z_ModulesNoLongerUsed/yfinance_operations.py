@@ -17,7 +17,11 @@ def get_options_data(ticker):
     Close = tickerhistory["Close"]
     tickerhistory.to_csv("tickerhistory.csv")
     tickerhistory["AwesomeOsc"] = ta.momentum.awesome_oscillator(
-        high=tickerhistory["High"], low=tickerhistory["Low"], window1=1, window2=5, fillna=False
+        high=tickerhistory["High"],
+        low=tickerhistory["Low"],
+        window1=1,
+        window2=5,
+        fillna=False,
     )
     tickerhistory["RSI"] = ta.momentum.rsi(close=Close, window=5, fillna=False)
     groups = tickerhistory.groupby(tickerhistory.index.date)
@@ -40,7 +44,9 @@ def get_options_data(ticker):
     StockLastTradeTime = tickerinfo["regularMarketTime"]
     print(StockLastTradeTime)
 
-    StockLastTradeTime = dt.datetime.fromtimestamp(StockLastTradeTime.timestamp()).strftime("%y%m%d_%H%M")
+    StockLastTradeTime = dt.datetime.fromtimestamp(
+        StockLastTradeTime.timestamp()
+    ).strftime("%y%m%d_%H%M")
     print(f"Last Trade Time: {StockLastTradeTime}")
 
     exp_dates = yf.Ticker(ticker).options
@@ -62,7 +68,9 @@ def get_options_data(ticker):
     calls_df["expDate"] = calls_df["contractSymbol"].str[-15:-9]
 
     calls_df["dollarsFromStrike"] = abs(calls_df["strike"] - LAC)
-    calls_df["dollarsFromStrikexOI"] = calls_df["dollarsFromStrike"] * calls_df["openInterest"]
+    calls_df["dollarsFromStrikexOI"] = (
+        calls_df["dollarsFromStrike"] * calls_df["openInterest"]
+    )
     calls_df["lastContractPricexOI"] = calls_df["lastPrice"] * calls_df["openInterest"]
     calls_df.rename(
         columns={
@@ -92,7 +100,9 @@ def get_options_data(ticker):
     puts_df["expDate"] = puts_df["contractSymbol"].str[-15:-9]
     ###TODO for puts, use current price - strike i think.
     puts_df["dollarsFromStrike"] = abs(puts_df["strike"] - LAC)
-    puts_df["dollarsFromStrikexOI"] = puts_df["dollarsFromStrike"] * puts_df["openInterest"]
+    puts_df["dollarsFromStrikexOI"] = (
+        puts_df["dollarsFromStrike"] * puts_df["openInterest"]
+    )
     puts_df["lastContractPricexOI"] = puts_df["lastPrice"] * puts_df["openInterest"]
 
     puts_df.rename(
@@ -181,14 +191,21 @@ def get_options_data(ticker):
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
 
     try:
-        combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x")
+        combined.to_csv(
+            f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
+            mode="x",
+        )
     except Exception as e:
         if FileExistsError:
             if StockLastTradeTime == 1600:
-                combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
+                combined.to_csv(
+                    f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv"
+                )
         else:
             print(f"An error occurred while writing the CSV file,: {e}")
-            combined.to_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv")
+            combined.to_csv(
+                f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}(2).csv"
+            )
     print(
         type(LAC),
         type(CurrentPrice),
@@ -198,7 +215,14 @@ def get_options_data(ticker):
         type(closest_exp_date),
     )
     ###strike, exp, call last price, call oi, iv,vol, $ from strike, dollars from strike x OI, last price x OI
-    return LAC, CurrentPrice, price_change_percent, StockLastTradeTime, this_minute_ta_frame, closest_exp_date
+    return (
+        LAC,
+        CurrentPrice,
+        price_change_percent,
+        StockLastTradeTime,
+        this_minute_ta_frame,
+        closest_exp_date,
+    )
 
 
 def perform_operations(
@@ -219,7 +243,9 @@ def perform_operations(
     # else:
     #     last_Bonsai_Ratio, last_Bonsai_Ratio_2 = None, None
 
-    data = pd.read_csv(f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv")
+    data = pd.read_csv(
+        f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv"
+    )
 
     groups = data.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
@@ -229,7 +255,9 @@ def perform_operations(
         call_LASTPRICExOI_list = []
         put_LASTPRICExOI_list = []
         call_price_dict = (
-            group.loc[group["Call_LastPrice"] >= 0, ["Strike", "Call_LastPrice"]].set_index("Strike").to_dict()
+            group.loc[group["Call_LastPrice"] >= 0, ["Strike", "Call_LastPrice"]]
+            .set_index("Strike")
+            .to_dict()
         )
         closest_strike_currentprice_dict = {}
         put_price_dict = {}
@@ -243,18 +271,30 @@ def perform_operations(
         # calls_OI_dict = group.loc[group['Call_OI'] >= 0, ["Strike", 'Call_OI']].set_index('Strike').to_dict()
         # puts_OI_dict = group.loc[group['Put_OI'] >= 0, ["Strike", 'Put_OI']].set_index('Strike').to_dict()
         calls_LASTPRICExOI_dict = (
-            group.loc[group["Calls_lastPriceXoi"] >= 0, ["Strike", "Calls_lastPriceXoi"]].set_index("Strike").to_dict()
+            group.loc[
+                group["Calls_lastPriceXoi"] >= 0, ["Strike", "Calls_lastPriceXoi"]
+            ]
+            .set_index("Strike")
+            .to_dict()
         )
         puts_LASTPRICExOI_dict = (
-            group.loc[group["Puts_lastPriceXoi"] >= 0, ["Strike", "Puts_lastPriceXoi"]].set_index("Strike").to_dict()
+            group.loc[group["Puts_lastPriceXoi"] >= 0, ["Strike", "Puts_lastPriceXoi"]]
+            .set_index("Strike")
+            .to_dict()
         )
         calls_DFSxOI_dict = (
-            group.loc[group["Calls_dollarsFromStrikeXoi"] >= 0, ["Strike", "Calls_dollarsFromStrikeXoi"]]
+            group.loc[
+                group["Calls_dollarsFromStrikeXoi"] >= 0,
+                ["Strike", "Calls_dollarsFromStrikeXoi"],
+            ]
             .set_index("Strike")
             .to_dict()
         )
         puts_DFSxOI_dict = (
-            group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
+            group.loc[
+                group["Puts_dollarsFromStrikeXoi"] >= 0,
+                ["Strike", "Puts_dollarsFromStrikeXoi"],
+            ]
             .set_index("Strike")
             .to_dict()
         )
@@ -264,7 +304,9 @@ def perform_operations(
         # itm_puts_OI_dict = group.loc[
         #     (group['Strike'] > last_adj_close) & (~group['Put_OI'].isnull()), ["Strike", 'Put_OI']].set_index(
         #     'Strike').to_dict()
-        ITM_CallsVol = group.loc[(group["Strike"] <= current_price), "Call_Volume"].sum()
+        ITM_CallsVol = group.loc[
+            (group["Strike"] <= current_price), "Call_Volume"
+        ].sum()
         ITM_PutsVol = group.loc[(group["Strike"] >= current_price), "Put_Volume"].sum()
         ITM_CallsOI = group.loc[(group["Strike"] <= current_price), "Call_OI"].sum()
         ITM_PutsOI = group.loc[(group["Strike"] >= current_price), "Put_OI"].sum()
@@ -306,7 +348,10 @@ def perform_operations(
             ITM_PC_Ratio_OI = np.nan
             continue
         DFSxOI_dict = (
-            group.loc[group["Puts_dollarsFromStrikeXoi"] >= 0, ["Strike", "Puts_dollarsFromStrikeXoi"]]
+            group.loc[
+                group["Puts_dollarsFromStrikeXoi"] >= 0,
+                ["Strike", "Puts_dollarsFromStrikeXoi"],
+            ]
             .set_index("Strike")
             .to_dict()
         )
@@ -326,11 +371,17 @@ def perform_operations(
                 (group["Strike"] > strikeprice), "Puts_dollarsFromStrikeXoi"
             ].sum()
 
-            call_LASTPRICExOI = calls_LASTPRICExOI_dict.get("Calls_lastPriceXoi", {}).get(strikeprice, 0)
-            put_LASTPRICExOI = puts_LASTPRICExOI_dict.get("Puts_lastPriceXoi", {}).get(strikeprice, 0)
+            call_LASTPRICExOI = calls_LASTPRICExOI_dict.get(
+                "Calls_lastPriceXoi", {}
+            ).get(strikeprice, 0)
+            put_LASTPRICExOI = puts_LASTPRICExOI_dict.get("Puts_lastPriceXoi", {}).get(
+                strikeprice, 0
+            )
             # call_DFSxOI = calls_DFSxOI_dict.get("Calls_dollarsFromStrikeXoi", {}).get(strikeprice, 0)
             # put_DFSxOI = puts_DFSxOI_dict.get("Puts_dollarsFromStrikeXoi", {}).get(strikeprice, 0)
-            pain_value = itmPuts_dollarsFromStrikeXoiSum + itmCalls_dollarsFromStrikeXoiSum
+            pain_value = (
+                itmPuts_dollarsFromStrikeXoiSum + itmCalls_dollarsFromStrikeXoiSum
+            )
             pain_list.append((strikeprice, pain_value))
             strike_LASTPRICExOI = call_LASTPRICExOI + put_LASTPRICExOI
             strike_LASTPRICExOI_list.append((strikeprice, strike_LASTPRICExOI))
@@ -353,19 +404,35 @@ def perform_operations(
         # max_call_DFSxOI = max(call_DFSxOI_list, key=lambda x: x[1])[0]
         # max_put_DFSxOI = max(put_DFSxOI_list, key=lambda x: x[1])[0]
         # implied_percentage_move= ((max_pain - last_adj_close) / last_adj_close) * 100
-        top_five_calls = group.loc[group["Call_OI"] > 0].sort_values(by="Call_OI", ascending=False).head(5)
-        top_five_calls_dict = top_five_calls[["Strike", "Call_OI"]].set_index("Strike").to_dict()["Call_OI"]
+        top_five_calls = (
+            group.loc[group["Call_OI"] > 0]
+            .sort_values(by="Call_OI", ascending=False)
+            .head(5)
+        )
+        top_five_calls_dict = (
+            top_five_calls[["Strike", "Call_OI"]]
+            .set_index("Strike")
+            .to_dict()["Call_OI"]
+        )
         # highestTotalOI = group.loc[group['TotalOI'] > 0].sort_values(by='TotalOI', ascending=False).head(2)
         # highestTotalOI_dict = highestTotalOI[['Strike', 'TotalOI']].set_index('Strike').to_dict()['TotalOI']
-        top_five_puts = group.loc[group["Put_OI"] > 0].sort_values(by="Put_OI", ascending=False).head(5)
-        top_five_puts_dict = top_five_puts[["Strike", "Put_OI"]].set_index("Strike").to_dict()["Put_OI"]
+        top_five_puts = (
+            group.loc[group["Put_OI"] > 0]
+            .sort_values(by="Put_OI", ascending=False)
+            .head(5)
+        )
+        top_five_puts_dict = (
+            top_five_puts[["Strike", "Put_OI"]].set_index("Strike").to_dict()["Put_OI"]
+        )
 
         # print(group.loc[group["Strike"]])
 
         ### FINDING CLOSEST STRIKE TO LAC
         # target number from column A
         # calculate difference between target and each value in column B
-        data["strike_lac_diff"] = group["Strike"].apply(lambda x: abs(x - last_adj_close))
+        data["strike_lac_diff"] = group["Strike"].apply(
+            lambda x: abs(x - last_adj_close)
+        )
         # find index of row with smallest difference
 
         if not group.empty:
@@ -391,7 +458,9 @@ def perform_operations(
             try:
                 closest_strike_currentprice = group.loc[current_price_index, "Strike"]
             except KeyError:
-                closest_strike_currentprice = None  # or whatever default value you want to use
+                closest_strike_currentprice = (
+                    None  # or whatever default value you want to use
+                )
 
             try:
                 closest_higher_strike1 = group.loc[higher_strike_index1, "Strike"]
@@ -466,34 +535,55 @@ def perform_operations(
             if strike == None:
                 strike_PCRv_dict[strike] = np.nan
             else:
-                strikeindex_abovebelowput_volume = group.loc[group["Strike"] == strike, "Put_Volume"].values[0]
-                strikeindex_abovebelowcall_volume = group.loc[group["Strike"] == strike, "Call_Volume"].values[0]
+                strikeindex_abovebelowput_volume = group.loc[
+                    group["Strike"] == strike, "Put_Volume"
+                ].values[0]
+                strikeindex_abovebelowcall_volume = group.loc[
+                    group["Strike"] == strike, "Call_Volume"
+                ].values[0]
                 if strikeindex_abovebelowcall_volume == 0:
                     strike_PCRv_dict[strike] = np.nan
                 else:
-                    strike_PCRv_dict[strike] = strikeindex_abovebelowput_volume / strikeindex_abovebelowcall_volume
+                    strike_PCRv_dict[strike] = (
+                        strikeindex_abovebelowput_volume
+                        / strikeindex_abovebelowcall_volume
+                    )
 
         for strike in strikeindex_abovebelow:
             if strike == None:
                 strike_PCRoi_dict[strike] = np.nan
             else:
-                strikeindex_abovebelowput_oi = group.loc[group["Strike"] == strike, "Put_OI"].values[0]
-                strikeindex_abovebelowcall_oi = group.loc[group["Strike"] == strike, "Call_OI"].values[0]
+                strikeindex_abovebelowput_oi = group.loc[
+                    group["Strike"] == strike, "Put_OI"
+                ].values[0]
+                strikeindex_abovebelowcall_oi = group.loc[
+                    group["Strike"] == strike, "Call_OI"
+                ].values[0]
                 if strikeindex_abovebelowcall_oi == 0:
                     strike_PCRoi_dict[strike] = np.nan
                 else:
-                    strike_PCRoi_dict[strike] = strikeindex_abovebelowput_oi / strikeindex_abovebelowcall_oi
+                    strike_PCRoi_dict[strike] = (
+                        strikeindex_abovebelowput_oi / strikeindex_abovebelowcall_oi
+                    )
 
         ##CP PCR V/oi
-        cp_put_vol = group.loc[group["Strike"] == closest_strike_currentprice, "Put_Volume"].values[0]
-        cp_call_vol = group.loc[group["Strike"] == closest_strike_currentprice, "Call_Volume"].values[0]
+        cp_put_vol = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Put_Volume"
+        ].values[0]
+        cp_call_vol = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Call_Volume"
+        ].values[0]
         if np.isnan(cp_put_vol) or np.isnan(cp_call_vol) or cp_call_vol == 0:
             PCRv_cp_strike = np.nan
         else:
             PCRv_cp_strike = cp_put_vol / cp_call_vol
 
-        cp_put_OI = group.loc[group["Strike"] == closest_strike_currentprice, "Put_OI"].values[0]
-        cp_call_OI = group.loc[group["Strike"] == closest_strike_currentprice, "Call_OI"].values[0]
+        cp_put_OI = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Put_OI"
+        ].values[0]
+        cp_call_OI = group.loc[
+            group["Strike"] == closest_strike_currentprice, "Call_OI"
+        ].values[0]
         if np.isnan(cp_put_OI) or np.isnan(cp_call_OI) or cp_call_OI == 0:
             PCRoi_cp_strike = np.nan
         else:
@@ -521,41 +611,65 @@ def perform_operations(
             if strikeabovebelow == None:
                 strike_ITMPCRv_dict[strikeabovebelow] = np.nan
             else:
-                strike_ITMPCRvput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_Volume"].sum()
-                strike_ITMPCRvcall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_Volume"].sum()
+                strike_ITMPCRvput_volume = group.loc[
+                    (group["Strike"] >= strikeabovebelow), "Put_Volume"
+                ].sum()
+                strike_ITMPCRvcall_volume = group.loc[
+                    (group["Strike"] <= strikeabovebelow), "Call_Volume"
+                ].sum()
                 if strike_ITMPCRvcall_volume == 0:
                     strike_ITMPCRv_dict[strikeabovebelow] = np.nan
                 else:
-                    strike_ITMPCRv_dict[strikeabovebelow] = strike_ITMPCRvput_volume / strike_ITMPCRvcall_volume
+                    strike_ITMPCRv_dict[strikeabovebelow] = (
+                        strike_ITMPCRvput_volume / strike_ITMPCRvcall_volume
+                    )
 
         for strikeabovebelow in strikeindex_abovebelow:
             if strikeabovebelow == None:
                 strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
             else:
-                strike_ITMPCRoiput_volume = group.loc[(group["Strike"] >= strikeabovebelow), "Put_Volume"].sum()
-                strike_ITMPCRoicall_volume = group.loc[(group["Strike"] <= strikeabovebelow), "Call_Volume"].sum()
+                strike_ITMPCRoiput_volume = group.loc[
+                    (group["Strike"] >= strikeabovebelow), "Put_Volume"
+                ].sum()
+                strike_ITMPCRoicall_volume = group.loc[
+                    (group["Strike"] <= strikeabovebelow), "Call_Volume"
+                ].sum()
                 if strike_ITMPCRoicall_volume == 0:
                     strike_ITMPCRoi_dict[strikeabovebelow] = np.nan
                 else:
-                    strike_ITMPCRoi_dict[strikeabovebelow] = strike_ITMPCRoiput_volume / strike_ITMPCRoicall_volume
+                    strike_ITMPCRoi_dict[strikeabovebelow] = (
+                        strike_ITMPCRoiput_volume / strike_ITMPCRoicall_volume
+                    )
 
         ###TODO use above/below lac strikes instead of just closest.
         ##LAC V/oi PCR
-        lac_put_vol = group.loc[group["Strike"] == closest_strike_lac, "Put_Volume"].values[0]
-        lac_call_vol = group.loc[group["Strike"] == closest_strike_lac, "Call_Volume"].values[0]
+        lac_put_vol = group.loc[
+            group["Strike"] == closest_strike_lac, "Put_Volume"
+        ].values[0]
+        lac_call_vol = group.loc[
+            group["Strike"] == closest_strike_lac, "Call_Volume"
+        ].values[0]
         if np.isnan(lac_put_vol) or np.isnan(lac_call_vol) or lac_call_vol == 0:
             PC_Ratio_Vol_Closest_Strike_LAC = np.nan
         else:
             PC_Ratio_Vol_Closest_Strike_LAC = lac_put_vol / lac_call_vol
 
-        lac_put_OI = group.loc[group["Strike"] == closest_strike_lac, "Put_OI"].values[0]
-        lac_call_OI = group.loc[group["Strike"] == closest_strike_lac, "Call_OI"].values[0]
+        lac_put_OI = group.loc[group["Strike"] == closest_strike_lac, "Put_OI"].values[
+            0
+        ]
+        lac_call_OI = group.loc[
+            group["Strike"] == closest_strike_lac, "Call_OI"
+        ].values[0]
         if np.isnan(lac_put_OI) or np.isnan(lac_call_OI) or lac_call_OI == 0:
             PC_Ratio_OI_Closest_Strike_LAC = np.nan
         else:
             PC_Ratio_OI_Closest_Strike_LAC = lac_put_OI / lac_call_OI
 
-        if np.isnan(PC_Ratio_Vol_atMP) or np.isnan(PC_Ratio_OI_atMP) or PC_Ratio_OI_atMP == 0:
+        if (
+            np.isnan(PC_Ratio_Vol_atMP)
+            or np.isnan(PC_Ratio_OI_atMP)
+            or PC_Ratio_OI_atMP == 0
+        ):
             PCR_vol_OI_at_MP = np.nan
         else:
             PCR_vol_OI_at_MP = round((PC_Ratio_Vol_atMP / PC_Ratio_OI_atMP), 3)
@@ -567,49 +681,65 @@ def perform_operations(
         ):
             PCR_vol_OI_at_LAC = np.nan
         else:
-            PCR_vol_OI_at_LAC = round((PC_Ratio_Vol_Closest_Strike_LAC / PC_Ratio_OI_Closest_Strike_LAC), 3)
+            PCR_vol_OI_at_LAC = round(
+                (PC_Ratio_Vol_Closest_Strike_LAC / PC_Ratio_OI_Closest_Strike_LAC), 3
+            )
 
         Net_Call_IV_at_MP = group.loc[(group["Strike"] == max_pain), "Call_IV"].sum()
         Net_Put_IV_at_MP = group.loc[(group["Strike"] == max_pain), "Put_IV"].sum()
         Net_IV_at_MP = Net_Call_IV_at_MP - Net_Put_IV_at_MP
-        NIV_CurrentStrike = (group.loc[(group["Strike"] == closest_strike_currentprice), "Call_IV"].sum()) - (
+        NIV_CurrentStrike = (
+            group.loc[(group["Strike"] == closest_strike_currentprice), "Call_IV"].sum()
+        ) - (
             group.loc[(group["Strike"] == closest_strike_currentprice), "Put_IV"].sum()
         )
-        NIV_1HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike1), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike1), "Put_IV"].sum()
-        )
-        NIV_2HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike2), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike2), "Put_IV"].sum()
-        )
-        NIV_3HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike3), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike3), "Put_IV"].sum()
-        )
-        NIV_4HigherStrike = (group.loc[(group["Strike"] == closest_higher_strike4), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_higher_strike4), "Put_IV"].sum()
-        )
-        NIV_1LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike1), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike1), "Put_IV"].sum()
-        )
-        NIV_2LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike2), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike2), "Put_IV"].sum()
-        )
-        NIV_3LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike3), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike3), "Put_IV"].sum()
-        )
-        NIV_4LowerStrike = (group.loc[(group["Strike"] == closest_lower_strike4), "Call_IV"].sum()) - (
-            group.loc[(group["Strike"] == closest_lower_strike4), "Put_IV"].sum()
-        )
+        NIV_1HigherStrike = (
+            group.loc[(group["Strike"] == closest_higher_strike1), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_higher_strike1), "Put_IV"].sum())
+        NIV_2HigherStrike = (
+            group.loc[(group["Strike"] == closest_higher_strike2), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_higher_strike2), "Put_IV"].sum())
+        NIV_3HigherStrike = (
+            group.loc[(group["Strike"] == closest_higher_strike3), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_higher_strike3), "Put_IV"].sum())
+        NIV_4HigherStrike = (
+            group.loc[(group["Strike"] == closest_higher_strike4), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_higher_strike4), "Put_IV"].sum())
+        NIV_1LowerStrike = (
+            group.loc[(group["Strike"] == closest_lower_strike1), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_lower_strike1), "Put_IV"].sum())
+        NIV_2LowerStrike = (
+            group.loc[(group["Strike"] == closest_lower_strike2), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_lower_strike2), "Put_IV"].sum())
+        NIV_3LowerStrike = (
+            group.loc[(group["Strike"] == closest_lower_strike3), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_lower_strike3), "Put_IV"].sum())
+        NIV_4LowerStrike = (
+            group.loc[(group["Strike"] == closest_lower_strike4), "Call_IV"].sum()
+        ) - (group.loc[(group["Strike"] == closest_lower_strike4), "Put_IV"].sum())
 
-        Call_IV_Closest_Strike_LAC = group.loc[(group["Strike"] == closest_strike_lac), "Call_IV"].sum()
-        Put_IV_Closest_Strike_LAC = group.loc[(group["Strike"] == closest_strike_lac), "Put_IV"].sum()
-        Net_IV_Closest_Strike_LAC = Call_IV_Closest_Strike_LAC - Put_IV_Closest_Strike_LAC
+        Call_IV_Closest_Strike_LAC = group.loc[
+            (group["Strike"] == closest_strike_lac), "Call_IV"
+        ].sum()
+        Put_IV_Closest_Strike_LAC = group.loc[
+            (group["Strike"] == closest_strike_lac), "Put_IV"
+        ].sum()
+        Net_IV_Closest_Strike_LAC = (
+            Call_IV_Closest_Strike_LAC - Put_IV_Closest_Strike_LAC
+        )
         ###TODO error handling for scalar divide of zero denominator
 
         Bonsai_Ratio = ((ITM_PutsVol / all_PutsVol) * (ITM_PutsOI / all_PutsOI)) / (
             (ITM_CallsVol / all_CallsVol) * (ITM_CallsOI / all_CallsOI)
         )
         Bonsai2_Ratio = (
-            (all_PutsOI == 0 or ITM_PutsOI == 0 or all_CallsOI == 0 or ITM_CallsVol == 0 or ITM_CallsOI == 0)
+            (
+                all_PutsOI == 0
+                or ITM_PutsOI == 0
+                or all_CallsOI == 0
+                or ITM_CallsVol == 0
+                or ITM_CallsOI == 0
+            )
             and float("inf")
             or ((all_PutsVol / ITM_PutsVol) / (all_PutsOI / ITM_PutsOI))
             * ((all_CallsVol / ITM_CallsVol) / (all_CallsOI / ITM_CallsOI))
@@ -709,17 +839,46 @@ def perform_operations(
                 "NIV highers(-)lowers1-2": (NIV_1HigherStrike + NIV_2HigherStrike)
                 - (NIV_1LowerStrike + NIV_2LowerStrike),
                 "NIV highers(-)lowers1-4": (
-                    NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike
+                    NIV_1HigherStrike
+                    + NIV_2HigherStrike
+                    + NIV_3HigherStrike
+                    + NIV_4HigherStrike
                 )
-                - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike),
+                - (
+                    NIV_1LowerStrike
+                    + NIV_2LowerStrike
+                    + NIV_3LowerStrike
+                    + NIV_4LowerStrike
+                ),
                 "NIV 1-2 % from mean": (
-                    ((NIV_1HigherStrike + NIV_2HigherStrike) - (NIV_1LowerStrike + NIV_2LowerStrike))
-                    / ((NIV_1HigherStrike + NIV_2HigherStrike + NIV_1LowerStrike + NIV_2LowerStrike) / 4)
+                    (
+                        (NIV_1HigherStrike + NIV_2HigherStrike)
+                        - (NIV_1LowerStrike + NIV_2LowerStrike)
+                    )
+                    / (
+                        (
+                            NIV_1HigherStrike
+                            + NIV_2HigherStrike
+                            + NIV_1LowerStrike
+                            + NIV_2LowerStrike
+                        )
+                        / 4
+                    )
                 )
                 * 100,
                 "NIV 1-4 % from mean": (
-                    (NIV_1HigherStrike + NIV_2HigherStrike + NIV_3HigherStrike + NIV_4HigherStrike)
-                    - (NIV_1LowerStrike + NIV_2LowerStrike + NIV_3LowerStrike + NIV_4LowerStrike)
+                    (
+                        NIV_1HigherStrike
+                        + NIV_2HigherStrike
+                        + NIV_3HigherStrike
+                        + NIV_4HigherStrike
+                    )
+                    - (
+                        NIV_1LowerStrike
+                        + NIV_2LowerStrike
+                        + NIV_3LowerStrike
+                        + NIV_4LowerStrike
+                    )
                     / (
                         (
                             NIV_1HigherStrike
@@ -806,9 +965,16 @@ def perform_operations(
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
     print(closest_strike_currentprice_dict)
     try:
-        df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", mode="x", index=False)
+        df.to_csv(
+            f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
+            mode="x",
+            index=False,
+        )
     except FileExistsError:
-        df.to_csv(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", index=False)
+        df.to_csv(
+            f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
+            index=False,
+        )
     return (
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
         f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv",
@@ -819,14 +985,18 @@ def perform_operations(
 
 
 ###TODO bonsai ratio for each strike?
-def actions(optionchain, processeddata, closest_strike_currentprice, closest_exp_date, ticker):
+def actions(
+    optionchain, processeddata, closest_strike_currentprice, closest_exp_date, ticker
+):
     optionchain = pd.read_csv(optionchain)
     processeddata = pd.read_csv(processeddata)
     date_string = closest_exp_date
     date_object = datetime.strptime(date_string, "%Y-%m-%d")
     new_date_string = date_object.strftime("%y%m%d")
 
-    int_num = int(processeddata["Closest Strike to CP"][0] * 1000)  # Convert decimal to integer
+    int_num = int(
+        processeddata["Closest Strike to CP"][0] * 1000
+    )  # Convert decimal to integer
 
     contract_strike = "{:08d}".format(int_num)
     call_contract = f"{ticker}{new_date_string}C{contract_strike}"

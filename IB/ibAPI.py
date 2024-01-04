@@ -24,50 +24,42 @@ class IBOrderManager:
         self.ib = ib
         self.pending_orders = {}
         self.order_events = {}
-        self.is_subscribed_onorderstatuschange = False  # Add a flag to track the subscription status
-
-    # def on_order_status_change(self, trade):
-    #     order_id = trade.order.orderId
-    #     order_status = trade.orderStatus
-    #     # When creating an event for a new order
-    #
-    #     # Handle active status
-    #     if order_status.status == 'Submitted' and order_id in self.order_events:
-    #         self.order_events[order_id]['active'].set()
-    #         # Optionally delete the 'active' event here if no longer needed
-    #         del self.order_events[order_id]['active']
-    #
-    #     # Handle final states
-    #     elif order_status.status in ['Filled', 'Cancelled', 'Inactive']:
-    #         if order_id in self.order_events:
-    #             self.order_events[order_id]['done'].set()
-    #             # Delete the entire entry after handling the final state
-    #             del self.order_events[order_id]
+        self.is_subscribed_onorderstatuschange = (
+            False  # Add a flag to track the subscription status
+        )
 
     def on_order_status_change(self, trade):
         order_id = trade.order.orderId
         order_status = trade.orderStatus
 
         if order_id in self.order_events:
-            if order_status.status == "Submitted"or order_status.status=="PreSubmitted":
-                print("ORDERSTATUS submitted: ",order_status.status)
+            if (
+                order_status.status == "Submitted"
+                or order_status.status == "PreSubmitted"
+            ):
+                print("ORDERSTATUS submitted: ", order_status.status)
                 self.order_events[order_id]["active"].set()
                 asyncio.create_task(self.delayed_event_deletion(order_id))
                 # del self.order_events[order_id]
 
-
-            elif order_status.status in ["Filled", "Cancelled", "Inactive","ApiCancelled"]:
+            elif order_status.status in [
+                "Filled",
+                "Cancelled",
+                "Inactive",
+                "ApiCancelled",
+            ]:
                 self.order_events[order_id]["done"].set()
-                asyncio.create_task(self.delayed_event_deletion(order_id))#TODO i think these are causeing the destroyed taks  error?
+                asyncio.create_task(
+                    self.delayed_event_deletion(order_id)
+                )  # TODO i think these are causeing the destroyed taks  error?
                 # del self.order_events[order_id]
 
-                # Unsubscribe if no more interested orders are present
-                # if not self.order_events:
-                #     self.ib.orderStatusEvent -= self.on_order_status_change
             if not self.order_events:
-                    if self.is_subscribed_onorderstatuschange == True:
-                        self.ib.orderStatusEvent -= self.on_order_status_change
-                        self.is_subscribed_onorderstatuschange = False  # Reset the subscription flag
+                if self.is_subscribed_onorderstatuschange == True:
+                    self.ib.orderStatusEvent -= self.on_order_status_change
+                    self.is_subscribed_onorderstatuschange = (
+                        False  # Reset the subscription flag
+                    )
 
     async def delayed_event_deletion(self, order_id, delay=60):
         await asyncio.sleep(delay)
@@ -125,11 +117,10 @@ class IBOrderManager:
             if trade.order.action == action and trade.contract == contract:
                 # Check if the order status is active or pending (e.g., "Submitted", "PreSubmitted")
                 if trade.orderStatus.status in ["Submitted", "PreSubmitted"]:
-                    print("childorderstatus:",trade.orderStatus.status)
+                    print("childorderstatus:", trade.orderStatus.status)
                     child_orders_list.append(trade.order)
 
         return child_orders_list
-
 
     async def getTrade(self, order):
         trade = next(
@@ -138,15 +129,23 @@ class IBOrderManager:
 
         return trade
 
-    # TODO swapped these cancels_ordres because sometimes it seems order is getting filled after trying to cancel, adn i have mismatching positions/open trades.
     async def cancel_oca_group_orders(self, oca_group_orders):
         cancellation_events = []
         event_listeners = []
-
         for order in oca_group_orders:
+            # oca_group = order.ocaGroup
             trade = await self.getTrade(order)
-            if trade and trade.orderStatus.status in ['Cancelled',"ApiCancelled",'Filled','Inactive']:
-                print(f"Skipping cancellation for order {order.orderId} as it's already {trade.orderStatus.status}")
+            if trade and trade.orderStatus.status in [
+                "Cancelled",
+                "ApiCancelled",
+                "Filled",
+                "Inactive",
+            ]:
+                if trade.orderStatus.status == "Filled":
+                    logger.error("THERES FILLED orders IN OCAGROUP TOCANCeL?")
+                print(
+                    f"Skipping cancellation for order {order.orderId} as it's already {trade.orderStatus.status}"
+                )
                 continue
 
             order_cancelled = asyncio.Event()
@@ -156,32 +155,44 @@ class IBOrderManager:
                 def on_cancel_order_event(trade: Trade):
                     if trade.order.orderId == order_id:
                         event.set()
+
                 return on_cancel_order_event
 
-            on_cancel_order_event = make_on_cancel_order_event(order.orderId, order_cancelled)
+            on_cancel_order_event = make_on_cancel_order_event(
+                order.orderId, order_cancelled
+            )
             self.ib.cancelOrderEvent += on_cancel_order_event
             event_listeners.append(on_cancel_order_event)
 
             try:
                 self.ib.cancelOrder(order)
             except Exception as e:
+                logger.error("error in ib.cancelORder for oca", e)
                 print(f"Error cancelling order {order.orderId}: {e}")
-                order_cancelled.set()  # Set the event to avoid waiting indefinitely
+                if (
+                    trade.order.orderId == order.orderId
+                    and trade.orderStatus.status
+                    in ["Cancelled", "ApiCancelled", "Inactive"]
+                ):
+                    # event.set()
+                    order_cancelled.set()  # Set the event to avoid waiting indefinitely
                 continue
 
-        # Wait for all cancellations to complete with a timeout
+        # Wait for all cancellations to finsh
         try:
-            await asyncio.wait([event.wait() for _, event in cancellation_events], timeout=30)
+            await asyncio.wait(
+                [event.wait() for _, event in cancellation_events], timeout=30
+            )
         except Exception as e:
             logger.error(e)
-        listener_sum=0
+        listener_sum = 0
         for listener in event_listeners:
-            listener_sum +=1
+            listener_sum += 1
             self.ib.cancelOrderEvent -= listener
         # Rest of your method...
-        print("listener sum: ",listener_sum)
+        print("listener sum: ", listener_sum)
 
-        # New approach to calculate remaining quantities for each OCA group
+        # 12/20 New approach to calculate remaining quantities for each OCA group
         oca_group_remaining_qty = {}
         fills = ib.fills()
         for order in oca_group_orders:
@@ -280,11 +291,11 @@ class IBOrderManager:
             await self.replace_child_orders(order_details, contract)
 
     async def replace_child_orders(self, order_details, contract):
-
         try:
             order_ids = []
 
             for ocaGroup, child_order_details in order_details.items():
+                print(order_details[ocaGroup])
                 quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
                 ticker_contract = contract
                 qualified_contract = await self.ib.qualifyContractsAsync(
@@ -344,13 +355,16 @@ class IBOrderManager:
                         "done": asyncio.Event(),
                     }
                     order_ids.append(trade.order.orderId)
-        # TODO i guess this makes it stall out?
+            # TODO i guess this gathe part makes it stall out?  Note:  I believe the issue may be that "active" didn't include "presubmitted" i.e. for trailing stop.
 
-            waitforchildren =await asyncio.gather(*(self.order_events[orderId]['active'].wait() for orderId in order_ids),return_exceptions=True)
-            print("waitforchildren",waitforchildren)
+            waitforchildren = await asyncio.gather(
+                *(self.order_events[orderId]["active"].wait() for orderId in order_ids),
+                return_exceptions=True,
+            )
+            print("waitforchildren", waitforchildren)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logger.exception(
-                f"An error occurred while replace child orders.{ticker_contract},: {e}"
+                f"An error occurred while replace child orders.{ticker_contract},: {e}\n order_details_dict for ocaGroup:{ocaGroup}: {order_details[ocaGroup]}"
             )
 
     async def placeOptionBracketOrder(
@@ -373,11 +387,12 @@ class IBOrderManager:
             trailstop_amount_percent = 3
         if not self.is_subscribed_onorderstatuschange:
             self.ib.orderStatusEvent += self.on_order_status_change
-            self.is_subscribed_onorderstatuschange = True  # Set the flag to indicate subscription
+            self.is_subscribed_onorderstatuschange = (
+                True  # Set the flag to indicate subscription
+            )
 
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         qualified_contract = await self.ib.qualifyContractsAsync(ticker_contract)
-        print("placeoptionbracketorder")
         if await self.can_place_new_order(qualified_contract[0]):
             if check_opposite_orders:
                 try:
@@ -404,7 +419,7 @@ class IBOrderManager:
             else:
                 try:
                     gtddelta = (
-                        datetime.datetime.now() + datetime.timedelta(seconds=10)
+                        datetime.datetime.now() + datetime.timedelta(seconds=15)
                     ).strftime("%Y%m%d %H:%M:%S")
 
                     contract_current_price = round(contract_current_price, 2)
@@ -495,7 +510,12 @@ class IBOrderManager:
                         }
                         # order_ids.append(trade.order.orderId)
 
-                    await self.order_events[parent.orderId]["done"].wait()
+                    await asyncio.gather(
+                        self.order_events[parent.orderId]["done"].wait(),
+                        self.order_events[takeProfit.orderId]["active"].wait(),
+                        self.order_events[stopLoss.orderId]["active"].wait(),
+                        return_exceptions=True,
+                    )
 
                     # await asyncio.gather(*(self.order_events[orderId]['done'].wait() for orderId in order_ids))
 
@@ -512,7 +532,9 @@ class IBOrderManager:
             )
 
     # ib.disconnect()
-    async def can_place_new_order(self, contract, threshold=13):#15 open orders on either side is MAX.
+    async def can_place_new_order(
+        self, contract, threshold=13
+    ):  # 15 open orders on either side is MAX.
         # Fetch open orders
         open_trades = self.ib.openTrades()
         # Count orders for the specified contract
@@ -522,25 +544,3 @@ class IBOrderManager:
         print(f"{count} open orders for {contract.localSymbol}.")
         # Return True if below threshold, False otherwise
         return count < threshold
-
-
-"""
-Please note the changes to the old code. It is important to call the fist variable 'bracket' to be able to define the 'bracket.parent' later (look into the definiton).
-f you have an open position with this order you should use the ib.positions()and retrieve the relevant position to be closed
-******Just add a trigger price and adjusted parameters to your stop order, like this code for example. Your stop will become a trail stop once the trigger price is touched
-stop = Order(action = reverseAction, totalQuantity = 1, orderType = "STP",
-                         parentId = parent.orderId, auxPrice = stop_price,
-                         tif ="GTC", transmit = True, orderId = self.ib.client.getReqId(),
-                         triggerPrice = trigger_price,
-                         adjustedOrderType = "TRAIL",  
-                         adjustedTrailingAmount = trail_amount,
-                         adjustedStopPrice = adjusted_stop_price )  
-"""
-print(__name__)
-if __name__ == "__main__":
-    ib = IB()
-    order_manager = IBOrderManager(ib)
-    asyncio.run(order_manager.ib_connect())
-    order_manager.ib_reset_and_close_pos()
-    # ... [Any other operations you want to perform] ...
-    order_manager.ib_disconnect()

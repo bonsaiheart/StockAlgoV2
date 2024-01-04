@@ -1,10 +1,14 @@
 from UTILITIES.logger_config import logger
 from ibAPI import *
 from ibAPI import ib  # Import the ib instance from ibAPI.py
+
+
 async def getTrade(order):
     trade = next((trade for trade in ib.trades() if trade.order is order), None)
 
     return trade
+
+
 # TODO set up logger
 # Initialization and global variables
 project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -98,9 +102,6 @@ async def reset_all():
 
 
 asyncio.run(reset_all())
-
-
-
 
 
 # Define a callback function for the cancelOrderEvent

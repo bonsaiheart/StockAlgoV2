@@ -224,11 +224,17 @@ async def get_ta(session, ticker):
         window=20,
         fillna=False,
     )
-    williams_r_object = ta.momentum.WilliamsRIndicator(high=df["high"], low=df["low"], close=df["close"], lbp=14, fillna=False)
+    williams_r_object = ta.momentum.WilliamsRIndicator(
+        high=df["high"], low=df["low"], close=df["close"], lbp=14, fillna=False
+    )
     safe_calculation(df, "Williams_R", williams_r_object.williams_r)
-    pvo_object = ta.momentum.PercentageVolumeOscillator(volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    pvo_object = ta.momentum.PercentageVolumeOscillator(
+        volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+    )
     safe_calculation(df, "PVO", pvo_object.pvo)
-    ppo_object = ta.momentum.PercentagePriceOscillator(close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+    ppo_object = ta.momentum.PercentagePriceOscillator(
+        close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+    )
     safe_calculation(df, "PPO", ppo_object.ppo)
 
     safe_calculation(
