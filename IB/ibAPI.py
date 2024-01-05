@@ -37,7 +37,7 @@ class IBOrderManager:
                 order_status.status == "Submitted"
                 or order_status.status == "PreSubmitted"
             ):
-                print("ORDERSTATUS submitted: ", order_status.status)
+                # print("ORDERSTATUS submitted: ", order_status.status)
                 self.order_events[order_id]["active"].set()
                 asyncio.create_task(self.delayed_event_deletion(order_id))
                 # del self.order_events[order_id]
@@ -117,7 +117,7 @@ class IBOrderManager:
             if trade.order.action == action and trade.contract == contract:
                 # Check if the order status is active or pending (e.g., "Submitted", "PreSubmitted")
                 if trade.orderStatus.status in ["Submitted", "PreSubmitted"]:
-                    print("childorderstatus:", trade.orderStatus.status)
+                    # print("childorderstatus:", trade.orderStatus.status)
                     child_orders_list.append(trade.order)
 
         return child_orders_list
@@ -190,7 +190,7 @@ class IBOrderManager:
             listener_sum += 1
             self.ib.cancelOrderEvent -= listener
         # Rest of your method...
-        print("listener sum: ", listener_sum)
+        # print("listener sum: ", listener_sum)
 
         # 12/20 New approach to calculate remaining quantities for each OCA group
         oca_group_remaining_qty = {}
@@ -226,7 +226,7 @@ class IBOrderManager:
             contract, action
         )
         if not child_orders_objs_list:
-            print("No children for ", ticker)
+            # print("No children for ", ticker)
             await self.placeOptionBracketOrder(
                 CorP,
                 ticker,
@@ -295,7 +295,7 @@ class IBOrderManager:
             order_ids = []
 
             for ocaGroup, child_order_details in order_details.items():
-                print(order_details[ocaGroup])
+                # print(order_details[ocaGroup])
                 quantity = order_details[ocaGroup]["takeProfit"]["remainingQty"]
                 ticker_contract = contract
                 qualified_contract = await self.ib.qualifyContractsAsync(
@@ -361,7 +361,7 @@ class IBOrderManager:
                 *(self.order_events[orderId]["active"].wait() for orderId in order_ids),
                 return_exceptions=True,
             )
-            print("waitforchildren", waitforchildren)
+            # print("waitforchildren", waitforchildren)
         except (Exception, asyncio.exceptions.TimeoutError) as e:
             logger.exception(
                 f"An error occurred while replace child orders.{ticker_contract},: {e}\n order_details_dict for ocaGroup:{ocaGroup}: {order_details[ocaGroup]}"
@@ -385,18 +385,19 @@ class IBOrderManager:
             take_profit_percent = 3
         if trailstop_amount_percent == None:
             trailstop_amount_percent = 3
-        if not self.is_subscribed_onorderstatuschange:
-            self.ib.orderStatusEvent += self.on_order_status_change
-            self.is_subscribed_onorderstatuschange = (
-                True  # Set the flag to indicate subscription
-            )
+
 
         ticker_contract = Option(ticker, exp, strike, CorP, "SMART")
         qualified_contract = await self.ib.qualifyContractsAsync(ticker_contract)
         if await self.can_place_new_order(qualified_contract[0]):
+            if not self.is_subscribed_onorderstatuschange:
+                self.ib.orderStatusEvent += self.on_order_status_change
+                self.is_subscribed_onorderstatuschange = (
+                    True  # Set the flag to indicate subscription
+                )
             if check_opposite_orders:
                 try:
-                    print("Checking opposite orders.")
+                    # print("Checking opposite orders.")
                     action = "SELL"  # Adjust based on your logic
                     await self.cancel_and_replace_orders(
                         qualified_contract[0],
@@ -527,9 +528,10 @@ class IBOrderManager:
                         f"An error occurred while optionbracketorder.{ticker},: {e}"
                     )
         else:
-            logger.warning(
-                f"Too many open orders (15 on either side of contract is max){ticker_contract} {orderRef} .  Skipping order placement."
-            )
+            # logger.warning(
+            #     f"Too many open orders (15 on either side of contract is max){ticker_contract} {orderRef} .  Skipping order placement."
+            # )
+            pass
 
     # ib.disconnect()
     async def can_place_new_order(
@@ -541,6 +543,6 @@ class IBOrderManager:
         count = sum(
             1 for trade in open_trades if trade.contract.conId == contract.conId
         )
-        print(f"{count} open orders for {contract.localSymbol}.")
+        # print(f"{count} open orders for {contract.localSymbol}.")
         # Return True if below threshold, False otherwise
         return count < threshold

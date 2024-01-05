@@ -204,13 +204,13 @@ async def handle_ticker_cycle(session, ticker):
 
                             # tasks.append(task)
                             # trade_success = await trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice)
-                            print("TRADESUCCESSSS???:", ticker, trade_success)
+                            # print("TRADESUCCESSSS???:", ticker, trade_success)
                 break
 
             except Exception as e:
                 logger.info(f"Error in processing {ticker}: {e}")
                 retries += 1
-                await asyncio.sleep(20)
+                await asyncio.sleep(5)
 
         # Handle case when max retries reached without success
         if retries >= max_retries:
@@ -218,6 +218,7 @@ async def handle_ticker_cycle(session, ticker):
 
         end_time = datetime.now(pytz.utc)
         elapsed_time = (end_time - start_time).total_seconds()
+        print(f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_est}")
         record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")

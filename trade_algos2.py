@@ -215,7 +215,7 @@ async def actions(
                     signal_sums[pair_name] += result
 
                     if evaluated_models.issuperset(pair_models):
-                        if signal_sums[pair_name] > 0.1:
+                        if signal_sums[pair_name] > 0.5:
                             # Execute for pair
                             logger.info(
                                 f"!!!positive pair result? {pair_name}: {signal_sums[pair_name]}"
@@ -235,10 +235,10 @@ async def actions(
                         else:
                             signal_sums[pair_name] = 0
                         break  # Exit the loop after handling pair
-
+#TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere.
             # Execute for individual model if not part of a pair or not executed as part of a pair
             if not part_of_pair or model_name not in executed_models:
-                if result > 0.0:
+                if result > 0.5:
                     try:
                         successfultrade = await handle_model_result(
                             model_name,
@@ -270,7 +270,7 @@ def get_model_list():
     return [
         # Add the actual models here
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
+        # pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
         # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
         pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,

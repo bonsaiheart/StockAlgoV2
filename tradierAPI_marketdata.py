@@ -266,7 +266,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
     # Make sure it's the same day's data.
     if YYMMDD == StockLastTradeTime_YMD:
-        print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
+        # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
 
         try:
             file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
