@@ -171,6 +171,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
         df["lastPriceXoi"] = df["last"] * df["open_interest"]
         df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
+        df["delta"] =  df["greeks"].str.get("delta")
     # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
     columns_to_keep = [
@@ -183,24 +184,26 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "change_percentage",
         "volume",
         "open_interest",
+        "greeks",
+        "delta",
         "ExpDate",
         "Strike",
         "lastPriceXoi",
         "impliedVolatility",
         "dollarsFromStrikeXoi",
     ]
+#TODO commetned this out 240105
+    # # Columns to drop (all columns that are not in 'columns_to_keep')
+    # columns_to_drop_calls = [
+    #     col for col in calls_df.columns if col not in columns_to_keep
+    # ]
+    # columns_to_drop_puts = [
+    #     col for col in puts_df.columns if col not in columns_to_keep
+    # ]
 
-    # Columns to drop (all columns that are not in 'columns_to_keep')
-    columns_to_drop_calls = [
-        col for col in calls_df.columns if col not in columns_to_keep
-    ]
-    columns_to_drop_puts = [
-        col for col in puts_df.columns if col not in columns_to_keep
-    ]
-
-    # Drop unnecessary columns
-    calls_df = calls_df.drop(columns_to_drop_calls, axis=1)
-    puts_df = puts_df.drop(columns_to_drop_puts, axis=1)
+    # # Drop unnecessary columns
+    # calls_df = calls_df.drop(columns_to_drop_calls, axis=1)
+    # puts_df = puts_df.drop(columns_to_drop_puts, axis=1)
     # Format date
     # Rename columns
     rename_dict = {
@@ -213,6 +216,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "change_percentage": "percentChange",
         "volume": "volume",
         "open_interest": "openInterest",
+        "delta":"delta",
         "greeks": "greeks",
         "impliedVolatility": "impliedVolatility",
         "dollarsFromStrike": "dollarsFromStrike",
@@ -251,6 +255,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     combined["average_volume"] = average_volume
     combined["last_volume"] = last_volume
 
+
     combined.rename(columns=rename_dict_combined, inplace=True)
     ####################
     # for option in json_response["options"]["option"]:
@@ -259,34 +264,34 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
     # vega measures response to IV change.
 
-    from pathlib import Path
-
-    output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
-    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-
-    # Make sure it's the same day's data.
-    if YYMMDD == StockLastTradeTime_YMD:
-        # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
-
-        try:
-            file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
-            combined.to_csv(file_path, mode="x")
-            return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD
-
-        except FileExistsError as e:
-            logger.error(
-                f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
-            )
-            raise
-        except Exception as e:
-            logger.error(
-                f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
-            )
-            raise
-    else:
-        logger.warning(
-            f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
-        )
+    # from pathlib import Path
+    #
+    # output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
+    # output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    #
+    # # Make sure it's the same day's data.
+    # if YYMMDD == StockLastTradeTime_YMD:
+    #     # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
+    #
+    #     try:
+    #         file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
+    #         combined.to_csv(file_path, mode="x")
+    #         return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD,combined
+    #
+    #     except FileExistsError as e:
+    #         logger.error(
+    #             f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
+    #         )
+    #         raise
+    #     except Exception as e:
+    #         logger.error(
+    #             f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
+    #         )
+    #         raise
+    # else:
+    #     logger.warning(
+    #         f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
+    #     )
 
 
 # TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.

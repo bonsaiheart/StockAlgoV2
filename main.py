@@ -82,26 +82,26 @@ async def get_options_data_for_ticker(session, ticker, loop_start_time):
             LAC,
             current_price,
             StockLastTradeTime,
-            YYMMDD,
+            YYMMDD,optionchaindf
         ) = await tradierAPI_marketdata.get_options_data(
             session, ticker, loop_start_time
         )
         # print(f"{ticker} OptionData complete at {datetime.now()}.")t_opti
-        return LAC, current_price, StockLastTradeTime, YYMMDD
+        return LAC, current_price, StockLastTradeTime, YYMMDD,optionchaindf
     except Exception as e:
         print("in getoptionsdata")
         raise
 
 
 async def calculate_operations(
-    session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time
+    session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time,optionchaindf
 ):
     try:
         (
             optionchain,
             dailyminutes,
             processeddata,
-            ticker,
+            ticker
         ) = await calculations.perform_operations(
             session,
             ticker,
@@ -109,7 +109,7 @@ async def calculate_operations(
             current_price,
             StockLastTradeTime,
             YYMMDD,
-            loop_start_time,
+            loop_start_time,optionchaindf
         )
         return optionchain, dailyminutes, processeddata, ticker
 
@@ -143,7 +143,9 @@ async def handle_ticker_cycle(session, ticker):
     start_time = datetime.now(pytz.utc)
     max_retries = 1  # Maximum number of retries
 
-    while start_time < market_close_time_utc + timedelta(seconds=0):
+    # while start_time < market_close_time_utc + timedelta(seconds=0):
+    while start_time != market_close_time_utc + timedelta(seconds=0):
+
         # for i in range (17):
         #     print(i)
         now = datetime.now()
@@ -169,7 +171,7 @@ async def handle_ticker_cycle(session, ticker):
                     LAC,
                     CurrentPrice,
                     StockLastTradeTime,
-                    YYMMDD,
+                    YYMMDD,optionchaindf
                 ) = await get_options_data_for_ticker(
                     session, ticker, loop_start_time_est
                 )
@@ -188,9 +190,9 @@ async def handle_ticker_cycle(session, ticker):
                             CurrentPrice,
                             StockLastTradeTime,
                             YYMMDD,
-                            loop_start_time_est,
+                            loop_start_time_est,optionchaindf
                         )
-
+                        #
                         if ticker in TICKERS_FOR_TRADE_ALGOS:
                             trade_success = asyncio.create_task(
                                 trade_algos(
@@ -268,10 +270,10 @@ async def main():
 if __name__ == "__main__":
     try:
         logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
-        market_open_time_utc, market_close_time_utc = asyncio.run(
-            check_Market_Conditions.get_market_open_close_times()
-        )
-        asyncio.run(wait_until_time(market_open_time_utc))
+        # market_open_time_utc, market_close_time_utc = asyncio.run(
+        #     check_Market_Conditions.get_market_open_close_times()
+        # )
+        # asyncio.run(wait_until_time(market_open_time_utc))
         asyncio.run(run_program())
     except KeyboardInterrupt:
         pass

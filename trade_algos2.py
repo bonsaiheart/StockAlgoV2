@@ -91,21 +91,23 @@ async def handle_model_result(
     option_trail_stop_percent,
 ):
     # Retrieve the contract details
-    (
+    try:
+        (
         upordown,
         CorP,
         contractStrike,
         contract_price,
         IB_option_date,
         formatted_time,
-        formatted_time_HR_MIN_only,
+        formatted_time_mdHR_MIN_only,
     ) = await get_contract_details(optionchain_df, processeddata_df, ticker, model_name)
-
+    except Exception as e:
+        raise e
     callorput = "call" if CorP == "C" else "put"
     timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
         model_name
     )
-    orderRef = ticker + "_" + model_name + "_" + formatted_time_HR_MIN_only
+    # orderRef = ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
 
     if order_manager.ib.isConnected:
         try:
@@ -115,7 +117,7 @@ async def handle_model_result(
                 IB_option_date,
                 contractStrike,
                 contract_price,
-                orderRef=ticker + "_" + model_name + "_" + formatted_time_HR_MIN_only,
+                orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
                 quantity=10,
                 take_profit_percent=option_take_profit_percent,
                 trail_stop_percent=option_trail_stop_percent,
@@ -142,7 +144,7 @@ async def handle_model_result(
     # except Exception as e:
     #     print(f"Email error {e}.")
     #     logger.exception(f"An error occurred while creating email task {e}")
-    #
+
 
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
 model_pairs = {
@@ -277,77 +279,162 @@ def get_model_list():
     ]
 
 
-# TODO make it look for pairs first somehow?  store all orders, and take best?
-async def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
-    # Extract the closest expiration date and strikes list
-    closest_exp_date = processeddata_df["ExpDate"].iloc[0]
-    closest_strikes_list = processeddata_df[
-        "Closest Strike Above/Below(below to above,4 each) list"
-    ].iloc[0]
-    # Format the expiration date for IB
-    # low to high, indesx 4 is closest current strike
-    date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
-    # print(date_object)
-    formatted_contract_date = date_object.strftime("%y%m%d")
+# TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
 
-    IB_option_date = date_object.strftime("%Y%m%d")
-    # print(IB_option_date)
+#
+# TODO: Implement functionality to find option pairs
+async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, target_delta=1, gamma_threshold=(0.05, 0.1)):
     # Determine the type of contract based on the model name
-    CorP = (
-        "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
-    )
+    CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
 
-    # Calculate the contract strike and price
-    # contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
-    contractStrike = closest_strikes_list[4] if CorP == "C" else closest_strikes_list[4]
+    # Define liquidity thresholds
+    min_volume = 1000
+    max_bid_ask_spread = 0.03
 
-    # has for mat 410.5
-    formatted_contract_strike = contractStrike * 1000
-    # print(contractStrike)
-    contract_symbol = (
-        f"{ticker}{formatted_contract_date}{CorP}{int(formatted_contract_strike):08d}"
-    )
-    # print(contract_symbol)
-    # print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
-    # Get the last price for the contract
-    if CorP == "C":
-        contract_price = optionchain_df.loc[
-            optionchain_df["c_contractSymbol"] == contract_symbol
-        ]["Call_LastPrice"].values[0]
-    else:
-        contract_price = optionchain_df.loc[
-            optionchain_df["p_contractSymbol"] == contract_symbol
-        ]["Put_LastPrice"].values[0]
+    # Extract delta and gamma values, and calculate bid-ask spread
+    delta_column = f'{CorP.lower()}_delta'
+    gamma_column = f'{CorP.lower()}_gamma'
+    bid_ask_spread_column = f'{CorP.lower()}_bid_ask_spread'
+
+    optionchain_df[delta_column] = optionchain_df[f'{CorP.lower()}_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
+    optionchain_df[gamma_column] = optionchain_df[f'{CorP.lower()}_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
+    optionchain_df[bid_ask_spread_column] = optionchain_df[f'{CorP.lower()}_ask'] - optionchain_df[f'{CorP.lower()}_bid']
+
+    # Apply liquidity filter
+    volume_column = f'{"Put" if CorP == "P" else "Call"}_Volume'
+    liquidity_filter = (optionchain_df[f'{CorP.lower()}_lastTrade'] > 0) & (optionchain_df[volume_column] >= min_volume) & (optionchain_df[bid_ask_spread_column] <= max_bid_ask_spread)
+    relevant_df = optionchain_df[liquidity_filter].dropna(subset=[delta_column, gamma_column])
+
+    # Ensure the DataFrame is not empty
+    if relevant_df.empty:
+        print("contractdetails relevant_df empty")
+        return None
+
+    # Adjust the target delta for puts if necessary
+    adjusted_target_delta = target_delta if CorP == "C" else -target_delta
+
+    # Filter contracts based on the gamma threshold
+    gamma_min, gamma_max = gamma_threshold
+    gamma_filter = (relevant_df[gamma_column] >= gamma_min) & (relevant_df[gamma_column] <= gamma_max)
+    relevant_df = relevant_df[gamma_filter]
+
+    # Ensure there are contracts within the specified gamma range
+    if relevant_df.empty:
+        print("No contracts within the specified gamma range")
+        return None
+
+    # Find the contract with delta closest to the target delta
+    delta_diff_column = f'{CorP.lower()}_delta_diff'
+    relevant_df[delta_diff_column] = (relevant_df[delta_column] - adjusted_target_delta).abs()
+    closest_delta_row = relevant_df.iloc[relevant_df[delta_diff_column].argsort()[:1]]
+
+    # Retrieve gamma value for the same contract
+    gamma_value = closest_delta_row[gamma_column].iloc[0]
+
+    # Extract the closest expiration date, strike, and delta
+    closest_exp_date = closest_delta_row["ExpDate"].iloc[0]
+    contractStrike = closest_delta_row["Strike"].iloc[0]
+    lastprice_column = f'{"Put" if CorP == "P" else "Call"}_LastPrice'
+
+    contract_price = closest_delta_row[lastprice_column].iloc[0]
+    delta_value = closest_delta_row[delta_column].iloc[0]
+
+    # Format the expiration date for IB
+    date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
+    IB_option_date = date_object.strftime("%Y%m%d")
+
+    # Construct the contract symbol
+    formatted_contract_strike = int(contractStrike * 1000)
+    contract_symbol = f"{ticker}{date_object.strftime('%y%m%d')}{CorP}{formatted_contract_strike:08d}"
+    print(contract_symbol)
 
     # Determine the direction for the notification message
     upordown = "up" if CorP == "C" else "down"
 
     # Get the current time formatted for the notification message
     current_time = datetime.now()
-
-    # Full date and time format
     formatted_time = current_time.strftime("%y%m%d %H:%M EST")
+    formatted_time_mdHMonly = current_time.strftime("%m%d_%H:%M")
 
-    # Only time format
-    formatted_time_HMonly = current_time.strftime("%H:%M")
+    print(upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_mdHMonly)
+    print(type(upordown), type(CorP), type(contractStrike), type(contract_price), type(IB_option_date), type(formatted_time), type(formatted_time_mdHMonly))
+
     return (
-        upordown,
-        CorP,
-        contractStrike,
-        contract_price,
-        IB_option_date,
-        formatted_time,
-        formatted_time_HMonly,
+        upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_mdHMonly
     )
 
-
-# Main execution
-# if __name__ == "__main__":
-#     # Replace the placeholder paths with the actual paths to your CSV files
-#     asyncio.run(actions(
-#         'path_to_optionchain.csv',
-#         'path_to_dailyminutes.csv',
-#         'path_to_processeddata.csv',
-#         'ticker_symbol',
-#         'current_price'
-#     ))
+# Additional code for finding option pairs can be added here
+#
+# async def get_contract_details(optionchain_df, processeddata_df, ticker, model_name):
+#     # Extract the closest expiration date and strikes list
+#     closest_exp_date = processeddata_df["ExpDate"].iloc[0]
+#     closest_strikes_list = processeddata_df[
+#         "Closest Strike Above/Below(below to above,4 each) list"
+#     ].iloc[0]
+#     # Format the expiration date for IB
+#     # low to high, indesx 4 is closest current strike
+#     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
+#     # print(date_object)
+#     formatted_contract_date = date_object.strftime("%y%m%d")
+#
+#     IB_option_date = date_object.strftime("%Y%m%d")
+#     # print(IB_option_date)
+#     # Determine the type of contract based on the model name
+#     CorP = (
+#         "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
+#     )
+#
+#     # Calculate the contract strike and price
+#     # contractStrike = closest_strikes_list[1] if CorP == "C" else closest_strikes_list[-2]
+#     contractStrike = closest_strikes_list[4] if CorP == "C" else closest_strikes_list[4]
+#
+#     # has for mat 410.5
+#     formatted_contract_strike = contractStrike * 1000
+#     # print(contractStrike)
+#     contract_symbol = (
+#         f"{ticker}{formatted_contract_date}{CorP}{int(formatted_contract_strike):08d}"
+#     )
+#     print(contract_symbol)
+#     # print("wowowow", optionchain_df.loc[optionchain_df["c_contractSymbol"] == contract_symbol]["Call_LastPrice"])
+#     # Get the last price for the contract
+#     # profit_loss = (delta * price_change) + (0.5 * gamma * price_change**2) - (theta * time_decay) + (vega * vol_change)
+#     if CorP == "C":
+#         contract_price = optionchain_df.loc[
+#             optionchain_df["c_contractSymbol"] == contract_symbol ]["Call_LastPrice"].values[0]
+#         # contract_greeks = optionchain_df[f"{contract_symbol}"][""]
+#         contract_greeksdict = optionchain_df.loc[
+#             optionchain_df["c_contractSymbol"] == contract_symbol, "p_greeks"].values[0]
+#         delta_value = contract_greeksdict.get('delta')
+#         print(delta_value,"Delta")
+#
+#     else:
+#         contract_price = optionchain_df.loc[
+#             optionchain_df["p_contractSymbol"] == contract_symbol
+#         ]["Put_LastPrice"].values[0]
+#         contract_greeksdict = optionchain_df.loc[
+#             optionchain_df["p_contractSymbol"] == contract_symbol, "c_greeks"].values[0]
+#         delta_value = contract_greeksdict.get('delta')
+#         print(delta_value,"Delta")
+#     # Determine the direction for the notification message
+#     upordown = "up" if CorP == "C" else "down"
+#
+#     # Get the current time formatted for the notification message
+#     current_time = datetime.now()
+#
+#     # Full date and time format
+#     formatted_time = current_time.strftime("%y%m%d %H:%M EST")
+#
+#     # Only time format
+#     formatted_time_mdHMonly = current_time.strftime("%m%d_%H:%M")
+#
+#     return (
+#         upordown,
+#         CorP,
+#         contractStrike,
+#         contract_price,
+#         IB_option_date,
+#         formatted_time,
+#         formatted_time_mdHMonly,
+#     )
+#
+#

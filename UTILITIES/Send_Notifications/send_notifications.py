@@ -85,14 +85,14 @@ async def email_me_string(model_name, callorput, ticker):
     from_email = PrivateData.email.from_email
     to_email = PrivateData.email.to_email
 
-    subject = f"{str(ticker)}* {message} "
+    subject = f"Ticker: {str(ticker)} {message} "
 
     msg = MIMEMultipart()
     msg["From"] = from_email
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    body = MIMEText(f"{str(ticker)}* {message}")
+    body = MIMEText(f"ticker: {str(ticker)} * {message}")
     msg.attach(body)
 
     server = smtplib.SMTP(smtp_host, smtp_port)
