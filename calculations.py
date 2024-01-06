@@ -852,21 +852,21 @@ async def perform_operations(
     #             df.loc[is_neg_inf & (finite_min >= 0), col] = finite_min
 
     # # Use the function
-    # if output_file_dailyminutes.exists():
-    #     dailyminutes_df = pd.read_csv(output_file_dailyminutes)
-    #     # dailyminutes_df = dailyminutes_df.drop_duplicates(subset="CurrentTime")
-    #     dailyminutes_df = pd.concat(
-    #         [dailyminutes_df, processed_data_df.head(1)], ignore_index=True
-    #     )
-    #     replace_inf(
-    #         dailyminutes_df
-    #     )  # It will only run if inf or -inf values are present
-    # else:
-    #     dailyminutes_df = pd.concat([processed_data_df.head(1)], ignore_index=True)
-    #     replace_inf(
-    #         dailyminutes_df
-    #     )  # It will only run if inf or -inf values are present
-    #
+    if output_file_dailyminutes.exists():
+        dailyminutes_df = pd.read_csv(output_file_dailyminutes)
+        # dailyminutes_df = dailyminutes_df.drop_duplicates(subset="CurrentTime")
+        dailyminutes_df = pd.concat(
+            [dailyminutes_df, processed_data_df.head(1)], ignore_index=True
+        )
+        # replace_inf(
+        #     dailyminutes_df
+        # )  # It will only run if inf or -inf values are present
+    else:
+        pass
+        # replace_inf(    #     dailyminutes_df = pd.concat([processed_data_df.head(1)], ignore_index=True)
+        #     dailyminutes_df
+        # )  # It will only run if inf or -inf values are present
+
     # dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
     #
     # try:

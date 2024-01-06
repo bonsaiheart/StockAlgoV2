@@ -143,9 +143,7 @@ async def handle_ticker_cycle(session, ticker):
     start_time = datetime.now(pytz.utc)
     max_retries = 1  # Maximum number of retries
 
-    # while start_time < market_close_time_utc + timedelta(seconds=0):
-    while start_time != market_close_time_utc + timedelta(seconds=0):
-
+    while start_time < market_close_time_utc + timedelta(seconds=0):
         # for i in range (17):
         #     print(i)
         now = datetime.now()
@@ -270,10 +268,10 @@ async def main():
 if __name__ == "__main__":
     try:
         logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
-        # market_open_time_utc, market_close_time_utc = asyncio.run(
-        #     check_Market_Conditions.get_market_open_close_times()
-        # )
-        # asyncio.run(wait_until_time(market_open_time_utc))
+        market_open_time_utc, market_close_time_utc = asyncio.run(
+            check_Market_Conditions.get_market_open_close_times()
+        )
+        asyncio.run(wait_until_time(market_open_time_utc))
         asyncio.run(run_program())
     except KeyboardInterrupt:
         pass

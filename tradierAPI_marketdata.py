@@ -264,34 +264,34 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
     # vega measures response to IV change.
 
-    # from pathlib import Path
-    #
-    # output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
-    # output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
-    #
-    # # Make sure it's the same day's data.
-    # if YYMMDD == StockLastTradeTime_YMD:
-    #     # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
-    #
-    #     try:
-    #         file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
-    #         combined.to_csv(file_path, mode="x")
-    #         return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD,combined
-    #
-    #     except FileExistsError as e:
-    #         logger.error(
-    #             f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
-    #         )
-    #         raise
-    #     except Exception as e:
-    #         logger.error(
-    #             f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
-    #         )
-    #         raise
-    # else:
-    #     logger.warning(
-    #         f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
-    #     )
+    from pathlib import Path
+
+    output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
+    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+
+    # Make sure it's the same day's data.
+    if YYMMDD == StockLastTradeTime_YMD:
+        # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
+
+        try:
+            file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
+            combined.to_csv(file_path, mode="x")
+            return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD,combined
+
+        except FileExistsError as e:
+            logger.error(
+                f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
+            )
+            raise
+        except Exception as e:
+            logger.error(
+                f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
+            )
+            raise
+    else:
+        logger.warning(
+            f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
+        )
 
 
 # TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
