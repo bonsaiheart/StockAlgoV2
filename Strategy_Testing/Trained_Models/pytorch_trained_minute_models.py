@@ -155,7 +155,7 @@ def SPY_2hr_50pct_Down_PTNNclass(new_data_df):
         prediction_series.index, "Predictions"
     ] = prediction_series  # Align predictions with original DataFrame
 
-    return result["Predictions"], 0.5, 0.5, 10, 50
+    return result["Predictions"], 0.5, 0.5, 5, 20
 
 
 def Buy_20min_1pctup_ptclass_B1(new_data_df):
@@ -1011,7 +1011,7 @@ def Buy_3hr_PTminClassSPYA1(new_data_df):
     result.loc[
         prediction_series.index, "Predictions"
     ] = prediction_series.values  # Assign predictions to corresponding rows
-    return result["Predictions"], 0.3, 0.5, 20, 20
+    return result["Predictions"], 0.3, 0.5, 5, 10
 
 
 # def Buy_2hr_ptminclassSPYA2(new_data_df):
@@ -1146,4 +1146,4 @@ def _3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss(new_data_df):
     result = new_data_df.copy()
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series.values
-    return result["Predictions"], 0.3, 0.5, 20, 20
+    return result["Predictions"], 0.3, 0.5, 10, 30

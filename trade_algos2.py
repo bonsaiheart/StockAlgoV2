@@ -118,7 +118,7 @@ async def handle_model_result(
                 contractStrike,
                 contract_price,
                 orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
-                quantity=10,
+                quantity=3,
                 take_profit_percent=option_take_profit_percent,
                 trail_stop_percent=option_trail_stop_percent,
             )
@@ -139,11 +139,11 @@ async def handle_model_result(
     # except Exception as e:
     #     print(f"Tweet error {e}.")
     #     logger.exception(f"An error occurred while creating tweeting task {e}")
-    # try:
-    #     await send_notifications.email_me_string(model_name, CorP, ticker)
-    # except Exception as e:
-    #     print(f"Email error {e}.")
-    #     logger.exception(f"An error occurred while creating email task {e}")
+    try:
+        await send_notifications.email_me_string(model_name, CorP, ticker)
+    except Exception as e:
+        print(f"Email error {e}.")
+        logger.exception(f"An error occurred while creating email task {e}")
 
 
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
@@ -272,7 +272,7 @@ def get_model_list():
     return [
         # Add the actual models here
         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        # pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
+        pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
         # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
         pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
@@ -282,7 +282,7 @@ def get_model_list():
 # TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
 from datetime import datetime
 
-async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, target_delta=1, gamma_threshold=(0.05, 0.1), max_bid_ask_spread_percent=3,min_volume=1000):
+async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, target_delta=1, gamma_threshold=(0.035, 0.9), max_bid_ask_spread_percent=3,min_volume=500):
     # Determine the type of contract based on the model name
 
     CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
@@ -352,7 +352,16 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
     current_time = datetime.now()
     formatted_time = current_time.strftime("%y%m%d %H:%M EST")
     formatted_time_mdHMonly = current_time.strftime("%m%d_%H:%M")
+    print (
+        upordown,
+        CorP,
+        contractStrike,
+        contract_price,
+        IB_option_date,
+        formatted_time,
+        formatted_time_mdHMonly,
 
+    )
     return (
         upordown,
         CorP,
@@ -361,8 +370,7 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
         IB_option_date,
         formatted_time,
         formatted_time_mdHMonly,
-        delta_value,
-        gamma_value
+
     )
 
 #

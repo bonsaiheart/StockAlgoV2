@@ -223,7 +223,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
         "lastPriceXoi": "lastPriceXoi",
     }
-
+    #TODO change all columns to use standasrdized.. some are c_ some are Calls_ etc.
     calls_df.rename(columns={k: f"c_{v}" for k, v in rename_dict.items()}, inplace=True)
     puts_df.rename(columns={k: f"p_{v}" for k, v in rename_dict.items()}, inplace=True)
 

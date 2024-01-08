@@ -36,7 +36,15 @@ except (Exception, asyncio.exceptions.TimeoutError) as e:
     #     ib.disconnect()
     #     if not ib.isConnected():
     #         print("~~~ Connecting ~~~")
-    #         # randomclientID = random.randint(0, 999)#TODO change bac kclientid
+    #         # randomclientID = random
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #         .randint(0, 999)#TODO change bac kclientid
     #         try:
     #
     #             ib.connect("192.168.1.119", 7497, clientId=2, timeout=45)

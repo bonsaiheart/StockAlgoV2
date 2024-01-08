@@ -862,22 +862,23 @@ async def perform_operations(
         #     dailyminutes_df
         # )  # It will only run if inf or -inf values are present
     else:
-        pass
+        # pass
+        dailyminutes_df = pd.concat([processed_data_df.head(1)], ignore_index=True)
         # replace_inf(    #     dailyminutes_df = pd.concat([processed_data_df.head(1)], ignore_index=True)
         #     dailyminutes_df
         # )  # It will only run if inf or -inf values are present
 
-    # dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
-    #
-    # try:
-    #     processed_data_df.to_csv(
-    #         f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv",
-    #         mode="x",
-    #         index=False,
-    #     )
-    #     # print("processed data saved for",ticker)
-    # except FileExistsError as e:
-    #     # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
-    #     raise
+    dailyminutes_df.to_csv(output_file_dailyminutes, index=False)
+
+    try:
+        processed_data_df.to_csv(
+            f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv",
+            mode="x",
+            index=False,
+        )
+        # print("processed data saved for",ticker)
+    except FileExistsError as e:
+        # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
+        raise
     # print(type(optionchain_df),type(dailyminutes_df),type(processed_data_df),type(ticker))
     return optionchain_df, dailyminutes_df, processed_data_df, ticker
