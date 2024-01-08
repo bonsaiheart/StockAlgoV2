@@ -280,64 +280,62 @@ def get_model_list():
 
 
 # TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
+from datetime import datetime
 
-#
-# TODO: Implement functionality to find option pairs
-async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, target_delta=1, gamma_threshold=(0.05, 0.1)):
+async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, target_delta=1, gamma_threshold=(0.05, 0.1), max_bid_ask_spread_percent=3,min_volume=1000):
     # Determine the type of contract based on the model name
+
     CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
 
     # Define liquidity thresholds
-    min_volume = 1000
-    max_bid_ask_spread = 0.03
+    min_volume = min_volume
 
-    # Extract delta and gamma values, and calculate bid-ask spread
-    delta_column = f'{CorP.lower()}_delta'
-    gamma_column = f'{CorP.lower()}_gamma'
-    bid_ask_spread_column = f'{CorP.lower()}_bid_ask_spread'
+    # Extract delta and gamma values, calculate bid-ask spread as a percentage of the contract price
+    if CorP == "C":
+        optionchain_df['c_delta'] = optionchain_df['c_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
+        optionchain_df['c_gamma'] = optionchain_df['c_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
+        price_column = "Call_LastPrice"
+        delta_column = 'c_delta'
+        gamma_column = 'c_gamma'
+        volume_column = 'Call_Volume'
+        bid_column = 'c_bid'
+        ask_column = 'c_ask'
+    else:
+        optionchain_df['p_delta'] = optionchain_df['p_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
+        optionchain_df['p_gamma'] = optionchain_df['p_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
+        price_column = "Put_LastPrice"
+        delta_column = 'p_delta'
+        gamma_column = 'p_gamma'
+        volume_column = 'Put_Volume'
+        bid_column = 'p_bid'
+        ask_column = 'p_ask'
 
-    optionchain_df[delta_column] = optionchain_df[f'{CorP.lower()}_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
-    optionchain_df[gamma_column] = optionchain_df[f'{CorP.lower()}_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
-    optionchain_df[bid_ask_spread_column] = optionchain_df[f'{CorP.lower()}_ask'] - optionchain_df[f'{CorP.lower()}_bid']
+    # Calculate bid-ask spread percentage and apply liquidity filter
+    optionchain_df['bid_ask_spread_percent'] = ((optionchain_df[ask_column] - optionchain_df[bid_column]) / optionchain_df[price_column]) * 100
+    liquidity_filter = (optionchain_df[volume_column] >= min_volume) & (optionchain_df['bid_ask_spread_percent'] <= max_bid_ask_spread_percent)
 
-    # Apply liquidity filter
-    volume_column = f'{"Put" if CorP == "P" else "Call"}_Volume'
-    liquidity_filter = (optionchain_df[f'{CorP.lower()}_lastTrade'] > 0) & (optionchain_df[volume_column] >= min_volume) & (optionchain_df[bid_ask_spread_column] <= max_bid_ask_spread)
-    relevant_df = optionchain_df[liquidity_filter].dropna(subset=[delta_column, gamma_column])
+    # Apply gamma filter
+    gamma_filter = (optionchain_df[gamma_column] >= gamma_threshold[0]) & (optionchain_df[gamma_column] <= gamma_threshold[1])
+
+    # Apply combined filters
+    relevant_df = optionchain_df[liquidity_filter & gamma_filter].dropna(subset=[delta_column, gamma_column])
 
     # Ensure the DataFrame is not empty
     if relevant_df.empty:
         print("contractdetails relevant_df empty")
         return None
 
-    # Adjust the target delta for puts if necessary
-    adjusted_target_delta = target_delta if CorP == "C" else -target_delta
-
-    # Filter contracts based on the gamma threshold
-    gamma_min, gamma_max = gamma_threshold
-    gamma_filter = (relevant_df[gamma_column] >= gamma_min) & (relevant_df[gamma_column] <= gamma_max)
-    relevant_df = relevant_df[gamma_filter]
-
-    # Ensure there are contracts within the specified gamma range
-    if relevant_df.empty:
-        print("No contracts within the specified gamma range")
-        return None
-
     # Find the contract with delta closest to the target delta
-    delta_diff_column = f'{CorP.lower()}_delta_diff'
-    relevant_df[delta_diff_column] = (relevant_df[delta_column] - adjusted_target_delta).abs()
-    closest_delta_row = relevant_df.iloc[relevant_df[delta_diff_column].argsort()[:1]]
-
-    # Retrieve gamma value for the same contract
-    gamma_value = closest_delta_row[gamma_column].iloc[0]
+    adjusted_target_delta = target_delta if CorP == "C" else -target_delta
+    relevant_df['delta_diff'] = (relevant_df[delta_column] - adjusted_target_delta).abs()
+    closest_delta_row = relevant_df.iloc[relevant_df['delta_diff'].argsort()[:1]]
 
     # Extract the closest expiration date, strike, and delta
     closest_exp_date = closest_delta_row["ExpDate"].iloc[0]
     contractStrike = closest_delta_row["Strike"].iloc[0]
-    lastprice_column = f'{"Put" if CorP == "P" else "Call"}_LastPrice'
-
-    contract_price = closest_delta_row[lastprice_column].iloc[0]
+    contract_price = closest_delta_row[price_column].iloc[0]
     delta_value = closest_delta_row[delta_column].iloc[0]
+    gamma_value = closest_delta_row[gamma_column].iloc[0]
 
     # Format the expiration date for IB
     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
@@ -346,7 +344,6 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
     # Construct the contract symbol
     formatted_contract_strike = int(contractStrike * 1000)
     contract_symbol = f"{ticker}{date_object.strftime('%y%m%d')}{CorP}{formatted_contract_strike:08d}"
-    print(contract_symbol)
 
     # Determine the direction for the notification message
     upordown = "up" if CorP == "C" else "down"
@@ -356,12 +353,99 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
     formatted_time = current_time.strftime("%y%m%d %H:%M EST")
     formatted_time_mdHMonly = current_time.strftime("%m%d_%H:%M")
 
-    print(upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_mdHMonly)
-    print(type(upordown), type(CorP), type(contractStrike), type(contract_price), type(IB_option_date), type(formatted_time), type(formatted_time_mdHMonly))
-
     return (
-        upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_mdHMonly
+        upordown,
+        CorP,
+        contractStrike,
+        contract_price,
+        IB_option_date,
+        formatted_time,
+        formatted_time_mdHMonly,
+        delta_value,
+        gamma_value
     )
+
+#
+# TODO: Implement functionality to find option pairs
+# async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, target_delta=1, gamma_threshold=(0.05, 0.1)):
+#     # Determine the type of contract based on the model name
+#     CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
+#
+#     # Define liquidity thresholds
+#     min_volume = 1000
+#     max_bid_ask_spread = 0.03
+#
+#     # Extract delta and gamma values, and calculate bid-ask spread
+#     delta_column = f'{CorP.lower()}_delta'
+#     gamma_column = f'{CorP.lower()}_gamma'
+#     bid_ask_spread_column = f'{CorP.lower()}_bid_ask_spread'
+#
+#     optionchain_df[delta_column] = optionchain_df[f'{CorP.lower()}_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
+#     optionchain_df[gamma_column] = optionchain_df[f'{CorP.lower()}_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
+#     optionchain_df[bid_ask_spread_column] = optionchain_df[f'{CorP.lower()}_ask'] - optionchain_df[f'{CorP.lower()}_bid']
+#
+#     # Apply liquidity filter
+#     volume_column = f'{"Put" if CorP == "P" else "Call"}_Volume'
+#     liquidity_filter = (optionchain_df[f'{CorP.lower()}_lastTrade'] > 0) & (optionchain_df[volume_column] >= min_volume) & (optionchain_df[bid_ask_spread_column] <= max_bid_ask_spread)
+#     relevant_df = optionchain_df[liquidity_filter].dropna(subset=[delta_column, gamma_column])
+#
+#     # Ensure the DataFrame is not empty
+#     if relevant_df.empty:
+#         print("contractdetails relevant_df empty")
+#         return None
+#
+#     # Adjust the target delta for puts if necessary
+#     adjusted_target_delta = target_delta if CorP == "C" else -target_delta
+#
+#     # Filter contracts based on the gamma threshold
+#     gamma_min, gamma_max = gamma_threshold
+#     gamma_filter = (relevant_df[gamma_column] >= gamma_min) & (relevant_df[gamma_column] <= gamma_max)
+#     relevant_df = relevant_df[gamma_filter]
+#
+#     # Ensure there are contracts within the specified gamma range
+#     if relevant_df.empty:
+#         print("No contracts within the specified gamma range")
+#         return None
+#
+#     # Find the contract with delta closest to the target delta
+#     delta_diff_column = f'{CorP.lower()}_delta_diff'
+#     relevant_df[delta_diff_column] = (relevant_df[delta_column] - adjusted_target_delta).abs()
+#     closest_delta_row = relevant_df.iloc[relevant_df[delta_diff_column].argsort()[:1]]
+#
+#     # Retrieve gamma value for the same contract
+#     gamma_value = closest_delta_row[gamma_column].iloc[0]
+#
+#     # Extract the closest expiration date, strike, and delta
+#     closest_exp_date = closest_delta_row["ExpDate"].iloc[0]
+#     contractStrike = closest_delta_row["Strike"].iloc[0]
+#     lastprice_column = f'{"Put" if CorP == "P" else "Call"}_LastPrice'
+#
+#     contract_price = closest_delta_row[lastprice_column].iloc[0]
+#     delta_value = closest_delta_row[delta_column].iloc[0]
+#
+#     # Format the expiration date for IB
+#     date_object = datetime.strptime(str(closest_exp_date), "%y%m%d")
+#     IB_option_date = date_object.strftime("%Y%m%d")
+#
+#     # Construct the contract symbol
+#     formatted_contract_strike = int(contractStrike * 1000)
+#     contract_symbol = f"{ticker}{date_object.strftime('%y%m%d')}{CorP}{formatted_contract_strike:08d}"
+#     print(contract_symbol)
+#
+#     # Determine the direction for the notification message
+#     upordown = "up" if CorP == "C" else "down"
+#
+#     # Get the current time formatted for the notification message
+#     current_time = datetime.now()
+#     formatted_time = current_time.strftime("%y%m%d %H:%M EST")
+#     formatted_time_mdHMonly = current_time.strftime("%m%d_%H:%M")
+#
+#     print(upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_mdHMonly)
+#     print(type(upordown), type(CorP), type(contractStrike), type(contract_price), type(IB_option_date), type(formatted_time), type(formatted_time_mdHMonly))
+#
+#     return (
+#         upordown, CorP, contractStrike, contract_price, IB_option_date, formatted_time, formatted_time_mdHMonly
+#     )
 
 # Additional code for finding option pairs can be added here
 #
