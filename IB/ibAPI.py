@@ -27,7 +27,9 @@ class IBOrderManager:
         self.is_subscribed_onorderstatuschange = (
             False  # Add a flag to track the subscription status
         )
-
+    # def ib_enable_log(self,level=logging.ERROR):#try using this
+    #     """Enables ib insync logging"""
+    #     util.logToConsole(level)
     def on_order_status_change(self, trade):
         order_id = trade.order.orderId
         order_status = trade.orderStatus
@@ -39,7 +41,7 @@ class IBOrderManager:
             ):
                 # print("ORDERSTATUS submitted: ", order_status.status)
                 self.order_events[order_id]["active"].set()
-                asyncio.create_task(self.delayed_event_deletion(order_id))
+                # asyncio.create_task(self.delayed_event_deletion(order_id))
                 # del self.order_events[order_id]
 
             elif order_status.status in [
@@ -49,9 +51,9 @@ class IBOrderManager:
                 "ApiCancelled",
             ]:
                 self.order_events[order_id]["done"].set()
-                asyncio.create_task(
-                    self.delayed_event_deletion(order_id)
-                )  # TODO i think these are causeing the destroyed taks  error?
+                # asyncio.create_task(
+                #     self.delayed_event_deletion(order_id)
+                # )  # TODO i think these are causeing the destroyed taks  error?
                 # del self.order_events[order_id]
 
             if not self.order_events:
@@ -60,7 +62,7 @@ class IBOrderManager:
                     self.is_subscribed_onorderstatuschange = (
                         False  # Reset the subscription flag
                     )
-
+#TODO 24/01/12 I curernylt think this is the bit tat is causing a freeze when running all the tasks frm main.
     async def delayed_event_deletion(self, order_id, delay=60):
         await asyncio.sleep(delay)
         if order_id in self.order_events:
@@ -129,15 +131,21 @@ class IBOrderManager:
 
         return trade
 
-    async def cancel_oca_group_orders(self, oca_group_orders):
+    async def cancel_oca_group_orders(self, oca_group_orders,ticker):
         cancellation_events = []
         event_listeners = []
+        processed_groups = set()  # Set to keep track of processed OCA groups
+
+
+
         for order in oca_group_orders:
-            # oca_group = order.ocaGroup
+            oca_group = order.ocaGroup
+            if oca_group in processed_groups:
+                    continue
             trade = await self.getTrade(order)
             if trade and trade.orderStatus.status in [
                 "Cancelled",
-                "ApiCancelled",
+                # "ApiCancelled",
                 "Filled",
                 "Inactive",
             ]:
@@ -147,7 +155,8 @@ class IBOrderManager:
                     f"Skipping cancellation for order {order.orderId} as it's already {trade.orderStatus.status}"
                 )
                 continue
-
+            # Process this group
+            processed_groups.add(oca_group)
             order_cancelled = asyncio.Event()
             cancellation_events.append((order, order_cancelled))
 
@@ -171,8 +180,7 @@ class IBOrderManager:
                 print(f"Error cancelling order {order.orderId}: {e}")
                 if (
                     trade.order.orderId == order.orderId
-                    and trade.orderStatus.status
-                    in ["Cancelled", "ApiCancelled", "Inactive"]
+                    and trade.isDone
                 ):
                     # event.set()
                     order_cancelled.set()  # Set the event to avoid waiting indefinitely
@@ -181,10 +189,12 @@ class IBOrderManager:
         # Wait for all cancellations to finsh
         try:
             await asyncio.wait(
-                [event.wait() for _, event in cancellation_events], timeout=30
+                [event.wait() for _, event in cancellation_events], #timeout=60  removed timeout.
             )
+            logger.info(f"All children cancelled for {ticker}")
         except Exception as e:
-            logger.error(e)
+            logger.error(f"error cancelling these childrenfor {ticker}, {e}")
+            raise e
         listener_sum = 0
         for listener in event_listeners:
             listener_sum += 1
@@ -242,7 +252,7 @@ class IBOrderManager:
 
         else:
             oca_group_remaining_qty = await self.cancel_oca_group_orders(
-                child_orders_objs_list
+                child_orders_objs_list,ticker
             )
             order_details = {}
             for order in child_orders_objs_list:
@@ -289,7 +299,7 @@ class IBOrderManager:
 
             # trade.orderStatus.ActiveStates
             await self.replace_child_orders(order_details, contract)
-
+            logger.info(f"All child order replaced.for {ticker}")
     async def replace_child_orders(self, order_details, contract):
         try:
             order_ids = []
@@ -432,13 +442,12 @@ class IBOrderManager:
                         contract_current_price
                         + (contract_current_price * (take_profit_percent / 100)),
                         2,
-                    )  # Replace with your desired take profit price
+                    )
                     auxPrice = round(
                         contract_current_price * trailstop_amount_percent, 2
-                    )  # Replace with your desired trailing stop percentage
+                    )
                     triggerPrice = limit_price
 
-                    # This will be our main or "parent" order
                     parent = Order()
                     parent.orderId = self.ib.client.getReqId()
 
@@ -498,7 +507,6 @@ class IBOrderManager:
 
                     # self.ib.orderStatusEvent += self.on_order_status_change
 
-                    # Store the parent trade
                     parent_trade = parent.orderId  # IDK DELETE THIS
                     # order_ids = []
 
@@ -534,8 +542,9 @@ class IBOrderManager:
             pass
 
     # ib.disconnect()
+
     async def can_place_new_order(
-        self, contract, threshold=13
+        self, contract, threshold=6  #(was13)nonte im gonna turn this down.. multiple tickers in testing were placing muotiple orders every minute?  each needting to cancnel na d replace an oerder!
     ):  # 15 open orders on either side is MAX.
         # Fetch open orders
         open_trades = self.ib.openTrades()
@@ -545,4 +554,10 @@ class IBOrderManager:
         )
         # print(f"{count} open orders for {contract.localSymbol}.")
         # Return True if below threshold, False otherwise
-        return count < threshold
+        return count <= threshold
+#TODO'p[
+"""yeah, I have seen this with bracket orders as well. What I have started doing is I store the order objects in cache in memory after placing the order, and then using the trade filled and CancelEvents to manage the positions myself. Right now, I am also seeing issues with ib.positions() for some of my accounts.
+
+trade = ib.placeOrder(self.contract, o)
+trade.filledEvent += self.order_status
+trade.cancelledEvent += self.order_status"""

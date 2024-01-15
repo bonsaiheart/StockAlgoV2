@@ -92,58 +92,61 @@ async def handle_model_result(
 ):
     # Retrieve the contract details
     try:
-        (
-        upordown,
-        CorP,
-        contractStrike,
-        contract_price,
-        IB_option_date,
-        formatted_time,
-        formatted_time_mdHR_MIN_only,
-    ) = await get_contract_details(optionchain_df, processeddata_df, ticker, model_name)
-    except Exception as e:
-        raise e
-    callorput = "call" if CorP == "C" else "put"
-    timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
-        model_name
-    )
-    # orderRef = ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
-
-    if order_manager.ib.isConnected:
-        try:
-            parent_trade_success = await place_option_order_sync(
+        result = await get_contract_details(optionchain_df, processeddata_df, ticker, model_name)
+        if result is not None:
+            (
+                upordown,
                 CorP,
-                ticker,
-                IB_option_date,
                 contractStrike,
                 contract_price,
-                orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
-                quantity=3,
-                take_profit_percent=option_take_profit_percent,
-                trail_stop_percent=option_trail_stop_percent,
+                IB_option_date,
+                formatted_time,
+                formatted_time_mdHR_MIN_only,
+            ) = result
+            callorput = "call" if CorP == "C" else "put"
+            timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
+                model_name
             )
-        except Exception as trade_e:
-            logger.exception(
-                f"An error occurred while creating option order task {trade_e}."
-            )
+            # orderRef = ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
 
-    # try:
-    #     await send_notifications.send_tweet_w_countdown_followup(
-    #         ticker,
-    #         current_price,
-    #         upordown,
-    #         f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
-    #         seconds_till_expectedprofit,
-    #         model_name,
-    #     )
-    # except Exception as e:
-    #     print(f"Tweet error {e}.")
-    #     logger.exception(f"An error occurred while creating tweeting task {e}")
-    try:
-        await send_notifications.email_me_string(model_name, CorP, ticker)
+            if order_manager.ib.isConnected:
+                try:
+                    parent_trade_success = await place_option_order_sync(
+                        CorP,
+                        ticker,
+                        IB_option_date,
+                        contractStrike,
+                        contract_price,
+                        orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
+                        quantity=3,
+                        take_profit_percent=option_take_profit_percent,
+                        trail_stop_percent=option_trail_stop_percent,
+                    )
+                except Exception as trade_e:
+                    logger.exception(
+                        f"An error occurred while creating option order task {trade_e}."
+                    )
+            # try:
+            #     await send_notifications.send_tweet_w_countdown_followup(
+            #         ticker,
+            #         current_price,
+            #         upordown,
+            #         f"${ticker} ${current_price}. {timetill_expectedprofit} to make money on a {callorput} #{model_name} {formatted_time}",
+            #         seconds_till_expectedprofit,
+            #         model_name,
+            #     )
+            # except Exception as e:
+            #     print(f"Tweet error {e}.")
+            #     logger.exception(f"An error occurred while creating tweeting task {e}")
+            try:
+                await send_notifications.email_me_string(model_name, CorP, ticker)
+            except Exception as e:
+                print(f"Email error {e}.")
+                logger.exception(f"An error occurred while creating email task {e}")
+
     except Exception as e:
-        print(f"Email error {e}.")
-        logger.exception(f"An error occurred while creating email task {e}")
+        raise e
+
 
 
 # Define model pairs that require a combined signal sum over 1.5 to trigger an action
@@ -237,10 +240,10 @@ async def actions(
                         else:
                             signal_sums[pair_name] = 0
                         break  # Exit the loop after handling pair
-#TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere.
+#TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere...but only if not in orderdumy
             # Execute for individual model if not part of a pair or not executed as part of a pair
             if not part_of_pair or model_name not in executed_models:
-                if result > 0.5:
+                if result >=0:#TODO change this
                     try:
                         successfultrade = await handle_model_result(
                             model_name,

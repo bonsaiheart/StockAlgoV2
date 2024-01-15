@@ -275,7 +275,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
         try:
             file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
-            combined.to_csv(file_path, mode="x")
+            combined.to_csv(file_path, mode="w")
             return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD,combined
 
         except FileExistsError as e:

@@ -321,9 +321,9 @@ async def perform_operations(
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
     # TODO could pass in optionchain.
-    # optionchain_df = pd.read_csv(
-    #     f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv"
-    # )
+    optionchain_df = pd.read_csv(
+        f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv"
+    )
     optionchain_df = optionchaindf
     groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
@@ -814,9 +814,12 @@ async def perform_operations(
         )
     processed_data_df = pd.DataFrame(results)
 
-    this_minute_ta_frame = await get_ta(session, ticker)
-    for column in this_minute_ta_frame.columns:
-        processed_data_df[column] = this_minute_ta_frame[column]
+    try:
+        this_minute_ta_frame = await get_ta(session, ticker)
+        for column in this_minute_ta_frame.columns:
+            processed_data_df[column] = this_minute_ta_frame[column]
+    except Exception as e:
+        logger.warning(f"{ticker} has an error {e}")
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -873,12 +876,12 @@ async def perform_operations(
     try:
         processed_data_df.to_csv(
             f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv",
-            mode="x",
+            mode="w",
             index=False,
         )
         # print("processed data saved for",ticker)
     except FileExistsError as e:
-        # print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
+        print(f"data/ProcessedData/{ticker}/{YYMMDD}/{ticker}_{StockLastTradeTime}.csv", "File Already Exists.")
         raise
     # print(type(optionchain_df),type(dailyminutes_df),type(processed_data_df),type(ticker))
     return optionchain_df, dailyminutes_df, processed_data_df, ticker

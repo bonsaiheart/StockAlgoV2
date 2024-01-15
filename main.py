@@ -19,14 +19,11 @@ from Strategy_Testing.make_test_df import get_dailyminutes_make_single_multiday_
 client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
-ticker_cycle_running = asyncio.Event()
-# flag to track if handle_ticker_cycle() tasks are still runing
-
-
-# #TODO actions is taking 16 of the 35 seconds.
 order_manager = IB.ibAPI.IBOrderManager()
-
 semaphore = asyncio.Semaphore(500)
+trade_algos_queues = {}  # Dictionary to hold a queue for each ticker
+ticker_cycle_running = asyncio.Event()
+
 
 # def get_next_minute_start():
 #     now = datetime.now(pytz.utc)
@@ -65,6 +62,7 @@ async def ib_connect():
 async def run_program():
     ticker_cycle_running.set()
     ib_task = asyncio.create_task(ib_connect())  # Start ib_connect as a separate task
+    # time.sleep(3)
     await main()  # Run main
 
     if not ib_task.done():
@@ -74,23 +72,6 @@ async def run_program():
         except asyncio.CancelledError:
             pass  # Handle CancelledError if necessary
 
-
-async def get_options_data_for_ticker(session, ticker, loop_start_time):
-    ticker = ticker.upper()
-    try:
-        (
-            LAC,
-            current_price,
-            StockLastTradeTime,
-            YYMMDD,optionchaindf
-        ) = await tradierAPI_marketdata.get_options_data(
-            session, ticker, loop_start_time
-        )
-        # print(f"{ticker} OptionData complete at {datetime.now()}.")t_opti
-        return LAC, current_price, StockLastTradeTime, YYMMDD,optionchaindf
-    except Exception as e:
-        print("in getoptionsdata")
-        raise
 
 
 async def calculate_operations(
@@ -120,209 +101,96 @@ async def calculate_operations(
         raise
 
 
+
 async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price):
-    try:
-        # asyncio.create_task(trade_algos2.actions(optionchain, dailyminutes, processeddata, ticker, current_price))
-        tradealgosuccess = await trade_algos2.actions(
+    if ticker not in trade_algos_queues:
+        trade_algos_queues[ticker] = asyncio.Queue()
+    queue_length =  trade_algos_queues[ticker].qsize()
+    if queue_length ==0:
+        await trade_algos_queues[ticker].put((optionchain, dailyminutes, processeddata,ticker,current_price))
+        queue_length =  trade_algos_queues[ticker].qsize()
+        print(f"Added task to {ticker} queue, current len: {queue_length}")
+
+async def process_ticker_queue(ticker):
+    print(f"Worker for {ticker} started")
+    while True:
+        # trade_algos_queues[ticker].task_done()
+        queue_length =  trade_algos_queues[ticker].qsize()
+        print(f"Working on task for {ticker} queue, current # of tasks for ticker: {queue_length}")
+        # print(f"Worker for {ticker} waiting for task")
+        optionchain, dailyminutes, processeddata, ticker, current_price = await trade_algos_queues[ticker].get()
+        # print(f"Processing task for {ticker}")
+        try:
+
+            trade_algos_queues[ticker].task_done()
+            await trade_algos2.actions(
             optionchain, dailyminutes, processeddata, ticker, current_price
         )
-        # print(ticker,tradealgosuccess)
-        # print(f"{ticker} Actions complete at {datetime.now()}.")
-        return tradealgosuccess
+            queue_length =  trade_algos_queues[ticker].qsize()
+            print(f"Finished task for {ticker} queue, current len: {queue_length}")
+        except Exception as e:
+            logger.warning(f"Error in tradealgo queue for {ticker}: {e}")
+            trade_algos_queues[ticker].task_done()
+            queue_length =  trade_algos_queues[ticker].qsize()
+            print(f"Could not complete task for {ticker} queue. {e}.  Task removed. current len: {queue_length}")
+
+
+async def get_options_data_for_ticker(session, ticker, loop_start_time):
+    ticker = ticker.upper()
+    try:
+        (
+            LAC,
+            current_price,
+            StockLastTradeTime,
+            YYMMDD,optionchaindf
+        ) = await tradierAPI_marketdata.get_options_data(
+            session, ticker, loop_start_time
+        )
+        # print(f"{ticker} OptionData complete at {datetime.now()}.")t_opti
+        return LAC, current_price, StockLastTradeTime, YYMMDD,optionchaindf
     except Exception as e:
-        logger.exception(f"Error in trade_algos for {ticker}: {e}")
+        print("in getoptionsdata")
         raise
 
-
 tasks = []
+TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU",  "MSFT"]
+TICKERS_FOR_CALCULATIONS = ["SPY", "TSLA", "GOOGL", "UVXY", "ROKU", "QQQ", "SQQQ", "SPXS", "MSFT"]
 
 async def handle_ticker_cycle(session, ticker):
-    global market_close_time_utc
     start_time = datetime.now(pytz.utc)
-    max_retries = 2  # Maximum number of retries
+    global market_close_time_utc
+    max_retries = 1
 
-    while start_time <= market_close_time_utc + timedelta(seconds=0):
-        now = datetime.now()
-        loop_start_time_est = now.strftime("%y%m%d_%H%M")
-        LAC = None  # Initialize with a default value
-        optionchain = None  # Initialize optionchain to None
+    while start_time <= market_close_time_utc:
+        loop_start_time_est = datetime.now().strftime("%y%m%d_%H%M")
+        LAC, optionchain, optionchaindf = None, None, None
 
-        TICKERS_FOR_CALCULATIONS = [
-            "SPY",
-            "TSLA",
-            "GOOGL",
-            "UVXY",
-            "ROKU",
-            "QQQ",
-            "SQQQ",
-            "SPXS",
-            "MSFT",
-        ]
-        TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "GOOGL", "MSFT"]
+        try:
+            option_data_success = await get_options_data_for_ticker(session,ticker,loop_start_time_est)
+            if ticker in TICKERS_FOR_CALCULATIONS:
+                if option_data_success:
+                    LAC, CurrentPrice, StockLastTradeTime, YYMMDD, optionchaindf = option_data_success
+                    calculate_operations_success = await calculate_operations(session, ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD, loop_start_time_est, optionchaindf)
 
-        # Flag to track whether each function has succeeded
-        get_options_data_success = False
-        calculate_operations_success = False
+                    if calculate_operations_success:
+                        optionchain, dailyminutes, processeddata,ticker = calculate_operations_success
 
-        # Retry for get_options_data_for_ticker
-        retries_get_options_data = 0
-        while not get_options_data_success and retries_get_options_data < max_retries:
-            try:
-                LAC, CurrentPrice, StockLastTradeTime, YYMMDD, optionchaindf = await get_options_data_for_ticker(
-                    session, ticker, loop_start_time_est
-                )
-                get_options_data_success = True  # Set the flag to True if successful
-            except Exception as e:
-                logger.info(f"Error in processing {ticker}: {e}")
-                await asyncio.sleep(30)
-                retries_get_options_data += 1  # Increment the retries counter
-                continue  # Retry the request
-
-        # Retry for calculate_operations
-        retries_calculate_operations = 0
-        while not calculate_operations_success and retries_calculate_operations < max_retries:
-            if get_options_data_success:  # Only execute if get_options_data was successful
-                try:
-                    optionchain, dailyminutes, processeddata, ticker = await calculate_operations(
-                        session,
-                        ticker,
-                        LAC,
-                        CurrentPrice,
-                        StockLastTradeTime,
-                        YYMMDD,
-                        loop_start_time_est,
-                        optionchaindf
-                    )
-                    calculate_operations_success = True  # Set the flag to True if successful
-                except Exception as e:
-                    logger.warning(f"calculate_operations {e}")
-                    retries_calculate_operations += 1  # Increment the retries counter
-                    await asyncio.sleep(10)
-            else:
-                break  # Exit the retry loop if get_options_data wasn't successful
-
-        # Trade calculations
-        if optionchain is not None and not optionchain.empty and ticker in TICKERS_FOR_TRADE_ALGOS:
-            try:
-                trade_success = await trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice)
-                print("TRADESUCCESSSS???:", ticker, trade_success)
-            except Exception as e:
-                logger.warning(f"tradealgos {e}")
-                asyncio.sleep(10)
-
-
-        end_time = datetime.now(pytz.utc)
-        elapsed_time = (end_time - start_time).total_seconds()
+                        if ticker in TICKERS_FOR_TRADE_ALGOS and optionchain is not None and not optionchain.empty and order_manager.ib.isConnected():
+                            # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice))
+                            await trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice)
+        except Exception as e:
+            logger.exception(e)
+        elapsed_time = (datetime.now(pytz.utc) - start_time).total_seconds()
         print(f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_est}")
         record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
-        sleep_time = max(0, 60 - elapsed_time)
 
-        await asyncio.sleep(sleep_time)
+        await asyncio.sleep(max(0, 60 - elapsed_time))
         start_time = datetime.now(pytz.utc)
 
-# TODO make it so that pairs are handled on their own?  not usre
-# async def handle_ticker_cycle(session, ticker):
-#     global market_close_time_utc
-#     start_time = datetime.now(pytz.utc)
-#     max_retries = 2  # Maximum number of retries
-#     retries = 1
-#
-#     while start_time <= market_close_time_utc + timedelta(seconds=0):
-#         # for i in range (17):
-#         #     print(i)
-#         now = datetime.now()
-#         loop_start_time_est = now.strftime("%y%m%d_%H%M")
-#         retries = 1
-#         LAC = None  # Initialize with a default value
-#         optionchain = None  # Initialize optionchain to None
-#
-#         TICKERS_FOR_CALCULATIONS = [
-#             "SPY",
-#             "TSLA",
-#             "GOOGL",
-#             "UVXY",
-#             "ROKU",
-#             "QQQ",
-#             "SQQQ",
-#             "SPXS",
-#             "MSFT",
-#         ]
-#         TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "GOOGL", "MSFT"]
-#         while retries < max_retries:
-#             try:
-#                 (
-#                     LAC,
-#                     CurrentPrice,
-#                     StockLastTradeTime,
-#                     YYMMDD,optionchaindf
-#                 ) = await get_options_data_for_ticker(
-#                     session, ticker, loop_start_time_est
-#                 )
-#
-#
-#                 if ticker in TICKERS_FOR_CALCULATIONS:
-#                     (
-#                         optionchain,
-#                         dailyminutes,
-#                         processeddata,
-#                         ticker,
-#                     ) = await calculate_operations(
-#                         session,
-#                         ticker,
-#                         LAC,
-#                         CurrentPrice,
-#                         StockLastTradeTime,
-#                         YYMMDD,
-#                         loop_start_time_est,optionchaindf
-#                     )
-#                     break
-#             except Exception as e:
-#                 logger.info(f"Error in processing {ticker}: {e}")
-#                 await asyncio.sleep(30)
-#
-#             #changed from5 or 20
-#
-#
-#             if retries >= max_retries:
-#                 logger.info(f"Max retries reached for {ticker}.")
-#             retries += 1
-#             if optionchain is not None and not optionchain.empty:
-#                 if ticker in TICKERS_FOR_TRADE_ALGOS:
-#                     try:
-#                         trade_success = await trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice)
-#                         print("TRADESUCCESSSS???:", ticker, trade_success)
-#                     except Exception as e:
-#                         logger.warning(f"tradealgos {e}")
-#                         pass
-#
-#                         # Handle case when max retries reached without success
-#
-#                         end_time = datetime.now(pytz.utc)
-#                         elapsed_time = (end_time - start_time).total_seconds()
-#                         print(f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_est}")
-#                         record_elapsed_time(ticker, elapsed_time)
-#                         if elapsed_time > 60:
-#                             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
-#                         sleep_time = max(0, 60 - elapsed_time)
-#
-#                         await asyncio.sleep(sleep_time)
-#                         start_time = datetime.now(pytz.utc)
-                        #TODO change this back.
-        # if ticker in TICKERS_FOR_TRADE_ALGOS:
-        #                 #     trade_success = asyncio.create_task(
-        #                 #         trade_algos(
-        #                 #             optionchain,
-        #                 #             dailyminutes,
-        #                 #             processeddata,
-        #                 #             ticker,
-        #                 #             CurrentPrice,
-        #                 #         )
-        #                 #     )
-        #
-        #                     # tasks.append(task)
-        #
+# Separate functions for attempt_get_options_data, attempt_calculate_operations, and attempt_trade_algos
+# These functions will contain the respective logic and error handling for each operation
 
 
 
@@ -334,43 +202,51 @@ def record_elapsed_time(ticker, elapsed_time):
 
 
 # TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
+
 async def main():
     try:
-        await create_client_session()  # Create a new client session
-        # Your main program logic here using the new client session
+        await create_client_session()
         session = client_session
-    except Exception as e:
-        logging.exception(f"Error in main: {e}")
-    try:
         with open("UTILITIES/tickerlist.txt", "r") as f:
             tickerlist = [line.strip().upper() for line in f.readlines()]
-        # Compute the delay interval
-        tasks = []
-        # delay_interval = .1
-        for i, ticker in enumerate(tickerlist):
-            await asyncio.sleep(1)  # This will stagger the start times
-            tasks.append(asyncio.create_task(handle_ticker_cycle(session, ticker)))
-        await asyncio.gather(*tasks)
-        print("OVER AT:", datetime.now())
 
+        # Create worker tasks for each ticker
+        worker_tasks = []
+        for ticker in TICKERS_FOR_TRADE_ALGOS:
+
+            if ticker not in trade_algos_queues:
+                trade_algos_queues[ticker] = asyncio.Queue()
+            worker_task = asyncio.create_task(process_ticker_queue(ticker))
+            worker_tasks.append(worker_task)
+
+        ticker_tasks = []
+
+        delay = len(tickerlist)/20  # Set your desired delay in seconds
+        for ticker in tickerlist:
+            task = asyncio.create_task(handle_ticker_cycle(session, ticker))
+            ticker_tasks.append(task)
+            await asyncio.sleep(delay)  # Wait for the specified delay before starting next task
+
+        # Wait for all ticker tasks to complete
+        await asyncio.gather(*ticker_tasks)
+
+        # Wait for all tasks in trade_algos_queues to be processed
+        for queue in trade_algos_queues.values():
+            await queue.join()
+
+        # Cancel remaining worker tasks
+        for worker_task in worker_tasks:
+            worker_task.cancel()
+
+        print("OVER AT:", datetime.now())
     except Exception as e:
         print(f"Error occurred in aio session: {traceback.format_exc()}")
         logger.exception(f"Error occurred in aio session: {e}")
 
-        # current_time = datetime.now()
-        # next_iteration_time = start_time + timedelta(seconds=60)
-        # _60sec_countdown = (next_iteration_time - current_time).total_seconds()
-        # print(start_time, next_iteration_time, current_time, "Time Remaining in Loop:", _60sec_countdown,
-        #       "~~~~~~~~")
-        ###TODO I wanted this to tell me how long each iteration is taking (all tickers)
-
-
 if __name__ == "__main__":
     try:
         logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
-        market_open_time_utc, market_close_time_utc = asyncio.run(
-            check_Market_Conditions.get_market_open_close_times()
-        )
+        market_open_time_utc, market_close_time_utc = asyncio.run(check_Market_Conditions.get_market_open_close_times())
         asyncio.run(wait_until_time(market_open_time_utc))
         logger.info(f"Main.py started data collection with market open, at utc time: {datetime.utcnow()}")
 
@@ -403,4 +279,4 @@ if __name__ == "__main__":
             r"PycharmProjects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
         )
         ssh_client.close()
-    logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+        logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
