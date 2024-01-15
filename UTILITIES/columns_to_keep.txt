@@ -1,0 +1,112 @@
+Noe this is missing some, like keltner
+timestamp
+NIV 3Lower Strike
+Maximum Pain
+SMA_20
+ITM PCRoi Down2
+Net IV MP
+Signal_Line
+ITM PCRoi Down3
+PCRoi Up3
+close
+PCR-OI
+RSI3
+PCRv @CP Strike
+high
+RSI6
+ITM PCRoi Down1
+NIV 2Lower Strike
+AwesomeOsc
+AwesomeOsc5_34
+RSI7
+MFI
+B1/B2
+ITM PCRv Up3
+ITM PCR-Vol
+ITM PCRoi Up3
+OBV
+ITM PCRv Down3
+Current SP % Change(LAC)
+ITM PCRoi Down4
+EMA_50
+ITM PCRv Down4
+NIV 2Higher Strike
+CMF
+Bonsai Ratio
+ITM PCRv Up1
+PCRv Up4
+Net ITM IV
+NIV highers(-)lowers1-2
+NIV 1Higher Strike
+Net IV LAC
+PCRoi Up4
+LastTradeTime
+Net_IV
+Williams_R
+Keltner_Lower
+PCRoi @CP Strike
+PCRv Up1
+time
+PCRoi Down1
+PCRoi Down2
+PCRoi Down4
+ITM PCRv Down1
+CurrentTime:
+NIV 1Lower Strike
+B2/B1
+RSI2
+ITM PCRoi Up2
+Total OI
+EoM
+Closest Strike to CP
+ITM PCR-OI
+ITM PCRv Up4
+ITM OI
+VPT
+PCR-Vol
+PCRv Down2
+ITM PCRoi Up1
+PCRv Down3
+PCRv Down4
+NIV highers(-)lowers1-4
+PCRv Down1
+PCRoi Down3
+ITM PCRv Down2
+EMA_200
+PCRv Up3
+MACD
+ITM PCRoi Up4
+ITM PCRv Up2
+Net_IV/OI
+Keltner_Upper
+new_buy_signal2
+NIV Current Strike
+NIV 4Lower Strike
+B1% Change
+price
+PPO
+ExpDate
+RSI1
+PCRoi Up1
+volume
+ITM Contracts %
+vwap
+RSI4
+PVO
+Net ITM_IV/ITM_OI
+ADX
+B2% Change
+CCI
+NIV 3Higher Strike
+Current Stock Price
+low
+Bonsai Ratio 2
+NIV 4Higher Strike
+RSI14
+PCRv Up2
+NIV 1-2 % from mean
+open
+PCRoi Up2
+RSI5
+NIV 1-4 % from mean
+RSI
