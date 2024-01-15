@@ -73,24 +73,28 @@ async def run_program():
             pass  # Handle CancelledError if necessary
 
 
-
 async def calculate_operations(
-    session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time,optionchaindf
+    session,
+    ticker,
+    LAC,
+    current_price,
+    StockLastTradeTime,
+    YYMMDD,
+    loop_start_time,
+    optionchaindf,
 ):
     try:
-        (
-            optionchain,
-            dailyminutes,
-            processeddata,
-            ticker
-        ) = await calculations.perform_operations(
-            session,
-            ticker,
-            LAC,
-            current_price,
-            StockLastTradeTime,
-            YYMMDD,
-            loop_start_time,optionchaindf
+        (optionchain, dailyminutes, processeddata, ticker) = (
+            await calculations.perform_operations(
+                session,
+                ticker,
+                LAC,
+                current_price,
+                StockLastTradeTime,
+                YYMMDD,
+                loop_start_time,
+                optionchaindf,
+            )
         )
         return optionchain, dailyminutes, processeddata, ticker
 
@@ -101,60 +105,77 @@ async def calculate_operations(
         raise
 
 
-
 async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price):
     if ticker not in trade_algos_queues:
         trade_algos_queues[ticker] = asyncio.Queue()
-    queue_length =  trade_algos_queues[ticker].qsize()
-    if queue_length ==0:
-        await trade_algos_queues[ticker].put((optionchain, dailyminutes, processeddata,ticker,current_price))
-        queue_length =  trade_algos_queues[ticker].qsize()
+    queue_length = trade_algos_queues[ticker].qsize()
+    if queue_length == 0:
+        await trade_algos_queues[ticker].put(
+            (optionchain, dailyminutes, processeddata, ticker, current_price)
+        )
+        queue_length = trade_algos_queues[ticker].qsize()
         print(f"Added task to {ticker} queue, current len: {queue_length}")
+
 
 async def process_ticker_queue(ticker):
     print(f"Worker for {ticker} started")
     while True:
         # trade_algos_queues[ticker].task_done()
-        queue_length =  trade_algos_queues[ticker].qsize()
-        print(f"Working on task for {ticker} queue, current # of tasks for ticker: {queue_length}")
+        queue_length = trade_algos_queues[ticker].qsize()
+        print(
+            f"Working on task for {ticker} queue, current # of tasks for ticker: {queue_length}"
+        )
         # print(f"Worker for {ticker} waiting for task")
-        optionchain, dailyminutes, processeddata, ticker, current_price = await trade_algos_queues[ticker].get()
+        optionchain, dailyminutes, processeddata, ticker, current_price = (
+            await trade_algos_queues[ticker].get()
+        )
         # print(f"Processing task for {ticker}")
         try:
 
             trade_algos_queues[ticker].task_done()
             await trade_algos2.actions(
-            optionchain, dailyminutes, processeddata, ticker, current_price
-        )
-            queue_length =  trade_algos_queues[ticker].qsize()
+                optionchain, dailyminutes, processeddata, ticker, current_price
+            )
+            queue_length = trade_algos_queues[ticker].qsize()
             print(f"Finished task for {ticker} queue, current len: {queue_length}")
         except Exception as e:
-            logger.warning(f"Error in tradealgo queue for {ticker}: {e}")
+            logger.warning(f"Error in tradealgo queue for {ticker}: {e}", exc_info=True)
             trade_algos_queues[ticker].task_done()
-            queue_length =  trade_algos_queues[ticker].qsize()
-            print(f"Could not complete task for {ticker} queue. {e}.  Task removed. current len: {queue_length}")
+            queue_length = trade_algos_queues[ticker].qsize()
+            print(
+                f"Could not complete task for {ticker} queue. {e}.  Task removed. current len: {queue_length}"
+            )
 
 
 async def get_options_data_for_ticker(session, ticker, loop_start_time):
     ticker = ticker.upper()
     try:
-        (
-            LAC,
-            current_price,
-            StockLastTradeTime,
-            YYMMDD,optionchaindf
-        ) = await tradierAPI_marketdata.get_options_data(
-            session, ticker, loop_start_time
+        (LAC, current_price, StockLastTradeTime, YYMMDD, optionchaindf) = (
+            await tradierAPI_marketdata.get_options_data(
+                session, ticker, loop_start_time
+            )
         )
         # print(f"{ticker} OptionData complete at {datetime.now()}.")t_opti
-        return LAC, current_price, StockLastTradeTime, YYMMDD,optionchaindf
+        return LAC, current_price, StockLastTradeTime, YYMMDD, optionchaindf
     except Exception as e:
         print("in getoptionsdata")
         raise
 
+
 tasks = []
-TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU",  "MSFT"]
-TICKERS_FOR_CALCULATIONS = ["SPY", "TSLA", "GOOGL", "UVXY", "ROKU", "QQQ", "SQQQ", "SPXS", "MSFT"]
+TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT"]
+TICKERS_FOR_CALCULATIONS = [
+    "SPY",
+    "TSLA",
+    "GOOGL",
+    "UVXY",
+    "ROKU",
+    "QQQ",
+    "SQQQ",
+    "SPXS",
+    "MSFT",
+]
+
 
 async def handle_ticker_cycle(session, ticker):
     start_time = datetime.now(pytz.utc)
@@ -166,22 +187,50 @@ async def handle_ticker_cycle(session, ticker):
         LAC, optionchain, optionchaindf = None, None, None
 
         try:
-            option_data_success = await get_options_data_for_ticker(session,ticker,loop_start_time_est)
+            option_data_success = await get_options_data_for_ticker(
+                session, ticker, loop_start_time_est
+            )
             if ticker in TICKERS_FOR_CALCULATIONS:
                 if option_data_success:
-                    LAC, CurrentPrice, StockLastTradeTime, YYMMDD, optionchaindf = option_data_success
-                    calculate_operations_success = await calculate_operations(session, ticker, LAC, CurrentPrice, StockLastTradeTime, YYMMDD, loop_start_time_est, optionchaindf)
+                    LAC, CurrentPrice, StockLastTradeTime, YYMMDD, optionchaindf = (
+                        option_data_success
+                    )
+                    calculate_operations_success = await calculate_operations(
+                        session,
+                        ticker,
+                        LAC,
+                        CurrentPrice,
+                        StockLastTradeTime,
+                        YYMMDD,
+                        loop_start_time_est,
+                        optionchaindf,
+                    )
 
                     if calculate_operations_success:
-                        optionchain, dailyminutes, processeddata,ticker = calculate_operations_success
+                        optionchain, dailyminutes, processeddata, ticker = (
+                            calculate_operations_success
+                        )
 
-                        if ticker in TICKERS_FOR_TRADE_ALGOS and optionchain is not None and not optionchain.empty and order_manager.ib.isConnected():
+                        if (
+                            ticker in TICKERS_FOR_TRADE_ALGOS
+                            and optionchain is not None
+                            and not optionchain.empty
+                            and order_manager.ib.isConnected()
+                        ):
                             # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice))
-                            await trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice)
+                            await trade_algos(
+                                optionchain,
+                                dailyminutes,
+                                processeddata,
+                                ticker,
+                                CurrentPrice,
+                            )
         except Exception as e:
             logger.exception(e)
         elapsed_time = (datetime.now(pytz.utc) - start_time).total_seconds()
-        print(f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_est}")
+        print(
+            f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_est}"
+        )
         record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
@@ -189,11 +238,9 @@ async def handle_ticker_cycle(session, ticker):
         await asyncio.sleep(max(0, 60 - elapsed_time))
         start_time = datetime.now(pytz.utc)
 
+
 # Separate functions for attempt_get_options_data, attempt_calculate_operations, and attempt_trade_algos
 # These functions will contain the respective logic and error handling for each operation
-
-
-
 
 
 def record_elapsed_time(ticker, elapsed_time):
@@ -202,6 +249,7 @@ def record_elapsed_time(ticker, elapsed_time):
 
 
 # TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
+
 
 async def main():
     try:
@@ -221,11 +269,13 @@ async def main():
 
         ticker_tasks = []
 
-        delay = len(tickerlist)/20  # Set your desired delay in seconds
+        delay = len(tickerlist) / 20  # Set your desired delay in seconds
         for ticker in tickerlist:
             task = asyncio.create_task(handle_ticker_cycle(session, ticker))
             ticker_tasks.append(task)
-            await asyncio.sleep(delay)  # Wait for the specified delay before starting next task
+            await asyncio.sleep(
+                delay
+            )  # Wait for the specified delay before starting next task
 
         # Wait for all ticker tasks to complete
         await asyncio.gather(*ticker_tasks)
@@ -243,12 +293,17 @@ async def main():
         print(f"Error occurred in aio session: {traceback.format_exc()}")
         logger.exception(f"Error occurred in aio session: {e}")
 
+
 if __name__ == "__main__":
     try:
         logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
-        market_open_time_utc, market_close_time_utc = asyncio.run(check_Market_Conditions.get_market_open_close_times())
+        market_open_time_utc, market_close_time_utc = asyncio.run(
+            check_Market_Conditions.get_market_open_close_times()
+        )
         asyncio.run(wait_until_time(market_open_time_utc))
-        logger.info(f"Main.py started data collection with market open, at utc time: {datetime.utcnow()}")
+        logger.info(
+            f"Main.py started data collection with market open, at utc time: {datetime.utcnow()}"
+        )
 
         asyncio.run(run_program())
     except KeyboardInterrupt:

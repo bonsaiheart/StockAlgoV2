@@ -20,6 +20,7 @@ def log_error(location, ticker, model_name, exception):
         f"An error occurred in {location}. {ticker}, {model_name}: {exception}",
         exc_info=True,
     )
+    raise
 
 
 # Order placement functions
@@ -124,7 +125,7 @@ async def handle_model_result(
                     )
                 except Exception as trade_e:
                     logger.exception(
-                        f"An error occurred while creating option order task {trade_e}."
+                        f"An error occurred while creating option order task {trade_e}.",exc_info=True
                     )
             # try:
             #     await send_notifications.send_tweet_w_countdown_followup(
