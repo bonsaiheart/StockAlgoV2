@@ -41,7 +41,7 @@ class IBOrderManager:
             ):
                 # print("ORDERSTATUS submitted: ", order_status.status)
                 self.order_events[order_id]["active"].set()
-                # asyncio.create_task(self.delayed_event_deletion(order_id))
+                asyncio.create_task(self.delayed_event_deletion(order_id))
                 # del self.order_events[order_id]
 
             elif order_status.status in [
@@ -51,9 +51,9 @@ class IBOrderManager:
                 "ApiCancelled",
             ]:
                 self.order_events[order_id]["done"].set()
-                # asyncio.create_task(
-                #     self.delayed_event_deletion(order_id)
-                # )  # TODO i think these are causeing the destroyed taks  error?
+                asyncio.create_task(
+                    self.delayed_event_deletion(order_id)
+                )  # TODO i think these are causeing the destroyed taks  error?
                 # del self.order_events[order_id]
 
             if not self.order_events:
@@ -376,7 +376,7 @@ class IBOrderManager:
             logger.exception(
                 f"An error occurred while replace child orders.{ticker_contract},: {e}\n order_details_dict for ocaGroup:{ocaGroup}: {order_details[ocaGroup]}"
             )
-
+#TODO will still cancel children from a leftorver bracket order that has parent still active.. leaving just parent.
     async def placeOptionBracketOrder(
         self,
         CorP,
@@ -460,8 +460,8 @@ class IBOrderManager:
                     parent.transmit = False
                     parent.outsideRth = True
                     ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-                    parent.tif = 'GTC'#TODO parent_tif
-                    # parent.goodTillDate =  gtddelta
+                    parent.tif = parent_tif#TODO 'GTC'
+                    parent.goodTillDate =  gtddelta
 
                     takeProfit = Order()
                     takeProfit.orderId = self.ib.client.getReqId()
@@ -540,7 +540,7 @@ class IBOrderManager:
     # ib.disconnect()
 
     async def can_place_new_order(
-        self, contract, threshold=6  #(was13)nonte im gonna turn this down.. multiple tickers in testing were placing muotiple orders every minute?  each needting to cancnel na d replace an oerder!
+        self, contract, threshold=6 #chagned to 6 adn was good.(was13)nonte im gonna turn this down.. multiple tickers in testing were placing muotiple orders every minute?  each needting to cancnel na d replace an oerder!
     ):  # 15 open orders on either side is MAX.
         # Fetch open orders
         open_trades = self.ib.openTrades()

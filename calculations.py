@@ -85,7 +85,7 @@ async def get_ta(session, ticker):
     start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
     end = datetime.today().strftime("%Y-%m-%d %H:%M")
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
-
+#TODO move this into getoptions data?  then I can run it thru calc ANYTIME b/c it will have all data.  This can be processpooled.
     time_sale_response = await fetch(
         session,
         "https://api.tradier.com/v1/markets/timesales",

@@ -66,6 +66,7 @@ async def place_buy_order_sync(
     except Exception as e:
         log_error("place_buy_order_sync", ticker, orderRef, e)
 
+#TODO make the diff models use diff gamma/delta to find contract.
 
 # Function to extract the time interval from the model name
 # TODO note: only set up for minutes/hours.  Add days.
@@ -321,7 +322,7 @@ def get_model_list():
 # TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
 from datetime import datetime
 
-async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, current_time,target_delta=1, gamma_threshold=(0.035, 0.9), max_bid_ask_spread_percent=3,min_volume=500):
+async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, current_time,target_delta=.9, gamma_threshold=(0.01, 0.9), max_bid_ask_spread_percent=13,min_volume=500):
     # Determine the type of contract based on the model name
 
     CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
