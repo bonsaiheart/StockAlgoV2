@@ -105,13 +105,14 @@ async def calculate_operations(
         raise
 
 
-async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price):
+async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price,current_time):
     if ticker not in trade_algos_queues:
         trade_algos_queues[ticker] = asyncio.Queue()
     queue_length = trade_algos_queues[ticker].qsize()
+
     if queue_length == 0:
         await trade_algos_queues[ticker].put(
-            (optionchain, dailyminutes, processeddata, ticker, current_price)
+            (optionchain, dailyminutes, processeddata, ticker, current_price,current_time)
         )
         queue_length = trade_algos_queues[ticker].qsize()
         print(f"Added task to {ticker} queue, current len: {queue_length}")
@@ -126,16 +127,17 @@ async def process_ticker_queue(ticker):
             f"Working on task for {ticker} queue, current # of tasks for ticker: {queue_length}"
         )
         # print(f"Worker for {ticker} waiting for task")
-        optionchain, dailyminutes, processeddata, ticker, current_price = (
+        optionchain, dailyminutes, processeddata, ticker, current_price,current_time = (
             await trade_algos_queues[ticker].get()
         )
         # print(f"Processing task for {ticker}")
         try:
 
-            trade_algos_queues[ticker].task_done()
+
             await trade_algos2.actions(
-                optionchain, dailyminutes, processeddata, ticker, current_price
+                optionchain, dailyminutes, processeddata, ticker, current_price,current_time
             )
+            trade_algos_queues[ticker].task_done()
             queue_length = trade_algos_queues[ticker].qsize()
             print(f"Finished task for {ticker} queue, current len: {queue_length}")
         except Exception as e:
@@ -183,7 +185,8 @@ async def handle_ticker_cycle(session, ticker):
     max_retries = 1
 
     while True:
-        loop_start_time_est = datetime.now().strftime("%y%m%d_%H%M")
+        current_time = datetime.now()
+        loop_start_time_est = current_time.strftime("%y%m%d_%H%M")
         LAC, optionchain, optionchaindf = None, None, None
 
         try:
@@ -217,14 +220,14 @@ async def handle_ticker_cycle(session, ticker):
                             and not optionchain.empty
                             and order_manager.ib.isConnected()
                         ):
-                            # asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice))
-                            await trade_algos(
-                                optionchain,
-                                dailyminutes,
-                                processeddata,
-                                ticker,
-                                CurrentPrice,
-                            )
+                            asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice,current_time))
+                            # await trade_algos(
+                            #     optionchain,
+                            #     dailyminutes,
+                            #     processeddata,
+                            #     ticker,
+                            #     CurrentPrice,
+                            # )
         except Exception as e:
             logger.exception(e)
         elapsed_time = (datetime.now(pytz.utc) - start_time).total_seconds()
