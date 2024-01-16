@@ -104,11 +104,11 @@ async def handle_model_result(
                 formatted_time,
                 formatted_time_mdHR_MIN_only,
             ) = result
+
             callorput = "call" if CorP == "C" else "put"
             timetill_expectedprofit, seconds_till_expectedprofit = check_interval_match(
                 model_name
             )
-            # orderRef = ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
 
                 # try:
                 #     parent_trade_success = await place_option_order_sync(
@@ -144,8 +144,10 @@ async def handle_model_result(
                 print(f"Email error {e}.")
                 logger.exception(f"An error occurred while creating email task {e}")
             if order_manager.ib.isConnected:
-                orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
+                print(type(formatted_time_mdHR_MIN_only))
+                orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
                 quantity=3
+                print(orderRef)
                 return(
                     CorP,
                     ticker,
@@ -279,20 +281,22 @@ async def actions(
                             option_take_profit_percent,
                             option_trail_stop_percent,current_time
                         )
-                        if order_params:
+                        if order_params != None:
                             unique_id = f"{order_params[1]}_{order_params[2]}_{order_params[3]}_{order_params[0]}"  # ticker_IB_option_date_contractStrike_CorP
                             if unique_id not in unique_orders:
                                 unique_orders.add(unique_id)
                                 potential_orders.append(order_params)
 
                         # Execute unique orders concurrently
-                        tasks = [place_option_order_sync(*params) for params in potential_orders]
-                        await asyncio.gather(*tasks)
+                        print(potential_orders)
                     except Exception as e:
                         logger.exception(f"Error in handle_model_result. {e}")
-
         except Exception as e:
             log_error("actions", ticker, model_name, e)
+    tasks = [place_option_order_sync(*params) for params in potential_orders]
+    await asyncio.gather(*tasks)
+
+
 
 
 # TODO use this log error funciton globally?
