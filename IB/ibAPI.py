@@ -460,8 +460,8 @@ class IBOrderManager:
                     parent.transmit = False
                     parent.outsideRth = True
                     ###this stuff makes it cancel whole order in 45 sec.  If parent fills, children turn to GTC
-                    parent.tif = parent_tif
-                    parent.goodTillDate = gtddelta
+                    parent.tif = 'GTC'#TODO parent_tif
+                    # parent.goodTillDate =  gtddelta
 
                     takeProfit = Order()
                     takeProfit.orderId = self.ib.client.getReqId()
@@ -484,18 +484,14 @@ class IBOrderManager:
                     stopLoss.TrailingUnit = 1
                     stopLoss.orderRef = orderRef + "_trail"
 
-                    # stopLoss.trailStopPrice = limit_price - trailAmount
-                    # stopLoss.trailStopPrice = .5
-                    # I  think the big issue HERE was that percent was a whole number like 3, so it was doin some weird thinkg.
+
                     stopLoss.trailStopPrice = round(
                         contract_current_price
                         * ((100 - trailstop_amount_percent) / 100),
                         2,
                     )
-                    # stopLoss.trailingPercent = 99
-                    stopLoss.trailingPercent = trailstop_amount_percent
 
-                    # stopLoss.trailingPercent = trailAmount
+                    stopLoss.trailingPercent = trailstop_amount_percent
                     stopLoss.totalQuantity = quantity
                     stopLoss.parentId = parent.orderId
                     stopLoss.ocaGroup = parent.orderId
