@@ -8,6 +8,8 @@ import asyncio
 import pytz  # Make sure to install pytz if you haven't already
 import IB.ibAPI
 import calculations
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 
 # import new_marketdata
 import trade_algos2
@@ -73,38 +75,20 @@ async def run_program():
             pass  # Handle CancelledError if necessary
 
 
-async def calculate_operations(
-    session,
-    ticker,
-    LAC,
-    current_price,
-    StockLastTradeTime,
-    YYMMDD,
-    loop_start_time,
-    optionchaindf,
-):
-    #TODO maybe use processpool /executor for cpu intensive calcs.
+async def calculate_operations(session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time, optionchaindf):
     try:
-        (optionchain, dailyminutes, processeddata, ticker) = (
-            await calculations.perform_operations(
-                session,
-                ticker,
-                LAC,
-                current_price,
-                StockLastTradeTime,
-                YYMMDD,
-                loop_start_time,
-                optionchaindf,
-            )
-        )
+        loop = asyncio.get_running_loop()
+        args = (session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time, optionchaindf)
+
+        with ProcessPoolExecutor() as pool:
+            func = partial(calculations.perform_operations, *args)
+            optionchain, dailyminutes, processeddata, ticker = await loop.run_in_executor(pool, func)
+
         return optionchain, dailyminutes, processeddata, ticker
 
     except Exception as e:
-        print("in calculate ops")
-
         logger.exception(f"Error in calculate_operations for {ticker}: {e}")
         raise
-
 
 async def trade_algos(optionchain, dailyminutes, processeddata, ticker, current_price,current_time):
     if ticker not in trade_algos_queues:
