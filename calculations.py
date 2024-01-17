@@ -95,10 +95,13 @@ async def perform_operations(
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
     # TODO could pass in optionchain.
-    optionchain_df = pd.read_csv(
+    if optionchaindf is None or optionchaindf.empty:
+        optionchain_df = pd.read_csv(
         f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{CurrentTime}.csv"
     )
-    optionchain_df = optionchaindf
+    else:
+        optionchain_df = optionchaindf
+
     groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
     for exp_date, group in groups:
@@ -588,12 +591,6 @@ async def perform_operations(
         )
     processed_data_df = pd.DataFrame(results)
 
-    try:
-        this_minute_ta_frame = await get_ta(session, ticker)
-        for column in this_minute_ta_frame.columns:
-            processed_data_df[column] = this_minute_ta_frame[column]
-    except Exception as e:
-        logger.warning(f"{ticker} has an error {e}")
     output_dir = Path(f"data/ProcessedData/{ticker}/{YYMMDD}/")
 
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -606,27 +603,7 @@ async def perform_operations(
         mode=0o755, parents=True, exist_ok=True
     )
     output_dir_dailyminutes.mkdir(mode=0o755, parents=True, exist_ok=True)
-
-    # def replace_inf(df):
-    #     numeric_cols = df.select_dtypes(include=[np.number]).columns
-    #
-    #     if len(numeric_cols) == 0:
-    #         return  # No numeric columns to process
-    #
-    #     epsilon = 1e-7  # small value
-    #
-    #     for col in numeric_cols:
-    #         is_pos_inf = df[col] == np.inf
-    #         is_neg_inf = df[col] == -np.inf
-    #
-    #         if is_pos_inf.any():
-    #             finite_max = df.loc[~is_pos_inf, col].max() + epsilon
-    #             df.loc[is_pos_inf, col] = finite_max
-    #
-    #         if is_neg_inf.any():
-    #             finite_min = df.loc[~is_neg_inf, col].min() - epsilon
-    #             df.loc[is_neg_inf & (finite_min < 0), col] = finite_min * 1.5
-    #             df.loc[is_neg_inf & (finite_min >= 0), col] = finite_min
+    processed_data_df = pd.merge(processed_data_df, optionchain_df, on='ExpDate', how='outer')
 
     # # Use the function
     if output_file_dailyminutes.exists():

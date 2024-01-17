@@ -376,7 +376,7 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        # logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
+        logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
         # market_open_time_utc, market_close_time_utc = asyncio.run(
         #     check_Market_Conditions.get_market_open_close_times()
         # )
