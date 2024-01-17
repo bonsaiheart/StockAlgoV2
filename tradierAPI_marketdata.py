@@ -4,9 +4,239 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 import PrivateData.tradier_info
+import ta
+
 from UTILITIES.logger_config import logger
+
+async def get_ta(session, ticker):
+    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
+    end = datetime.today().strftime("%Y-%m-%d %H:%M")
+    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+#TODO move this into getoptions data?  then I can run it thru calc ANYTIME b/c it will have all data.  This can be processpooled.
+    time_sale_response = await fetch(
+        session,
+        "https://api.tradier.com/v1/markets/timesales",
+        params={
+            "symbol": ticker,
+            "interval": "1min",
+            "start": start,
+            "end": end,
+            "session_filter": "all",
+        },
+        headers=headers,
+    )
+
+    if (
+        time_sale_response
+        and "series" in time_sale_response
+        and "data" in time_sale_response["series"]
+    ):
+        df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
+    else:
+        print(
+            f"Failed to retrieve TA data for ticker {ticker}: time_sale_response or required keys are missing or None"
+        )
+        return None
+
+    df.index = pd.to_datetime(df.index)
+
+    def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
+        """
+        Safely perform a calculation for a DataFrame and handle exceptions.
+        If an exception occurs, the specified column is filled with NaN.
+        """
+        try:
+            df[column_name] = calculation_function(*args, **kwargs)
+        except Exception as e:
+            logger.warning(
+                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__},error={e}.  This is usually caused by missing data from yfinance."
+            )
+            df[column_name] = pd.NA
+
+    # Usage of safe_calculation function for each indicator
+    safe_calculation(
+        df,
+        "AwesomeOsc",
+        ta.momentum.awesome_oscillator,
+        high=df["high"],
+        low=df["low"],
+        window1=1,
+        window2=5,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "AwesomeOsc5_34",
+        ta.momentum.awesome_oscillator,
+        high=df["high"],
+        low=df["low"],
+        window1=5,
+        window2=34,
+        fillna=False,
+    )
+
+    # For MACD
+    macd_object = ta.trend.MACD(
+        close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+    )
+    signal_line = macd_object.macd_signal
+    safe_calculation(df, "MACD", macd_object.macd)
+    safe_calculation(df, "Signal_Line", signal_line)
+
+    # For EMAs
+    safe_calculation(
+        df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False
+    )
+    safe_calculation(
+        df,
+        "EMA_200",
+        ta.trend.ema_indicator,
+        close=df["close"],
+        window=200,
+        fillna=False,
+    )
+
+    # For RSI
+    safe_calculation(
+        df, "RSI1", ta.momentum.rsi, close=df["close"], window=1, fillna=False
+    )
+
+    safe_calculation(
+        df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False
+    )
+    safe_calculation(
+        df, "RSI3", ta.momentum.rsi, close=df["close"], window=3, fillna=False
+    )
+    safe_calculation(
+        df, "RSI4", ta.momentum.rsi, close=df["close"], window=4, fillna=False
+    )
+    safe_calculation(
+        df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False
+    )
+    safe_calculation(
+        df, "RSI5", ta.momentum.rsi, close=df["close"], window=5, fillna=False
+    )  # column "RSI" == RSI5.. I'm trying to swap over but hte old data is still using RSI; so Thsi is to make swap easy. eventually when i ddrop old stuff or mergy? idk its late.
+    safe_calculation(
+        df, "RSI6", ta.momentum.rsi, close=df["close"], window=6, fillna=False
+    )
+    safe_calculation(
+        df, "RSI7", ta.momentum.rsi, close=df["close"], window=7, fillna=False
+    )
+
+    safe_calculation(
+        df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False
+    )
+
+    # Additional Indicators
+    safe_calculation(
+        df, "SMA_20", ta.trend.sma_indicator, close=df["close"], window=20, fillna=False
+    )
+    safe_calculation(
+        df,
+        "ADX",
+        ta.trend.adx,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        window=14,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "CCI",
+        ta.trend.cci,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        window=20,
+        fillna=False,
+    )
+    williams_r_object = ta.momentum.WilliamsRIndicator(
+        high=df["high"], low=df["low"], close=df["close"], lbp=14, fillna=False
+    )
+    safe_calculation(df, "Williams_R", williams_r_object.williams_r)
+    pvo_object = ta.momentum.PercentageVolumeOscillator(
+        volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+    )
+    safe_calculation(df, "PVO", pvo_object.pvo)
+    ppo_object = ta.momentum.PercentagePriceOscillator(
+        close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+    )
+    safe_calculation(df, "PPO", ppo_object.ppo)
+
+    safe_calculation(
+        df,
+        "CMF",
+        ta.volume.chaikin_money_flow,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        volume=df["volume"],
+        window=20,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "EoM",
+        ta.volume.ease_of_movement,
+        high=df["high"],
+        low=df["low"],
+        volume=df["volume"],
+        window=14,
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "OBV",
+        ta.volume.on_balance_volume,
+        close=df["close"],
+        volume=df["volume"],
+        fillna=False,
+    )
+    safe_calculation(
+        df,
+        "MFI",
+        ta.volume.money_flow_index,
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        volume=df["volume"],
+        window=14,
+        fillna=False,
+    )
+    keltner_channel = ta.volatility.KeltnerChannel(
+        high=df["high"], low=df["low"], close=df["close"], window=20, window_atr=10
+    )
+    safe_calculation(
+        df,
+        "Keltner_Upper",
+        keltner_channel.keltner_channel_hband_indicator,
+    )
+    safe_calculation(
+        df,
+        "Keltner_Lower",
+        keltner_channel.keltner_channel_lband_indicator,
+    )
+    safe_calculation(
+        df,
+        "VPT",
+        ta.volume.volume_price_trend,
+        close=df["close"],
+        volume=df["volume"],
+        fillna=False,
+    )
+    # aroon = ta.trend.AroonIndicator(close=df["close"], window=25)
+    # safe_calculation(df, "Aroon_Oscillator", aroon.aroon_oscillator, fillna=False)
+
+    groups = df.groupby(df.index.date)
+    group_dates = list(groups.groups.keys())
+    lastgroup = group_dates[-1]
+    ta_data = groups.get_group(lastgroup)
+    this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
+    return this_minute_ta_frame
 
 
 class OptionChainError(Exception):
@@ -262,8 +492,12 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     ##weighted total iv for contract
     # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
     # vega measures response to IV change.
-
-    from pathlib import Path
+    try:
+        this_minute_ta_frame = await get_ta(session, ticker)
+        for column in this_minute_ta_frame.columns:
+            combined[column] = this_minute_ta_frame[column]
+    except Exception as e:
+        logger.warning(f"{ticker} has an error {e}")
 
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
     output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
