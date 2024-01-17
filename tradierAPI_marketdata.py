@@ -171,7 +171,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
         df["lastPriceXoi"] = df["last"] * df["open_interest"]
         df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
-        df["delta"] =  df["greeks"].str.get("delta")
+        df["delta"] = df["greeks"].str.get("delta")
     # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
     columns_to_keep = [
@@ -192,7 +192,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "impliedVolatility",
         "dollarsFromStrikeXoi",
     ]
-#TODO commetned this out 240105
+    # TODO commetned this out 240105
     # # Columns to drop (all columns that are not in 'columns_to_keep')
     # columns_to_drop_calls = [
     #     col for col in calls_df.columns if col not in columns_to_keep
@@ -216,14 +216,14 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "change_percentage": "percentChange",
         "volume": "volume",
         "open_interest": "openInterest",
-        "delta":"delta",
+        "delta": "delta",
         "greeks": "greeks",
         "impliedVolatility": "impliedVolatility",
         "dollarsFromStrike": "dollarsFromStrike",
         "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
         "lastPriceXoi": "lastPriceXoi",
     }
-    #TODO change all columns to use standasrdized.. some are c_ some are Calls_ etc.
+    # TODO change all columns to use standasrdized.. some are c_ some are Calls_ etc.
     calls_df.rename(columns={k: f"c_{v}" for k, v in rename_dict.items()}, inplace=True)
     puts_df.rename(columns={k: f"p_{v}" for k, v in rename_dict.items()}, inplace=True)
 
@@ -255,7 +255,6 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     combined["average_volume"] = average_volume
     combined["last_volume"] = last_volume
 
-
     combined.rename(columns=rename_dict_combined, inplace=True)
     ####################
     # for option in json_response["options"]["option"]:
@@ -271,12 +270,12 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
     # Make sure it's the same day's data.
     # if YYMMDD == StockLastTradeTime_YMD:#TDDO for test mode comment this
-        # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
+    # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
 
     try:
         file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
         combined.to_csv(file_path, mode="w")
-        return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD,combined
+        return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD, combined
 
     except FileExistsError as e:
         logger.error(
@@ -289,7 +288,8 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         )
         raise
     # else:
-    #     logger.warning(
+    #     logger limit price
+    #                     ).warning(
     #         f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
     #     )
 
