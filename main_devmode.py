@@ -78,7 +78,7 @@ async def run_program():
 async def calculate_operations(session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time, optionchaindf):
     try:
         loop = asyncio.get_running_loop()
-        args = (session, ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time, optionchaindf)
+        args = ( ticker, LAC, current_price, StockLastTradeTime, YYMMDD, loop_start_time, optionchaindf)
 
         with ProcessPoolExecutor() as pool:
             func = partial(calculations.perform_operations, *args)
@@ -107,10 +107,7 @@ async def process_ticker_queue(ticker):
     print(f"Worker for {ticker} started")
     while True:
         # trade_algos_queues[ticker].task_done()
-        queue_length = trade_algos_queues[ticker].qsize()
-        print(
-            f"Working on task for {ticker} queue, current # of tasks for ticker: {queue_length}"
-        )
+
         # print(f"Worker for {ticker} waiting for task")
         optionchain, dailyminutes, processeddata, ticker, current_price,current_time = (
             await trade_algos_queues[ticker].get()
@@ -150,24 +147,24 @@ async def get_options_data_for_ticker(session, ticker, loop_start_time):
 
 
 # tasks = []
-
-TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
-                           "CHWY","GOOGL"
-
-]
-TICKERS_FOR_CALCULATIONS = [
-    "SPY",
-    "TSLA",
-    "GOOGL",
-    "UVXY",
-    "ROKU",
-
-    "MSFT",
-"CHWY",
-
-
-
-]
+#
+# TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
+#                            "CHWY","GOOGL"
+#
+# ]
+# TICKERS_FOR_CALCULATIONS = [
+#     "SPY",
+#     "TSLA",
+#     "GOOGL",
+#     "UVXY",
+#     "ROKU",
+#
+#     "MSFT",
+# "CHWY",
+#
+#
+#
+# ]
 # "QQQ",
 # "SQQQ",
 # "SPXS",
@@ -188,30 +185,32 @@ TICKERS_FOR_CALCULATIONS = [
 # "BA",
 # "LLY",
 # ]
-#TODO sometimes took 60-90. with 12 max open orders. TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
-#                            "CHWY",
-# "BA","LLY",
-# "V",
-# "WMT",
-# ]
-# TICKERS_FOR_CALCULATIONS = [
-#     "SPY",
-#     "TSLA",
-#     "GOOGL",
-#     "UVXY",
-#     "ROKU",
-#     "QQQ",
-#     "SQQQ",
-#     "SPXS",
-#     "MSFT",
-#
-# "CHWY",
-# "BA",
-# "LLY",
-# "V",
-# "WMT",
-# ]
-#TOO MUch, everything taking 100+ sec  TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
+#TODO sometimes took 60-90. with 12 max open orders. 14/10 calc/trade.    With processpool in calc and max open oorders <=6, taking
+TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
+                           "CHWY",
+"BA","LLY",
+"V",
+"WMT",
+]
+TICKERS_FOR_CALCULATIONS = [
+    "SPY",
+    "TSLA",
+    "GOOGL",
+    "UVXY",
+    "ROKU",
+    "QQQ",
+    "SQQQ",
+    "SPXS",
+    "MSFT",
+
+"CHWY",
+"BA",
+"LLY",
+"V",
+"WMT",
+]
+#TOO MUch, everything taking 100+ sec  17/12 cal/trade
+# TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
 #                            "CHWY",
 # "BA","LLY",
 # "V",
@@ -248,7 +247,8 @@ async def handle_ticker_cycle(session, ticker):
     while True:
         current_time = datetime.now()
         loop_start_time_est = current_time.strftime("%y%m%d_%H%M")
-        LAC, optionchain, optionchaindf = None, None, None
+        loop_start_time_w_seconds_est = current_time.strftime("%y%m%d_%H:%M:%S")
+
 
         try:
             option_data_success = await get_options_data_for_ticker(
@@ -282,18 +282,12 @@ async def handle_ticker_cycle(session, ticker):
                             and order_manager.ib.isConnected()
                         ):
                             asyncio.create_task(trade_algos(optionchain, dailyminutes, processeddata, ticker, CurrentPrice,current_time))
-                    #         # await trade_algos(
-                    #         #     optionchain,
-                    #         #     dailyminutes,
-                    #         #     processeddata,
-                    #         #     ticker,
-                    #         #     CurrentPrice,current_time
-                    #         # )
+
         except Exception as e:
             logger.exception(e)
         elapsed_time = (datetime.now(pytz.utc) - start_time).total_seconds()
         print(
-            f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_est}"
+            f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_w_seconds_est}"
         )
         record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:

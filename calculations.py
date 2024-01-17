@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 
 def perform_operations(
-    session,
     ticker,
     last_adj_close,
     current_price,

@@ -13,7 +13,7 @@ from UTILITIES.logger_config import logger
 
 order_manager = IB.ibAPI.IBOrderManager()
 
-
+#TODO more the model processing to executor processpool or no?  it would fit nicely at edn of calculations?
 # Utility function to handle errors
 def log_error(location, ticker, model_name, exception):
     logger.error(
@@ -54,7 +54,7 @@ async def place_option_order_sync(
 async def place_buy_order_sync(
     ticker, current_price, orderRef, quantity, take_profit_percent, trail_stop_percent
 ):
-    try:  # TODO make create task
+    try:
         await IB.ibAPI.placeBuyBracketOrder(
             ticker,
             current_price,
@@ -145,10 +145,9 @@ async def handle_model_result(
                 print(f"Email error {e}.")
                 logger.exception(f"An error occurred while creating email task {e}")
             if order_manager.ib.isConnected:
-                print(type(formatted_time_mdHR_MIN_only))
                 orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
                 quantity=3
-                print(orderRef)
+                # print(orderRef)
                 return(
                     CorP,
                     ticker,
@@ -289,7 +288,7 @@ async def actions(
                                 potential_orders.append(order_params)
 
                         # Execute unique orders concurrently
-                        print(potential_orders)
+                        # print(potential_orders)
                     except Exception as e:
                         logger.exception(f"Error in handle_model_result. {e}")
         except Exception as e:
@@ -362,7 +361,7 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
 
     # Ensure the DataFrame is not empty
     if relevant_df.empty:
-        print("contractdetails relevant_df empty")
+        logger.info(f"{ticker} contractdetails relevant_df empty",exc_info=True)
         return None
 
     # Find the contract with delta closest to the target delta
@@ -391,16 +390,16 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
     formatted_time_mdHMonly = current_time.strftime("%m%d_%H:%M")
     # formatted_time_mdHMonly = current_time
     # Get the current time formatted for the notification message
-    print (
-        upordown,
-        CorP,
-        contractStrike,
-        contract_price,
-        IB_option_date,
-        formatted_time,
-        formatted_time_mdHMonly,
-
-    )
+    # print (
+    #     upordown,
+    #     CorP,
+    #     contractStrike,
+    #     contract_price,
+    #     IB_option_date,
+    #     formatted_time,
+    #     formatted_time_mdHMonly,
+    #
+    # )
     return (
         upordown,
         CorP,
