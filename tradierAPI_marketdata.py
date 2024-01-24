@@ -1,14 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-
+import PrivateData.tradier_info
 import numpy as np
 import pandas as pd
-from pathlib import Path
-
-import PrivateData.tradier_info
 import ta
-
 from UTILITIES.logger_config import logger
 
 

@@ -95,13 +95,18 @@ async def email_me_string(model_name, callorput, ticker):
     body = MIMEText(f"ticker: {str(ticker)} * {message}")
     msg.attach(body)
 
-    server = smtplib.SMTP(smtp_host, smtp_port)
-    server.starttls()
-    server.login(smtp_user, smtp_password)
-    server.sendmail(from_email, to_email, msg.as_string())
-    server.quit()
-
-    print("Email sent!")
+    try:
+        server = smtplib.SMTP(
+            smtp_host, smtp_port, timeout=10
+        )  # Set a 10-second timeout
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.sendmail(from_email, to_email, msg.as_string())
+        server.quit()
+        print("Email sent!")
+    except Exception as e:
+        logger.error(f"Email error: {e}")
+        raise
 
 
 # email_me_string("sdf","dd","sdf")

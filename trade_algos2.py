@@ -1,11 +1,7 @@
 import asyncio
 import re
-from datetime import datetime
-import pandas as pd
 import IB.ibAPI
-
 from Strategy_Testing.Trained_Models import (
-    trained_minute_models,
     pytorch_trained_minute_models,
 )
 from UTILITIES.Send_Notifications import send_notifications
@@ -13,7 +9,8 @@ from UTILITIES.logger_config import logger
 
 order_manager = IB.ibAPI.IBOrderManager()
 
-#TODO more the model processing to executor processpool or no?  it would fit nicely at edn of calculations?
+
+# TODO more the model processing to executor processpool or no?  it would fit nicely at edn of calculations?
 # Utility function to handle errors
 def log_error(location, ticker, model_name, exception):
     logger.error(
@@ -66,7 +63,9 @@ async def place_buy_order_sync(
     except Exception as e:
         log_error("place_buy_order_sync", ticker, orderRef, e)
 
-#TODO make the diff models use diff gamma/delta to find contract.
+
+# TODO make the diff models use diff gamma/delta to find contract.
+
 
 # Function to extract the time interval from the model name
 # TODO note: only set up for minutes/hours.  Add days.
@@ -90,11 +89,14 @@ async def handle_model_result(
     optionchain_df,
     processeddata_df,
     option_take_profit_percent,
-    option_trail_stop_percent,current_time
+    option_trail_stop_percent,
+    current_time,
 ):
     # Retrieve the contract details
     try:
-        result = await get_contract_details(optionchain_df, processeddata_df, ticker, model_name,current_time)
+        result = await get_contract_details(
+            optionchain_df, processeddata_df, ticker, model_name, current_time
+        )
         if result is not None:
             (
                 upordown,
@@ -111,22 +113,22 @@ async def handle_model_result(
                 model_name
             )
 
-                # try:
-                #     parent_trade_success = await place_option_order_sync(
-                #         CorP,
-                #         ticker,
-                #         IB_option_date,
-                #         contractStrike,
-                #         contract_price,
-                #         orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
-                #         quantity=3,
-                #         take_profit_percent=option_take_profit_percent,
-                #         trail_stop_percent=option_trail_stop_percent,
-                #     )
-                # except Exception as trade_e:
-                #     logger.exception(
-                #         f"An error occurred while creating option order task {trade_e}.",exc_info=True
-                #     )
+            # try:
+            #     parent_trade_success = await place_option_order_sync(
+            #         CorP,
+            #         ticker,
+            #         IB_option_date,
+            #         contractStrike,
+            #         contract_price,
+            #         orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only,
+            #         quantity=3,
+            #         take_profit_percent=option_take_profit_percent,
+            #         trail_stop_percent=option_trail_stop_percent,
+            #     )
+            # except Exception as trade_e:
+            #     logger.exception(
+            #         f"An error occurred while creating option order task {trade_e}.",exc_info=True
+            #     )
             # try:
             #     await send_notifications.send_tweet_w_countdown_followup(
             #         ticker,
@@ -145,10 +147,12 @@ async def handle_model_result(
                 print(f"Email error {e}.")
                 logger.exception(f"An error occurred while creating email task {e}")
             if order_manager.ib.isConnected:
-                orderRef=ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
-                quantity=3
+                orderRef = (
+                    ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
+                )
+                quantity = 3
                 # print(orderRef)
-                return(
+                return (
                     CorP,
                     ticker,
                     IB_option_date,
@@ -162,6 +166,8 @@ async def handle_model_result(
             return None
     except Exception as e:
         raise e
+
+
 #
 # await place_option_order_sync(
 #                     CorP,
@@ -191,7 +197,12 @@ signal_sums = {pair: 0 for pair in model_pairs}
 
 # Main function to handle model actions
 async def actions(
-    optionchain_df, dailyminutes_df, processeddata_df, ticker, current_price,current_time
+    optionchain_df,
+    dailyminutes_df,
+    processeddata_df,
+    ticker,
+    current_price,
+    current_time,
 ):
     # Load your data into dataframes
     # Initialize a variable to keep track of evaluated models
@@ -267,10 +278,10 @@ async def actions(
             #             else:
             #                 signal_sums[pair_name] = 0
             #             break  # Exit the loop after handling pair
-#TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere...but only if not in orderdumy
+            # TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere...but only if not in orderdumy
             # Execute for individual model if not part of a pair or not executed as part of a pair
-            if not part_of_pair or model_name not in executed_models:#TODO or or and
-                if result >=0:#TODO change this
+            if not part_of_pair or model_name not in executed_models:  # TODO or or and
+                if result >= 0.01:  # TODO change this
                     try:
                         order_params = await handle_model_result(
                             model_name,
@@ -279,7 +290,8 @@ async def actions(
                             optionchain_df,
                             processeddata_df,
                             option_take_profit_percent,
-                            option_trail_stop_percent,current_time
+                            option_trail_stop_percent,
+                            current_time,
                         )
                         if order_params != None:
                             unique_id = f"{order_params[1]}_{order_params[2]}_{order_params[3]}_{order_params[0]}"  # ticker_IB_option_date_contractStrike_CorP
@@ -295,8 +307,6 @@ async def actions(
             log_error("actions", ticker, model_name, e)
     tasks = [place_option_order_sync(*params) for params in potential_orders]
     await asyncio.gather(*tasks)
-
-
 
 
 # TODO use this log error funciton globally?
@@ -321,53 +331,85 @@ def get_model_list():
 # TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
 from datetime import datetime
 
-async def get_contract_details(optionchain_df, processeddatadf, ticker, model_name, current_time,target_delta=.9, gamma_threshold=(0.01, 0.9), max_bid_ask_spread_percent=13,min_volume=500):
+
+async def get_contract_details(
+    optionchain_df,
+    processeddatadf,
+    ticker,
+    model_name,
+    current_time,
+    target_delta=0.9,
+    gamma_threshold=(0.01, 0.9),
+    max_bid_ask_spread_percent=13,
+    min_volume=500,
+):
     # Determine the type of contract based on the model name
 
-    CorP = "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
+    CorP = (
+        "C" if "Buy" in model_name or "Up" in model_name or "up" in model_name else "P"
+    )
 
     # Define liquidity thresholds
     min_volume = min_volume
 
     # Extract delta and gamma values, calculate bid-ask spread as a percentage of the contract price
     if CorP == "C":
-        optionchain_df['c_delta'] = optionchain_df['c_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
-        optionchain_df['c_gamma'] = optionchain_df['c_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
+        optionchain_df["c_delta"] = optionchain_df["c_greeks"].apply(
+            lambda x: x.get("delta") if isinstance(x, dict) else None
+        )
+        optionchain_df["c_gamma"] = optionchain_df["c_greeks"].apply(
+            lambda x: x.get("gamma") if isinstance(x, dict) else None
+        )
         price_column = "Call_LastPrice"
-        delta_column = 'c_delta'
-        gamma_column = 'c_gamma'
-        volume_column = 'Call_Volume'
-        bid_column = 'c_bid'
-        ask_column = 'c_ask'
+        delta_column = "c_delta"
+        gamma_column = "c_gamma"
+        volume_column = "Call_Volume"
+        bid_column = "c_bid"
+        ask_column = "c_ask"
     else:
-        optionchain_df['p_delta'] = optionchain_df['p_greeks'].apply(lambda x: x.get('delta') if isinstance(x, dict) else None)
-        optionchain_df['p_gamma'] = optionchain_df['p_greeks'].apply(lambda x: x.get('gamma') if isinstance(x, dict) else None)
+        optionchain_df["p_delta"] = optionchain_df["p_greeks"].apply(
+            lambda x: x.get("delta") if isinstance(x, dict) else None
+        )
+        optionchain_df["p_gamma"] = optionchain_df["p_greeks"].apply(
+            lambda x: x.get("gamma") if isinstance(x, dict) else None
+        )
         price_column = "Put_LastPrice"
-        delta_column = 'p_delta'
-        gamma_column = 'p_gamma'
-        volume_column = 'Put_Volume'
-        bid_column = 'p_bid'
-        ask_column = 'p_ask'
+        delta_column = "p_delta"
+        gamma_column = "p_gamma"
+        volume_column = "Put_Volume"
+        bid_column = "p_bid"
+        ask_column = "p_ask"
 
     # Calculate bid-ask spread percentage and apply liquidity filter
-    optionchain_df['bid_ask_spread_percent'] = ((optionchain_df[ask_column] - optionchain_df[bid_column]) / optionchain_df[price_column]) * 100
-    liquidity_filter = (optionchain_df[volume_column] >= min_volume) & (optionchain_df['bid_ask_spread_percent'] <= max_bid_ask_spread_percent)
+    optionchain_df["bid_ask_spread_percent"] = (
+        (optionchain_df[ask_column] - optionchain_df[bid_column])
+        / optionchain_df[price_column]
+    ) * 100
+    liquidity_filter = (optionchain_df[volume_column] >= min_volume) & (
+        optionchain_df["bid_ask_spread_percent"] <= max_bid_ask_spread_percent
+    )
 
     # Apply gamma filter
-    gamma_filter = (optionchain_df[gamma_column] >= gamma_threshold[0]) & (optionchain_df[gamma_column] <= gamma_threshold[1])
+    gamma_filter = (optionchain_df[gamma_column] >= gamma_threshold[0]) & (
+        optionchain_df[gamma_column] <= gamma_threshold[1]
+    )
 
     # Apply combined filters
-    relevant_df = optionchain_df[liquidity_filter & gamma_filter].dropna(subset=[delta_column, gamma_column])
+    relevant_df = optionchain_df[liquidity_filter & gamma_filter].dropna(
+        subset=[delta_column, gamma_column]
+    )
 
     # Ensure the DataFrame is not empty
     if relevant_df.empty:
-        logger.info(f"{ticker} contractdetails relevant_df empty",exc_info=True)
+        logger.info(f"{ticker} contractdetails relevant_df empty", exc_info=True)
         return None
 
     # Find the contract with delta closest to the target delta
     adjusted_target_delta = target_delta if CorP == "C" else -target_delta
-    relevant_df['delta_diff'] = (relevant_df[delta_column] - adjusted_target_delta).abs()
-    closest_delta_row = relevant_df.iloc[relevant_df['delta_diff'].argsort()[:1]]
+    relevant_df["delta_diff"] = (
+        relevant_df[delta_column] - adjusted_target_delta
+    ).abs()
+    closest_delta_row = relevant_df.iloc[relevant_df["delta_diff"].argsort()[:1]]
 
     # Extract the closest expiration date, strike, and delta
     closest_exp_date = closest_delta_row["ExpDate"].iloc[0]
@@ -382,7 +424,9 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
 
     # Construct the contract symbol
     formatted_contract_strike = int(contractStrike * 1000)
-    contract_symbol = f"{ticker}{date_object.strftime('%y%m%d')}{CorP}{formatted_contract_strike:08d}"
+    contract_symbol = (
+        f"{ticker}{date_object.strftime('%y%m%d')}{CorP}{formatted_contract_strike:08d}"
+    )
 
     # Determine the direction for the notification message
     upordown = "up" if CorP == "C" else "down"
@@ -408,8 +452,8 @@ async def get_contract_details(optionchain_df, processeddatadf, ticker, model_na
         IB_option_date,
         formatted_time,
         formatted_time_mdHMonly,
-
     )
+
 
 #
 # TODO: Implement functionality to find option pairs

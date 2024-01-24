@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+
 def perform_operations(
     ticker,
     last_adj_close,
