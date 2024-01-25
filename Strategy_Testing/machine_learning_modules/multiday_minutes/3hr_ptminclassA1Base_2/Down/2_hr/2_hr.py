@@ -1,20 +1,15 @@
+import os
 from datetime import datetime
-from joblib import dump
-
+import numpy as np
+from sklearn.preprocessing import RobustScaler
+import optuna
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torchmetrics
 from sklearn.metrics import f1_score
-from sklearn.preprocessing import StandardScaler, RobustScaler
-from torchmetrics import Precision, Accuracy, Recall, F1Score
 from sklearn.model_selection import train_test_split
-import numpy as np
-import joblib
-import os
-import optuna
-import yaml
+from torchmetrics import Precision, Accuracy, Recall, F1Score
 
 #
 # with open('yaml_config\s/config.yaml', 'r') as file:
@@ -31,7 +26,7 @@ import yaml
 # n_trials = config['optuna']['n_trials']
 # print(Chosen_Predictor)
 
-DF_filename = r"C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv"
+DF_filename = r"C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\MSFT_historical_multiday_min.csv"
 # TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 ml_dataframe = pd.read_csv(DF_filename)
@@ -48,7 +43,7 @@ Chosen_Predictor = [
 ]
 
 study_name = "_2hr_50pt_down"
-n_trials = 10000
+n_trials = 0
 cells_forward_to_check = 60 * 2
 percent_down = 0.5  # as percent
 
@@ -57,15 +52,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device: ", device)
 
 print(ml_dataframe.columns)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
-    lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
-)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
-    lambda x: x.timestamp()
-)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"] / (60 * 60 * 24 * 7)
-ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
-
 
 threshold_cells_up = cells_forward_to_check * 0.1
 anticondition_threshold_cells = cells_forward_to_check * 1  # was .7
@@ -109,10 +95,6 @@ X_val, X_test, y_up_val, y_up_test = train_test_split(
 )
 
 
-import numpy as np
-import pandas as pd
-import torch
-from sklearn.preprocessing import RobustScaler
 
 
 # Function to replace infinities and adjust extrema by column in a DataFrame
@@ -540,7 +522,6 @@ except KeyError:
     )
 "Keyerror, new optuna study created."  #
 
-# TODO changed trials from 100
 study.optimize(
     objective, n_trials=n_trials
 )  # You can change the number of trials as needed
