@@ -212,7 +212,7 @@ async def actions(
     potential_orders = []
     unique_orders = set()
     # Iterate over each model in your model list
-    for model in get_model_list():
+    for model in get_model_list_for_ticker(ticker):
         model_name = model.__name__
         model_output = model(
             dailyminutes_df.tail(1)
@@ -326,6 +326,23 @@ def get_model_list():
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
         pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
     ]
+def get_model_list_for_ticker(ticker):
+    # Example mapping of tickers to models
+    ticker_to_models = {
+        "SPY": [
+            pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
+            pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
+            pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
+
+        ],
+        "MSFT": [
+            pytorch_trained_minute_models.MSFT_2hr_50pct_Down_PTNNclass,
+
+        ],
+        # Add other tickers and their models here
+    }
+
+    return ticker_to_models.get(ticker, [])  # Return an empty list if no models are found for the ticker
 
 
 # TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
