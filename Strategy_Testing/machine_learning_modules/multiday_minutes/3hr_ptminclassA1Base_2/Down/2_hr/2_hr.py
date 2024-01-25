@@ -26,7 +26,7 @@ from torchmetrics import Precision, Accuracy, Recall, F1Score
 # n_trials = config['optuna']['n_trials']
 # print(Chosen_Predictor)
 
-DF_filename = r"C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\MSFT_historical_multiday_min.csv"
+DF_filename = r"C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv"
 # TODO add early stop or no?
 # from tensorflow.keras.callbacks import EarlyStopping
 ml_dataframe = pd.read_csv(DF_filename)
@@ -660,7 +660,7 @@ def {model_summary}(new_data_df):
     loaded_model.eval()
 
     tempdf = new_data_df.copy()
-    tempdf.dropna(subset=features, inplace=True)
+    # tempdf.dropna(subset=features, inplace=True)
     tempdf = tempdf[features]
 
     for col in tempdf.columns:
@@ -670,8 +670,12 @@ def {model_summary}(new_data_df):
         min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
         tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
-    tempdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features)
-    input_tensor = torch.tensor(tempdf.values, dtype=torch.float32)
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
     predictions = loaded_model(input_tensor)
     predictions_prob = torch.sigmoid(predictions)
     predictions_numpy = predictions_prob.detach().numpy()
@@ -679,8 +683,8 @@ def {model_summary}(new_data_df):
 
     result = new_data_df.copy()
     result["Predictions"] = np.nan
-    result.loc[prediction_series.index, "Predictions"] = prediction_series.values
-    return result
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
     """
 
     # Append the new function definition to pytorch_trained_minute_models.py
@@ -706,3 +710,43 @@ def {model_summary}(new_data_df):
             f"Target Underlying Percentage Up: {percent_down}\n"
             f"Anticondition: {anticondition_UpCounter}\n"
         )
+#TODO the template for model needs to look like this
+"""def MSFT_2hr_50pct_Down_PTNNclass(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/MSFT_2hr_50pct_Down_PTNNclass/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    # tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    for col in tempdf.columns:
+        max_val = tempdf[col].replace([np.inf, -np.inf], np.nan).max()
+        min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
+        max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
+        min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
+        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
+"""
