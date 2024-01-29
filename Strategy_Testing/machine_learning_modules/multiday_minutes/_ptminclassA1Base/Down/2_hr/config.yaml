@@ -1,0 +1,202 @@
+tickers:
+  SPY:
+    study_name: SPY_ptminclassA1Base_2hr50ptdown
+    df_filename:
+      C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv
+    chosen_predictors:
+      [
+        "Bonsai Ratio",
+        "Bonsai Ratio 2",
+        "PCRv Up1",
+        "PCRv Down1",
+        "ITM PCR-Vol",
+        "Net IV LAC",
+      ]
+    cells_forward_to_check: 120
+    percent_down: 0.5
+    takeprofits_trailingstops: .3,.5,20,20 #stocktp,stocksl,optiontp,optionsl
+    min_cells_positive_percentage: .1
+    max_cells_below_1st_price_percentage: 1  #was .7 ''# The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
+
+    threshhold_down: .5
+    best_params:
+      { 'batch_size': 2535, 'dropout_rate': 0.00687918829653645, 'learning_rate': 0.0014290202797121545, 'n_layers': 4, 'n_units_l0': 203, 'n_units_l1': 194, 'n_units_l2': 234, 'n_units_l3': 116, 'num_epochs': 32, 'optimizer': 'Adam', 'positivecase_weight_up': 1.017085776928788, 'layers': [ 203, 194, 234, 116 ] }
+  MSFT:
+      study_name: MSFT_ptminclassA1Base_2hr50ptdown
+      df_filename:
+        C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\MSFT_historical_multiday_min.csv
+      chosen_predictors:
+        [
+          "Bonsai Ratio",
+          "Bonsai Ratio 2",
+          "PCRv Up1",
+          "PCRv Down1",
+          "ITM PCR-Vol",
+          "Net IV LAC",
+        ]
+      cells_forward_to_check: 120
+      percent_down: 0.5
+      takeprofits_trailingstops: .3,.5,20,20 #stocktp,stocksl,optiontp,optionsl
+      min_cells_positive_percentage: .1
+      max_cells_below_1st_price_percentage: 1  #was .7 ''# The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
+
+      threshhold_down: .5
+      best_params:
+        { 'batch_size': 2535, 'dropout_rate': 0.00687918829653645, 'learning_rate': 0.0014290202797121545, 'n_layers': 4, 'n_units_l0': 203, 'n_units_l1': 194, 'n_units_l2': 234, 'n_units_l3': 116, 'num_epochs': 32, 'optimizer': 'Adam', 'positivecase_weight_up': 1.017085776928788, 'layers': [ 203, 194, 234, 116 ] }
+  TSLA:
+      study_name: TSLA_ptminclassA1Base_2hr50ptdown
+      df_filename:
+        C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\TSLA_historical_multiday_min.csv
+      chosen_predictors:
+        [
+          "Bonsai Ratio",
+          "Bonsai Ratio 2",
+          "PCRv Up1",
+          "PCRv Down1",
+          "ITM PCR-Vol",
+          "Net IV LAC",
+        ]
+      cells_forward_to_check: 120
+      percent_down: 0.5
+      takeprofits_trailingstops: .3,.5,20,20 #stocktp,stocksl,optiontp,optionsl
+      min_cells_positive_percentage: .1
+      max_cells_below_1st_price_percentage: 1  #was .7 ''# The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
+
+      threshhold_down: .5
+      best_params:
+        { 'batch_size': 2535, 'dropout_rate': 0.00687918829653645, 'learning_rate': 0.0014290202797121545, 'n_layers': 4, 'n_units_l0': 203, 'n_units_l1': 194, 'n_units_l2': 234, 'n_units_l3': 116, 'num_epochs': 32, 'optimizer': 'Adam', 'positivecase_weight_up': 1.017085776928788, 'layers': [ 203, 194, 234, 116 ] }
+
+
+    # .
+  # ... other tickers
+# set_best_params_manually = {
+#     "batch_size": 2295,
+#     "dropout_rate": 0.1956805168069912,
+#     "learning_rate": 0.0006924438743970371,
+#     "n_layers": 2,
+#     "n_units_l0": 1681,
+#     "n_units_l1": 271,
+#     "optimizer": "Adam",
+#     "positivecase_weight_up": 1.0812601618252304,
+# }
+# TODO the actual features for og ptmincalssa1 were ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCRoi Up1', 'PCRoi Down1', 'ITM PCR-OI', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM Contracts %', 'Net ITM IV', 'NIV highers(-)lowers1-4', 'Net_IV/OI', 'Net ITM_IV/ITM_OI']
+# OG Feature set.
+# Chosen_Predictor = ['Bonsai Ratio', 'Bonsai Ratio 2', 'B1/B2', 'B2/B1', 'PCRoi Up1', 'PCRoi Down1', 'ITM PCR-OI', 'ITM PCRoi Up1', 'ITM PCRoi Down1', 'ITM PCRoi Down2', 'ITM PCRoi Down3', 'ITM PCRoi Down4', 'ITM Contracts %', 'Net ITM IV', 'NIV highers(-)lowers1-4', 'Net_IV/OI', 'Net ITM_IV/ITM_OI']
+
+# FEATURE SET 1?
+# Chosen_Predictor= ['Bonsai Ratio', 'ITM PCR-Vol','Net_IV','NIV 2Higher Strike', 'NIV 2Lower Strike', 'Net ITM IV']
+
+
+# Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'n_units_l0': 2350}
+
+# TODO THESE weree the actual features?  from the tf version"""Positive Samples (Target_Up): 48.0Cells_Foward_to_check: 180
+# Number of Negative Samples (Target_Up): 376.0
+# Threshold Up (sensitivity): 0.5
+# Target Underlying Percentage Up: 0.4.
+
+
+# FEATURE SET 2
+# by looking at corr table and eliminating features that have different signs (- or +) for correlating 10,15,20,30min later price, and 15,30 min max change.
+# That gave me this froim te list above:
+# by looking at corr table and eliminating features that have different signs (- or +) for correlating 10,15,20,30min later price, and 15,30 min max change.
+# That gave me this froim te list above:
+#Chosen_Predictor = [
+#    "Current Stock Price",
+#    "Current SP % Change(LAC)",
+#    "Bonsai Ratio",
+#    "Bonsai Ratio 2",
+#    "B1/B2",
+#    "PCR-Vol",
+#    "PCRv @CP Strike",
+#    "PCRv Up1",
+#    "PCRv Up2",
+#    "PCRv Up3",
+#    "PCRv Up4",
+#    "PCRv Down2",
+#    "PCRoi Up4",
+#    "PCRoi Down3",
+#    "ITM PCR-Vol",
+#    "ITM PCRv Up1",
+#    "ITM PCRv Up2",
+#    "ITM PCRv Up3",
+#    "ITM PCRv Up4",
+#    "ITM PCRv Down1",
+#    "ITM PCRv Down2",
+#    "ITM PCRv Down3",
+#    "ITM PCRv Down4",
+#    "Net_IV",
+#    "Net ITM IV",
+#    "Net IV MP",
+#    "Net IV LAC",
+#    "Net_IV/OI",
+#    "Closest Strike to CP",
+#]
+
+# Feature set 3
+
+# Chosen_Predictor = [
+#     'Bonsai Ratio','Bonsai Ratio 2','PCRv Up1', 'PCRv Down1','ITM PCR-Vol', 'Net IV LAC',
+# ]
+
+# Feature set 4
+
+# Chosen_Predictor = [  'Bonsai Ratio','Bonsai Ratio 2', 'PCRv Down1', 'PCRv Down2',
+#                    'PCRoi Down3', 'ITM PCR-Vol', 'ITM PCRv Up1', 'ITM PCRv Down1',
+#                     'ITM PCRv Down2', 'Net_IV', 'Net ITM IV',  'NIV Current Strike',
+#                       'RSI', 'RSI2', 'RSI14', 'AwesomeOsc',
+#                     'AwesomeOsc5_34']
+
+# Feature set 5     , original feature set form 3hrptminclass
+
+# Chosen_Predictor = [
+#     "Current SP % Change(LAC)",
+#     "B1/B2",
+#     "B2/B1",
+#     "PCRv @CP Strike",
+#     "PCRoi @CP Strike",
+#     "PCRv Up1",
+#     "PCRv Down1",
+#     "PCRoi Up4",
+#     "PCRoi Down3",
+#     "ITM PCR-Vol",
+#     "ITM PCR-OI",
+#     "Net IV LAC",
+#     "RSI14",
+#     "AwesomeOsc5_34",
+# ]
+
+# Feature Set 6, original feature set form 3hrptminclass and sorta Feat set 2
+# Chosen_Predictor = [
+#     "Current SP % Change(LAC)",
+#     "Bonsai Ratio",
+#                     "B1/B2",
+# "PCR-Vol",
+#     "PCRv @CP Strike",
+#     "PCRv Up1",
+#     "PCRv Down1",
+#     "PCRoi Up3",
+#     "PCRoi Down3",
+#     "ITM PCR-Vol",
+#     "ITM PCR-OI",
+#     "Net_IV",                "Net ITM IV",
+#                    "Closest Strike to CP",
+# ]
+
+#
+# Best Params: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'n_units_l0': 2350}
+
+# TODO THESE weree the actual features?  from the tf version"""Positive Samples (Target_Up): 48.0Cells_Foward_to_check: 180
+# Number of Negative Samples (Target_Up): 376.0
+# Threshold Up (sensitivity): 0.5
+# Target Underlying Percentage Up: 0.4.
+# Best Params for og spy3hrptmincalss: {'learning_rate': 0.002973181466202932, 'num_epochs': 365, 'batch_size': 2500, 'optimizer': 'Adam', 'dropout_rate': 0.05, 'num_hidden_units': 2350, "positivecase_weight_up": 1}
+#set_best_params_manually = {
+#    "learning_rate": 0.002973181466202932,
+#    "num_epochs": 365,
+#    "batch_size": 2500,
+#    "optimizer": "Adam",
+#    "dropout_rate": 0.05,
+#    "num_hidden_units": 2350,
+#    "positivecase_weight_up": 1,
+#    "n_layers": 1,
+#}"""

@@ -1,3 +1,0 @@
-val avg prec/f1/recall:   0.6895086677635417 0.7605821025722167 0.859434980777354
-test prec/f1/recall:  0.8266084790229797 0.8712643384933472 0.9210206270217896
-[I 2023-11-09 13:23:12,864] Trial 569 finished with value: 0.42601820826530457 and parameters: {'batch_size': 1972, 'dropout_rate': 0.017755499636964024, 'learning_rate': 0.0010023097889032366, 'n_layers': 3, 'n_units_l0': 103, 'n_units_l1': 104, 'n_units_l2': 109, 'num_epochs': 153, 'optimizer': 'Adam', 'positivecase_weight_up': 1.5311350081840809}. Best is trial 569 with value: 0.42601820826530457.

@@ -390,7 +390,7 @@ except KeyError:
 ##Comment out to skip the hyperparameter selection.  Swap "best_params".
 # study = optuna.create_study(direction="maximize")  # We want to maximize the F1-Score
 # TODO changed trials from 100
-study.optimize(objective, n_trials=100)  # You can change the number of trials as needed
+study.optimize(objective, n_trials=10000)  # You can change the number of trials as needed
 best_params = study.best_params
 # best_params = set_best_params_manually
 

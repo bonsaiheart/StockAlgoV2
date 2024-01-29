@@ -1,0 +1,4 @@
+Early stopping triggered at epoch 238.
+val avg prec/f1/recall:   0.6577688963348124 0.7015826093549488 0.7584442889490047
+test prec/f1/recall:  0.7933884263038635 0.8329718112945557 0.8767123222351074
+[I 2023-12-20 13:57:21,170] Trial 136 finished with value: 0.5071440935134888 and parameters: {'batch_size': 1574, 'dropout_rate': 0.14093231165215936, 'learning_rate': 0.0008323138642677389, 'n_layers': 2, 'n_units_l0': 1774, 'n_units_l1': 227, 'optimizer': 'Adam', 'positivecase_weight_up': 1.0338229708443543}. Best is trial 136 with value: 0.5071440935134888.

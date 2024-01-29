@@ -86,14 +86,17 @@ def apply_predictions_to_df(module_name, df, filename):
         + [f"High_{t}min" for t in timeframes]
         + [f"Low_{t}min" for t in timeframes]
     ]
-
+    output_dir = 'algooutput_df'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     # df = df[columns_to_keep]
-    df.to_csv(f"newnewnew_algooutput_{filename}")
+    df.to_csv(os.path.join(output_dir, f"newnewnew_algooutput_{filename}"))
+
 
 
 # Directory containing CSV files
 dir = "../data/historical_multiday_minute_DF"
-prefixes_to_match = ["SPY", "GOOG", "TSLA"]  # Add your prefixes here
+prefixes_to_match = ["SPY", "MSFT", ]  # Add your prefixes here
 
 for filename in os.listdir(dir):
     filepath = os.path.join(dir, filename)
