@@ -297,12 +297,19 @@ async def get_option_chains_concurrently(session, ticker, expiration_dates, head
         raise  # Re-raise the exception to the caller
 
 
+
 async def fetch(session, url, params, headers):
     try:
         async with session.get(url, params=params, headers=headers) as response:
             content_type = response.headers.get("Content-Type", "").lower()
+            rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
+            rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
+
+            # Check if rate limit used exceeds allowed limit
+            if rate_limit_used >= rate_limit_allowed:
+                logger.error(f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}")
+
             if "application/json" in content_type:
-                # print('APPLICATION IN RESPOSE TYPE JSON')
                 return await response.json()
             else:
                 raise OptionChainError(
@@ -310,7 +317,6 @@ async def fetch(session, url, params, headers):
                 )
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
-
 
 async def get_options_data(session, ticker, YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}

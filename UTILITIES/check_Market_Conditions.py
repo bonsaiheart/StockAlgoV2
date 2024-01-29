@@ -12,6 +12,7 @@ def save_market_schedule_to_file():
     nyse = mcal.get_calendar("NYSE")
     today = datetime.utcnow().date()
     market_schedule = nyse.schedule(start_date=today, end_date=today)
+    print(market_schedule)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
     market_schedule["market_close_utc"] = pd.to_datetime(
         market_schedule["market_close"]
@@ -50,7 +51,7 @@ async def get_market_open_close_times():
     market_schedule.index = pd.to_datetime(
         market_schedule.index
     )  # Convert index to datetime
-
+    print(market_schedule)
     if today_timestamp in market_schedule.index:
         market_open_utc = market_schedule.loc[today_timestamp, "market_open_utc"]
         market_close_utc = market_schedule.loc[today_timestamp, "market_close_utc"]
@@ -63,9 +64,9 @@ async def get_market_open_close_times():
     #     else:
     #         print("The stock market is currently closed.")
     #         is_market_open = False
-    # else:
-    #     print("Today is not a trading day.")
-    #     is_market_open = False
+    else:
+        print("Today is not a trading day.",today_timestamp)
+        market_open_utc, market_close_utc = None,None
     print("Market Open UTC: ", market_open_utc, "Market Close UTC: ", market_close_utc)
     return market_open_utc, market_close_utc
 

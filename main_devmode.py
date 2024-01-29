@@ -7,12 +7,13 @@ import aiohttp
 import pytz  # Make sure to install pytz if you haven't already
 import IB.ibAPI
 import calculations
+
 # import new_marketdata
 import trade_algos2
 import tradierAPI_marketdata
-from UTILITIES import check_Market_Conditions
+from UTILITIES import check_Market_Conditions, eod_scp_dailyminutes_to_studiopc
 from UTILITIES.logger_config import logger
-
+from Strategy_Testing import make_test_df
 
 client_session = None
 market_open_time_utc = None
@@ -213,8 +214,14 @@ async def get_options_data_for_ticker(session, ticker, loop_start_time):
 # "SQQQ",
 # "SPXS",
 # TODO with 12 in canplaceneworder , taking 62-75 sec avg.
-TICKERS_FOR_TRADE_ALGOS = ["SPY", "TSLA", "ROKU", "MSFT",
-                           "CHWY","BA","LLY",
+TICKERS_FOR_TRADE_ALGOS = [
+    "SPY",
+    "TSLA",
+    "ROKU",
+    "MSFT",
+    "CHWY",
+    "BA",
+    "LLY",
 ]
 TICKERS_FOR_CALCULATIONS = [
     "SPY",
@@ -226,12 +233,12 @@ TICKERS_FOR_CALCULATIONS = [
     "SQQQ",
     "SPXS",
     "MSFT",
-"CHWY",
-"BA",
-"LLY",
+    "CHWY",
+    "BA",
+    "LLY",
 ]
 # TODO sometimes took 60-90. with 12 max open orders. 14/10 calc/trade.    With processpool in calc and max open oorders <=6, taking
-#Stalled again with these.  going to try just 3 for each and see if it can run all day. since i should be able to reacearete processeddata now since ive added ohlc and ta to getoptions. TICKERS_FOR_TRADE_ALGOS = [
+# Stalled again with these.  going to try just 3 for each and see if it can run all day. since i should be able to reacearete processeddata now since ive added ohlc and ta to getoptions. TICKERS_FOR_TRADE_ALGOS = [
 #     "SPY",
 #     "TSLA",
 #     "ROKU",
@@ -415,6 +422,9 @@ if __name__ == "__main__":
         market_open_time_utc, market_close_time_utc = asyncio.run(
             check_Market_Conditions.get_market_open_close_times()
         )
+        if market_open_time_utc == None and market_close_time_utc == None:
+            logger.info(f"Market is not open today.")
+            exit()
         asyncio.run(wait_until_time(market_open_time_utc))
         logger.info(
             f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
@@ -424,6 +434,9 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     finally:
+        if market_open_time_utc == None and market_close_time_utc == None:
+            logger.info(f"Market is not open today.")
+            exit()
         ticker_cycle_running.clear()
         logger.info("Shutting down, waiting for ib_)connect. <5min")
         if client_session is not None:
@@ -431,22 +444,20 @@ if __name__ == "__main__":
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
 
-    #     with open("UTILITIES/tickerlist.txt", "r") as f:
-    #         tickerlist = [line.strip().upper() for line in f.readlines()]
-    #         for ticker in tickerlist:
-    #             if ticker == "SPY":
-    #                 try:
-    #                     get_dailyminutes_make_single_multiday_df(ticker)
-    #
-    #                 except Exception as e:
-    #                     print(ticker, e)
-    #     ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client(
-    #         "192.168.1.109", 22, "bonsaiheart", "/home/bonsai/.ssh/id_rsa"
-    #     )
-    #     eod_scp_dailyminutes_to_studiopc.scp_transfer_files(
-    #         ssh_client,
-    #         "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
-    #         r"PycharmProjects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
-    #     )
-    #     ssh_client.close()
-    #     logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+
+        for ticker in TICKERS_FOR_TRADE_ALGOS:
+                # if ticker == "SPY":
+            try:
+                make_test_df.get_dailyminutes_make_single_multiday_df(ticker)
+            except Exception as e:
+                print(ticker, e)
+        ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client(
+            "192.168.1.109", 22, "bonsaiheart", "/home/bonsai/.ssh/id_rsa"
+        )
+        eod_scp_dailyminutes_to_studiopc.scp_transfer_files(
+            ssh_client,
+            "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
+            r"PycharmProjects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
+        )
+        ssh_client.close()
+        logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")

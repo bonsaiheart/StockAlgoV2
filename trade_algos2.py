@@ -33,6 +33,7 @@ async def place_option_order_sync(
     trail_stop_percent,
 ):
     try:
+        print(orderRef,"tp/sl: ",take_profit_percent,"/",trail_stop_percent)
         await order_manager.placeOptionBracketOrder(
             CorP,
             ticker,
@@ -281,7 +282,8 @@ async def actions(
             # TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere...but only if not in orderdumy
             # Execute for individual model if not part of a pair or not executed as part of a pair
             if not part_of_pair or model_name not in executed_models:  # TODO or or and
-                if result >= 0.01:  # TODO change this
+                if result >= 0.5\
+                        :  # TODO change this
                     try:
                         order_params = await handle_model_result(
                             model_name,
@@ -332,6 +334,7 @@ def get_model_list_for_ticker(ticker):
         "SPY": [
             pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
             pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
+            pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass_240124,
             pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
 
         ],

@@ -232,3 +232,4 @@ if __name__ == "__main__":
             get_dailyminutes_make_single_multiday_df(ticker)
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
+#TODO make a function that will make multiday historical df from optionchaindata. by runing thru calculations.

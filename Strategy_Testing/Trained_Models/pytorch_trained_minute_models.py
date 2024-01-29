@@ -1161,7 +1161,7 @@ def MSFT_2hr_50pct_Down_PTNNclass(new_data_df):
     loaded_model.eval()
 
     tempdf = new_data_df.copy()
-    tempdf.dropna(subset=features, inplace=True)
+    # tempdf.dropna(subset=features, inplace=True)
     tempdf = tempdf[features]
 
     for col in tempdf.columns:
@@ -1171,8 +1171,12 @@ def MSFT_2hr_50pct_Down_PTNNclass(new_data_df):
         min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
         tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
-    tempdf = pd.DataFrame(scaler_X.transform(tempdf), columns=features)
-    input_tensor = torch.tensor(tempdf.values, dtype=torch.float32)
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
     predictions = loaded_model(input_tensor)
     predictions_prob = torch.sigmoid(predictions)
     predictions_numpy = predictions_prob.detach().numpy()
@@ -1180,9 +1184,8 @@ def MSFT_2hr_50pct_Down_PTNNclass(new_data_df):
 
     result = new_data_df.copy()
     result["Predictions"] = np.nan
-    result.loc[prediction_series.index, "Predictions"] = prediction_series.values
-    return result
-    
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
 def SPY_2hr_50pct_Down_PTNNclass_240124(new_data_df):
     checkpoint = torch.load(f'{base_dir}/SPY_2hr_50pct_Down_PTNNclass_240124/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
