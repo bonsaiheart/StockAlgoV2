@@ -336,14 +336,17 @@ def get_model_list_for_ticker(ticker):
             pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
             pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass_240124,
             pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
-            pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2401290107
+            pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2401290107,
+            pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2401292135
         ],
         "MSFT": [
             pytorch_trained_minute_models.MSFT_2hr_50pct_Down_PTNNclass,
-            pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2401290107
+            pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2401290107,
+            pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2401292135
         ],
         "TSLA":[
-            pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2401290106
+            pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2401290106,
+            pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2401292134,
         ]
         # Add other tickers and their models here
     }
