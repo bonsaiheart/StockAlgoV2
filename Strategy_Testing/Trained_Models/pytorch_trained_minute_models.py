@@ -1267,7 +1267,7 @@ def TSLA_ptminclassA1Base_2hr50ptdown_2401290106(new_data_df):
     result = new_data_df.copy()
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series
-    return result["Predictions"], 0.5, 0.5, 5, 20
+    return result["Predictions"], 0.5, 0.5, 5, 25
 
 def MSFT_ptminclassA1Base_2hr50ptdown_2401290107(new_data_df):
     checkpoint = torch.load(f'{base_dir}/MSFT_ptminclassA1Base_2hr50ptdown_2401290107/target_up.pth', map_location=torch.device('cpu'))
@@ -1307,7 +1307,7 @@ def MSFT_ptminclassA1Base_2hr50ptdown_2401290107(new_data_df):
     result = new_data_df.copy()
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series
-    return result["Predictions"], 0.5, 0.5, 5, 20
+    return result["Predictions"], 0.5, 0.5, 5, 25
 
 def SPY_ptminclassA1Base_2hr50ptdown_2401290107(new_data_df):
     checkpoint = torch.load(f'{base_dir}/SPY_ptminclassA1Base_2hr50ptdown_2401290107/target_up.pth', map_location=torch.device('cpu'))
@@ -1347,7 +1347,7 @@ def SPY_ptminclassA1Base_2hr50ptdown_2401290107(new_data_df):
     result = new_data_df.copy()
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series
-    return result["Predictions"], 0.5, 0.5, 5, 20
+    return result["Predictions"], 0.5, 0.5, 5, 25
     
 def TSLA_ptminclassA1Base_2hr50ptdown_2401292134(new_data_df):
     checkpoint = torch.load(f'{base_dir}/TSLA_ptminclassA1Base_2hr50ptdown_2401292134/target_up.pth', map_location=torch.device('cpu'))
@@ -1387,7 +1387,7 @@ def TSLA_ptminclassA1Base_2hr50ptdown_2401292134(new_data_df):
     result = new_data_df.copy()
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series
-    return result["Predictions"], 0.5, 0.5, 5, 20
+    return result["Predictions"], 0.5, 0.5, 5, 25
 
 def MSFT_ptminclassA1Base_2hr50ptdown_2401292135(new_data_df):
     checkpoint = torch.load(f'{base_dir}/MSFT_ptminclassA1Base_2hr50ptdown_2401292135/target_up.pth', map_location=torch.device('cpu'))

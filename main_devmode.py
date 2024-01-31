@@ -451,13 +451,17 @@ if __name__ == "__main__":
                 make_test_df.get_dailyminutes_make_single_multiday_df(ticker)
             except Exception as e:
                 print(ticker, e)
-        ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client(
+        try:
+
+            ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client(
             "192.168.1.109", 22, "bonsaiheart", "/home/bonsai/.ssh/id_rsa"
-        )
-        eod_scp_dailyminutes_to_studiopc.scp_transfer_files(
+            )
+            eod_scp_dailyminutes_to_studiopc.scp_transfer_files(
             ssh_client,
             "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
             r"PycharmProjects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
-        )
-        ssh_client.close()
-        logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+            )
+            ssh_client.close()
+            logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
+        except Exception as e:
+            logger.error(e)

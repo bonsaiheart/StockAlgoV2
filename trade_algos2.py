@@ -365,8 +365,8 @@ async def get_contract_details(
     model_name,
     current_time,
     target_delta=0.9,
-    gamma_threshold=(0.01, 0.9),
-    max_bid_ask_spread_percent=13,
+    gamma_threshold=(0.0, 0.9),
+    max_bid_ask_spread_percent=4,
     min_volume=500,
 ):
     # Determine the type of contract based on the model name
@@ -424,6 +424,9 @@ async def get_contract_details(
     relevant_df = optionchain_df[liquidity_filter & gamma_filter].dropna(
         subset=[delta_column, gamma_column]
     )
+    # Filter out contracts with the same expiration date as the current date
+    current_date = current_time.strftime("%y%m%d")
+    relevant_df = relevant_df[relevant_df["ExpDate"] != current_date]
 
     # Ensure the DataFrame is not empty
     if relevant_df.empty:
