@@ -1,0 +1,32 @@
+This file contains information about the model.
+
+File analyzed: C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\MSFT_historical_multiday_min.csv
+Cells_Foward_to_check: 120
+
+Metrics for Target_Up:
+Precision: 0.8840579986572266
+Accuracy: 0.8905982971191406
+Recall: 0.8206278085708618
+F1-Score: 0.8511627912521362
+Predictors: ['Bonsai Ratio', 'Bonsai Ratio 2', 'PCRv Up1', 'PCRv Down1', 'ITM PCR-Vol', 'Net IV LAC']
+
+
+Best Params: {'batch_size': 2535, 'dropout_rate': 0.00687918829653645, 'learning_rate': 0.0014290202797121545, 'n_layers': 4, 'n_units_l0': 203, 'n_units_l1': 194, 'n_units_l2': 234, 'n_units_l3': 116, 'num_epochs': 47, 'optimizer': 'Adam', 'positivecase_weight_up': 1.017085776928788, 'layers': [203, 194, 234, 116]}
+
+
+Number of Positive Samples (Target_Up): 223.0
+Number of Negative Samples (Target_Up): 362.0
+Threshold Up (sensitivity): 0.5
+Target Underlying Percentage Up: 0.5
+Anticondition: 0       111
+1       107
+2        98
+3       100
+4       114
+       ... 
+3895      4
+3896      2
+3897      2
+3898      0
+3899      0
+Name: Current Stock Price, Length: 3900, dtype: int32

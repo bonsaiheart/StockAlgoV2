@@ -1468,3 +1468,204 @@ def SPY_ptminclassA1Base_2hr50ptdown_2401292135(new_data_df):
     result["Predictions"] = np.nan
     result.loc[prediction_series.index, "Predictions"] = prediction_series
     return result["Predictions"], 0.5, 0.5, 5, 20
+
+def TSLA_ptminclassA1Base_2hr50ptdown_2401312239(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/TSLA_ptminclassA1Base_2hr50ptdown_2401312239/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    # tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
+    for col in tempdf.columns:
+        # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
+        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        
+
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
+    
+def MSFT_ptminclassA1Base_2hr50ptdown_2401312239(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/MSFT_ptminclassA1Base_2hr50ptdown_2401312239/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    # tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
+    for col in tempdf.columns:
+        # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
+        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        
+
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
+    
+def SPY_ptminclassA1Base_2hr50ptdown_2402010049(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/SPY_ptminclassA1Base_2hr50ptdown_2402010049/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    # tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
+    for col in tempdf.columns:
+        # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
+        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        
+
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
+    
+def MSFT_ptminclassA1Base_2hr50ptdown_2402010051(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/MSFT_ptminclassA1Base_2hr50ptdown_2402010051/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    # tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
+    for col in tempdf.columns:
+        # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
+        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        
+
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
+    
+def TSLA_ptminclassA1Base_2hr50ptdown_2402010052(new_data_df):
+    checkpoint = torch.load(f'{base_dir}/TSLA_ptminclassA1Base_2hr50ptdown_2402010052/target_up.pth', map_location=torch.device('cpu'))
+    features = checkpoint['features']
+    dropout_rate = checkpoint['dropout_rate']
+    input_dim = checkpoint['input_dim']
+    layers = checkpoint['layers']
+    scaler_X = checkpoint['scaler_X']
+
+    loaded_model = DynamicNNwithDropout(input_dim, layers, dropout_rate)
+    loaded_model.load_state_dict(checkpoint['model_state_dict'])
+    loaded_model.eval()
+
+    tempdf = new_data_df.copy()
+    # tempdf.dropna(subset=features, inplace=True)
+    tempdf = tempdf[features]
+
+    very_large_number = 1e15  # Placeholder for positive infinity
+    very_small_number = -1e15  # Placeholder for negative infinity
+
+    for col in tempdf.columns:
+        # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
+        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        
+
+    tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
+
+    # scale the new data features and generate predictions
+
+    scaled_features = scaler_X.transform(tempdf)
+    input_tensor = torch.tensor(scaled_features, dtype=torch.float32)
+    predictions = loaded_model(input_tensor)
+    predictions_prob = torch.sigmoid(predictions)
+    predictions_numpy = predictions_prob.detach().numpy()
+    prediction_series = pd.Series(predictions_numpy.flatten(), index=tempdf.index)
+
+    result = new_data_df.copy()
+    result["Predictions"] = np.nan
+    result.loc[prediction_series.index, "Predictions"] = prediction_series
+    return result["Predictions"], 0.5, 0.5, 5, 20
+    

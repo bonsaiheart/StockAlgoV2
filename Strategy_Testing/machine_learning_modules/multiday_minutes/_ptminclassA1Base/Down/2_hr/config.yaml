@@ -16,7 +16,7 @@ tickers:
     percent_down: 0.5
     takeprofits_trailingstops: .3,.5,20,20 #stocktp,stocksl,optiontp,optionsl
     min_cells_positive_percentage: .1
-    max_cells_below_1st_price_percentage: 1  #was .7 ''# The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
+    max_cells_below_1st_price_percentage: .9 #was1  #was .7 ''# The anticondition is when the price goes below the 1st price.  The threshold is how many cells can be anticondition, and still have True label.
 
     threshhold_down: .5
     best_params:

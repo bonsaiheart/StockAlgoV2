@@ -12,7 +12,7 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 
 from torchmetrics import Precision, Accuracy, Recall, F1Score
-
+#TODO cvhange test len to 2 days.
 def create_model(ticker):
     with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
@@ -50,8 +50,8 @@ def create_model(ticker):
 
     print(ml_dataframe.columns)
 
-
-
+    last_1_months_min = 3900#7800
+    ml_dataframe = ml_dataframe[:last_1_months_min]
     ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
     length = ml_dataframe.shape[0]
     print("Length of ml_dataframe:", length)
@@ -85,14 +85,16 @@ def create_model(ticker):
     )
 
     # Split the temp set into validation and test sets
-    X_val, X_test, y_up_val, y_up_test = train_test_split(
+    X_val, X_test, y_up_val, y_up_test   = train_test_split(
         X_temp, y_up_temp, test_size=0.5, random_state=None, shuffle=True
     )
 
 
 
+    # def replace_infinities_and_scale(df):
+    #     pass
 
-    def replace_infinities_and_scale(df):
+    def replace_infinities_test(df):
 
         very_large_number = 1e15  # Placeholder for positive infinity
         very_small_number = -1e15  # Placeholder for negative infinity
@@ -107,15 +109,20 @@ def create_model(ticker):
             # Replace infinities with NaN, then calculate max and min
             max_val = df[col].replace([np.inf, -np.inf], np.nan).max()
             min_val = df[col].replace([np.inf, -np.inf], np.nan).min()
+            # Check if max_val or min_val is infinity
+            if np.isinf(max_val) or np.isinf(min_val):
+                print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
 
-            # Scale max and min values by a factor based on their sign
+            # # Scale max and min values by a factor based on their sign
             max_val = max_val * factor if max_val >= 0 else max_val / factor
             min_val = min_val * factor if min_val < 0 else min_val / factor
+            # max_val = min_val
+            # min_val = max_val
 
             # Replace infinities with the scaled max and min values
             df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
             print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
-    #
+
     # Concatenate train and validation sets
     X_trainval = pd.concat([X_train, X_val], ignore_index=True)
     y_trainval = pd.concat([y_up_train, y_up_val], ignore_index=True)
@@ -123,7 +130,7 @@ def create_model(ticker):
     # Replace infinities and adjust extrema in the training, validation, and test sets
     replace_infinities_and_scale(X_train)
     replace_infinities_and_scale(X_val)
-    replace_infinities_and_scale(X_test)
+    replace_infinities_test(X_test)
 
     # Replace infinities and adjust extrema in the concatenated train and validation set
     replace_infinities_and_scale(X_trainval)
@@ -357,7 +364,7 @@ def create_model(ticker):
         testRecallScore = recall(test_predictions, y_up_test_tensor)
 
         print(
-            "val avg prec/f1/recall:  ",
+            "avgval avg prec/f1/recall:  ",
             avg_val_precision_score,
             avg_val_f1_score,
             avg_val_recall_score,
@@ -738,9 +745,10 @@ def {model_name}(new_data_df):
         result.loc[prediction_series.index, "Predictions"] = prediction_series
         return result["Predictions"], 0.5, 0.5, 5, 20
     """
-tickers = 'TSLA' ,'MSFT','SPY' # This can be dynamically set
+tickers = 'SPY','msft','tsla' # This can be dynamically set
 for ticker in tickers:
     try:
+        ticker = ticker.upper()
         create_model(ticker)
     except Exception as e:
         print(e)

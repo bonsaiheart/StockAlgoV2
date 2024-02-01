@@ -346,6 +346,8 @@ class IBOrderManager:
                 bracketOrder = [takeProfit, stopLoss]
 
                 for o in bracketOrder:
+                    o.outsideRth = True
+
                     o.ocaType = 2
                     trade = ib.placeOrder(qualified_contract[0], o)
 
@@ -511,6 +513,7 @@ class IBOrderManager:
                     # order_ids = []
 
                     for o in bracketOrder:
+                        o.outsideRth = True
                         o.ocaType = 2
                         trade = ib.placeOrder(qualified_contract[0], o)
                         self.order_events[trade.order.orderId] = {
