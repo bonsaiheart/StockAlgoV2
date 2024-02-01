@@ -309,7 +309,7 @@ async def fetch(session, url, params, headers):
             # limit
             if rate_limit_used >= (rate_limit_allowed * .9):
                 logger.error(f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}")
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
             if "application/json" in content_type:
                 return await response.json()
             else:
