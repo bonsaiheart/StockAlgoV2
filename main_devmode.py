@@ -458,8 +458,8 @@ if __name__ == "__main__":
             )
             eod_scp_dailyminutes_to_studiopc.scp_transfer_files(
             ssh_client,
-            "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
-            r"PycharmProjects/StockAlgoV2/data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv",
+            "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF",
+            r"PycharmProjects/StockAlgoV2/data/",
             )
             ssh_client.close()
             logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
