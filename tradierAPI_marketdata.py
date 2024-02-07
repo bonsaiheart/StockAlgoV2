@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 import PrivateData.tradier_info
+import aiohttp
 import numpy as np
 import pandas as pd
 import ta
@@ -252,30 +253,33 @@ YYMMDD = datetime.today().strftime("%y%m%d")
 # TODO for now this ignores the divede by zero warnings.
 np.seterr(divide="ignore", invalid="ignore")
 
+sem = asyncio.Semaphore(10)  # Adjust the number as appropriate
 
 async def get_option_chain(session, ticker, exp_date, headers):
     url = "https://api.tradier.com/v1/markets/options/chains"
     params = {"symbol": ticker, "expiration": exp_date, "greeks": "true"}
     try:
-        json_response = await fetch(session, url, params, headers)
+        async with sem:
 
-        if json_response is None:
-            raise OptionChainError(
-                f"FaWASS NMONE?? Wow get optoin chain. chain data for {ticker} (in traideierapi.get_options_chain"
-            )
+            json_response = await fetch(session, url, params, headers)
 
-        if (
-            json_response
-            and "options" in json_response
-            and "option" in json_response["options"]
-        ):
-            optionchain_df = pd.DataFrame(json_response["options"]["option"])
-            return optionchain_df
-        else:
-            print(
-                f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing"
-            )
-            return None  # Or another appropriate response to indicate failure
+            if json_response is None:
+                raise OptionChainError(
+                    f"NONE chain data for {ticker} (in traideierapi.get_options_chain"
+                )
+
+            if (
+                json_response
+                and "options" in json_response
+                and "option" in json_response["options"]
+            ):
+                optionchain_df = pd.DataFrame(json_response["options"]["option"])
+                return optionchain_df
+            else:
+                print(
+                    f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing"
+                )
+                return None  # Or another appropriate response to indicate failure
     except Exception as e:
         raise
 
@@ -297,27 +301,39 @@ async def get_option_chains_concurrently(session, ticker, expiration_dates, head
         raise  # Re-raise the exception to the caller
 
 
-
 async def fetch(session, url, params, headers):
+    rate_limit_allowed, rate_limit_used = None, None
     try:
-        async with session.get(url, params=params, headers=headers) as response:
+        timeout = aiohttp.ClientTimeout(total=45)
+
+        async with session.get(
+            url, params=params, headers=headers, timeout=timeout
+        ) as response:
             content_type = response.headers.get("Content-Type", "").lower()
             rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
             rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
             # print(rate_limit_allowed,rate_limit_used)
             # Check if rate limit used exceeds allowed
             # limit
-            if rate_limit_used >= (rate_limit_allowed * .9):
-                logger.error(f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}")
-                await asyncio.sleep(5)
+            if rate_limit_used >= (rate_limit_allowed * 0.9):
+                logger.error(
+                    f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
+                )
+                # await asyncio.sleep(5)
             if "application/json" in content_type:
                 return await response.json()
             else:
                 raise OptionChainError(
                     f"Fetch error: {content_type} with params {params} {url}"
                 )
+    except asyncio.TimeoutError as e:
+        logger.error(
+            f"{rate_limit_used, rate_limit_allowed}The request timed out, {e} {params, url}"
+        )
+        raise OptionChainError(f"Timeout occurred for {params, url}")
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
+
 
 async def get_options_data(session, ticker, YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
@@ -390,6 +406,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
             session, ticker, expiration_dates, headers
         )
     except OptionChainError as e:
+        logger.error(e)
         raise  # Re-raise the exception to the caller
 
     for optionchain_df in all_option_chains:

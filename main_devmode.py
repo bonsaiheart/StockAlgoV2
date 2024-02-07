@@ -217,26 +217,23 @@ async def get_options_data_for_ticker(session, ticker, loop_start_time):
 TICKERS_FOR_TRADE_ALGOS = [
     "SPY",
     "TSLA",
+    "GOOGL",
     "ROKU",
     "MSFT",
     "CHWY",
     "BA",
     "LLY",
 ]
-TICKERS_FOR_CALCULATIONS = [
+TICKERS_FOR_CALCULATIONS = {
     "SPY",
     "TSLA",
     "GOOGL",
-    "UVXY",
     "ROKU",
-    "QQQ",
-    "SQQQ",
-    "SPXS",
     "MSFT",
     "CHWY",
     "BA",
     "LLY",
-]
+}
 # TODO sometimes took 60-90. with 12 max open orders. 14/10 calc/trade.    With processpool in calc and max open oorders <=6, taking
 # Stalled again with these.  going to try just 3 for each and see if it can run all day. since i should be able to reacearete processeddata now since ive added ohlc and ta to getoptions. TICKERS_FOR_TRADE_ALGOS = [
 #     "SPY",
@@ -353,7 +350,8 @@ async def handle_ticker_cycle(session, ticker):
         print(
             f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_w_seconds_est}"
         )
-        record_elapsed_time(ticker, elapsed_time)
+        record_elapsed_time(ticker, elapsed_time
+                            )
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
 
@@ -444,9 +442,8 @@ if __name__ == "__main__":
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
 
-
         for ticker in TICKERS_FOR_TRADE_ALGOS:
-                # if ticker == "SPY":
+            # if ticker == "SPY":
             try:
                 make_test_df.get_dailyminutes_make_single_multiday_df(ticker)
             except Exception as e:
@@ -454,12 +451,12 @@ if __name__ == "__main__":
         try:
 
             ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client(
-            "192.168.1.109", 22, "bonsaiheart", "/home/bonsai/.ssh/id_rsa"
+                "192.168.1.109", 22, "bonsaiheart", "/home/bonsai/.ssh/id_rsa"
             )
             eod_scp_dailyminutes_to_studiopc.scp_transfer_files(
-            ssh_client,
-            "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF",
-            r"PycharmProjects/StockAlgoV2/data/",
+                ssh_client,
+                "/home/bonsai/Python_Projects/StockAlgoV2/data/historical_multiday_minute_DF",
+                r"PycharmProjects/StockAlgoV2/data/",
             )
             ssh_client.close()
             logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
