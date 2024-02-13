@@ -17,59 +17,67 @@ def create_model(ticker):
     with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
+    tuning_mode =False
+    n_trials = 0
 
     # Dynamically generate study name and filename
     study_name = f"{ticker}_ptminclassA1Base_2hr50ptdown"
-    df_filename = f"StockAlgoV2\\data\\historical_multiday_minute_DF\\{ticker}_historical_multiday_min.csv"
+    df_filename = f"C:\\Users\\del_p\\PycharmProjects\\StockAlgoV2\\data\\historical_multiday_minute_DF\\{ticker}_historical_multiday_min.csv"
 
     config = config['tickers'][ticker]
-    # best_params = config['best_params']
+    best_params = config['best_params']
 
-    Chosen_Predictor = config['chosen_predictors']
+    # Chosen_Predictor = config['chosen_predictors']
+    Chosen_Predictor = ['MACD','Signal_Line','CCI','CMF','EoM','OBV','MFI','Keltner_Upper','Keltner_Lower','VPT']
     theshhold_down = config['threshhold_down']
+    theshhold_down = .5
     DF_filename = config['df_filename']
-    study_name =  '_2hr_50pt_down'
-    # study_name= config['study_name']
+    # study_name =  '_2hr_50pt_down'
+    study_name= config['study_name']
     cells_forward_to_check = config['cells_forward_to_check']
-    percent_down =  config['percent_down'] # as percent
+    cells_forward_to_check =45
+    # percent_down =  config['percent_down'] # as percent
+    percent_down =  .2# as percent
     takeprofits_trailingstops = config['takeprofits_trailingstops']
     threshold_cells_up = cells_forward_to_check * config['min_cells_positive_percentage']
-    anticondition_threshold_cells = cells_forward_to_check * config['max_cells_below_1st_price_percentage']
-
-
+    max_anticonditions = cells_forward_to_check * config['max_anticonditions']
+    max_anticonditions = cells_forward_to_check * 1
+    anticondition_percentage = percent_down * .75
+    min_max_values = {}
     ml_dataframe = pd.read_csv(DF_filename)
 
     # TODO scale Predictors based on data ranges/types
 
 
-    n_trials = 0
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     print("device: ", device)
 
-    print(ml_dataframe.columns)
-
-    last_1_months_min = 3900#7800
-    ml_dataframe = ml_dataframe[:last_1_months_min]
+    # print(ml_dataframe.columns)
+    test_size = int(3.5 * 60)
+    last_3_months_min = 3200
+    ml_dataframe = ml_dataframe[-last_3_months_min:]
     ml_dataframe.dropna(subset=Chosen_Predictor, inplace=True)
     length = ml_dataframe.shape[0]
     print("Length of ml_dataframe:", length)
     ml_dataframe["Target_Up"] = 0
-    targetUpCounter = 0
-    anticondition_UpCounter = 0
+    condition_counter = 0
+    anticondition_counter = 0
     for i in range(1, cells_forward_to_check + 1):
         shifted_values = ml_dataframe["Current Stock Price"].shift(-i)
         condition_met_up = shifted_values < (
             ml_dataframe["Current Stock Price"]
             - (ml_dataframe["Current Stock Price"] * (percent_down / 100))
         )
-        anticondition_up = shifted_values >= ml_dataframe["Current Stock Price"]
-        targetUpCounter += condition_met_up.astype(int)
-        anticondition_UpCounter += anticondition_up.astype(int)
+        anticondition_up = shifted_values >=(
+            ml_dataframe["Current Stock Price"]
+            + (ml_dataframe["Current Stock Price"] * (anticondition_percentage / 100)))
+        condition_counter += condition_met_up.astype(int)
+        anticondition_counter += anticondition_up.astype(int)
     ml_dataframe["Target_Up"] = (
-        (targetUpCounter >= threshold_cells_up)
-        & (anticondition_UpCounter <= anticondition_threshold_cells)
+        (condition_counter >= threshold_cells_up)
+        & (anticondition_counter <= max_anticonditions)
     ).astype(int)
     ml_dataframe.dropna(subset=["Target_Up"], inplace=True)
     y_up = ml_dataframe["Target_Up"]
@@ -80,39 +88,56 @@ def create_model(ticker):
 
 
     # # # TODO#shuffle trur or false?
-    X_train, X_temp, y_up_train, y_up_temp = train_test_split(
-        X, y_up, test_size=0.3, random_state=None, shuffle=True
+    # X_train, X_temp, y_up_train, y_up_temp = train_test_split(
+    #     X, y_up, test_size=0.3, random_state=None, shuffle=True
+    # )
+    #
+    # # Split the temp set into validation and test sets
+    # X_val, X_test, y_up_val, y_up_test   = train_test_split(
+    #     X_temp, y_up_temp, test_size=0.5, random_state=None, shuffle=True
+    # )
+
+    X_temp, X_test, y_up_temp, y_up_test = train_test_split(
+        X,
+        y_up,
+        test_size=test_size,
+        random_state=None,
+        shuffle=False,  # represents 1 market day.
     )
 
     # Split the temp set into validation and test sets
-    X_val, X_test, y_up_val, y_up_test   = train_test_split(
+    X_train, X_val, y_up_train, y_up_val = train_test_split(
         X_temp, y_up_temp, test_size=0.5, random_state=None, shuffle=True
     )
-
-
 
     # def replace_infinities_and_scale(df):
     #     pass
 
-    def replace_infinities_test(df):
+    def replace_infinities_with_min_max(new_data_df, min_max_values):
+        for col in new_data_df.columns:
+            if col in min_max_values:
+                min_val, max_val = min_max_values[col]
+                new_data_df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
 
-        very_large_number = 1e15  # Placeholder for positive infinity
-        very_small_number = -1e15  # Placeholder for negative infinity
-
-        for col in df.columns:
-            # Replace positive and negative infinity with the defined large and small numbers
-            df[col].replace(
-                [np.inf, -np.inf], [very_large_number, very_small_number], inplace=True
-            )
-    def replace_infinities_and_scale(df, factor=1.5):
+    # def replace_infinities_test(df):
+    #
+    #     very_large_number = 1e15  # Placeholder for positive infinity
+    #     very_small_number = -1e15  # Placeholder for negative infinity
+    #
+    #     for col in df.columns:
+    #         # Replace positive and negative infinity with the defined large and small numbers
+    #         df[col].replace(
+    #             [np.inf, -np.inf], [very_large_number, very_small_number], inplace=True
+    #         )
+    def replace_infinities(df, factor=1.5):
         for col in df.columns:
             # Replace infinities with NaN, then calculate max and min
             max_val = df[col].replace([np.inf, -np.inf], np.nan).max()
             min_val = df[col].replace([np.inf, -np.inf], np.nan).min()
             # Check if max_val or min_val is infinity
             if np.isinf(max_val) or np.isinf(min_val):
-                print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
-
+                # print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
+                pass
             # # Scale max and min values by a factor based on their sign
             max_val = max_val * factor if max_val >= 0 else max_val / factor
             min_val = min_val * factor if min_val < 0 else min_val / factor
@@ -122,27 +147,6 @@ def create_model(ticker):
             # Replace infinities with the scaled max and min values
             df[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
             print(f"Column: {col}, Min/Max values: {min_val}, {max_val}")
-
-    # Concatenate train and validation sets
-    X_trainval = pd.concat([X_train, X_val], ignore_index=True)
-    y_trainval = pd.concat([y_up_train, y_up_val], ignore_index=True)
-
-    # Replace infinities and adjust extrema in the training, validation, and test sets
-    replace_infinities_and_scale(X_train)
-    replace_infinities_and_scale(X_val)
-    replace_infinities_test(X_test)
-
-    # Replace infinities and adjust extrema in the concatenated train and validation set
-    replace_infinities_and_scale(X_trainval)
-
-    # Fit a robust scaler on the concatenated train and validation set and transform it
-    finalscaler_X = RobustScaler()
-    X_trainval_scaled = finalscaler_X.fit_transform(X_trainval)
-    X_trainval_tensor = torch.tensor(X_trainval_scaled, dtype=torch.float32).to(device)
-    y_trainval_tensor = torch.tensor(y_trainval.values, dtype=torch.float32).to(device)
-
-
-    # Function to convert scaled data to tensors
     def convert_to_tensor(scaler, X_train, X_val, X_test, device):
         X_train_scaled = scaler.fit_transform(X_train)
         X_val_scaled = scaler.transform(X_val)
@@ -153,6 +157,24 @@ def create_model(ticker):
             torch.tensor(X_val_scaled, dtype=torch.float32).to(device),
             torch.tensor(X_test_scaled, dtype=torch.float32).to(device),
         )
+    # Concatenate train and validation sets
+    X_trainval = pd.concat([X_train, X_val], ignore_index=True)
+    y_trainval = pd.concat([y_up_train, y_up_val], ignore_index=True)
+
+
+
+    for col in X_trainval.columns:
+        min_val = X_train[col].min()
+        max_val = X_train[col].max()
+        min_max_values[col] = (min_val, max_val)
+
+    replace_infinities(X_train)
+    replace_infinities(X_val)
+    replace_infinities(X_trainval)
+    replace_infinities_with_min_max(X_test,min_max_values)
+
+    # Replace infinities and adjust extrema in the concatenated train and validation set
+
 
 
     # Create a scaler object and convert datasets to tensors
@@ -163,6 +185,12 @@ def create_model(ticker):
     y_up_train_tensor = torch.tensor(y_up_train.values, dtype=torch.float32).to(device)
     y_up_val_tensor = torch.tensor(y_up_val.values, dtype=torch.float32).to(device)
     y_up_test_tensor = torch.tensor(y_up_test.values, dtype=torch.float32).to(device)
+
+    # Fit a robust scaler on the concatenated train and validation set and transform it
+    finalscaler_X = RobustScaler()
+    X_trainval_scaled = finalscaler_X.fit_transform(X_trainval)
+    X_trainval_tensor = torch.tensor(X_trainval_scaled, dtype=torch.float32).to(device)
+    y_trainval_tensor = torch.tensor(y_trainval.values, dtype=torch.float32).to(device)
 
     # Print lengths of datasets
     print(
@@ -183,9 +211,8 @@ def create_model(ticker):
 
 
     def print_dataset_statistics(stage, num_positive, num_negative):
-        ratio = (
-            num_positive / num_negative if num_negative else float("inf")
-        )  # Avoid division by zero
+        ratio = num_positive / (num_positive + num_negative) if (num_positive + num_negative) else float("inf")
+
         print(f"{stage} ratio of pos/neg up: {ratio:.2f}")
         print(f"{stage} num_positive_up: {num_positive}")
         print(f"{stage} num_negative_up: {num_negative}\n")
@@ -248,9 +275,13 @@ def create_model(ticker):
 
     def train_model(hparams, X_train, y_train, X_val, y_val):
         positivecase_weight_up = hparams["positivecase_weight_up"]
-        weight_positive_up = (
-            num_negative_up_train / num_positive_up_train
-        ) * positivecase_weight_up
+        try:
+            weight_positive_up = (
+                num_negative_up_train / num_positive_up_train
+            ) * positivecase_weight_up
+        except Exception as e:
+            print(e,"no positive up cases in train")
+
         best_model_state_dict = None
         model = DynamicNNwithDropout(
             X_train.shape[1], hparams["layers"], hparams["dropout_rate"]
@@ -439,23 +470,23 @@ def create_model(ticker):
     def objective(trial):
         # Define the hyperparameter search space
         learning_rate = trial.suggest_float(
-            "learning_rate", 0.0005, 0.007, log=True
+            "learning_rate", 0.00005, 0.01, log=True
         )  # 0003034075497582067
-        num_epochs = trial.suggest_int("num_epochs", 100, 1000)  # 3800 #230  291
-        batch_size = trial.suggest_int("batch_size", 1000, 3500)  # 10240  3437
+        num_epochs = trial.suggest_int("num_epochs", 100, 3000)  # 3800 #230  291
+        batch_size = trial.suggest_int("batch_size", 32, 3500)  # 10240  3437
         # Add more parameters as needed
         # TODO the rounds with SGD seemed to be closer val/test. values.
         optimizer_name = trial.suggest_categorical(
-            "optimizer", ["Adam", "SGD"]
+            "optimizer", ["Adam","SGD"]
         )  # ,"RMSprop", "Adagrad"
         dropout_rate = trial.suggest_float(
             "dropout_rate", 0, 0.2
         )
         # using layers now instead of setting num_hidden.
-        n_layers = trial.suggest_int("n_layers", 1, 4)
+        n_layers = trial.suggest_int("n_layers", 1, 6)
         layers = []
         for i in range(n_layers):
-            layers.append(trial.suggest_int(f"n_units_l{i}", 32, 256))
+            layers.append(trial.suggest_int(f"n_units_l{i}", 32, 1028))
         positivecase_weight_up = trial.suggest_float(
             "positivecase_weight_up", 1, 2
         )
@@ -526,8 +557,8 @@ def create_model(ticker):
     study.optimize(
         objective, n_trials=n_trials
     )  # You can change the number of trials as needed
-
-    best_params = study.best_params
+    if tuning_mode == True:
+        best_params = study.best_params
 
     # best_params = set_best_params_manually
     print("Best Hyperparameters:", best_params)
@@ -568,6 +599,7 @@ def create_model(ticker):
     print("Feature Importances:", feature_imp)
     predicted_probabilities_up = finalmodel(X_test_tensor).detach().cpu().numpy()
     predicted_probabilities_up = (predicted_probabilities_up > theshhold_down).astype(int)
+    # print(predicted_probabilities_up)
     predicted_up_tensor = (
         torch.tensor(predicted_probabilities_up, dtype=torch.float32).squeeze().to(device)
     )
@@ -628,6 +660,7 @@ def create_model(ticker):
         torch.save(
             {
                 "features": Chosen_Predictor,
+                "min_max_values": min_max_values,
                 "input_dim": X_train_tensor.shape[1],
                 "dropout_rate": best_params["dropout_rate"],
                 "layers": best_params["layers"],
@@ -643,6 +676,7 @@ def create_model(ticker):
 def {model_name}(new_data_df):
     checkpoint = torch.load(f'{{base_dir}}/{model_name}/target_up.pth', map_location=torch.device('cpu'))
     features = checkpoint['features']
+    min_max_values = checkpoint['min_max_values']
     dropout_rate = checkpoint['dropout_rate']
     input_dim = checkpoint['input_dim']
     layers = checkpoint['layers']
@@ -656,12 +690,20 @@ def {model_name}(new_data_df):
     # tempdf.dropna(subset=features, inplace=True)
     tempdf = tempdf[features]
 
-    very_large_number = 1e15  # Placeholder for positive infinity
-    very_small_number = -1e15  # Placeholder for negative infinity
+    # very_large_number = 1e15  # Placeholder for positive infinity
+    # very_small_number = -1e15  # Placeholder for negative infinity
 
     for col in tempdf.columns:
-        # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        min_val, max_val = min_max_values[col]
+        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+
+    # # Replace positive infinity with the max value of the column
+    # tempdf[col].replace(np.inf, max_val, inplace=True)
+    # 
+    # # Replace negative infinity with the min value of the column
+    # tempdf[col].replace(-np.inf, min_val, inplace=True)
+    #     # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
+    #     tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
         
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -702,12 +744,13 @@ def {model_name}(new_data_df):
                 f"Number of Positive Samples (Target_Up): {num_positive_samples_up}\nNumber of Negative Samples (Target_Up): {num_negative_samples_up}\n"
                 f"Threshold Up (sensitivity): {theshhold_down}\n"
                 f"Target Underlying Percentage Up: {percent_down}\n"
-                f"Anticondition: {anticondition_UpCounter}\n"
+                f"Anticondition: {anticondition_counter}\n"
             )
     #TODO the template for model needs to look like this
     """def MSFT_2hr_50pct_Down_PTNNclass(new_data_df):
         checkpoint = torch.load(f'{base_dir}/MSFT_2hr_50pct_Down_PTNNclass/target_up.pth', map_location=torch.device('cpu'))
         features = checkpoint['features']
+        min_max_values = checkpoint['min_max_values']
         dropout_rate = checkpoint['dropout_rate']
         input_dim = checkpoint['input_dim']
         layers = checkpoint['layers']
@@ -745,7 +788,7 @@ def {model_name}(new_data_df):
         result.loc[prediction_series.index, "Predictions"] = prediction_series
         return result["Predictions"], 0.5, 0.5, 5, 20
     """
-tickers = 'SPY','msft','tsla' # This can be dynamically set
+tickers ='SPY', 'TSLA' ,'msft' #This can be dynamically set
 for ticker in tickers:
     try:
         ticker = ticker.upper()
