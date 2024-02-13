@@ -255,6 +255,7 @@ np.seterr(divide="ignore", invalid="ignore")
 
 sem = asyncio.Semaphore(2)  # Adjust the number as appropriate was10
 
+
 async def get_option_chain(session, ticker, exp_date, headers):
     url = "https://api.tradier.com/v1/markets/options/chains"
     params = {"symbol": ticker, "expiration": exp_date, "greeks": "true"}
@@ -428,8 +429,8 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         df["Strike"] = df["strike"]
         df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
         df["lastPriceXoi"] = df["last"] * df["open_interest"]
-        df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
-        df["delta"] = df["greeks"].str.get("delta")
+        # df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
+        # df["delta"] = df["greeks"].str.get("delta")
     # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
     columns_to_keep = [
@@ -458,10 +459,10 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # columns_to_drop_puts = [
     #     col for col in puts_df.columns if col not in columns_to_keep
     # ]
-
+    columns_to_drop = ['description','type','exch','underlying','bidexch','askexch','expiration_date','root_symbol']
     # # Drop unnecessary columns
-    # calls_df = calls_df.drop(columns_to_drop_calls, axis=1)
-    # puts_df = puts_df.drop(columns_to_drop_puts, axis=1)
+    calls_df = calls_df.drop(columns_to_drop, axis=1)
+    puts_df = puts_df.drop(columns_to_drop, axis=1)
     # Format date
     # Rename columns
     rename_dict = {
@@ -474,9 +475,9 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "change_percentage": "percentChange",
         "volume": "volume",
         "open_interest": "openInterest",
-        "delta": "delta",
+        # "delta": "delta",
         "greeks": "greeks",
-        "impliedVolatility": "impliedVolatility",
+        # "impliedVolatility": "impliedVolatility",
         "dollarsFromStrike": "dollarsFromStrike",
         "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
         "lastPriceXoi": "lastPriceXoi",
@@ -493,25 +494,42 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "c_percentChange": "Call_PercentChange",
         "c_volume": "Call_Volume",
         "c_openInterest": "Call_OI",
-        "c_impliedVolatility": "Call_IV",
+        # "c_impliedVolatility": "Call_IV",
         "c_dollarsFromStrike": "Calls_dollarsFromStrike",
         "c_dollarsFromStrikeXoi": "Calls_dollarsFromStrikeXoi",
         "c_lastPriceXoi": "Calls_lastPriceXoi",
         "p_lastPrice": "Put_LastPrice",
         "p_volume": "Put_Volume",
         "p_openInterest": "Put_OI",
-        "p_impliedVolatility": "Put_IV",
+        # "p_impliedVolatility": "Put_IV",
         "p_dollarsFromStrike": "Puts_dollarsFromStrike",
         "p_dollarsFromStrikeXoi": "Puts_dollarsFromStrikeXoi",
         "p_lastPriceXoi": "Puts_lastPriceXoi",
     }
-    combined["LAC"] = LAC
-    combined["CurrentPrice"] = CurrentPrice
-    combined["open"] = open
-    combined["high"] = high
-    combined["low"] = low
-    combined["average_volume"] = average_volume
-    combined["last_volume"] = last_volume
+    # combined["LAC"] = LAC
+    # combined["CurrentPrice"] = CurrentPrice
+    # combined["open"] = open
+    # combined["high"] = high
+    # combined["low"] = low
+    # combined["average_volume"] = average_volume
+    # combined["last_volume"] = last_volume
+    for column in [
+        "LAC",
+        "CurrentPrice",
+        "open",
+        "high",
+        "low",
+        "average_volume",
+        "last_volume",
+    ]:
+        combined[column] = np.nan
+
+    # Populate values only in the first row
+    first_index = combined.index[0]  # Get the first index of the DataFrame
+    combined.loc[
+        first_index,
+        ["LAC", "CurrentPrice", "open", "high", "low", "average_volume", "last_volume"],
+    ] = [LAC, CurrentPrice, open, high, low, average_volume, last_volume]
 
     combined.rename(columns=rename_dict_combined, inplace=True)
     ####################
@@ -536,7 +554,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
     try:
         file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
-        combined.to_csv(file_path, mode="w")
+        combined.to_csv(file_path, mode="w",index=False)
         return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD, combined
 
     except FileExistsError as e:

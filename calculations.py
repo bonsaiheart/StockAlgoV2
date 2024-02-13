@@ -20,7 +20,8 @@ def perform_operations(
     )
     else:
         optionchain_df = optionchaindf
-
+    optionchain_df["Put_IV"] = optionchain_df["p_greeks"].str.get("mid_iv")
+    optionchain_df["Call_IV"] = optionchain_df["c_greeks"].str.get("mid_iv")
     groups = optionchain_df.groupby("ExpDate")
     # divide into groups by exp date, call info from group.
     for exp_date, group in groups:
@@ -505,7 +506,6 @@ def perform_operations(
                 "Net_IV/OI": Net_IV / all_OI,
                 "Net ITM_IV/ITM_OI": ITM_Avg_Net_IV / ITM_OI,
                 "Closest Strike to CP": closest_strike_currentprice,
-                "Closest Strike Above/Below(below to above,4 each) list": strikeindex_abovebelow,
             }
         )
     processed_data_df = pd.DataFrame(results)
@@ -555,3 +555,4 @@ def perform_operations(
         raise
     # print(type(optionchain_df),type(dailyminutes_df),type(processed_data_df),type(ticker))
     return optionchain_df, dailyminutes_df, processed_data_df, ticker
+#TODO Creates different/more modular processing paths; so that depending on what inputs the model needs, that is the only processing done
