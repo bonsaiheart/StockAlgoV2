@@ -68,7 +68,8 @@ class IBOrderManager:
             print("~~~ Connecting ~~~")
             try:
                 await self.ib.connectAsync(
-                    "192.168.1.109", 7497, clientId=0, timeout=45
+                    # "192.168.1.109", 7497, clientId=0, timeout=45
+                    "localhost", 4002, clientId=0, timeout=45
                 )
             except Exception as e:
                 logging.getLogger().error("Connection error: %s", e)

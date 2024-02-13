@@ -33,7 +33,7 @@ async def place_option_order_sync(
     trail_stop_percent,
 ):
     try:
-        print(orderRef,"tp/sl: ",take_profit_percent,"/",trail_stop_percent)
+        print(orderRef, "tp/sl: ", take_profit_percent, "/", trail_stop_percent)
         await order_manager.placeOptionBracketOrder(
             CorP,
             ticker,
@@ -214,13 +214,14 @@ async def actions(
     unique_orders = set()
     # Iterate over each model in your model list
     for model in get_model_list_for_ticker(ticker):
-        model_name = model.__name__
-        model_output = model(
-            dailyminutes_df.tail(1)
-        )  # error wehen trying to use taill.. either missing data(and used to return whatever row had all features.
-        evaluated_models.add(model_name)
-        # print(model_output)
         try:
+            model_name = model.__name__
+            model_output = model(
+                dailyminutes_df.tail(1)
+            )  # error wehen trying to use taill.. either missing data(and used to return whatever row had all features.
+            evaluated_models.add(model_name)
+            # print(model_output)
+
             # TODO make each model return signal, so they can have individual thressholds for buy/sell.
             if isinstance(model_output, tuple):
                 (
@@ -282,8 +283,7 @@ async def actions(
             # TODO can onlly have 1 positive per contract!!! b/c the cancelling orders etc will interfere...but only if not in orderdumy
             # Execute for individual model if not part of a pair or not executed as part of a pair
             if not part_of_pair or model_name not in executed_models:  # TODO or or and
-                if result >= 0.5\
-                        :  # TODO change this
+                if result >= 0.5:  # TODO change this
                     try:
                         order_params = await handle_model_result(
                             model_name,
@@ -305,6 +305,9 @@ async def actions(
                         # print(potential_orders)
                     except Exception as e:
                         logger.exception(f"Error in handle_model_result. {e}")
+        except ValueError as e:
+            logger.warning(f"{model_name} is likely missing some required feature data.")
+            continue
         except Exception as e:
             log_error("actions", ticker, model_name, e)
     tasks = [place_option_order_sync(*params) for params in potential_orders]
@@ -328,6 +331,8 @@ def get_model_list():
         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
         pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
     ]
+
+
 def get_model_list_for_ticker(ticker):
     # Example mapping of tickers to models
     ticker_to_models = {
@@ -338,27 +343,30 @@ def get_model_list_for_ticker(ticker):
             pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
             pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2401290107,
             pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2401292135,
-            pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2402010049
+            pytorch_trained_minute_models.SPY_ptminclassA1Base_2hr50ptdown_2402010049,
         ],
         "MSFT": [
             pytorch_trained_minute_models.MSFT_2hr_50pct_Down_PTNNclass,
             pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2401290107,
             pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2401292135,
-            pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2402010051
+            pytorch_trained_minute_models.MSFT_ptminclassA1Base_2hr50ptdown_2402010051,
         ],
-        "TSLA":[
+        "TSLA": [
             pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2401290106,
             pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2401292134,
-            pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2402010052
-        ]
+            pytorch_trained_minute_models.TSLA_ptminclassA1Base_2hr50ptdown_2402010052,
+        ],
         # Add other tickers and their models here
     }
 
-    return ticker_to_models.get(ticker, [])  # Return an empty list if no models are found for the ticker
+    return ticker_to_models.get(
+        ticker, []
+    )  # Return an empty list if no models are found for the ticker
 
 
 # TODO make it look for pairs first somehow?  store all orders, and take best?   PROCESSED DATA IS NOT USED
 from datetime import datetime
+
 
 # string 	LiquidHours
 #  	The liquid hours of the product. This value will contain the liquid hours (regular trading hours) of the contract on the specified exchange. Format for TWS versions until 969: 20090507:0700-1830,1830-2330;20090508:CLOSED. In TWS versions 965+ there is an option in the Global Configuration API settings to return 1 month of trading hours. In TWS v970 and above, the format includes the date of the closing time to clarify potential ambiguity, e.g. 20180323:0930-20180323:1600;20180326:0930-20180326:1600.orry forgot to mention about the timezone. Yes - the only way to keep sane is to convert all incoming date time objects to pytz.UTC. BTW: you cannot rely on the timezone the IB API gives you. According to them the timezone for the CME is Belize! I hold all those static data in dictionaries in my system.

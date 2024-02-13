@@ -20,7 +20,7 @@ def create_model(ticker):
 
     # Dynamically generate study name and filename
     study_name = f"{ticker}_ptminclassA1Base_2hr50ptdown"
-    df_filename = f"C:\\Users\\del_p\\PycharmProjects\\StockAlgoV2\\data\\historical_multiday_minute_DF\\{ticker}_historical_multiday_min.csv"
+    df_filename = f"StockAlgoV2\\data\\historical_multiday_minute_DF\\{ticker}_historical_multiday_min.csv"
 
     config = config['tickers'][ticker]
     # best_params = config['best_params']

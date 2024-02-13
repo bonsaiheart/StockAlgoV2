@@ -1,6 +1,7 @@
 import asyncio
 
 from IB import *
+
 # from IB import ibAPI
 import IB.ibAPI as ib
 from UTILITIES.logger_config import logger
@@ -12,7 +13,6 @@ async def getTrade(order):
     return trade
 
 
-
 # Explicitly add the handler for ib_insync
 # logging.getLogger('ib_insync').addHandler(logger.handlers[0])
 # ib =ib_insync.util.getLoop()
@@ -20,40 +20,34 @@ async def getTrade(order):
 # Connect to the IB API with a unique client ID
 
 
+async def reset_all():
+    # ib.ib.connect(
+    #     "192.168.1.109", 7497, clientId=1, timeout=45
+    # )
+    await ib.ib.connectAsync("localhost", 4002, clientId=0, timeout=45)
 
-def reset_all():
-    ib.ib.connect(
-        "192.168.1.109", 7497, clientId=1, timeout=45
-    )
-    # print("Connected.")
-    #
-    # await IB.ibAPI.ib.reqGlobalCancel()
-    #
-    # # Assuming ib.positions() is synchronous or you have handled its asynchronous nature elsewhere
-    # positions = IB.ibAPI.positions()
-    # # for open_trade in positions:
-    # contract = IB.ibAPI.Stock('TSLA','SMART', 'USD')
-    # order = IB.ibAPI.MarketOrder('BUY', 1)
-    # order.outsideRth=True
-    # order.tif = 'GTC'
-    # print(order)
-    #
-    # trade = IB.ibAPI.placeOrder(contract, order)
-    # print(trade)
-        # print(open_trade)
-        # direction = 'BUY' if open_trade.position < 0 else 'SELL'
-        # quantity = 1
-        # print(quantity)
-        # order = MarketOrder(direction, quantity)
-        # order.tif = 'GTC'
-        # order.outsideRth=True
-        # trade = ib.placeOrder(open_trade.contract, order)
-        # print('trade placed')
-        # print(trade)
+    print("Connected.")
 
+    ib.ib.reqGlobalCancel()
 
+    # Assuming ib.positions() is synchronous or you have handled its asynchronous nature elsewhere
+    positions = ib.ib.positions()
+    for position in positions:
+        contract = position.contract
+        if position.position > 0:  # Number of active Long positions
+            action = "Sell"  # to offset the long positions
+        elif position.position < 0:  # Number of active Short positions
+            action = "Buy"  # to offset the short positions
+        else:
+            assert False
+        totalQuantity = abs(position.position)
+        order = ib.MarketOrder(action=action, totalQuantity=totalQuantity)
+        trade = ib.ib.placeOrder(contract, order)
+        print(f"Flatten Position: {action} {totalQuantity} {contract.localSymbol}")
+        assert trade in ib.ib.trades(), "trade not listed in ib.trades"
+    ib.ib.disconnect()
 
 
 if __name__ == "__main__":
     print("ib name is main")
-    reset_all()
+    asyncio.run(reset_all())

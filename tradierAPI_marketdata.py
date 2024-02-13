@@ -253,7 +253,7 @@ YYMMDD = datetime.today().strftime("%y%m%d")
 # TODO for now this ignores the divede by zero warnings.
 np.seterr(divide="ignore", invalid="ignore")
 
-sem = asyncio.Semaphore(10)  # Adjust the number as appropriate
+sem = asyncio.Semaphore(2)  # Adjust the number as appropriate was10
 
 async def get_option_chain(session, ticker, exp_date, headers):
     url = "https://api.tradier.com/v1/markets/options/chains"
@@ -276,7 +276,7 @@ async def get_option_chain(session, ticker, exp_date, headers):
                 optionchain_df = pd.DataFrame(json_response["options"]["option"])
                 return optionchain_df
             else:
-                print(
+                logger.error(
                     f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing"
                 )
                 return None  # Or another appropriate response to indicate failure
@@ -315,7 +315,7 @@ async def fetch(session, url, params, headers):
             # print(rate_limit_allowed,rate_limit_used)
             # Check if rate limit used exceeds allowed
             # limit
-            if rate_limit_used >= (rate_limit_allowed * 0.9):
+            if rate_limit_used >= (rate_limit_allowed * 0.99):
                 logger.error(
                     f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
                 )
@@ -366,7 +366,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     for response in responses:
         if isinstance(response, Exception):
             logger.error(f"An error occurred in fetching data: {response}")
-            return None
+            raise response
 
     # Process responses
     quotes_response = responses[0]

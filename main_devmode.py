@@ -350,8 +350,7 @@ async def handle_ticker_cycle(session, ticker):
         print(
             f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_w_seconds_est}"
         )
-        record_elapsed_time(ticker, elapsed_time
-                            )
+        record_elapsed_time(ticker, elapsed_time  )
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
 
