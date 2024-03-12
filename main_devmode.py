@@ -331,7 +331,7 @@ async def handle_ticker_cycle(session, ticker):
                             ticker in TICKERS_FOR_TRADE_ALGOS
                             and optionchain is not None
                             and not optionchain.empty
-                            and order_manager.ib.isConnected()
+                            # and order_manager.ib.isConnected()
                         ):
                             asyncio.create_task(
                                 trade_algos(
@@ -350,7 +350,7 @@ async def handle_ticker_cycle(session, ticker):
         print(
             f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_w_seconds_est}"
         )
-        record_elapsed_time(ticker, elapsed_time  )
+        record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
 
@@ -446,7 +446,8 @@ if __name__ == "__main__":
             try:
                 make_test_df.get_dailyminutes_make_single_multiday_df(ticker)
             except Exception as e:
-                print(ticker, e)
+                logger.error(f"{ticker, e}")
+
         try:
 
             ssh_client = eod_scp_dailyminutes_to_studiopc.create_ssh_client(
@@ -460,4 +461,4 @@ if __name__ == "__main__":
             ssh_client.close()
             logger.info(f"Main.py ended at utc time: {datetime.utcnow()}")
         except Exception as e:
-            logger.error(e)
+            logger.error(f"{ticker, e}")

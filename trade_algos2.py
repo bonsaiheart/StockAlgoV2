@@ -88,7 +88,6 @@ async def handle_model_result(
     ticker,
     current_price,
     optionchain_df,
-    processeddata_df,
     option_take_profit_percent,
     option_trail_stop_percent,
     current_time,
@@ -143,28 +142,29 @@ async def handle_model_result(
             #     print(f"Tweet error {e}.")
             #     logger.exception(f"An error occurred while creating tweeting task {e}")
             try:
-                await send_notifications.email_me_string(model_name, CorP, ticker)
+                await send_notifications.email_me_string(model_name, current_price, ticker)
             except Exception as e:
                 print(f"Email error {e}.")
                 logger.exception(f"An error occurred while creating email task {e}")
-            if order_manager.ib.isConnected:
+            if order_manager.ib.isConnected():
                 orderRef = (
                     ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
                 )
-                quantity = 3
+                print('ordermanager is connedted.')
+                quantity = 1
                 # print(orderRef)
                 return (
-                    CorP,
-                    ticker,
-                    IB_option_date,
-                    contractStrike,
-                    contract_price,
-                    orderRef,
-                    quantity,
-                    option_take_profit_percent,
-                    option_trail_stop_percent,
+                        CorP,
+                        ticker,
+                        IB_option_date,
+                        contractStrike,
+                        contract_price,
+                        orderRef,
+                        quantity,
+                        option_take_profit_percent,
+                        option_trail_stop_percent,
                 )
-            return None
+        return None
     except Exception as e:
         raise e
 
@@ -290,12 +290,12 @@ async def actions(
                             ticker,
                             current_price,
                             optionchain_df,
-                            processeddata_df,
                             option_take_profit_percent,
                             option_trail_stop_percent,
                             current_time,
                         )
                         if order_params != None:
+                            print("Oreder params:", order_params)
                             unique_id = f"{order_params[1]}_{order_params[2]}_{order_params[3]}_{order_params[0]}"  # ticker_IB_option_date_contractStrike_CorP
                             if unique_id not in unique_orders:
                                 unique_orders.add(unique_id)
@@ -311,6 +311,7 @@ async def actions(
         except Exception as e:
             log_error("actions", ticker, model_name, e)
     tasks = [place_option_order_sync(*params) for params in potential_orders]
+
     await asyncio.gather(*tasks)
 
 
@@ -322,16 +323,16 @@ async def actions(
 
 
 # Define the model list, this assumes that the model list is predefined
-def get_model_list():
-    return [
-        # Add the actual models here
-        pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
-        pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
-        # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
-        # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
-        pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
-    ]
-
+# def get_model_list():
+#     return [
+#         # Add the actual models here
+#         pytorch_trained_minute_models.Buy_3hr_PTminClassSPYA1,
+#         pytorch_trained_minute_models.SPY_2hr_50pct_Down_PTNNclass,
+#         # pytorch_trained_minute_models.Buy_20min_1pctup_ptclass_B1,
+#         # pytorch_trained_minute_models.Buy_20min_05pctup_ptclass_B1,
+#         pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
+#     ]
+#
 
 def get_model_list_for_ticker(ticker):
     # Example mapping of tickers to models

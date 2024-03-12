@@ -76,8 +76,8 @@ async def send_tweet_w_countdown_followup(
         print("too close to last tweet time", last_tweet_time)
 
 
-async def email_me_string(model_name, callorput, ticker):
-    message = model_name
+async def email_me_string(model_name, message , ticker):
+
     smtp_host = PrivateData.email.smtp_host
     smtp_port = PrivateData.email.smtp_port
     smtp_user = PrivateData.email.smtp_user
@@ -85,7 +85,7 @@ async def email_me_string(model_name, callorput, ticker):
     from_email = PrivateData.email.from_email
     to_email = PrivateData.email.to_email
 
-    subject = f"Ticker: {str(ticker)} {message} "
+    subject = f"Ticker: {str(ticker)} {message} {model_name} "
 
     msg = MIMEMultipart()
     msg["From"] = from_email
