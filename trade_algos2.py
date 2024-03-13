@@ -141,11 +141,11 @@ async def handle_model_result(
             # except Exception as e:
             #     print(f"Tweet error {e}.")
             #     logger.exception(f"An error occurred while creating tweeting task {e}")
-            try:
-                await send_notifications.email_me_string(model_name, current_price, ticker)
-            except Exception as e:
-                print(f"Email error {e}.")
-                logger.exception(f"An error occurred while creating email task {e}")
+            # try:
+            #     await send_notifications.email_me_string(model_name, current_price, ticker)
+            # except Exception as e:
+            #     print(f"Email error {e}.")
+            #     logger.exception(f"An error occurred while creating email task {e}")
             if order_manager.ib.isConnected():
                 orderRef = (
                     ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only

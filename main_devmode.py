@@ -222,7 +222,7 @@ TICKERS_FOR_TRADE_ALGOS = [
     "MSFT",
     "CHWY",
     "BA",
-    "LLY",
+
 ]
 TICKERS_FOR_CALCULATIONS = {
     "SPY",
@@ -232,7 +232,7 @@ TICKERS_FOR_CALCULATIONS = {
     "MSFT",
     "CHWY",
     "BA",
-    "LLY",
+
 }
 # TODO sometimes took 60-90. with 12 max open orders. 14/10 calc/trade.    With processpool in calc and max open oorders <=6, taking
 # Stalled again with these.  going to try just 3 for each and see if it can run all day. since i should be able to reacearete processeddata now since ive added ohlc and ta to getoptions. TICKERS_FOR_TRADE_ALGOS = [
