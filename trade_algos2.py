@@ -142,7 +142,9 @@ async def handle_model_result(
             #     print(f"Tweet error {e}.")
             #     logger.exception(f"An error occurred while creating tweeting task {e}")
             # try:
-            #     await send_notifications.email_me_string(model_name, current_price, ticker)
+            #     await send_notifications.email_me_string(
+            #         model_name, current_price, ticker
+            #     )
             # except Exception as e:
             #     print(f"Email error {e}.")
             #     logger.exception(f"An error occurred while creating email task {e}")
@@ -150,19 +152,19 @@ async def handle_model_result(
                 orderRef = (
                     ticker + "_" + model_name + "_" + formatted_time_mdHR_MIN_only
                 )
-                print('ordermanager is connedted.')
+                print("ordermanager is connedted.")
                 quantity = 1
                 # print(orderRef)
                 return (
-                        CorP,
-                        ticker,
-                        IB_option_date,
-                        contractStrike,
-                        contract_price,
-                        orderRef,
-                        quantity,
-                        option_take_profit_percent,
-                        option_trail_stop_percent,
+                    CorP,
+                    ticker,
+                    IB_option_date,
+                    contractStrike,
+                    contract_price,
+                    orderRef,
+                    quantity,
+                    option_take_profit_percent,
+                    option_trail_stop_percent,
                 )
         return None
     except Exception as e:
@@ -306,7 +308,9 @@ async def actions(
                     except Exception as e:
                         logger.exception(f"Error in handle_model_result. {e}")
         except ValueError as e:
-            logger.warning(f"{model_name} is likely missing some required feature data.")
+            logger.warning(
+                f"{model_name} is likely missing some required feature data."
+            )
             continue
         except Exception as e:
             log_error("actions", ticker, model_name, e)
@@ -333,6 +337,7 @@ async def actions(
 #         pytorch_trained_minute_models._3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss,
 #     ]
 #
+
 
 def get_model_list_for_ticker(ticker):
     # Example mapping of tickers to models

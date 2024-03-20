@@ -327,11 +327,11 @@ async def fetch(session, url, params, headers):
                 raise OptionChainError(
                     f"Fetch error: {content_type} with params {params} {url}"
                 )
-    except asyncio.TimeoutError as e:
-        logger.error(
-            f"{rate_limit_used, rate_limit_allowed}The request timed out, {e} {params, url}"
-        )
-        raise OptionChainError(f"Timeout occurred for {params, url}")
+    # except asyncio.TimeoutError as e:
+    #     logger.error(
+    #         f"{rate_limit_used, rate_limit_allowed}The request timed out, {e} {params, url}"
+    #     )
+    #     raise OptionChainError(f"Timeout occurred for {params, url}")
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
 
@@ -360,14 +360,18 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         )
     )
 
-    # Wait for all tasks to complete
-    responses = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Check for exceptions in responses
-    for response in responses:
-        if isinstance(response, Exception):
-            logger.error(f"An error occurred in fetching data: {response}")
-            raise response
+    # # Wait for all tasks to complete
+    # responses = await asyncio.gather(*tasks, return_exceptions=False) #was true
+    try:
+        responses = await asyncio.gather(*tasks)  # Default is return_exceptions=False
+    except Exception as e:
+        logger.error(f"An error occurred in fetching data: {e}")
+        raise
+    # # Check for exceptions in responses
+    # for response in responses:
+    #     if isinstance(response, Exception):
+    #         logger.error(f"An error occurred in fetching data: {response}")
+    #         raise response
 
     # Process responses
     quotes_response = responses[0]
@@ -459,7 +463,16 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # columns_to_drop_puts = [
     #     col for col in puts_df.columns if col not in columns_to_keep
     # ]
-    columns_to_drop = ['description','type','exch','underlying','bidexch','askexch','expiration_date','root_symbol']
+    columns_to_drop = [
+        "description",
+        "type",
+        "exch",
+        "underlying",
+        "bidexch",
+        "askexch",
+        "expiration_date",
+        "root_symbol",
+    ]
     # # Drop unnecessary columns
     calls_df = calls_df.drop(columns_to_drop, axis=1)
     puts_df = puts_df.drop(columns_to_drop, axis=1)
@@ -554,7 +567,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
     try:
         file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
-        combined.to_csv(file_path, mode="w",index=False)
+        combined.to_csv(file_path, mode="w", index=False)
         return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD, combined
 
     except FileExistsError as e:

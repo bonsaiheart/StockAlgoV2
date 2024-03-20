@@ -178,15 +178,15 @@ async def get_options_data_for_ticker(session, ticker, loop_start_time):
         return LAC, current_price, StockLastTradeTime, YYMMDD, optionchaindf
     except Exception as e:
         print("in getoptionsdata")
-        raise
+        raise e
 
 
 # # tasks = []
-# TICKERS_FOR_TRADE_ALGOS = [
-#     "SPY",
-#     "TSLA",
-# "GOOGL"
-# ]
+TICKERS_FOR_TRADE_ALGOS = [
+    "SPY",
+    "TSLA",
+"GOOGL"
+]
 # TICKERS_FOR_CALCULATIONS = [
 #     "SPY",
 #     "TSLA",
@@ -214,7 +214,16 @@ async def get_options_data_for_ticker(session, ticker, loop_start_time):
 # "SQQQ",
 # "SPXS",
 # TODO with 12 in canplaceneworder , taking 62-75 sec avg.
-TICKERS_FOR_TRADE_ALGOS = [
+# TICKERS_FOR_TRADE_ALGOS = [
+#     "SPY",
+#     "TSLA",
+#     "GOOGL",
+#     "ROKU",
+#     "MSFT",
+#     "CHWY",
+#     "BA",
+# ]
+TICKERS_FOR_CALCULATIONS = [
     "SPY",
     "TSLA",
     "GOOGL",
@@ -222,18 +231,7 @@ TICKERS_FOR_TRADE_ALGOS = [
     "MSFT",
     "CHWY",
     "BA",
-
 ]
-TICKERS_FOR_CALCULATIONS = {
-    "SPY",
-    "TSLA",
-    "GOOGL",
-    "ROKU",
-    "MSFT",
-    "CHWY",
-    "BA",
-
-}
 # TODO sometimes took 60-90. with 12 max open orders. 14/10 calc/trade.    With processpool in calc and max open oorders <=6, taking
 # Stalled again with these.  going to try just 3 for each and see if it can run all day. since i should be able to reacearete processeddata now since ive added ohlc and ta to getoptions. TICKERS_FOR_TRADE_ALGOS = [
 #     "SPY",
@@ -331,8 +329,9 @@ async def handle_ticker_cycle(session, ticker):
                             ticker in TICKERS_FOR_TRADE_ALGOS
                             and optionchain is not None
                             and not optionchain.empty
-                            # and order_manager.ib.isConnected()
+                            and order_manager.ib.isConnected()
                         ):
+                            print("ordermanager connected. doing trade algos")
                             asyncio.create_task(
                                 trade_algos(
                                     optionchain,
@@ -343,6 +342,15 @@ async def handle_ticker_cycle(session, ticker):
                                     current_time,
                                 )
                             )
+                            # await trade_algos(
+                            #         optionchain,
+                            #         dailyminutes,
+                            #         processeddata,
+                            #         ticker,
+                            #         CurrentPrice,
+                            #         current_time,
+                            #     )
+                            #
 
         except Exception as e:
             logger.exception(e)
