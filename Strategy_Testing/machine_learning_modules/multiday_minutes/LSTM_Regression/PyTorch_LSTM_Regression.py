@@ -16,7 +16,7 @@ import os
 
 print(os.getcwd())
 study_name = "4hrminimize_valloss3"
-DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_minprior_231002.csv"
+DF_filename = r"../../../../data/historical_multiday_minute_DF/SPY_historical_multiday_min.csv"
 Chosen_Predictor = [
     "Bonsai Ratio",
     "PCRv Up4",
@@ -35,13 +35,13 @@ Chosen_Predictor = [
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
 ml_dataframe = pd.read_csv(DF_filename)
 print("Columns in Data:", ml_dataframe.columns)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
-    lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
-)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
-    lambda x: x.timestamp()
-)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"] / (60 * 60 * 24 * 7)
+# ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+#     lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
+# )
+# ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+#     lambda x: x.timestamp()
+# )
+# ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"] / (60 * 60 * 24 * 7)
 ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)

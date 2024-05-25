@@ -2,7 +2,7 @@ tickers:
   SPY:
     study_name: SPY_ptminclassA1Base_3hr40ptdown
     df_filename:
-      C:\Users\del_p\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv
+      C:\Users\natha\PycharmProjects\StockAlgoV2\data\historical_multiday_minute_DF\SPY_historical_multiday_min.csv
     chosen_predictors:
       [Current Stock Price, Current SP % Change(LAC), Bonsai Ratio, Bonsai Ratio 2, B1/B2, PCR-Vol, PCRv @CP Strike, PCRv Up1, PCRv Up2, PCRv Up3, PCRv Up4, PCRv Down2, PCRoi Up4, PCRoi Down3, ITM PCR-Vol, ITM PCRv Up1, ITM PCRv Up2, ITM PCRv Up3, ITM PCRv Up4, ITM PCRv Down1, ITM PCRv Down2, ITM PCRv Down3, ITM PCRv Down4, Net_IV, Net ITM IV, Net IV MP, Net IV LAC, Net_IV/OI, Closest Strike to CP]
     cells_forward_to_check: 180

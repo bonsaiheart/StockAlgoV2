@@ -5,22 +5,14 @@ from datetime import datetime
 from joblib import dump
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import SelectFromModel
-
-import numpy as np
 import optuna
 import pandas as pd
-import torch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, recall_score
 from sklearn.model_selection import KFold
-from sklearn.preprocessing import RobustScaler
-from torchmetrics import Accuracy, Precision, Recall, F1Score
 
-DF_filename = r"../../../../data/historical_multiday_minute_DF/older/SPY_historical_multiday_min.csv"
+DF_filename = r"../../../../data/historical_multiday_minute_DF//SPY_historical_multiday_min.csv"
 # TODO add early stop or no?
-# from tensorflow.keras.callbacks import EarlyStopping
 """use lasso?# Sample data
 data = load_iris()
 X, y = data.data, data.target
@@ -140,12 +132,12 @@ ml_dataframe = pd.read_csv(DF_filename)
 print(ml_dataframe.columns)
 # ##had highest corr for 3-5 hours with these:
 # Chosen_Predictor = ['Bonsai Ratio','Bonsai Ratio 2','ITM PCR-Vol','ITM PCRoi Up1', 'RSI14','AwesomeOsc5_34', 'Net_IV']
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
-    lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
-)
-ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
-    lambda x: x.timestamp()
-)
+# ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+#     lambda x: datetime.strptime(str(x), "%y%m%d_%H%M") if not pd.isna(x) else np.nan
+# )
+# ml_dataframe["LastTradeTime"] = ml_dataframe["LastTradeTime"].apply(
+#     lambda x: x.timestamp()
+# )
 ml_dataframe["ExpDate"] = ml_dataframe["ExpDate"].astype(float)
 
 cells_forward_to_check = 3 * 60  # rows to check(minutes in this case)
@@ -175,6 +167,15 @@ y = ml_dataframe["Target"].copy()
 X = ml_dataframe[Chosen_Predictor].copy()
 X.reset_index(drop=True, inplace=True)
 y.reset_index(drop=True, inplace=True)
+str_columns = X[Chosen_Predictor].select_dtypes(include='object').columns
+
+for col in str_columns:
+    try:
+        X[col] = pd.to_numeric(X[col], errors='coerce')
+    except ValueError as e:
+        print(f"Error converting column {col}: {e}")
+        # Optionally, you can drop the column if it cannot be converted
+        # X.drop(col, axis=1, inplace=True)
 
 largenumber = 1e5
 X[Chosen_Predictor] = np.clip(X[Chosen_Predictor], -largenumber, largenumber)
@@ -199,7 +200,7 @@ print(
 )
 
 #
-test_set_percentage = 0.2  # Specify the percentage of the data to use as a test set
+test_set_percentage = 0.3  # Specify the percentage of the data to use as a test set
 split_index = int(len(X) * (1 - test_set_percentage))
 
 X_test = X[split_index:]
@@ -287,6 +288,79 @@ def train_model(trial, X, y):
         "best_model": best_model,
     }
 
+def train_FINAL_model(dict, X, y):
+    # Extract hyperparameters from trial object
+    n_estimators = dict['n_estimators']
+    max_depth = dict["max_depth"]
+    min_samples_split = dict["min_samples_split"]
+    min_samples_leaf = dict["min_samples_leaf"]
+    max_features = dict["max_features"]
+    criterion = dict["criterion"]
+    bootstrap = dict["bootstrap"]
+    class_weight = dict['class_weight']
+    # warm_start = trial.suggest_categorical("warm_start", [True, False])
+
+    best_model = None
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    X_np = X.to_numpy()
+
+    best_f1, best_precision, best_recall = 0, 0, 0
+    total_f1, total_precision, total_recall = 0, 0, 0
+    num_folds = 0
+
+    for train_index, val_index in kf.split(X_np):
+        X_train, X_val = X_np[train_index], X_np[val_index]
+        y_train, y_val = y[train_index], y[val_index]
+
+        # Fit the scaler on the training data
+        # scaler_X_fold = RobustScaler().fit(X_train)
+        # X_train_scaled = scaler_X_fold.transform(X_train)
+        # X_val_scaled = scaler_X_fold.transform(X_val)
+
+        # Create and train the RandomForest model
+        rf_classifier = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            max_features=max_features,
+            criterion=criterion,
+            bootstrap=bootstrap,
+            class_weight=class_weight,
+            warm_start=False,
+            random_state=0,
+        )
+        rf_classifier.fit(X_train, y_train)
+
+        # Predict on validation data
+        y_pred = rf_classifier.predict(X_val)
+
+        # Compute metrics
+        f1 = f1_score(y_val, y_pred)
+        precision = precision_score(y_val, y_pred)
+        recall = recall_score(y_val, y_pred)
+
+        # Update best scores
+        if f1 > best_f1:
+            best_f1 = f1
+            best_precision = precision
+            best_recall = recall
+            best_model = rf_classifier
+        total_f1 += f1
+        total_precision += precision
+        total_recall += recall
+        num_folds += 1
+
+    avg_f1 = total_f1 / num_folds
+    avg_precision = total_precision / num_folds
+    avg_recall = total_recall / num_folds
+
+    return {
+        "avg_f1": avg_f1,
+        "avg_precision": avg_precision,
+        "avg_recall": avg_recall,
+        "best_model": best_model,
+    }
 
 # Define Optuna Objective
 def objective(trial):
@@ -334,21 +408,16 @@ except KeyError:
     )
 "Keyerror, new optuna study created."  #
 
-study.optimize(objective, n_trials=5000)
+# study.optimize(objective, n_trials=5000)
 best_params = study.best_params
 #
 # best_params ={'batch_size': 1197, 'dropout_rate': 0.4608394623321738, 'l1_lambda': 0.01320220981011121, 'learning_rate': 1.1625919878731402e-05, 'lr_scheduler': 'ReduceLROnPlateau', 'lrpatience': 10, 'num_epochs': 211, 'num_hidden_units': 114, 'num_layers': 5, 'optimizer': 'RMSprop', 'weight_decay': 0.00013649093677743602}
 # best_params = {'batch_size': 972, 'dropout_rate': 0.23030333490770447, 'gamma': 0.3089135336987861, 'l1_lambda': 0.0950910207258489, 'learning_rate': 1.5716591458439578e-05, 'lr_scheduler': 'StepLR', 'num_epochs': 153, 'num_hidden_units': 2520, 'num_layers': 5, 'optimizer': 'Adam', 'step_size': 45, 'weight_decay': 0.09863209738072187}
 #####################################################################################################
 # ################
-n_estimators = best_params["n_estimators"]
-max_depth = best_params["max_depth"]
-min_samples_split = best_params["min_samples_split"]
-min_samples_leaf = best_params["min_samples_leaf"]
-max_features = best_params["max_features"]
 
 print("~~~~training model using best params.~~~~")
-results = train_model(best_params, X, y)
+results = train_FINAL_model(best_params, X, y)
 
 
 trained_rf = results["best_model"]

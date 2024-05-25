@@ -17,7 +17,7 @@ def create_model(ticker):
     with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
 
-    tuning_mode =False
+    tuning_mode =True
     n_trials = 0
 
     # Dynamically generate study name and filename

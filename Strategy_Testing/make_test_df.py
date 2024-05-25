@@ -1,5 +1,7 @@
 import datetime as dt
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 
 # Define the base directory relative to the current script
@@ -30,14 +32,16 @@ def get_1st_frames_to_make_dailyminute_df(ticker):
 
 def get_dailyminutes_make_single_multiday_df(ticker):
     ticker = ticker.upper()
-    dailyminutes_dir = base_dir / "data" / "DailyMinutes" / ticker
+    # dailyminutes_dir = base_dir / "data" / "DailyMinutes" / ticker
+    #FOR using the 8gb external
+    dailyminutes_dir = Path(r"H:\stockalgo_data\data") / "dailyminutes" / ticker  # Use Path
     list_of_df = []
 
     for filename in sorted(dailyminutes_dir.glob("*.csv")):
         print(filename)
         dataframe_slice = pd.read_csv(filename)
         list_of_df.append(dataframe_slice)
-
+    print(ticker)
     print(list_of_df[-1])
     df = pd.concat(list_of_df, ignore_index=True)
 
@@ -56,6 +60,17 @@ def get_dailyminutes_make_single_multiday_df(ticker):
 
 
 def corr_minute_df(ticker, df):
+    datetime_cols = df.select_dtypes(include=['datetime64[ns]']).columns
+    for col in datetime_cols:
+        df[col] = pd.to_numeric(df[col].astype(np.int64) // 10**9)
+
+    # Identify and convert columns with mixed types to numeric
+    mixed_type_cols = df.select_dtypes(include='object').columns
+    for col in mixed_type_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # # Drop NaN values introduced by coercion
+    # df.dropna(inplace=True)
     df["B1% Change"] = (
         (df["Bonsai Ratio"] - df["Bonsai Ratio"].shift(1)) / df["Bonsai Ratio"].shift(1)
     ) * 100
@@ -224,12 +239,17 @@ def daily_series_prep_for_backtest(ticker, df):
 
 if __name__ == "__main__":
     tickerlist_file = base_dir / "UTILITIES" / "tickerlist.txt"
+
     with open(tickerlist_file, "r") as f:
         tickerlist = [line.strip().upper() for line in f.readlines()]
 
     for ticker in tickerlist:
-        try:
-            get_dailyminutes_make_single_multiday_df(ticker)
-        except Exception as e:
-            print(f"Error processing {ticker}: {e}")
+        # try:
+        # get_dailyminutes_make_single_multiday_df(ticker)
+        multiday_df_path = base_dir / "data" / "historical_multiday_minute_DF" / f"{ticker.upper()}_historical_multiday_min.csv"
+        multiday_df = pd.read_csv(multiday_df_path, low_memory=False)
+
+        corr_minute_df(ticker,multiday_df)
+        # except Exception as e:
+        #     print(f"Error processing {ticker}: {e}")
 #TODO make a function that will make multiday historical df from optionchaindata. by runing thru calculations.

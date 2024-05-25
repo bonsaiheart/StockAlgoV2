@@ -22,6 +22,19 @@ def perform_operations(
         optionchain_df = optionchaindf
     optionchain_df["Put_IV"] = optionchain_df["p_greeks"].str.get("mid_iv")
     optionchain_df["Call_IV"] = optionchain_df["c_greeks"].str.get("mid_iv")
+
+    # Create an empty column to hold the results
+    optionchain_df["strike_lac_diff"] = 0
+
+    # Pre-calculate all differences
+    all_strike_lac_diffs = optionchain_df.apply(
+        lambda row: abs(row["Strike"] - last_adj_close), axis=1
+    )
+    optionchain_df["strike_lac_diff"] = all_strike_lac_diffs
+
+    # No need to calculate within the loop anymore
+
+
     groups = optionchain_df.groupby("ExpDate")
     # # Calculate strike_lac_diff ONCE before the loop edit, nvm, not all expdates have same strikes.
     # optionchain_df["strike_lac_diff"] = optionchain_df["Strike"].apply(lambda x: abs(x - last_adj_close))
@@ -163,7 +176,7 @@ def perform_operations(
 
         ###############################
         if not group.empty:
-            smallest_change_from_lac = optionchain_df["strike_lac_diff"].abs().idxmin()
+            smallest_change_from_lac = group["strike_lac_diff"].abs().idxmin()
             closest_strike_lac = group.loc[smallest_change_from_lac, "Strike"]
 
             # Find index of row with the closest strike to the current price
