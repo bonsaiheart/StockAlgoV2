@@ -23,8 +23,8 @@ def perform_operations(
     optionchain_df["Put_IV"] = optionchain_df["p_greeks"].str.get("mid_iv")
     optionchain_df["Call_IV"] = optionchain_df["c_greeks"].str.get("mid_iv")
     groups = optionchain_df.groupby("ExpDate")
-    # Calculate strike_lac_diff ONCE before the loop
-    optionchain_df["strike_lac_diff"] = optionchain_df["Strike"].apply(lambda x: abs(x - last_adj_close))
+    # # Calculate strike_lac_diff ONCE before the loop edit, nvm, not all expdates have same strikes.
+    # optionchain_df["strike_lac_diff"] = optionchain_df["Strike"].apply(lambda x: abs(x - last_adj_close))
 
     # divide into groups by exp date, call info from group.
     for exp_date, group in groups:
