@@ -385,7 +385,10 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # print(open)
     high = quote_df.at[0, "high"]
     low = quote_df.at[0, "low"]
+    close = quote_df.at[0, "close"]
     average_volume = quote_df.at[0, "average_volume"]
+    if average_volume < 1:
+        print(average_volume,"AVERGAGE VIOLUYME")
     last_volume = quote_df.at[0, "last_volume"]
 
     # print(high)
@@ -406,6 +409,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
     callsChain = []
     putsChain = []
+    #TODO should i use url = "https://api.tradier.com/v1/markets/options/lookup" to get all contracts?
     try:
         all_option_chains = await get_option_chains_concurrently(
             session, ticker, expiration_dates, headers
@@ -437,24 +441,24 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         # df["delta"] = df["greeks"].str.get("delta")
     # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
-    columns_to_keep = [
-        "symbol",
-        "trade_date",
-        "last",
-        "bid",
-        "ask",
-        "change",
-        "change_percentage",
-        "volume",
-        "open_interest",
-        "greeks",
-        "delta",
-        "ExpDate",
-        "Strike",
-        "lastPriceXoi",
-        "impliedVolatility",
-        "dollarsFromStrikeXoi",
-    ]
+    # columns_to_keep = [
+    #     "symbol",
+    #     "trade_date",
+    #     "last",
+    #     "bid",
+    #     "ask",
+    #     "change",
+    #     "change_percentage",
+    #     "volume",
+    #     "open_interest",
+    #     "greeks",
+    #     "delta",
+    #     "ExpDate",
+    #     "Strike",
+    #     "lastPriceXoi",
+    #     "impliedVolatility",
+    #     "dollarsFromStrikeXoi",
+    # ]
     # TODO commetned this out 240105
     # # Columns to drop (all columns that are not in 'columns_to_keep')
     # columns_to_drop_calls = [
@@ -487,6 +491,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "change": "change",
         "change_percentage": "percentChange",
         "volume": "volume",
+
         "open_interest": "openInterest",
         # "delta": "delta",
         "greeks": "greeks",
@@ -532,6 +537,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "open",
         "high",
         "low",
+        "close",
         "average_volume",
         "last_volume",
     ]:
@@ -541,8 +547,8 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     first_index = combined.index[0]  # Get the first index of the DataFrame
     combined.loc[
         first_index,
-        ["LAC", "CurrentPrice", "open", "high", "low", "average_volume", "last_volume"],
-    ] = [LAC, CurrentPrice, open, high, low, average_volume, last_volume]
+        ["LAC", "CurrentPrice", "open", "high", "low","close", "average_volume", "last_volume"],
+    ] = [LAC, CurrentPrice, open, high, low,close, average_volume, last_volume]
 
     combined.rename(columns=rename_dict_combined, inplace=True)
     ####################
