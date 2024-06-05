@@ -263,7 +263,8 @@ async def post_market_quotes(symbols, real_auth):
     # Convert list of symbols into a comma-separated string
     symbols_str = ",".join(symbols)  # Assuming 'symbols' is a list
 
-    payload = {"symbols": symbols_str, "greeks": "false"} # Data for the POST request
+
+    payload = {"symbols": f"{symbols_str}", "greeks": "true"} # Data for the POST request
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -273,8 +274,9 @@ async def post_market_quotes(symbols, real_auth):
 
                 if "quotes" in data and "quote" in data["quotes"]:
                     quotes = data["quotes"]["quote"]
-                    quotes = [quotes]
+
                     if isinstance(quotes, dict):  # Check if single quote
+                        print("is single quote")
                         quotes = [quotes]
                     return pd.DataFrame(quotes)
                 else:
@@ -331,6 +333,7 @@ async def lookup_all_option_contracts(session, underlying, real_auth):
             if "symbols" in data and data["symbols"]:
                 option_contracts = data['symbols'][0]['options']
                 sorted_contracts = sorted(option_contracts)
+
                 #print(sorted_contracts)  # You might want to handle the output differently
                 return sorted_contracts
             else:
@@ -352,11 +355,12 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
             headers=headers,
         )
     )
+    all_contracts = await lookup_all_option_contracts(
+        session, ticker, real_auth
+    )
     # Fetch option chain data and market quotes concurrently
-    tasks.append(post_market_quotes(
-        lookup_all_option_contracts(
-            session, ticker, real_auth
-        ),real_auth)
+    tasks.append(post_market_quotes(all_contracts
+        ,real_auth)
     )
     # tasks.append(
     #     fetch(
@@ -423,6 +427,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
 
     if all_contract_quotes is not None:
+        print("all_contrats", type(all_contract_quotes),all_contract_quotes)
         grouped = all_contract_quotes.groupby("option_type")
         calls_df = grouped.get_group("call").copy()
         puts_df = grouped.get_group("put").copy()
@@ -434,8 +439,8 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # Calculate new columns
     for df in [calls_df, puts_df]:
         df['Moneyness'] = np.where(df['option_type'] == 'call',
-                                   df['strike'] - LAC,
-                                   LAC - df['strike'])
+                                   df['strike'] - CurrentPrice,
+                                   CurrentPrice - df['strike'])
 
         # df["LACdollarsFromStrike"] = abs(df["strike"] - LAC)
         df["dollarsFromStrike"] = abs(df["strike"] - LAC)
@@ -522,7 +527,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "p_dollarsFromStrikeXoi": "Puts_dollarsFromStrikeXoi",
         "p_lastPriceXoi": "Puts_lastPriceXoi",
     }
-
+    combined.rename(columns=rename_dict_combined, inplace=True)
     for column in [
         "LAC",
         "CurrentPrice",
@@ -542,7 +547,7 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         ["LAC", "CurrentPrice", "open", "high", "low","close", "average_volume", "last_volume"],
     ] = [LAC, CurrentPrice, open, high, low,close, average_volume, last_volume]
 
-    combined.rename(columns=rename_dict_combined, inplace=True)
+
     ####################
     # for option in json_response["options"]["option"]:
     #     print(option["symbol"], option["open_interest"])
