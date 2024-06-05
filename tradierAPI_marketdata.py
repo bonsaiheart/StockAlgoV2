@@ -6,6 +6,7 @@ import aiohttp
 import numpy as np
 import pandas as pd
 import ta
+from ta import momentum,trend,volume,volatility
 from UTILITIES.logger_config import logger
 
 
@@ -255,51 +256,33 @@ np.seterr(divide="ignore", invalid="ignore")
 
 sem = asyncio.Semaphore(2)  # Adjust the number as appropriate was10
 
+async def post_market_quotes(symbols, real_auth):
+    url = "https://api.tradier.com/v1/markets/quotes"
+    headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
-async def get_option_chain(session, ticker, exp_date, headers):
-    url = "https://api.tradier.com/v1/markets/options/chains"
-    params = {"symbol": ticker, "expiration": exp_date, "greeks": "true"}
+    # Convert list of symbols into a comma-separated string
+    symbols_str = ",".join(symbols)  # Assuming 'symbols' is a list
+
+    payload = {"symbols": symbols_str, "greeks": "false"} # Data for the POST request
+
     try:
-        async with sem:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=payload, headers=headers) as response:
+                response.raise_for_status()
+                data = await response.json()
 
-            json_response = await fetch(session, url, params, headers)
-
-            if json_response is None:
-                raise OptionChainError(
-                    f"NONE chain data for {ticker} (in traideierapi.get_options_chain"
-                )
-
-            if (
-                json_response
-                and "options" in json_response
-                and "option" in json_response["options"]
-            ):
-                optionchain_df = pd.DataFrame(json_response["options"]["option"])
-                return optionchain_df
-            else:
-                logger.error(
-                    f"Failed to retrieve option chain data for ticker {ticker}: json_response or required keys are missing"
-                )
-                return None  # Or another appropriate response to indicate failure
-    except Exception as e:
-        raise
-
-
-async def get_option_chains_concurrently(session, ticker, expiration_dates, headers):
-    try:
-        tasks = [
-            get_option_chain(session, ticker, exp_date, headers)
-            for exp_date in expiration_dates
-        ]
-        all_option_chains = await asyncio.gather(*tasks)
-
-        # Check if any of the option chains is None and return None immediately
-        if any(chain is None for chain in all_option_chains):
-            return None
-
-        return all_option_chains
-    except Exception as e:
-        raise  # Re-raise the exception to the caller
+                if "quotes" in data and "quote" in data["quotes"]:
+                    quotes = data["quotes"]["quote"]
+                    quotes = [quotes]
+                    if isinstance(quotes, dict):  # Check if single quote
+                        quotes = [quotes]
+                    return pd.DataFrame(quotes)
+                else:
+                    print(f"Error: No market quote data found for {symbols}.")
+                    return None
+    except aiohttp.ClientError as e:
+        print(f"Error fetching market quotes: {e}")
+        return None  # Return None to handle the error gracefully
 
 
 async def fetch(session, url, params, headers):
@@ -335,7 +318,26 @@ async def fetch(session, url, params, headers):
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
 
+async def lookup_all_option_contracts(session, underlying, real_auth):
+    url = "https://api.tradier.com/v1/markets/options/lookup"
+    params = {"underlying": underlying}
+    headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
+    try:
+        async with session.get(url, params=params, headers=headers) as response:
+            response.raise_for_status()  # Raise an exception for bad responses
+            data = await response.json()
+
+            if "symbols" in data and data["symbols"]:
+                option_contracts = data['symbols'][0]['options']
+                sorted_contracts = sorted(option_contracts)
+                #print(sorted_contracts)  # You might want to handle the output differently
+                return sorted_contracts
+            else:
+                raise Exception(f"No option lookup data found for {underlying}.")
+    except aiohttp.ClientError as e:
+        print(f"Error fetching option contracts: {e}")
+        return None  # Return None or handle the error in a more specific way
 async def get_options_data(session, ticker, YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
@@ -350,20 +352,24 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
             headers=headers,
         )
     )
-
-    tasks.append(
-        fetch(
-            session,
-            "https://api.tradier.com/v1/markets/options/expirations",
-            params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"},
-            headers=headers,
-        )
+    # Fetch option chain data and market quotes concurrently
+    tasks.append(post_market_quotes(
+        lookup_all_option_contracts(
+            session, ticker, real_auth
+        ),real_auth)
     )
+    # tasks.append(
+    #     fetch(
+    #         session,
+    #         "https://api.tradier.com/v1/markets/options/expirations",
+    #         params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"},
+    #         headers=headers,
+    #     )
+    # )
 
     # # Wait for all tasks to complete
-    # responses = await asyncio.gather(*tasks, return_exceptions=False) #was true
     try:
-        responses = await asyncio.gather(*tasks)  # Default is return_exceptions=False
+        quotes_response = await asyncio.gather(*tasks)  # Default is return_exceptions=False
     except Exception as e:
         logger.error(f"An error occurred in fetching data: {e}")
         raise
@@ -373,12 +379,9 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     #         logger.error(f"An error occurred in fetching data: {response}")
     #         raise response
 
-    # Process responses
-    quotes_response = responses[0]
-    expirations_response = responses[1]
-
+    ticker_quote, all_contract_quotes = quotes_response[0],quotes_response[1]
     quote_df = pd.DataFrame.from_dict(
-        quotes_response["quotes"]["quote"], orient="index"
+        ticker_quote["quotes"]["quote"], orient="index"
     ).T
     LAC = quote_df.at[0, "prevclose"]
     open = quote_df.at[0, "open"]
@@ -387,8 +390,8 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     low = quote_df.at[0, "low"]
     close = quote_df.at[0, "close"]
     average_volume = quote_df.at[0, "average_volume"]
-    if average_volume < 1:
-        print(average_volume,"AVERGAGE VIOLUYME")
+    # if average_volume < 1:
+    #     print(average_volume,"AVERGAGE VIOLUYME")
     last_volume = quote_df.at[0, "last_volume"]
 
     # print(high)
@@ -404,61 +407,50 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "%y%m%d_%H%M"
     )
 
-    expirations = expirations_response["expirations"]["expiration"]
-    expiration_dates = [expiration["date"] for expiration in expirations]
+    # expirations = expirations_response["expirations"]["expiration"]
+    # expiration_dates = [expiration["date"] for expiration in expirations]
 
-    callsChain = []
-    putsChain = []
+    # callsChain = []
+    # putsChain = []
     #TODO should i use url = "https://api.tradier.com/v1/markets/options/lookup" to get all contracts?
-    try:
-        all_option_chains = await get_option_chains_concurrently(
-            session, ticker, expiration_dates, headers
-        )
-    except OptionChainError as e:
-        logger.error(e)
-        raise  # Re-raise the exception to the caller
+    # try:
+    #     all_option_chains = await get_option_chains_concurrently(
+    #         session, ticker, headers
+    #     )
+    # except OptionChainError as e:
+    #     logger.error(e)
+    #     raise  # Re-raise the exception to the caller
 
-    for optionchain_df in all_option_chains:
-        if optionchain_df is not None:
-            grouped = optionchain_df.groupby("option_type")
-            call_group = grouped.get_group("call").copy()
-            put_group = grouped.get_group("put").copy()
-            callsChain.append(call_group)
-            putsChain.append(put_group)
 
-    calls_df = pd.concat(callsChain, ignore_index=True)
-    puts_df = pd.concat(putsChain, ignore_index=True)
-    # Columns to keep
+    if all_contract_quotes is not None:
+        grouped = all_contract_quotes.groupby("option_type")
+        calls_df = grouped.get_group("call").copy()
+        puts_df = grouped.get_group("put").copy()
+        # callsChain.append(call_group)
+        # putsChain.append(put_group)
+
+
 
     # Calculate new columns
     for df in [calls_df, puts_df]:
+        df['Moneyness'] = np.where(df['option_type'] == 'call',
+                                   df['strike'] - LAC,
+                                   LAC - df['strike'])
+
+        # df["LACdollarsFromStrike"] = abs(df["strike"] - LAC)
         df["dollarsFromStrike"] = abs(df["strike"] - LAC)
         df["ExpDate"] = df["symbol"].str[-15:-9]
         df["Strike"] = df["strike"]
+
+        # df["LACdollarsFromStrikeXoi"] = df["LACdollarsFromStrike"] * df["open_interest"]
         df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
+        df["MoneynessXoi"] = df["Moneyness"] * df["open_interest"]
         df["lastPriceXoi"] = df["last"] * df["open_interest"]
         # df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
         # df["delta"] = df["greeks"].str.get("delta")
     # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
     # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
-    # columns_to_keep = [
-    #     "symbol",
-    #     "trade_date",
-    #     "last",
-    #     "bid",
-    #     "ask",
-    #     "change",
-    #     "change_percentage",
-    #     "volume",
-    #     "open_interest",
-    #     "greeks",
-    #     "delta",
-    #     "ExpDate",
-    #     "Strike",
-    #     "lastPriceXoi",
-    #     "impliedVolatility",
-    #     "dollarsFromStrikeXoi",
-    # ]
+
     # TODO commetned this out 240105
     # # Columns to drop (all columns that are not in 'columns_to_keep')
     # columns_to_drop_calls = [
@@ -497,7 +489,9 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "greeks": "greeks",
         # "impliedVolatility": "impliedVolatility",
         "dollarsFromStrike": "dollarsFromStrike",
+        # "LACdollarsFromStrike": "LACdollarsFromStrike",
         "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
+        # "LACdollarsFromStrikeXoi": "LACdollarsFromStrikeXoi",
         "lastPriceXoi": "lastPriceXoi",
     }
     # TODO change all columns to use standasrdized.. some are c_ some are Calls_ etc.
@@ -513,24 +507,22 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
         "c_volume": "Call_Volume",
         "c_openInterest": "Call_OI",
         # "c_impliedVolatility": "Call_IV",
+        # "c_LACdollarsFromStrike": "Calls_LACdollarsFromStrike",
         "c_dollarsFromStrike": "Calls_dollarsFromStrike",
+        # "c_LACdollarsFromStrikeXoi": "Calls_LACdollarsFromStrikeXoi",
         "c_dollarsFromStrikeXoi": "Calls_dollarsFromStrikeXoi",
         "c_lastPriceXoi": "Calls_lastPriceXoi",
         "p_lastPrice": "Put_LastPrice",
         "p_volume": "Put_Volume",
         "p_openInterest": "Put_OI",
         # "p_impliedVolatility": "Put_IV",
+        # "p_LACdollarsFromStrike": "Puts_LACdollarsFromStrike",
         "p_dollarsFromStrike": "Puts_dollarsFromStrike",
+        # "p_LACdollarsFromStrikeXoi": "Puts_LACdollarsFromStrikeXoi",
         "p_dollarsFromStrikeXoi": "Puts_dollarsFromStrikeXoi",
         "p_lastPriceXoi": "Puts_lastPriceXoi",
     }
-    # combined["LAC"] = LAC
-    # combined["CurrentPrice"] = CurrentPrice
-    # combined["open"] = open
-    # combined["high"] = high
-    # combined["low"] = low
-    # combined["average_volume"] = average_volume
-    # combined["last_volume"] = last_volume
+
     for column in [
         "LAC",
         "CurrentPrice",
