@@ -481,7 +481,7 @@ def perform_operations(
                             NIV_1HigherStrike
                             + NIV_2HigherStrike
                             + NIV_1LowerStrike
-                            + NIV_2LowerStrike
+                            + NIV_2LowerStrike + 2e-308 #to remove possible div. by 0
                         )
                         / 4
                     )
@@ -509,7 +509,7 @@ def perform_operations(
                             + NIV_1LowerStrike
                             + NIV_2LowerStrike
                             + NIV_3LowerStrike
-                            + NIV_4LowerStrike
+                            + NIV_4LowerStrike + 2e-308 #to remove possible div. by 0
                         )
                         / 8
                     )

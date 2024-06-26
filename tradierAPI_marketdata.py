@@ -254,37 +254,66 @@ YYMMDD = datetime.today().strftime("%y%m%d")
 # TODO for now this ignores the divede by zero warnings.
 np.seterr(divide="ignore", invalid="ignore")
 
-sem = asyncio.Semaphore(2)  # Adjust the number as appropriate was10
+sem = asyncio.Semaphore(1)  # Adjust the number as appropriate was10
 
-async def post_market_quotes(symbols, real_auth):
+import math
+
+
+
+
+
+async def post_market_quotes(session, ticker, real_auth):
     url = "https://api.tradier.com/v1/markets/quotes"
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+    all_contracts = await lookup_all_option_contracts(session, ticker, real_auth)
 
-    # Convert list of symbols into a comma-separated string
-    symbols_str = ",".join(symbols)  # Assuming 'symbols' is a list
+    # Batching logic
+    BATCH_SIZE = 8000
+    num_batches = math.ceil(len(all_contracts) / BATCH_SIZE)
+    results = []
+    timeout = aiohttp.ClientTimeout(total=45)
+    for batch_num in range(num_batches):
+        start_idx = batch_num * BATCH_SIZE
+        end_idx = (batch_num + 1) * BATCH_SIZE
+        batch_contracts = all_contracts[start_idx:end_idx]
+        symbols_str = ",".join(batch_contracts)
 
+        payload = {"symbols": symbols_str, "greeks": "true"}
 
-    payload = {"symbols": f"{symbols_str}", "greeks": "true"} # Data for the POST request
+        try:
+            async with sem:
+                async with session.post(url, data=payload, headers=headers,timeout=timeout) as response:
+                    response.raise_for_status()  # Raise an exception for HTTP errors
+                    data = await response.json()
+                    rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
+                    rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
+                    # print(rate_limit_allowed,rate_limit_used)
+                    # Check if rate limit used exceeds allowed
+                    # limit
+                    if rate_limit_used >= (rate_limit_allowed * 0.99):
+                        logger.error(
+                            f"POST_{url},----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
+                        )
+                    print( f"POST_{url}, {ticker},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
+                    if "quotes" in data and "quote" in data["quotes"]:
+                        quotes = data["quotes"]["quote"]
+                        # if isinstance(quotes, dict):  Dont think i need this... was to make sure whern theres 1 batch, its still list.
+                        #     quotes = [quotes]
+                        # print(type(quotes))
+                        results.append(pd.DataFrame(quotes))
 
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=payload, headers=headers) as response:
-                response.raise_for_status()
-                data = await response.json()
+                    else:
+                        print(f"Error: No market quote data found for {ticker} (batch {batch_num}).")
+                        raise Exception
+            await asyncio.sleep(0.1)  # Short delay to avoid overwhelming API (adjust as needed)
 
-                if "quotes" in data and "quote" in data["quotes"]:
-                    quotes = data["quotes"]["quote"]
+        except aiohttp.ClientError as e:
+            print(f"Error fetching market quotes (batch {batch_num}): {e}")
 
-                    if isinstance(quotes, dict):  # Check if single quote
-                        print("is single quote")
-                        quotes = [quotes]
-                    return pd.DataFrame(quotes)
-                else:
-                    print(f"Error: No market quote data found for {symbols}.")
-                    return None
-    except aiohttp.ClientError as e:
-        print(f"Error fetching market quotes: {e}")
-        return None  # Return None to handle the error gracefully
+    # Combine results and handle potential empty results
+    combined_df = pd.concat(results, ignore_index=True) if results else None
+    return combined_df
+
 
 
 async def fetch(session, url, params, headers):
@@ -306,6 +335,7 @@ async def fetch(session, url, params, headers):
                     f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
                 )
                 # await asyncio.sleep(5)
+            print( f"get_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
             if "application/json" in content_type:
                 return await response.json()
             else:
@@ -320,27 +350,29 @@ async def fetch(session, url, params, headers):
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
 
-async def lookup_all_option_contracts(session, underlying, real_auth):
-    url = "https://api.tradier.com/v1/markets/options/lookup"
-    params = {"underlying": underlying}
-    headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
-    try:
-        async with session.get(url, params=params, headers=headers) as response:
-            response.raise_for_status()  # Raise an exception for bad responses
-            data = await response.json()
+async def lookup_all_option_contracts(session, underlying, real_auth):  # Add 'sem' as argument
+    async with sem:  # Acquire the semaphore before making the request
+        url = "https://api.tradier.com/v1/markets/options/lookup"
+        params = {"underlying": underlying}
+        headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
-            if "symbols" in data and data["symbols"]:
-                option_contracts = data['symbols'][0]['options']
-                sorted_contracts = sorted(option_contracts)
+        try:
+            async with session.get(url, params=params, headers=headers) as response:
+                response.raise_for_status()
+                data = await response.json()
+                rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
+                rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
+                print( f"lookup_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
 
-                #print(sorted_contracts)  # You might want to handle the output differently
-                return sorted_contracts
-            else:
-                raise Exception(f"No option lookup data found for {underlying}.")
-    except aiohttp.ClientError as e:
-        print(f"Error fetching option contracts: {e}")
-        return None  # Return None or handle the error in a more specific way
+                if "symbols" in data and data["symbols"]:
+                    option_contracts = data["symbols"][0]["options"]
+                    return sorted(option_contracts)
+                else:
+                    raise Exception(f"No option lookup data found for {underlying}.")
+        except aiohttp.ClientError as e:
+            logger.error(f"Error fetching option contracts: {e}")
+            return None
 async def get_options_data(session, ticker, YYMMDD_HHMM):
     headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
@@ -355,22 +387,9 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
             headers=headers,
         )
     )
-    all_contracts = await lookup_all_option_contracts(
-        session, ticker, real_auth
-    )
-    # Fetch option chain data and market quotes concurrently
-    tasks.append(post_market_quotes(all_contracts
-        ,real_auth)
-    )
-    # tasks.append(
-    #     fetch(
-    #         session,
-    #         "https://api.tradier.com/v1/markets/options/expirations",
-    #         params={"symbol": ticker, "includeAllRoots": "true", "strikes": "true"},
-    #         headers=headers,
-    #     )
-    # )
 
+
+    all_contract_quotes = await post_market_quotes(session,ticker,real_auth)
     # # Wait for all tasks to complete
     try:
         quotes_response = await asyncio.gather(*tasks)  # Default is return_exceptions=False
@@ -383,7 +402,8 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     #         logger.error(f"An error occurred in fetching data: {response}")
     #         raise response
 
-    ticker_quote, all_contract_quotes = quotes_response[0],quotes_response[1]
+    ticker_quote = quotes_response[0]
+
     quote_df = pd.DataFrame.from_dict(
         ticker_quote["quotes"]["quote"], orient="index"
     ).T
@@ -425,9 +445,9 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     #     logger.error(e)
     #     raise  # Re-raise the exception to the caller
 
-
+    # print(all_contract_quotes)
     if all_contract_quotes is not None:
-        print("all_contrats", type(all_contract_quotes),all_contract_quotes)
+        # print("all_contrats", type(all_contract_quotes),all_contract_quotes)
         grouped = all_contract_quotes.groupby("option_type")
         calls_df = grouped.get_group("call").copy()
         puts_df = grouped.get_group("put").copy()

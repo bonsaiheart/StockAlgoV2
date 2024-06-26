@@ -104,6 +104,7 @@ async def calculate_operations(
 
     except Exception as e:
         logger.exception(f"Error in calculate_operations for {ticker}: {e}")
+        
         raise
 
 
@@ -231,6 +232,42 @@ TICKERS_FOR_CALCULATIONS = [
     "MSFT",
     "CHWY",
     "BA",
+
+    "SPY",
+"TSLA"
+         ,
+"ROKU"
+         ,
+"CHWY"
+         ,
+"BA"
+         ,
+"CMPS"
+         ,
+"MNMD"
+         ,
+"GOEV"
+         ,
+"W"
+         ,
+"MSFT"
+         ,
+"GOOGL"
+         ,
+"IWM"
+         ,
+"META"
+         ,
+"V"
+         ,
+"WMT"
+         ,
+"JPM"
+         ,
+"AMZN"
+         ,
+"NVDA"
+    ,
 ]
 # TODO sometimes took 60-90. with 12 max open orders. 14/10 calc/trade.    With processpool in calc and max open oorders <=6, taking
 # Stalled again with these.  going to try just 3 for each and see if it can run all day. since i should be able to reacearete processeddata now since ive added ohlc and ta to getoptions. TICKERS_FOR_TRADE_ALGOS = [
