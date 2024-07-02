@@ -134,7 +134,7 @@ def SPY_2hr_50pct_Down_PTNNclass(new_data_df):
         # Adjust min_val based on its sign
         min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
         # Apply the same max_val and min_val to training, validation, and test sets
-        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [max_val, min_val])
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
 
@@ -1130,9 +1130,7 @@ def _3hr_40pt_down_FeatSet2_shuf_exc_test_onlyvalloss(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers
-        tempdf[col].replace(
-            [np.inf, -np.inf], [very_large_number, very_small_number], inplace=True
-        )
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
     tempdf = pd.DataFrame(
         scaler_X.transform(tempdf), columns=features, index=tempdf.index
@@ -1211,7 +1209,7 @@ def SPY_2hr_50pct_Down_PTNNclass_240124(new_data_df):
         min_val = tempdf[col].replace([np.inf, -np.inf], np.nan).min()
         max_val = max_val * 1.5 if max_val >= 0 else max_val / 1.5
         min_val = min_val * 1.5 if min_val < 0 else min_val / 1.5
-        tempdf[col].replace([np.inf, -np.inf], [max_val, min_val], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [max_val, min_val])
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
 
@@ -1250,7 +1248,7 @@ def TSLA_ptminclassA1Base_2hr50ptdown_2401290106(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1290,7 +1288,7 @@ def MSFT_ptminclassA1Base_2hr50ptdown_2401290107(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1330,7 +1328,7 @@ def SPY_ptminclassA1Base_2hr50ptdown_2401290107(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1370,7 +1368,7 @@ def TSLA_ptminclassA1Base_2hr50ptdown_2401292134(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf.replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1410,7 +1408,7 @@ def MSFT_ptminclassA1Base_2hr50ptdown_2401292135(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1450,7 +1448,7 @@ def SPY_ptminclassA1Base_2hr50ptdown_2401292135(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
 
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1490,7 +1488,7 @@ def TSLA_ptminclassA1Base_2hr50ptdown_2401312239(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
         
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1530,7 +1528,7 @@ def MSFT_ptminclassA1Base_2hr50ptdown_2401312239(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
         
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1570,7 +1568,7 @@ def SPY_ptminclassA1Base_2hr50ptdown_2402010049(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
         
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1610,7 +1608,7 @@ def MSFT_ptminclassA1Base_2hr50ptdown_2402010051(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
         
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
@@ -1650,7 +1648,7 @@ def TSLA_ptminclassA1Base_2hr50ptdown_2402010052(new_data_df):
 
     for col in tempdf.columns:
         # Replace positive and negative infinity with the defined large and small numbers. this reaplce the 1.5x multiplier logic.
-        tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number], inplace=True)
+        tempdf[col] = tempdf[col].replace([np.inf, -np.inf], [very_large_number, very_small_number])
         
 
     tempdf = pd.DataFrame(tempdf.values, columns=features, index=tempdf.index)
