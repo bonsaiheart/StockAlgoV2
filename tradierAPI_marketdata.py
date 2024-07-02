@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 import PrivateData.tradier_info
@@ -9,234 +10,190 @@ import ta
 from ta import momentum,trend,volume,volatility
 from UTILITIES.logger_config import logger
 
+# Mapping of intervals to the corresponding number of days to fetch data for
 
+
+# Define your get_ta function
 async def get_ta(session, ticker):
-    start = (datetime.today() - timedelta(days=5)).strftime("%Y-%m-%d %H:%M")
-    end = datetime.today().strftime("%Y-%m-%d %H:%M")
-    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
-    # TODO move this into getoptions data?  then I can run it thru calc ANYTIME b/c it will have all data.  This can be processpooled.
-    time_sale_response = await fetch(
-        session,
-        "https://api.tradier.com/v1/markets/timesales",
-        params={
-            "symbol": ticker,
-            "interval": "1min",
-            "start": start,
-            "end": end,
-            "session_filter": "all",
-        },
-        headers=headers,
-    )
-
-    if (
-        time_sale_response
-        and "series" in time_sale_response
-        and "data" in time_sale_response["series"]
-    ):
-        df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
-    else:
-        print(
-            f"Failed to retrieve TA data for ticker {ticker}: time_sale_response or required keys are missing or None"
-        )
-        return None
-
-    df.index = pd.to_datetime(df.index)
+    days_to_fetch = {
+        "1min": 5,
+        "5min": 20,
+        "15min": 40,
+    }
 
     def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
-        """
-        Safely perform a calculation for a DataFrame and handle exceptions.
-        If an exception occurs, the specified column is filled with NaN.
-        """
         try:
-            df[column_name] = calculation_function(*args, **kwargs)
+           df[column_name] = calculation_function(*args, **kwargs)
         except Exception as e:
             logger.warning(
-                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__},error={e}.  This is usually caused by missing data from yfinance."
+                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__}, error={e}. This is usually caused by missing data from yfinance."
             )
-            df[column_name] = pd.NA
+            df[column_name] = np.nan
 
-    # Usage of safe_calculation function for each indicator
-    safe_calculation(
-        df,
-        "AwesomeOsc",
-        ta.momentum.awesome_oscillator,
-        high=df["high"],
-        low=df["low"],
-        window1=1,
-        window2=5,
-        fillna=False,
-    )
-    safe_calculation(
-        df,
-        "AwesomeOsc5_34",
-        ta.momentum.awesome_oscillator,
-        high=df["high"],
-        low=df["low"],
-        window1=5,
-        window2=34,
-        fillna=False,
-    )
+    async def fetch_and_process_data(interval):
+        start = (datetime.today() - timedelta(days=days_to_fetch[interval])).strftime("%Y-%m-%d %H:%M")
+        end = datetime.today().strftime("%Y-%m-%d %H:%M")
 
-    # For MACD
-    macd_object = ta.trend.MACD(
-        close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
-    )
-    signal_line = macd_object.macd_signal
-    safe_calculation(df, "MACD", macd_object.macd)
-    safe_calculation(df, "Signal_Line", signal_line)
+        headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+        time_sale_response = await fetch(
+            session,
+            "https://api.tradier.com/v1/markets/timesales",
+            params={
+                "symbol": ticker,
+                "interval": interval,
+                "start": start,
+                "end": end,
+                "session_filter": "all",
+            },
+            headers=headers,
+        )
 
-    # For EMAs
-    safe_calculation(
-        df, "EMA_50", ta.trend.ema_indicator, close=df["close"], window=50, fillna=False
-    )
-    safe_calculation(
-        df,
-        "EMA_200",
-        ta.trend.ema_indicator,
-        close=df["close"],
-        window=200,
-        fillna=False,
-    )
+        if not time_sale_response or "series" not in time_sale_response or "data" not in time_sale_response["series"]:
+            logger.warning(f"Failed to retrieve TA data for ticker {ticker} and interval {interval}")
+            return pd.DataFrame()
 
-    # For RSI
-    safe_calculation(
-        df, "RSI1", ta.momentum.rsi, close=df["close"], window=1, fillna=False
-    )
+        df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
+        df.index = pd.to_datetime(df.index)
+        latest_minute_data = df.tail(1).copy()
 
-    safe_calculation(
-        df, "RSI2", ta.momentum.rsi, close=df["close"], window=2, fillna=False
-    )
-    safe_calculation(
-        df, "RSI3", ta.momentum.rsi, close=df["close"], window=3, fillna=False
-    )
-    safe_calculation(
-        df, "RSI4", ta.momentum.rsi, close=df["close"], window=4, fillna=False
-    )
-    safe_calculation(
-        df, "RSI", ta.momentum.rsi, close=df["close"], window=5, fillna=False
-    )
-    safe_calculation(
-        df, "RSI5", ta.momentum.rsi, close=df["close"], window=5, fillna=False
-    )  # column "RSI" == RSI5.. I'm trying to swap over but hte old data is still using RSI; so Thsi is to make swap easy. eventually when i ddrop old stuff or mergy? idk its late.
-    safe_calculation(
-        df, "RSI6", ta.momentum.rsi, close=df["close"], window=6, fillna=False
-    )
-    safe_calculation(
-        df, "RSI7", ta.momentum.rsi, close=df["close"], window=7, fillna=False
-    )
+        # Define the calculations
+        def perform_calculations():
+            ema_windows = [5, 14, 20, 50, 200]
+            rsi_windows = [2, 7, 14, 21]
+            macd_windows = [(12, 26, 9)]
+            cci_window = 20
+            adx_window = 7
+            williams_r_params = 14
+            cmf_window = 20
+            eom_window = 14
+            mfi_window = 14
+            keltner_window = 20
+            keltner_atr_window = 10
+            for window in ema_windows:
+                safe_calculation(df, f"EMA_{window}_{interval}", ta.trend.ema_indicator, close=df["close"], window=window)
 
-    safe_calculation(
-        df, "RSI14", ta.momentum.rsi, close=df["close"], window=14, fillna=False
-    )
+            for window in rsi_windows:
+                safe_calculation(df, f"RSI_{window}_{interval}", ta.momentum.rsi, close=df["close"], window=window)
 
-    # Additional Indicators
-    safe_calculation(
-        df, "SMA_20", ta.trend.sma_indicator, close=df["close"], window=20, fillna=False
-    )
-    safe_calculation(
-        df,
-        "ADX",
-        ta.trend.adx,
-        high=df["high"],
-        low=df["low"],
-        close=df["close"],
-        window=14,
-        fillna=False,
-    )
-    safe_calculation(
-        df,
-        "CCI",
-        ta.trend.cci,
-        high=df["high"],
-        low=df["low"],
-        close=df["close"],
-        window=20,
-        fillna=False,
-    )
-    williams_r_object = ta.momentum.WilliamsRIndicator(
-        high=df["high"], low=df["low"], close=df["close"], lbp=14, fillna=False
-    )
-    safe_calculation(df, "Williams_R", williams_r_object.williams_r)
-    pvo_object = ta.momentum.PercentageVolumeOscillator(
-        volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False
-    )
-    safe_calculation(df, "PVO", pvo_object.pvo)
-    ppo_object = ta.momentum.PercentagePriceOscillator(
-        close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
-    )
-    safe_calculation(df, "PPO", ppo_object.ppo)
 
-    safe_calculation(
-        df,
-        "CMF",
-        ta.volume.chaikin_money_flow,
-        high=df["high"],
-        low=df["low"],
-        close=df["close"],
-        volume=df["volume"],
-        window=20,
-        fillna=False,
-    )
-    safe_calculation(
-        df,
-        "EoM",
-        ta.volume.ease_of_movement,
-        high=df["high"],
-        low=df["low"],
-        volume=df["volume"],
-        window=14,
-        fillna=False,
-    )
-    safe_calculation(
-        df,
-        "OBV",
-        ta.volume.on_balance_volume,
-        close=df["close"],
-        volume=df["volume"],
-        fillna=False,
-    )
-    safe_calculation(
-        df,
-        "MFI",
-        ta.volume.money_flow_index,
-        high=df["high"],
-        low=df["low"],
-        close=df["close"],
-        volume=df["volume"],
-        window=14,
-        fillna=False,
-    )
-    keltner_channel = ta.volatility.KeltnerChannel(
-        high=df["high"], low=df["low"], close=df["close"], window=20, window_atr=10
-    )
-    safe_calculation(
-        df,
-        "Keltner_Upper",
-        keltner_channel.keltner_channel_hband_indicator,
-    )
-    safe_calculation(
-        df,
-        "Keltner_Lower",
-        keltner_channel.keltner_channel_lband_indicator,
-    )
-    safe_calculation(
-        df,
-        "VPT",
-        ta.volume.volume_price_trend,
-        close=df["close"],
-        volume=df["volume"],
-        fillna=False,
-    )
-    # aroon = ta.trend.AroonIndicator(close=df["close"], window=25)
-    # safe_calculation(df, "Aroon_Oscillator", aroon.aroon_oscillator, fillna=False)
+            for fast_window, slow_window, signal_window in macd_windows:
+                macd_object = ta.trend.MACD(
+                    close=df["close"],
+                    window_slow=slow_window,
+                    window_fast=fast_window,
+                    window_sign=signal_window,
+                    fillna=False
+                )
+                latest_minute_data[f"MACD_{fast_window}_{slow_window}"] = macd_object.macd().iloc[-1]
+                latest_minute_data[f"Signal_Line_{fast_window}_{slow_window}"] = macd_object.macd_signal().iloc[-1]
+                latest_minute_data[f"MACD_diff_{fast_window}_{slow_window}"] = macd_object.macd_diff().iloc[-1]
+                latest_minute_data[f"MACD_diff_prev_{fast_window}_{slow_window}"] = macd_object.macd_diff().shift(1).iloc[-1]
 
-    groups = df.groupby(df.index.date)
-    group_dates = list(groups.groups.keys())
-    lastgroup = group_dates[-1]
-    ta_data = groups.get_group(lastgroup)
-    this_minute_ta_frame = ta_data.tail(1).reset_index(drop=False)
-    return this_minute_ta_frame
+                bullish_cross = (
+                    (latest_minute_data[f"MACD_diff_{fast_window}_{slow_window}"] > 0) &
+                    (latest_minute_data[f"MACD_diff_prev_{fast_window}_{slow_window}"] <= 0)
+                )
 
+                bearish_cross = (
+                    (latest_minute_data[f"MACD_diff_{fast_window}_{slow_window}"] < 0) &
+                    (latest_minute_data[f"MACD_diff_prev_{fast_window}_{slow_window}"] >= 0)
+                )
+
+                latest_minute_data[f"MACD_signal_{fast_window}_{slow_window}"] = np.where(
+                    bullish_cross, "buy", np.where(bearish_cross, "sell", "hold")
+                )
+
+            safe_calculation(df, f"AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5, window2=34)
+            latest_minute_data[f"AwesomeOsc"] = df[f"AwesomeOsc"].iloc[-1]
+            safe_calculation(df, f"SMA_20", ta.trend.sma_indicator, close=df["close"], window=20)
+            latest_minute_data[f"SMA_20"] = df[f"SMA_20"].iloc[-1]
+
+            # ADX Calculation (handle potential insufficient data)
+            if len(df) >= adx_window:
+                safe_calculation(df, f"ADX", ta.trend.adx, high=df["high"], low=df["low"], close=df["close"], window=adx_window, fillna=False)
+                latest_minute_data[f"ADX"] = df[f"ADX"].iloc[-1]
+            else:
+                print("Insufficient data for ADX calculation.")
+                latest_minute_data[f"ADX"] = pd.NA  # or any other default value
+
+            safe_calculation(df, f"CCI", ta.trend.cci, high=df["high"], low=df["low"], close=df["close"], window=cci_window)
+            latest_minute_data[f"CCI"] = df[f"CCI"].iloc[-1]
+
+            williams_r_object = ta.momentum.WilliamsRIndicator(high=df["high"], low=df["low"], close=df["close"], lbp=williams_r_params,fillna=False)
+            # print(williams_r_object.williams_r()) NEED TO ALLIGN THE TIMESTAMP FOR EACH
+            latest_minute_data[f"Williams_R"] = williams_r_object.williams_r().iloc[-1]
+
+
+            # PVO Calculation (using the Williams %R-like approach)
+            pvo_object = ta.momentum.PercentageVolumeOscillator(
+                volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+            )
+            latest_minute_data[f"PVO"] = pvo_object.pvo().iloc[-1]
+
+            # PPO Calculation (using the Williams %R-like approach)
+            ppo_object = ta.momentum.PercentagePriceOscillator(
+                close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
+            )
+            latest_minute_data[f"PPO"] = ppo_object.ppo().iloc[-1]
+
+
+            safe_calculation(df, f"CMF", ta.volume.chaikin_money_flow, high=df["high"], low=df["low"], close=df["close"], volume=df["volume"], window=cmf_window)
+            latest_minute_data[f"CMF"] = df[f"CMF"].iloc[-1]
+
+            safe_calculation(df, f"EoM", ta.volume.ease_of_movement, high=df["high"], low=df["low"], volume=df["volume"], window=eom_window)
+            latest_minute_data[f"EoM"] = df[f"EoM"].mean()  # Use mean to get single value
+
+            safe_calculation(df, f"OBV", ta.volume.on_balance_volume, close=df["close"], volume=df["volume"])
+            latest_minute_data[f"OBV"] = df[f"OBV"].iloc[-1]
+
+            safe_calculation(df, f"MFI", ta.volume.money_flow_index, high=df["high"], low=df["low"], close=df["close"], volume=df["volume"], window=mfi_window)
+            latest_minute_data[f"MFI"] = df[f"MFI"].iloc[-1]
+
+
+            keltner_channel = ta.volatility.KeltnerChannel(
+                high=latest_minute_data["high"],
+                low=latest_minute_data["low"],
+                close=latest_minute_data["close"],
+                window=keltner_window,
+                window_atr=keltner_atr_window
+            )
+            safe_calculation(latest_minute_data, f"Keltner_Upper", keltner_channel.keltner_channel_hband_indicator)
+            safe_calculation(latest_minute_data, f"Keltner_Lower", keltner_channel.keltner_channel_lband_indicator)
+            safe_calculation(latest_minute_data, f"VPT_{interval}", ta.volume.volume_price_trend, close=latest_minute_data["close"], volume=latest_minute_data["volume"])
+            # Bollinger Bands Calculation (with enough historical data)
+            bb_windows = [20]  # Standard BB window, add more if needed
+            for window in bb_windows:
+                bb_object = ta.volatility.BollingerBands(close=df["close"], window=window, window_dev=2)
+                latest_minute_data[f"BB_high_{window}"] = bb_object.bollinger_hband().iloc[-1]
+                latest_minute_data[f"BB_mid_{window}"] = bb_object.bollinger_mavg().iloc[-1]
+                latest_minute_data[f"BB_low_{window}"] = bb_object.bollinger_lband().iloc[-1]
+                # VPT Calculation (using the Williams %R-like approach)
+            vpt_object = ta.volume.VolumePriceTrendIndicator(close=df["close"], volume=df["volume"])
+            latest_minute_data[f"VPT"] = vpt_object.volume_price_trend().iloc[-1]
+
+
+
+        perform_calculations()
+        latest_minute_data[f"timestamp"] = latest_minute_data.index
+        return latest_minute_data.reset_index(drop=True)
+
+    intervals = ["1min", "5min", "15min"]
+    results = await asyncio.gather(*[fetch_and_process_data(interval) for interval in intervals])
+
+    processed_results = []
+    for i, result in enumerate(results):
+        result.columns = [f"{col}_{intervals[i]}" for col in result.columns]
+        result = result.dropna(how='all')
+        processed_results.append(result)
+
+    # Concatenate the DataFrames horizontally (side by side)
+    final_df = pd.concat(processed_results, axis=1)
+
+    # Drop columns with all NaN values after concatenation
+    final_df.dropna(axis=1, how='all', inplace=True)
+
+    # print("final df = ", final_df)
+    return final_df
 
 class OptionChainError(Exception):
     pass
@@ -294,7 +251,7 @@ async def post_market_quotes(session, ticker, real_auth):
                         logger.error(
                             f"POST_{url},----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
                         )
-                    print( f"POST_{url}, {ticker},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
+                    # print( f"POST_{url}, {ticker},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
                     if "quotes" in data and "quote" in data["quotes"]:
                         quotes = data["quotes"]["quote"]
                         # if isinstance(quotes, dict):  Dont think i need this... was to make sure whern theres 1 batch, its still list.
@@ -335,7 +292,7 @@ async def fetch(session, url, params, headers):
                     f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
                 )
                 # await asyncio.sleep(5)
-            print( f"get_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
+            # print( f"get_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
             if "application/json" in content_type:
                 return await response.json()
             else:
@@ -363,7 +320,7 @@ async def lookup_all_option_contracts(session, underlying, real_auth):  # Add 's
                 data = await response.json()
                 rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
                 rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
-                print( f"lookup_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
+                # print( f"lookup_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
 
                 if "symbols" in data and data["symbols"]:
                     option_contracts = data["symbols"][0]["options"]
@@ -415,7 +372,6 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     close = quote_df.at[0, "close"]
     average_volume = quote_df.at[0, "average_volume"]
     # if average_volume < 1:
-    #     print(average_volume,"AVERGAGE VIOLUYME")
     last_volume = quote_df.at[0, "last_volume"]
 
     # print(high)
@@ -436,14 +392,6 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
 
     # callsChain = []
     # putsChain = []
-    #TODO should i use url = "https://api.tradier.com/v1/markets/options/lookup" to get all contracts?
-    # try:
-    #     all_option_chains = await get_option_chains_concurrently(
-    #         session, ticker, headers
-    #     )
-    # except OptionChainError as e:
-    #     logger.error(e)
-    #     raise  # Re-raise the exception to the caller
 
     # print(all_contract_quotes)
     if all_contract_quotes is not None:
@@ -576,18 +524,26 @@ async def get_options_data(session, ticker, YYMMDD_HHMM):
     # vega measures response to IV change.
     try:
         this_minute_ta_frame = await get_ta(session, ticker)
-        for column in this_minute_ta_frame.columns:
-            combined[column] = this_minute_ta_frame[column]
-    except Exception as e:
-        logger.warning(f"{ticker} has an error {e}")
+        # logger.info(f"Successfully retrieved TA data for {ticker}")
 
+        # Efficiently combine all columns
+        combined = pd.concat([combined, this_minute_ta_frame], axis=1)
+        logger.info(f"Successfully concatenated TA data for {ticker}")
+
+        # Optionally, drop NaN columns if they are not relevant for your analysis
+        combined.dropna(axis=1, how="all", inplace=True)
+        # logger.info(f"Dropped NaN columns for {ticker} if any")
+    except Exception as e:
+        logger.error(f"Error combining TA data for {ticker}: {e}\nTraceback: {traceback.format_exc()}")
     output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
-    output_dir.mkdir(mode=0o755, parents=True, exist_ok=True)
+    output_dir.mkdir(mode=0o755, parents =True, exist_ok=True)
 
     # Make sure it's the same day's data.
     # if YYMMDD == StockLastTradeTime_YMD:#TDDO for test mode comment this
-    # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
 
+    # file_path2 = f"data/optionchain/{ticker}/{YYMMDD}/aaaicker_{YYMMDD_HHMM}.csv"
+    # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
+    # this_minute_ta_frame.to_csv(file_path2, mode="w", index=False)
     try:
         file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
         combined.to_csv(file_path, mode="w", index=False)
