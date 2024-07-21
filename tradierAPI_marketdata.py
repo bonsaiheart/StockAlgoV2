@@ -1,19 +1,298 @@
-import asyncio
 import traceback
-from datetime import datetime, timedelta
-from pathlib import Path
+
 import PrivateData.tradier_info
-import aiohttp
+import math
+
 import numpy as np
-import pandas as pd
 import ta
-from ta import momentum,trend,volume,volatility
+from sqlalchemy import  inspect, UniqueConstraint, PrimaryKeyConstraint, desc
+import PrivateData.tradier_info
+import asyncio
+from datetime import datetime, timedelta
+import aiohttp
+import pandas as pd
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from UTILITIES.logger_config import logger
+from sqlalchemy import select, Column, Integer, String, Float, DateTime, ForeignKey, JSON
+from sqlalchemy.orm import relationship, joinedload
+from sqlalchemy.ext.declarative import declarative_base
+from main_devmode import engine
+from sqlalchemy.dialects.postgresql import insert
 
-# Mapping of intervals to the corresponding number of days to fetch data for
+# schemaname = {'schema': 'stockalgov2'}
+class OptionChainError(Exception):
+    pass
 
 
-# Define your get_ta function
+paper_auth = PrivateData.tradier_info.paper_auth
+real_acc = PrivateData.tradier_info.real_acc
+real_auth = PrivateData.tradier_info.real_auth
+sem = asyncio.Semaphore(10000)
+
+
+Base = declarative_base()
+def calculate_batch_size(data_list, total_elements_limit=32680):
+    """
+    Calculates the maximum batch size based on the number of fields per element and a total limit.
+    """
+    if data_list:
+        fields_per_element = len(data_list[0])
+        max_elements_per_batch = total_elements_limit // fields_per_element
+        return max_elements_per_batch
+    else:
+        return 0  # Handle empty list
+
+# async def insert_calculated_data(ticker,db_session,calculated_data_dict):
+#     try:
+#         await db_session.execute(
+#             insert(ProcessedOptionData)
+#             .values(calculated_data_dict)
+#             .on_conflict_do_nothing(constraint="uq_symbol_current_time_constraint")
+#         )
+#         await db_session.commit()
+#         print(f"Inserted processed option data for {ticker}")
+#     except SQLAlchemyError as e:
+#         print(f"Error inserting processed option data: {e}")
+#         await db_session.rollback()
+#     return "Inserted caclulated data"
+async def insert_calculated_data(ticker, db_session, calculated_data_dict):
+    try:
+        await db_session.execute(
+            insert(ProcessedOptionData)
+            .values(calculated_data_dict)
+            .on_conflict_do_nothing(constraint="uq_symbol_current_time_constraint")
+        )
+        print(f"Inserted processed option data for {ticker}")  # Committing will happen later
+    except SQLAlchemyError as e:
+        print(f"Error inserting processed option data: {e}")
+async def get_ta_data(db_session, symbol):
+    result = await db_session.execute(
+        select(TechnicalAnalysis).where(TechnicalAnalysis.symbol_id == symbol.symbol_id)
+    )
+    ta_df = pd.DataFrame(result.all(), columns=TechnicalAnalysis.__table__.columns.keys())
+
+    # Convert the fetch_timestamp column to datetime
+    ta_df['fetch_timestamp'] = pd.to_datetime(ta_df['fetch_timestamp'])
+    return ta_df
+
+
+class Symbol(Base):
+    __tablename__ = 'symbols'
+    symbol_id = Column(Integer, primary_key=True)
+    symbol_name = Column(String, unique=True)
+
+
+class Option(Base):
+    __tablename__ = 'options'
+
+    option_id = Column(Integer, primary_key=True)
+    symbol_id = Column(Integer, ForeignKey('symbols.symbol_id', ondelete='CASCADE'))
+
+    # Establish the relationship with Symbol
+    symbol = relationship("Symbol", backref="options")
+
+    expiration_date = Column(DateTime, index=True)
+    strike_price = Column(Float)
+    option_type = Column(String)
+    root_symbol = Column(String)  # Assuming root_symbol is directly stored here
+    contract_size = Column(Integer)
+    description = Column(String)
+    expiration_type = Column(String)
+    exch = Column(String)
+
+    __table_args__ = (
+        UniqueConstraint('symbol_id', 'expiration_date', 'strike_price', 'option_type', name='uq_option_constraint'),
+    )
+class OptionQuote(Base):
+    __tablename__ = 'option_quotes'
+    __table_args__ = (
+        UniqueConstraint('option_id', 'fetch_timestamp', name='uq_option_quote_constraint'),
+    )
+
+    quote_id = Column(Integer, primary_key=True, autoincrement=True)  # Auto-increment quote_id
+    option_id = Column(Integer, ForeignKey('options.option_id'))
+    option = relationship("Option", backref="quotes")
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    fetch_timestamp = Column(DateTime, default=datetime.utcnow)
+    last = Column(Float)
+    change = Column(Float)
+    volume = Column(Integer)
+    open = Column(Float)
+    high = Column(Float)
+    low = Column(Float)
+    close = Column(Float)
+    bid = Column(Float)
+    ask = Column(Float)
+    greeks = Column(JSON)
+    change_percentage = Column(Float)
+    average_volume = Column(Integer)
+    last_volume = Column(Integer)
+    trade_date = Column(DateTime)
+    prevclose = Column(Float)
+    week_52_high = Column(Float)
+    week_52_low = Column(Float)
+    bidsize = Column(Integer)
+    bidexch = Column(String)
+    bid_date = Column(DateTime)
+    asksize = Column(Integer)
+    askexch = Column(String)
+    ask_date = Column(DateTime)
+    open_interest = Column(Integer)
+
+
+class SymbolQuote(Base):
+    __tablename__ = 'symbol_quotes'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Add a primary key column
+    symbol_id = Column(Integer, ForeignKey('symbols.symbol_id'))
+    symbol = relationship("Symbol", backref="symbol_quotes")  # Relationship with Symbol
+    timestamp = Column(DateTime)
+    fetch_timestamp = Column(DateTime, default=datetime.utcnow)
+    last_trade = Column(DateTime)
+    last_price = Column(Float)
+    bid = Column(Float)
+    ask = Column(Float)
+    open_price = Column(Float)
+    high_price = Column(Float)
+    low_price = Column(Float)
+    close_price = Column(Float)
+    volume = Column(Integer)
+    average_volume = Column(Integer)
+    week_52_high = Column(Float)  # Added field for 52-week high
+    week_52_low = Column(Float)   # Added field for 52-week low
+    bidsize = Column(Integer)
+    bidexch = Column(String)
+    bid_date = Column(DateTime)
+    asksize = Column(Integer)
+    askexch = Column(String)
+    ask_date = Column(DateTime)
+    description = Column(String(255))  # Added field for description
+    exch = Column(String(1))  # Added field for exchange
+    type = Column(String(10))  # Added field for type
+    trade_date = Column(DateTime)  # Changed to DateTime for consistency
+    prevclose = Column(Float)  # Added field for previous close
+    change = Column(Float)  # Added field for change
+    change_percentage = Column(Float)  # Added field for change percentage
+    __table_args__ = (
+        UniqueConstraint('symbol_id', 'fetch_timestamp', name='symbol_quote_unique_constraint'),
+    )
+class TechnicalAnalysis(Base):
+    __tablename__ = 'technical_analysis'
+    ta_id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol_id = Column(Integer, ForeignKey('symbols.symbol_id'), index=True)
+
+    # 1mintimestamp_ = Column(DateTime, index=True, nullable=True)
+    # timestamp_5min = Column(DateTime, index=True, nullable=True)
+    # timestamp_15min = Column(DateTime, index=True, nullable=True)
+    # Define other columns for each indicator and interval
+    for interval in ["1min", "5min", "15min"]:
+        # globals()[f"timestamp_{interval}"] = Column(DateTime, index=True)
+
+        for indicator, data_type in [("timestamp", DateTime),
+            ("price", Float), ("open", Float), ("high", Float), ("low", Float), ("close", Float),("volume", Float),
+            ("vwap", Float), ("MACD_12_26", Float), ("Signal_Line_12_26", Float),
+            ("MACD_diff_12_26", Float), ("MACD_diff_prev_12_26", Float),
+            ("MACD_signal_12_26", String), ("AwesomeOsc", Float), ("SMA_20", Float),
+            ("ADX", Float), ("CCI", Float), ("Williams_R", Float), ("PVO", Float),
+            ("PPO", Float), ("CMF", Float), ("EoM", Float), ("OBV", Integer),
+            ("MFI", Float), ("Keltner_Upper", Float), ("Keltner_Lower", Float), ("BB_high_20", Float),("BB_mid_20", Float),("BB_low_20", Float),("VPT", Float)
+        ]:
+            column_name = f"{interval}_{indicator}"
+            locals()[column_name] = Column(data_type, nullable=True)
+        # Explicitly define an interval column after the loops
+    fetch_timestamp = Column(DateTime, index=True, nullable=False)
+    # interval = Column(String, index=True)
+    __table_args__ = (
+        PrimaryKeyConstraint('ta_id'),
+        UniqueConstraint('symbol_id', 'fetch_timestamp', name='uq_symbol_interval_timestamps'),
+    )
+
+from sqlalchemy.types import Float, Integer, String, DateTime, Boolean,Numeric
+
+class ProcessedOptionData(Base):
+    __tablename__ = 'processed_option_data'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol_id = Column(Integer, ForeignKey('symbols.symbol_id'), index=True)
+
+    current_time = Column(DateTime)
+    exp_date = Column(DateTime)
+    current_stock_price = Column(Float)
+    current_sp_change_lac = Column(Float)
+    maximumpain = Column(Float)
+    bonsai_ratio = Column(Float)
+    bonsai_ratio_2 = Column(Float)
+    b1_dividedby_b2 = Column(Float)
+    b2_dividedby_b1 = Column(Float)
+    pcr_vol = Column(Float)
+    pcr_oi = Column(Float)
+    # pcrv_cp_strike = Column(Float)
+    # pcroi_cp_strike = Column(Float)
+    pcrv_up1 = Column(Float)
+    pcrv_up2 = Column(Float)
+    pcrv_up3 = Column(Float)
+    pcrv_up4 = Column(Float)
+    pcrv_down1 = Column(Float)
+    pcrv_down2 = Column(Float)
+    pcrv_down3 = Column(Float)
+    pcrv_down4 = Column(Float)
+    pcroi_up1 = Column(Float)
+    pcroi_up2 = Column(Float)
+    pcroi_up3 = Column(Float)
+    pcroi_up4 = Column(Float)
+    pcroi_down1 = Column(Float)
+    pcroi_down2 = Column(Float)
+    pcroi_down3 = Column(Float)
+    pcroi_down4 = Column(Float)
+    itm_pcr_vol = Column(Float)
+    itm_pcr_oi = Column(Float)
+    itm_pcrv_up1 = Column(Float)
+    itm_pcrv_up2 = Column(Float)
+    itm_pcrv_up3 = Column(Float)
+    itm_pcrv_up4 = Column(Float)
+    itm_pcrv_down1 = Column(Float)
+    itm_pcrv_down2 = Column(Float)
+    itm_pcrv_down3 = Column(Float)
+    itm_pcrv_down4 = Column(Float)
+    itm_pcroi_up1 = Column(Float)
+    itm_pcroi_up2 = Column(Float)
+    itm_pcroi_up3 = Column(Float)
+    itm_pcroi_up4 = Column(Float)
+    itm_pcroi_down1 = Column(Float)
+    itm_pcroi_down2 = Column(Float)
+    itm_pcroi_down3 = Column(Float)
+    itm_pcroi_down4 = Column(Float)
+    itm_oi = Column(Integer)
+    total_oi = Column(Integer)
+    itm_contracts_percent = Column(Float)
+    net_iv = Column(Float)
+    net_itm_iv = Column(Float)
+    net_iv_mp = Column(Float)
+    # net_iv_lac = Column(Float)#TODO fix this
+    niv_current_strike = Column(Float)
+    niv_1higher_strike = Column(Float)
+    niv_1lower_strike = Column(Float)
+    niv_2higher_strike = Column(Float)
+    niv_2lower_strike = Column(Float)
+    niv_3higher_strike = Column(Float)
+    niv_3lower_strike = Column(Float)
+    niv_4higher_strike = Column(Float)
+    niv_4lower_strike = Column(Float)
+    niv_highers_minus_lowers1thru2 = Column(Float)
+    niv_highers_minus_lowers1thru4 = Column(Float)
+    niv_1thru2_avg_percent_from_mean = Column(Float)
+    niv_1thru4_avg_percent_from_mean = Column(Float)
+    niv_dividedby_oi = Column(Float)
+    itm_avg_niv_dividedby_itm_oi = Column(Float)
+    closest_strike_to_cp = Column(Float)
+
+
+    __table_args__ = (
+        UniqueConstraint('symbol_id', 'current_time', name='uq_symbol_current_time_constraint'),
+    )
+
+#Add this index to ensure uniqueness.
+# Index('uq_processed_option_data_index', ProcessedOptionData.symbol_id, ProcessedOptionData.current_time, unique=True)
+
 async def get_ta(session, ticker):
     days_to_fetch = {
         "1min": 5,
@@ -159,7 +438,7 @@ async def get_ta(session, ticker):
             )
             safe_calculation(latest_minute_data, f"Keltner_Upper", keltner_channel.keltner_channel_hband_indicator)
             safe_calculation(latest_minute_data, f"Keltner_Lower", keltner_channel.keltner_channel_lband_indicator)
-            safe_calculation(latest_minute_data, f"VPT_{interval}", ta.volume.volume_price_trend, close=latest_minute_data["close"], volume=latest_minute_data["volume"])
+            # safe_calculation(latest_minute_data, f"VPT", ta.volume.volume_price_trend, close=latest_minute_data["close"], volume=latest_minute_data["volume"])
             # Bollinger Bands Calculation (with enough historical data)
             bb_windows = [20]  # Standard BB window, add more if needed
             for window in bb_windows:
@@ -174,7 +453,9 @@ async def get_ta(session, ticker):
 
 
         perform_calculations()
+
         latest_minute_data[f"timestamp"] = latest_minute_data.index
+        # print("latestdata",latest_minute_data)
         return latest_minute_data.reset_index(drop=True)
 
     intervals = ["1min", "5min", "15min"]
@@ -182,12 +463,15 @@ async def get_ta(session, ticker):
 
     processed_results = []
     for i, result in enumerate(results):
-        result.columns = [f"{col}_{intervals[i]}" for col in result.columns]
+        result.columns = [f"{intervals[i]}_{col}" for col in result.columns]
         # result = result.dropna(axis=0, how='all')
-        processed_results.append(result)
 
+        processed_results.append(result)
     # Concatenate the DataFrames horizontally (side by side)
-    final_df = pd.concat(processed_results, axis=1)
+
+    final_df = pd.concat(processed_results, axis=1,join='outer')
+    final_df['fetch_timestamp'] = datetime.utcnow() # Add fetch_timestamp here
+    # print(final_df)
 
     # Drop columns with all NaN values after concatenation
     # final_df.dropna(axis=0, how='all', inplace=True)
@@ -195,35 +479,45 @@ async def get_ta(session, ticker):
     # print("final df = ", final_df)
     return final_df
 
-class OptionChainError(Exception):
-    pass
-
-
-# import webullAPI
-# Add a small constant to denominators taper_acc = PrivateData.tradier_info.paper_acc
-paper_auth = PrivateData.tradier_info.paper_auth
-real_acc = PrivateData.tradier_info.real_acc
-real_auth = PrivateData.tradier_info.real_auth
-
-###TODO time and sales (will be used for awesome ind. and ta.
-YYMMDD = datetime.today().strftime("%y%m%d")
-
-# TODO for now this ignores the divede by zero warnings.
-np.seterr(divide="ignore", invalid="ignore")
-
-sem = asyncio.Semaphore(1)  # Adjust the number as appropriate was10
-
-import math
 
 
 
 
+def convert_unix_to_datetime(unix_timestamp):
+    # Convert Unix timestamp (milliseconds) to datetime
+    return datetime.fromtimestamp(unix_timestamp / 1000.0)
+
+
+async def create_database_tables(engine):
+    # await create_schema(engine)
+
+    async with engine.begin() as conn:
+        def sync_inspect(connection):
+            inspector = inspect(connection)
+            return inspector.get_table_names()
+
+        existing_tables = await conn.run_sync(sync_inspect)
+        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, TechnicalAnalysis, ProcessedOptionData]
+
+        # Create Symbol table first
+        if Symbol.__table__.name not in existing_tables:
+            await conn.run_sync(Symbol.__table__.create)
+
+        # Then create the other tables
+        for table in tables_to_create:
+            if table.__table__.name != Symbol.__table__.name and table.__table__.name not in existing_tables:
+                await conn.run_sync(table.__table__.create)
+
+        logger.info("Database tables created or already exist.")
+
+
+
+# Ensure tables are created before querying
 
 async def post_market_quotes(session, ticker, real_auth):
     url = "https://api.tradier.com/v1/markets/quotes"
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
     all_contracts = await lookup_all_option_contracts(session, ticker, real_auth)
-
     # Batching logic
     BATCH_SIZE = 8000
     num_batches = math.ceil(len(all_contracts) / BATCH_SIZE)
@@ -239,334 +533,320 @@ async def post_market_quotes(session, ticker, real_auth):
 
         try:
             async with sem:
-                async with session.post(url, data=payload, headers=headers,timeout=timeout) as response:
+                async with session.post(url, data=payload, headers=headers, timeout=timeout) as response:
                     response.raise_for_status()  # Raise an exception for HTTP errors
                     data = await response.json()
                     rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
                     rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
-                    # print(rate_limit_allowed,rate_limit_used)
-                    # Check if rate limit used exceeds allowed
-                    # limit
+
                     if rate_limit_used >= (rate_limit_allowed * 0.99):
                         logger.error(
                             f"POST_{url},----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
                         )
-                    # print( f"POST_{url}, {ticker},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
+
                     if "quotes" in data and "quote" in data["quotes"]:
                         quotes = data["quotes"]["quote"]
-                        # if isinstance(quotes, dict):  Dont think i need this... was to make sure whern theres 1 batch, its still list.
-                        #     quotes = [quotes]
-                        # print(type(quotes))
                         results.append(pd.DataFrame(quotes))
-
                     else:
-                        print(f"Error: No market quote data found for {ticker} (batch {batch_num}).")
-                        raise Exception
+                        logger.error(f"Error: No market quote data found for {ticker} (batch {batch_num}).")
+                        raise OptionChainError(f"No market quote data found for {ticker} (batch {batch_num})")
             await asyncio.sleep(0.1)  # Short delay to avoid overwhelming API (adjust as needed)
 
-        except aiohttp.ClientError as e:
-            print(f"Error fetching market quotes (batch {batch_num}): {e}")
+        # Catch and log the exception with more information
+        except (aiohttp.ClientError, OptionChainError) as e:  # Add OptionChainError to the except clause
+            logger.exception(f"Error fetching market quotes (batch {batch_num}): {e}")
+            raise  # Re-raise the exception
 
     # Combine results and handle potential empty results
     combined_df = pd.concat(results, ignore_index=True) if results else None
-    return combined_df
 
+    return combined_df
 
 
 async def fetch(session, url, params, headers):
     rate_limit_allowed, rate_limit_used = None, None
     try:
         timeout = aiohttp.ClientTimeout(total=45)
-
-        async with session.get(
-            url, params=params, headers=headers, timeout=timeout
-        ) as response:
+        async with session.get(url, params=params, headers=headers, timeout=timeout) as response:
+            response.raise_for_status()
             content_type = response.headers.get("Content-Type", "").lower()
             rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
             rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
-            # print(rate_limit_allowed,rate_limit_used)
-            # Check if rate limit used exceeds allowed
-            # limit
             if rate_limit_used >= (rate_limit_allowed * 0.99):
                 logger.error(
                     f"{url},{params}----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
                 )
-                # await asyncio.sleep(5)
-            # print( f"get_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
             if "application/json" in content_type:
                 return await response.json()
             else:
                 raise OptionChainError(
                     f"Fetch error: {content_type} with params {params} {url}"
                 )
-    # except asyncio.TimeoutError as e:
-    #     logger.error(
-    #         f"{rate_limit_used, rate_limit_allowed}The request timed out, {e} {params, url}"
-    #     )
-    #     raise OptionChainError(f"Timeout occurred for {params, url}")
     except Exception as e:
         raise OptionChainError(f"Fetch error: {e} with params {params} {url}")
 
 
-async def lookup_all_option_contracts(session, underlying, real_auth):  # Add 'sem' as argument
-    async with sem:  # Acquire the semaphore before making the request
+async def lookup_all_option_contracts(session, underlying, real_auth):
+    async with sem:
         url = "https://api.tradier.com/v1/markets/options/lookup"
         params = {"underlying": underlying}
         headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
-
         try:
             async with session.get(url, params=params, headers=headers) as response:
                 response.raise_for_status()
                 data = await response.json()
-                rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
-                rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
-                # print( f"lookup_{url},{params},----Rate limit Used {rate_limit_used} out of {rate_limit_allowed}")
-
                 if "symbols" in data and data["symbols"]:
                     option_contracts = data["symbols"][0]["options"]
                     return sorted(option_contracts)
                 else:
-                    raise Exception(f"No option lookup data found for {underlying}.")
+                    raise OptionChainError(f"No option lookup data found for {underlying}.")
         except aiohttp.ClientError as e:
             logger.error(f"Error fetching option contracts: {e}")
             return None
-async def get_options_data(session, ticker, YYMMDD_HHMM):
-    headers = {f"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
-    tasks = []
-    # Add tasks to tasks list
-
-    tasks.append(
-        fetch(
-            session,
-            "https://api.tradier.com/v1/markets/quotes",
-            params={"symbols": ticker, "greeks": "false"},
-            headers=headers,
-        )
-    )
-
-
-    all_contract_quotes = await post_market_quotes(session,ticker,real_auth)
-    # # Wait for all tasks to complete
-    try:
-        quotes_response = await asyncio.gather(*tasks)  # Default is return_exceptions=False
-    except Exception as e:
-        logger.error(f"An error occurred in fetching data: {e}")
-        raise
-    # # Check for exceptions in responses
-    # for response in responses:
-    #     if isinstance(response, Exception):
-    #         logger.error(f"An error occurred in fetching data: {response}")
-    #         raise response
-
-    ticker_quote = quotes_response[0]
-
-    quote_df = pd.DataFrame.from_dict(
-        ticker_quote["quotes"]["quote"], orient="index"
-    ).T
-    LAC = quote_df.at[0, "prevclose"]
-    open = quote_df.at[0, "open"]
-    # print(open)
-    high = quote_df.at[0, "high"]
-    low = quote_df.at[0, "low"]
-    close = quote_df.at[0, "close"]
-    average_volume = quote_df.at[0, "average_volume"]
-    # if average_volume < 1:
-    last_volume = quote_df.at[0, "last_volume"]
-
-    # print(high)
-    CurrentPrice = quote_df.at[0, "last"]
-    # price_change_percent = quote_df["change_percentage"][0]  Assuming this same as lac to current price
-    StockLastTradeTime = quote_df["trade_date"][0]
-    StockLastTradeTime = StockLastTradeTime / 1000  # Convert milliseconds to seconds
-    StockLastTradeTime_datetime = datetime.fromtimestamp(StockLastTradeTime)
-    StockLastTradeTime_str = StockLastTradeTime_datetime.strftime("%y%m%d_%H%M")
-    StockLastTradeTime_YMD = StockLastTradeTime_datetime.strftime("%y%m%d")
-
-    StockLastTradeTime = datetime.fromtimestamp(StockLastTradeTime).strftime(
-        "%y%m%d_%H%M"
-    )
-
-    # expirations = expirations_response["expirations"]["expiration"]
-    # expiration_dates = [expiration["date"] for expiration in expirations]
-
-    # callsChain = []
-    # putsChain = []
-
-    # print(all_contract_quotes)
-    if all_contract_quotes is not None:
-        # print("all_contrats", type(all_contract_quotes),all_contract_quotes)
-        grouped = all_contract_quotes.groupby("option_type")
-        calls_df = grouped.get_group("call").copy()
-        puts_df = grouped.get_group("put").copy()
-        # callsChain.append(call_group)
-        # putsChain.append(put_group)
-
-
-
-    # Calculate new columns
+def process_option_quotes(all_contract_quotes, current_price, last_close_price):  # Add last_close_price
+    grouped = all_contract_quotes.groupby("option_type")
+    calls_df = grouped.get_group("call").copy()
+    puts_df = grouped.get_group("put").copy()
     for df in [calls_df, puts_df]:
-        df['Moneyness'] = np.where(df['option_type'] == 'call',
-                                   df['strike'] - CurrentPrice,
-                                   CurrentPrice - df['strike'])
-
-        # df["LACdollarsFromStrike"] = abs(df["strike"] - LAC)
-        df["dollarsFromStrike"] = abs(df["strike"] - LAC)
-        df["ExpDate"] = df["symbol"].str[-15:-9]
+        # df['Moneyness'] = np.where(df['option_type'] == 'call', df['strike'] - current_price,
+        #                           current_price - df['strike']) #shape was off by 1?
+        df["dollarsFromStrike"] = abs(df["strike"] - last_close_price)  # Use last_close_price here
+        df["ExpDate"] = pd.to_datetime(df["expiration_date"]).dt.strftime('%Y-%m-%d')
         df["Strike"] = df["strike"]
-
-        # df["LACdollarsFromStrikeXoi"] = df["LACdollarsFromStrike"] * df["open_interest"]
         df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
-        df["MoneynessXoi"] = df["Moneyness"] * df["open_interest"]
+        # df["MoneynessXoi"] = df["Moneyness"] * df["open_interest"]
         df["lastPriceXoi"] = df["last"] * df["open_interest"]
-        # df["impliedVolatility"] = df["greeks"].str.get("mid_iv")
-        # df["delta"] = df["greeks"].str.get("delta")
-    # calls_df["lastContractPricexOI"] = calls_df["last"] * calls_df["open_interest"]
-    # calls_df["impliedVolatility"] = calls_df["greeks"].str.get("mid_iv")
 
-    # TODO commetned this out 240105
-    # # Columns to drop (all columns that are not in 'columns_to_keep')
-    # columns_to_drop_calls = [
-    #     col for col in calls_df.columns if col not in columns_to_keep
-    # ]
-    # columns_to_drop_puts = [
-    #     col for col in puts_df.columns if col not in columns_to_keep
-    # ]
-    columns_to_drop = [
-        "description",
-        "type",
-        "exch",
-        "underlying",
-        "bidexch",
-        "askexch",
-        "expiration_date",
-        "root_symbol",
-    ]
-    # # Drop unnecessary columns
-    calls_df = calls_df.drop(columns_to_drop, axis=1)
-    puts_df = puts_df.drop(columns_to_drop, axis=1)
-    # Format date
-    # Rename columns
-    rename_dict = {
-        "symbol": "contractSymbol",
-        "trade_date": "lastTrade",
-        "last": "lastPrice",
-        "bid": "bid",
-        "ask": "ask",
-        "change": "change",
-        "change_percentage": "percentChange",
-        "volume": "volume",
+    # columns_to_drop = ["description", "type", "exch", "underlying", "bidexch", "askexch",
+    #                    "expiration_date", "root_symbol"]
+    #TODO wait why not use underlying and root symbol etc?
+    # calls_df = calls_df.drop(columns_to_drop, axis=1)
+    # puts_df = puts_df.drop(columns_to_drop, axis=1)
+    return calls_df, puts_df
 
-        "open_interest": "openInterest",
-        # "delta": "delta",
-        "greeks": "greeks",
-        # "impliedVolatility": "impliedVolatility",
-        "dollarsFromStrike": "dollarsFromStrike",
-        # "LACdollarsFromStrike": "LACdollarsFromStrike",
-        "dollarsFromStrikeXoi": "dollarsFromStrikeXoi",
-        # "LACdollarsFromStrikeXoi": "LACdollarsFromStrikeXoi",
-        "lastPriceXoi": "lastPriceXoi",
+
+
+
+def convert_unix_to_datetime(unix_timestamp):
+    return datetime.fromtimestamp(unix_timestamp / 1000.0)
+
+
+
+
+
+async def get_options_data(db_session, session, ticker, loop_start_time):
+    headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+    ticker_quote = await fetch(
+        session,
+        "https://api.tradier.com/v1/markets/quotes",
+        params={"symbols": ticker, "greeks": "false"},
+        headers=headers,
+    )
+
+    all_contract_quotes = await post_market_quotes(session, ticker, real_auth)
+
+    # Process Stock Quote Data (directly use the quote_df)
+    quote_df = pd.DataFrame.from_dict(ticker_quote["quotes"]["quote"], orient="index").T
+    current_price = quote_df.at[0, "last"]  # Define current_price here
+    prevclose = quote_df.at[0, "prevclose"]  # Define prevclose here
+
+
+    symbol_result = await db_session.execute(
+        select(Symbol).filter_by(symbol_name=ticker)
+    )
+    symbol = symbol_result.scalars().first()
+
+    # Upsert the stock information
+    if not symbol:
+        symbol = Symbol(symbol_name=ticker)
+        db_session.add(symbol)
+        await db_session.flush()  # Flush to get the generated ID
+
+
+    last_trade_time = datetime.fromtimestamp(quote_df.at[0, "trade_date"] / 1000)
+    stock_price_data = {
+        'symbol_id': symbol.symbol_id,
+        'timestamp': last_trade_time,
+        'fetch_timestamp': datetime.utcnow(),
+        'last_trade': last_trade_time,
+        'last_price': quote_df.at[0, "last"],
+        'bid': quote_df.at[0, "bid"],  # Replace with your bid value from quote_df or other source
+        'bid_date': datetime.fromtimestamp(quote_df.at[0, "bid_date"] / 1000) if not pd.isnull(quote_df.at[0, "bid_date"]) else None,
+        'bidsize': quote_df.at[0, "bidsize"],
+        'ask': quote_df.at[0, "ask"],
+        'ask_date': datetime.fromtimestamp(quote_df.at[0, "ask_date"] / 1000) if not pd.isnull(quote_df.at[0, "ask_date"]) else None,
+        'asksize': quote_df.at[0, "asksize"],
+        'open_price': quote_df.at[0, "open"],
+        'high_price': quote_df.at[0, "high"],
+        'low_price': quote_df.at[0, "low"],
+        'close_price': quote_df.at[0, "close"],
+        'volume': quote_df.at[0, "volume"],
+        'average_volume': quote_df.at[0, "average_volume"]
     }
-    # TODO change all columns to use standasrdized.. some are c_ some are Calls_ etc.
-    calls_df.rename(columns={k: f"c_{v}" for k, v in rename_dict.items()}, inplace=True)
-    puts_df.rename(columns={k: f"p_{v}" for k, v in rename_dict.items()}, inplace=True)
 
-    # Merge dataframes
-    combined = pd.merge(puts_df, calls_df, on=["ExpDate", "Strike"])
-    # Update renaming dictionary for the combined DataFrame
-    rename_dict_combined = {
-        "c_lastPrice": "Call_LastPrice",
-        "c_percentChange": "Call_PercentChange",
-        "c_volume": "Call_Volume",
-        "c_openInterest": "Call_OI",
-        # "c_impliedVolatility": "Call_IV",
-        # "c_LACdollarsFromStrike": "Calls_LACdollarsFromStrike",
-        "c_dollarsFromStrike": "Calls_dollarsFromStrike",
-        # "c_LACdollarsFromStrikeXoi": "Calls_LACdollarsFromStrikeXoi",
-        "c_dollarsFromStrikeXoi": "Calls_dollarsFromStrikeXoi",
-        "c_lastPriceXoi": "Calls_lastPriceXoi",
-        "p_lastPrice": "Put_LastPrice",
-        "p_volume": "Put_Volume",
-        "p_openInterest": "Put_OI",
-        # "p_impliedVolatility": "Put_IV",
-        # "p_LACdollarsFromStrike": "Puts_LACdollarsFromStrike",
-        "p_dollarsFromStrike": "Puts_dollarsFromStrike",
-        # "p_LACdollarsFromStrikeXoi": "Puts_LACdollarsFromStrikeXoi",
-        "p_dollarsFromStrikeXoi": "Puts_dollarsFromStrikeXoi",
-        "p_lastPriceXoi": "Puts_lastPriceXoi",
-    }
-    combined.rename(columns=rename_dict_combined, inplace=True)
-    for column in [
-        "LAC",
-        "CurrentPrice",
-        "open",
-        "high",
-        "low",
-        "close",
-        "average_volume",
-        "last_volume",
-    ]:
-        combined[column] = np.nan
+    await db_session.execute(
+        insert(SymbolQuote)
+        .values(stock_price_data)
+        .on_conflict_do_nothing(
+            constraint='symbol_quote_unique_constraint'
+    ))
 
-    # Populate values only in the first row
-    first_index = combined.index[0]  # Get the first index of the DataFrame
-    combined.loc[
-        first_index,
-        ["LAC", "CurrentPrice", "open", "high", "low","close", "average_volume", "last_volume"],
-    ] = [LAC, CurrentPrice, open, high, low,close, average_volume, last_volume]
+    #TODO look at the above.
+    if all_contract_quotes is not None:
+        calls_df, puts_df = process_option_quotes(all_contract_quotes, current_price, prevclose)
+        # Combine calls_df and puts_df
+        options_df = pd.concat([calls_df, puts_df], ignore_index=True)
 
 
-    ####################
-    # for option in json_response["options"]["option"]:
-    #     print(option["symbol"], option["open_interest"])
-    ##weighted total iv for contract
-    # Total IV = (bid IV * bid volume + mid IV * mid volume + ask IV * ask volume) / (bid volume + mid volume + ask volume)
-    # vega measures response to IV change.
-    try:
-        this_minute_ta_frame = await get_ta(session, ticker)
-        # logger.info(f"Successfully retrieved TA data for {ticker}")
-
-        # Efficiently combine all columns
-        combined = pd.concat([combined, this_minute_ta_frame], axis=1)
-        logger.info(f"Successfully concatenated TA data for {ticker}")
-
-        # Optionally, drop NaN columns if they are not relevant for your analysis
-        # combined.dropna(axis=1, how="all", inplace=True)
-        # logger.info(f"Dropped NaN columns for {ticker} if any")
-    except Exception as e:
-        logger.error(f"Error combining TA data for {ticker}: {e}\nTraceback: {traceback.format_exc()}")
-    output_dir = Path(f"data/optionchain/{ticker}/{YYMMDD}")
-    output_dir.mkdir(mode=0o755, parents =True, exist_ok=True)
-
-    # Make sure it's the same day's data.
-    # if YYMMDD == StockLastTradeTime_YMD:#TDDO for test mode comment this
-
-    # file_path2 = f"data/optionchain/{ticker}/{YYMMDD}/aaaicker_{YYMMDD_HHMM}.csv"
-    # print(f"{YYMMDD_HHMM}: ${ticker} last Trade Time: {StockLastTradeTime_str}")
-    # this_minute_ta_frame.to_csv(file_path2, mode="w", index=False)
-    try:
-        file_path = f"data/optionchain/{ticker}/{YYMMDD}/{ticker}_{YYMMDD_HHMM}.csv"
-        combined.to_csv(file_path, mode="w", index=False)
-        return LAC, CurrentPrice, StockLastTradeTime_str, YYMMDD, combined
-
-    except FileExistsError as e:
-        logger.error(
-            f"File already exists: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
-        )
-        raise
-    except Exception as e:
-        logger.error(
-            f"Unexpected error: {e} TIME:{YYMMDD_HHMM}. {ticker} {YYMMDD_HHMM}"
-        )
-        raise
-    # else:
-    #     logger limit price
-    #                     ).warning(
-    #         f"{ticker} date:{YYMMDD} is not equal to stocklasttrade date{StockLastTradeTime_YMD}"
-    #     )
+        options_df['trade_date'] = options_df['trade_date'].apply(convert_unix_to_datetime)
+        options_df['ask_date'] = options_df['ask_date'].apply(convert_unix_to_datetime)
+        options_df['bid_date'] = options_df['bid_date'].apply(convert_unix_to_datetime)
+        options_df['fetch_timestamp'] = datetime.utcnow()
+        options_df['ExpDate'] = pd.to_datetime(options_df['ExpDate'])
 
 
-# TODO should be able to get rid of the returns, ive added lac/currentprice to the csv for longer storatge.  SLTT and YYMMDD are in the filename.
+        option_data = []
+        for _, row in options_df.iterrows():
+            option_data.append({
+                'symbol_id': symbol.symbol_id,
+                'expiration_date': row['ExpDate'],
+                'strike_price': row['Strike'],
+                'option_type': row['option_type'],
+                'root_symbol': row['root_symbol'],
+                'contract_size': row['contract_size'],
+                'description': row['description'],
+                'expiration_type': row['expiration_type'],
+                'exch': row['exch'],
+            })
+        OPTION_BATCH_SIZE = calculate_batch_size(option_data)
+
+        # Batch insert Option objects
+        # OPTION_BATCH_SIZE = 1000  # Adjust this value as needed
+        for i in range(0, len(option_data), OPTION_BATCH_SIZE):
+            batch = option_data[i : i + OPTION_BATCH_SIZE]
+            await db_session.execute(insert(Option).values(batch).on_conflict_do_nothing(
+                constraint='uq_option_constraint'
+
+            ))
+        await db_session.flush()
 
 
-# TODO added open high low close avg vol last vol... but didnt do anything with it yet
+        # Fetch all inserted options to get their IDs
+        stmt = select(Option).filter(Option.symbol_id == symbol.symbol_id).options(joinedload(Option.quotes))
+        result = await db_session.execute(stmt)
+
+        # Apply the unique() method to de-duplicate results
+        unique_options = result.unique()
+        options = {(o.root_symbol, o.expiration_date, o.strike_price, o.option_type): o for o in unique_options.scalars()}
+        # Prepare OptionQuote data
+        option_quotes_data = []
+        for _, row in options_df.iterrows():
+            option = options.get((row['root_symbol'], row['ExpDate'], row['Strike'], row['option_type']))
+            if option:
+                option_quotes_data.append({
+                    "option_id": option.option_id,
+                    "timestamp": row["trade_date"],
+                    "fetch_timestamp": loop_start_time,
+                    "last": row["last"],
+                    "bid": row["bid"],
+                    "ask": row["ask"],
+                    "volume": row["volume"],
+                    "greeks": row["greeks"],
+                    "change_percentage": row["change_percentage"],
+                    "average_volume": row["average_volume"],
+                    "last_volume": row["last_volume"],
+                    "trade_date": row["trade_date"],
+                    "prevclose": row["prevclose"],
+                    "week_52_high": row["week_52_high"],
+                    "week_52_low": row["week_52_low"],
+                    "bidsize": row["bidsize"],
+                    "bidexch": row["bidexch"],
+                    "bid_date": row["bid_date"],
+                    "asksize": row["asksize"],
+                    "askexch": row["askexch"],
+                    "ask_date": row["ask_date"],
+                    "open_interest": row["open_interest"],
+                    "change": row["change"],
+                    "open": row["open"],
+                    "high": row["high"],
+                    "low": row["low"],
+                    "close": row["close"],
+                })
+
+        # Define the total elements limit
+        TOTAL_ELEMENTS_LIMIT = 32680 #TODO i think this is the correct upper limit?
+
+        # Ensure there is at least one element in option_quotes_data to determine the number of fields
+        if option_quotes_data:
+            # Dynamically determine the number of fields per quote
+            fields_per_option_quote = len(option_quotes_data[0])
+            print(f"Fields per option quote: {fields_per_option_quote}")
+
+            # Calculate the maximum number of quotes per batch to stay within the limit
+            max_quotes_per_batch = TOTAL_ELEMENTS_LIMIT // fields_per_option_quote
+
+        QUOTE_BATCH_SIZE = max_quotes_per_batch
+        print(QUOTE_BATCH_SIZE*fields_per_option_quote, QUOTE_BATCH_SIZE)#total elments gotta be less than 32600 or somethin?
+        for i in range(0, len(option_quotes_data), QUOTE_BATCH_SIZE):
+            batch = option_quotes_data[i : i + QUOTE_BATCH_SIZE]
+            await db_session.execute(insert(OptionQuote).values(batch).on_conflict_do_nothing(
+                constraint='uq_option_quote_constraint'
+            ))
+
+        ta_df = await get_ta(session,ticker)
+        # Process technical analysis data
+        if not ta_df.empty:
+            ta_data_list = ta_df.to_dict(orient='records')
+            for data in ta_data_list:
+                data["symbol_id"] = symbol.symbol_id
+
+            # Batch insertion for TechnicalAnalysis
+            TA_BATCH_SIZE = 1000
+            for i in range(0, len(ta_data_list), TA_BATCH_SIZE):
+                batch = ta_data_list[i:i+TA_BATCH_SIZE]
+                try:
+                    await db_session.execute(
+                        insert(TechnicalAnalysis).values(batch).on_conflict_do_nothing(
+                            constraint='uq_symbol_interval_timestamps'
+                        )
+                    )
+                except SQLAlchemyError as e:
+                    print(f"SQLAlchemy error during insertion: {e}")
+                    print(traceback.format_exc())
+                    await db_session.rollback()
+                except Exception as e:
+                    print(f"Unexpected error during insertion: {e}")
+                    print(traceback.format_exc())
+                    await db_session.rollback()
+        else:
+            print("TA DataFrame is empty")
+
+        await db_session.commit()
+        options_df.to_csv("options_df_test.csv")
+        return prevclose, current_price,  options_df , symbol
+
+# async def get_required_data(db_session, ticker):
+#     # Fetch the latest SymbolQuote for last adjusted close (LAC), current price, and last trade time
+#     latest_quote_query = (
+#         select(SymbolQuote)
+#         .filter(SymbolQuote.symbol_name == ticker)
+#         .order_by(SymbolQuote.timestamp.desc())
+#     )
+#     latest_quote_result = await db_session.execute(latest_quote_query)
+#     latest_quote = latest_quote_result.scalars().first()
+#
+#
+#     if latest_quote:
+#         last_adj_close = latest_quote['prevclose'] # Use the correct column name
+#         current_price = latest_quote.last_price
+#         last_trade_time = latest_quote.last_trade.strftime("%Y-%m-%d %H:%M:%S")
+#         yymmdd = latest_quote.last_trade.strftime("%y%m%d")  # Format as YYMMDD
+#     else:
+#         # Handle the case where no quote is found (return defaults or raise an exception)
+#         last_adj_close = None  # or some default value
+#         current_price = None  # or some default value
+#         last_trade_time = None  # or some default value
+#         yymmdd = datetime.today().strftime("%y%m%d")
+#
+#     return last_adj_close, current_price, last_trade_time, yymmdd
