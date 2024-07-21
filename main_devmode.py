@@ -14,7 +14,7 @@ from UTILITIES.logger_config import logger
 from sqlalchemy.orm import Session, sessionmaker
 
 # global database session
-db_session = None
+# db_session = None
 
 client_session = None
 market_open_time_utc = None
@@ -31,7 +31,6 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URI = "postgresql+asyncpg://postgres:Homebro89@localhost/test_db"
 engine = create_async_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
-async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
 # Session Factory
@@ -236,14 +235,15 @@ async def handle_ticker_cycle(session, ticker):
             try:
                 # Create a new database session for each ticker
                 async with async_db_session() as db_session:
-                    option_data_success = await tradierAPI_marketdata.get_options_data(db_session, client_session, ticker, current_time)
-                    # Commit the entire transaction after get_options_data is done
+                    async with db_session.begin():
+                        option_data_success = await tradierAPI_marketdata.get_options_data(db_session, client_session, ticker, current_time)
+                        # Commit the entire transaction after get_options_data is done
 
-                    # print(option_data_success)
-                    if ticker in TICKERS_FOR_CALCULATIONS:
-                        if option_data_success:
-                            LAC, CurrentPrice, optionchaindf, symbol = (
-                                option_data_success
+                        # print(option_data_success)
+                        if ticker in TICKERS_FOR_CALCULATIONS:
+                            if option_data_success:
+                                LAC, CurrentPrice, optionchaindf, symbol = (
+                                    option_data_success
                             )
                             #TODO i see, i just havent pased anything in from optiondatasuccusses.
 
@@ -254,14 +254,13 @@ async def handle_ticker_cycle(session, ticker):
                                 current_time,
                                 optionchaindf,symbol
                             )
-                            # print(calculate_operations_success)
+                        #     # print(calculate_operations_success)
                             if calculate_operations_success:
                                 optionchain_df, processed_data_df, ticker, data_to_insert =  calculate_operations_success
-                        # Insert data into the database
-
-                                calculated_data_insert_success = await tradierAPI_marketdata.insert_calculated_data(ticker,db_session,data_to_insert)
-                                # print(calculated_data_insert_success)
-                    await db_session.commit()
+                        # # Insert data into the database
+                        #
+                        #         calculated_data_insert_success = await tradierAPI_marketdata.insert_calculated_data(ticker,db_session,data_to_insert)
+                        #         # print(calculated_data_insert_success)
 
                 #     if (
                 #         ticker in TICKERS_FOR_TRADE_ALGOS
@@ -291,9 +290,9 @@ async def handle_ticker_cycle(session, ticker):
 
 
             except Exception as e:
-                if db_session.is_active:
-                    await db_session.rollback()
-                logger.exception(e)
+                # if db_session.is_active:
+                #     await db_session.rollback()
+                logger.exception(f"Error fetching options data for {ticker}: {e}")  # Log ticker and error
 
         except Exception as e:
             logger.exception(e)
