@@ -78,30 +78,30 @@ async def run_program():
         except asyncio.CancelledError:
             pass  # Handle CancelledError if necessary
 
-# async def calculate_operations(*args):
-#
-#     try:
-#         loop = asyncio.get_running_loop()
-# neeed to make it use its own dbconn.
-#
-#         with ProcessPoolExecutor(max_workers=4) as pool:  # Adjust max_workers
-#             return await loop.run_in_executor(pool, partial(calculations.perform_operations, *args))
-#
-#     except Exception as e:
-#         logger.exception(f"Error in calculate_operations {args}: {e}")
-#
-#         raise
-#
 async def calculate_operations(*args):
-    """Performs calculations asynchronously within the asyncio event loop."""
 
     try:
-        # Perform the operations directly in the event loop
-        return  await calculations.perform_operations(*args)
+        loop = asyncio.get_running_loop()
+# neeed to make it use its own dbconn.
+
+        with ProcessPoolExecutor(max_workers=4) as pool:  # Adjust max_workers
+            return await loop.run_in_executor(pool, partial(calculations.perform_operations, *args))
 
     except Exception as e:
         logger.exception(f"Error in calculate_operations {args}: {e}")
+
         raise
+#
+# async def calculate_operations(*args):
+#     """Performs calculations asynchronously within the asyncio event loop."""
+#
+#     try:
+#         # Perform the operations directly in the event loop
+#         return await calculations.perform_operations(*args)
+#
+#     except Exception as e:
+#         logger.exception(f"Error in calculate_operations {args}: {e}")
+#         raise
 
 
 async def trade_algos(
@@ -218,7 +218,7 @@ TICKERS_FOR_CALCULATIONS = [
     ,
 ]
 
-async def handle_ticker_cycle(session, ticker):
+async def handle_ticker_cycle(client_session, ticker):
 
     start_time = datetime.now(pytz.utc)
     global market_close_time_utc, db_session

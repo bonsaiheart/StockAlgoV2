@@ -1,1 +1,4 @@
 SPY
+TSLA
+ROKU
+CHWY
