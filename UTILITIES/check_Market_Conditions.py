@@ -12,7 +12,7 @@ def save_market_schedule_to_file():
     nyse = mcal.get_calendar("NYSE")
     today = datetime.utcnow().date()
     market_schedule = nyse.schedule(start_date=today, end_date=today)
-    print(market_schedule)
+    # print(market_schedule)
     market_schedule["market_open_utc"] = pd.to_datetime(market_schedule["market_open"])
     market_schedule["market_close_utc"] = pd.to_datetime(
         market_schedule["market_close"]

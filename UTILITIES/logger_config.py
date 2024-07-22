@@ -5,7 +5,7 @@ import os
 current_datetime = datetime.datetime.today()
 formatted_date = current_datetime.strftime("%y%m%d")
 
-print(formatted_date)
+# print(formatted_date)
 
 # Configuring the root logger
 logging.basicConfig(
