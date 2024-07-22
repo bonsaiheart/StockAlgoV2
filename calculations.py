@@ -1,19 +1,16 @@
-from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from tradierAPI_marketdata import get_ta_data, ProcessedOptionData  # Import the model
-from sqlalchemy import insert, select
-from sqlalchemy.exc import SQLAlchemyError
 
-from tradierAPI_marketdata import get_ta_data
+
 # add this line
 
 def calculate_bonsai_ratios(
     ITM_PutsVol, all_PutsVol, ITM_PutsOI, all_PutsOI, ITM_CallsVol, all_CallsVol, ITM_CallsOI, all_CallsOI
 ):
     # Handle potential zero divisions for Bonsai_Ratio
-    if (all_PutsVol == 0) or (all_PutsOI == 0) or (all_CallsVol == 0) or (all_CallsOI == 0):
-        Bonsai_Ratio = None  # Or set to a default value like 0 or 1
+    if (ITM_PutsVol == 0) or (all_PutsVol == 0) or (ITM_PutsOI == 0) or (all_PutsOI == 0) or (ITM_CallsVol == 0) or (all_CallsVol == 0) or (ITM_CallsOI == 0) or (all_CallsOI == 0):
+        Bonsai_Ratio = np.nan  # Or set to a default value like 0 or 1
     else:
         # Calculate Bonsai_Ratio safely
         Bonsai_Ratio = (
@@ -23,8 +20,8 @@ def calculate_bonsai_ratios(
         )
 
     # Handle potential zero divisions for Bonsai2_Ratio
-    if (ITM_PutsVol == 0) or (ITM_PutsOI == 0) or (ITM_CallsVol == 0) or (ITM_CallsOI == 0):
-        Bonsai2_Ratio = None  # Or set to a default value
+    if (all_PutsVol == 0) or (ITM_PutsVol == 0) or (all_PutsOI == 0) or (ITM_PutsOI == 0) or (all_CallsVol == 0) or (ITM_CallsVol == 0) or (all_CallsOI == 0) or (ITM_CallsOI == 0):
+        Bonsai2_Ratio = np.nan  # Or set to a default value
     else:
         # Calculate Bonsai2_Ratio safely
         Bonsai2_Ratio = (
@@ -35,12 +32,12 @@ def calculate_bonsai_ratios(
 
     return Bonsai_Ratio, Bonsai2_Ratio
 
-async def perform_operations(
+def perform_operations(
         ticker,
         last_adj_close,
         current_price,
         CurrentTime,
-        optionchain_df, symbol
+        optionchain_df, symbol_id_int
 ):
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
@@ -96,8 +93,13 @@ async def perform_operations(
             ITM_Call_IV = call_options.loc[(call_options["Strike"] <= current_price), 'greeks'].apply(lambda x: x.get('mid_iv', 0) if isinstance(x, dict) else 0).sum()
             ITM_Put_IV = put_options.loc[(group["Strike"] >= current_price), 'greeks'].apply(lambda x: x.get('mid_iv', 0) if isinstance(x, dict) else 0).sum()
 
-            Call_IV = call_options['greeks'].apply(lambda x: x.get('mid_iv')).sum()
-            Put_IV = put_options['greeks'].apply(lambda x: x.get('mid_iv')).sum()
+            # Extract 'mid_iv' values, handle None values, convert to numeric for safe calculations
+            call_iv_values = call_options['greeks'].apply(lambda x: x.get('mid_iv') if x is not None else np.nan).astype(float)
+            put_iv_values = put_options['greeks'].apply(lambda x: x.get('mid_iv') if x is not None else np.nan).astype(float)
+
+            # Calculate sums (using np.nansum to ignore NaN values)
+            Call_IV = np.nansum(call_iv_values)
+            Put_IV = np.nansum(put_iv_values)
 
             # Now that we have calculated sums, we use them for further calculations
 
@@ -303,8 +305,6 @@ async def perform_operations(
                     # handle the case where strike is None
                     return None
                 else:
-
-
                     strike_data = group_strike.get_group(strike)
                     put_strike_data = strike_data[strike_data["Strike"] == strike]
                     call_strike_data = strike_data[strike_data["Strike"] == strike]
@@ -316,8 +316,8 @@ async def perform_operations(
                         put_strike_data["open_interest"].values[0], call_strike_data["open_interest"].values[0]
                     )
 
-                    call_iv = call_strike_data['greeks'].apply(lambda x: x.get('mid_iv')).sum()
-                    put_iv = put_strike_data['greeks'].apply(lambda x: x.get('mid_iv')).sum()
+                    call_iv = call_strike_data['greeks'].apply(lambda x: x.get('mid_iv') if x else 0).sum()
+                    put_iv = put_strike_data['greeks'].apply(lambda x: x.get('mid_iv') if x else 0).sum()
                     net_iv = call_iv - put_iv
                     return ratio_v, ratio_oi, call_iv, put_iv, net_iv
 
@@ -422,7 +422,7 @@ async def perform_operations(
                     # 'Bonsai %change': bonsai_percent_change,
                     "bonsai_ratio_2": round(Bonsai2_Ratio, 5) if Bonsai2_Ratio is not None else None,  # Check Bonsai2_Ratio
                     "b1_dividedby_b2": round((Bonsai_Ratio / Bonsai2_Ratio), 4) if Bonsai_Ratio is not None and Bonsai2_Ratio is not None and Bonsai2_Ratio != 0 else None,  # Check both and avoid division by zero
-                    "b2_dividedby_b1": round((Bonsai2_Ratio / Bonsai_Ratio), 4) if Bonsai_Ratio is not None and Bonsai_Ratio != 0 else None,  # Check both and avoid division by zero
+                    "b2_dividedby_b1": round((Bonsai2_Ratio / Bonsai_Ratio), 4) if Bonsai2_Ratio is not None and Bonsai_Ratio != 0 else None,  # Check both and avoid division by zero
                     # TODO ITM contract $ %
                     "pcr_vol": round(PC_Ratio_Vol, 3) if PC_Ratio_Vol is not None else None,  # Check PC_Ratio_Vol
 
@@ -553,7 +553,7 @@ async def perform_operations(
             data_to_insert = processed_data_df.to_dict(orient="records")
 
             for row in data_to_insert:
-                row["symbol_id"] = symbol.symbol_id #TODO should be symbol.symbol_id but  this should work?
+                row["symbol_id"] = symbol_id_int #TODO should be symbol.symbol_id but  this should work?
                 row["current_time"] = CurrentTime
                 for key, value in row.items():
                     if isinstance(value, np.int64):
