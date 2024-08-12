@@ -20,6 +20,15 @@ def log_error(location, ticker, model_name, exception):
     raise
 
 
+def calculate_stop_loss(purchase_price, delta, iv):
+    standard_stop_loss_percent = 0.05  # 5%
+    delta_adjustment_factor = 1 - abs(delta)
+    iv_adjustment_factor = 1 + (iv / 100)  # Higher IV -> higher adjustment, tighter stop loss
+
+    adjusted_stop_loss_percent = standard_stop_loss_percent * delta_adjustment_factor * iv_adjustment_factor
+    stop_loss_price = purchase_price * (1 - adjusted_stop_loss_percent)
+    return stop_loss_price
+
 # Order placement functions
 async def place_option_order_sync(
     CorP,
@@ -301,7 +310,9 @@ async def actions(
                             unique_id = f"{order_params[1]}_{order_params[2]}_{order_params[3]}_{order_params[0]}"  # ticker_IB_option_date_contractStrike_CorP
                             if unique_id not in unique_orders:
                                 unique_orders.add(unique_id)
-                                potential_orders.append(order_params)
+                                potential_orders.append(
+
+                                )
 
                         # Execute unique orders concurrently
                         # print(potential_orders)
@@ -490,6 +501,7 @@ async def get_contract_details(
     #     formatted_time_mdHMonly,
     #
     # )
+    stop_loss_price = calculate_stop_loss(price,delta,iv) #calculate stoploss based on market condition of underlying. greeks
     return (
         upordown,
         CorP,

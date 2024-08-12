@@ -37,7 +37,7 @@ def perform_operations(
         last_adj_close,
         current_price,
         CurrentTime,
-        optionchain_df, symbol_id_int
+        optionchain_df, symbol_name
 ):
     results = []
     price_change_percent = ((current_price - last_adj_close) / last_adj_close) * 100
@@ -545,14 +545,12 @@ def perform_operations(
                     "closest_strike_to_cp": closest_strike_currentprice,
                 }
             )
-            # ... inside perform_operations() function ...
 
             processed_data_df = pd.DataFrame(results)
-            processed_data_df['symbol_id'] = None
             # Convert processed_data_df to list of dictionaries, with appropriate type conversions
             data_to_insert = processed_data_df
-            data_to_insert["symbol_id"] = symbol_id_int #TODO should be symbol.symbol_id but  this should work?
-            data_to_insert["current_time"] = CurrentTime
+            data_to_insert["symbol_name"] = symbol_name #TODO  bshould be loopstarttime from teh pased in df.
+            data_to_insert["fetch_timestamp"] = CurrentTime
 
 
             #  (No need to save to CSV anymore)

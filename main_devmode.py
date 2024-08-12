@@ -77,7 +77,7 @@ async def calculate_operations(
     current_price,
     current_time,
     optionchain_df,
-  symbol_id_int
+  symbol_name
 ):
     try:
         loop = asyncio.get_running_loop()
@@ -87,7 +87,7 @@ async def calculate_operations(
             current_price,
             current_time,
             optionchain_df,
-            symbol_id_int
+            symbol_name
         )
 
         with ProcessPoolExecutor() as pool:
@@ -250,10 +250,10 @@ async def handle_ticker_cycle(client_session, ticker):
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
                 if option_data_success:
-                    LAC, CurrentPrice, optionchaindf, symbol_int = option_data_success
+                    LAC, CurrentPrice, optionchaindf, symbol_name = option_data_success
 
                     calculate_operations_success = await calculate_operations(
-                        ticker, LAC, CurrentPrice, current_time, optionchaindf, symbol_int
+                        ticker, LAC, CurrentPrice, current_time, optionchaindf, symbol_name
                     )
             # #     # print(calculate_operations_success)
                     if calculate_operations_success:
@@ -333,7 +333,7 @@ async def main():
         # Create worker tasks for each ticker
         worker_tasks = []
         # for ticker in TICKERS_FOR_TRADE_ALGOS:
-        for ticker in tickerlist:
+        for ticker in TICKERS_FOR_TRADE_ALGOS:
             if ticker not in trade_algos_queues:
                 trade_algos_queues[ticker] = asyncio.Queue()
             worker_task = asyncio.create_task(process_ticker_queue(ticker))
