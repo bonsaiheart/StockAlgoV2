@@ -5,7 +5,6 @@ CHWY
 BA
 CMPS
 MNMD
-aapl
 GOEV
 W
 MSFT

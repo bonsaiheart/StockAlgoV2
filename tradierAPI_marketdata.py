@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import aiohttp
 from sqlalchemy.exc import OperationalError
 
+
 import technical_analysis
 from UTILITIES.logger_config import logger
 from sqlalchemy import func,Column, Integer, String, Float, DateTime, Date, ForeignKey, JSON
@@ -392,7 +393,7 @@ async def post_market_quotes(session, ticker, real_auth):
                     else:
                         logger.error(f"Error: No market quote data found for {ticker} (batch {batch_num}).")
                         raise OptionChainError(f"No market quote data found for {ticker} (batch {batch_num})")
-            await asyncio.sleep(0.1)  # Short delay to avoid overwhelming API (adjust as needed)
+            # await asyncio.sleep(0.1)  # Short delay to avoid overwhelming API (adjust as needed)
 
         # Catch and log the exception with more information
         except (aiohttp.ClientError, OptionChainError) as e:  # Add OptionChainError to the except clause
@@ -593,10 +594,9 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
         # datetime_cols = ['trade_date', 'ask_date', 'bid_date']
         # for col in datetime_cols:
         #     options_df[col] = pd.to_datetime(options_df[col], unit='ms')
-        print(ticker)
+
         # options_df['fetch_timestamp'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        if ticker == 'GOEV':
-            options_df.to_csv('goevoptoipdf.csv')
+
         # Select and rename columns for the Option table
         option_columns = ['contract_id','expiration_date', 'strike', 'option_type', 'underlying',
                           'contract_size', 'description', 'expiration_type', 'exch']
@@ -633,68 +633,62 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
         # Fetch the inserted options to create a mapping of (symbol_id, expiration_date, strike, option_type) to option_id
         db_session.commit()
 
-        query = (
-            select(Option)
-            .filter(Option.underlying == symbol_name)
-        )
-        options_in_db =  db_session.execute(query)
-        options = {
-            (row.underlying, row.expiration_date, row.strike, row.option_type): row.contract_id
-            for row in options_in_db.scalars().all()
-        }
+        # query = (
+        #     select(Option)
+        #     .filter(Option.underlying == symbol_name)
+        # )
+        # options_in_db =  db_session.execute(query)
+        # options = {
+        #     (row.underlying, row.expiration_date, row.strike, row.option_type): row.contract_id
+        #     for row in options_in_db.scalars().all()
+        # }
         # print( options)  TODO no
-        option_quotes_data = []
+        # ... (rest of the code)
+
+        # Convert 'expiration_date' to datetime with timezone directly in options_df
         options_df['expiration_date'] = pd.to_datetime(options_df['expiration_date']).dt.tz_localize(
             'UTC').dt.tz_convert('US/Eastern')
-        for _, row in options_df.iterrows():
 
-            # print(symbol_id, row['expiration_date'], row['strike'], row['option_type'])
-            contract_id = row['contract_id'] # Use contract_id directly as the key
-            if contract_id:  #TODO always none?
+        # Create a list of dictionaries representing option quotes data
+        option_quotes_data = [
+            {
+                "contract_id": row['contract_id'],
+                "root_symbol": row['root_symbol'],
+                "fetch_timestamp": loop_start_time,
+                "last": row["last"],
+                "bid": row["bid"],
+                "ask": row["ask"],
+                "volume": row["volume"],
+                "greeks": row["greeks"],
+                "change_percentage": row["change_percentage"],
+                "average_volume": row["average_volume"],
+                "last_volume": row["last_volume"],
+                "trade_date": datetime.fromtimestamp(row["trade_date"] / 1000.0, tz=eastern),
+                "prevclose": row["prevclose"],
+                "week_52_high": row["week_52_high"],
+                "week_52_low": row["week_52_low"],
+                "bidsize": row["bidsize"],
+                "bidexch": row["bidexch"],
+                "bid_date": datetime.fromtimestamp(row["bid_date"] / 1000.0, tz=eastern),
+                "asksize": row["asksize"],
+                "askexch": row["askexch"],
+                "ask_date": datetime.fromtimestamp(row["ask_date"] / 1000.0, tz=eastern),
+                "open_interest": row["open_interest"],
+                "change": row["change"],
+                "open": row["open"],
+                "high": row["high"],
+                "low": row["low"],
+                "close": row["close"],
+            }
+            for _, row in options_df.iterrows() if row['contract_id']
+        ]
 
-                option_quotes_data.append({
-                    "contract_id": contract_id,
-                    "root_symbol": row['root_symbol'],
-                    "fetch_timestamp": loop_start_time,
-                    "last": row["last"],
-                    "bid": row["bid"],
-                    "ask": row["ask"],
-                    "volume": row["volume"],
-                    "greeks": row["greeks"],
-                    "change_percentage": row["change_percentage"],
-                    "average_volume": row["average_volume"],
-                    "last_volume": row["last_volume"],
-                    "trade_date": datetime.fromtimestamp(row["trade_date"] / 1000.0, tz=eastern),
-                    # Convert to datetime and set timezone
-                    "prevclose": row["prevclose"],
-                    "week_52_high": row["week_52_high"],   #not tracked for options in tradier quotes endpoint.?
-                    "week_52_low": row["week_52_low"], #not tracked for options in tradier quotes endpoint.?
-                    "bidsize": row["bidsize"],
-                    "bidexch": row["bidexch"],
-                    "bid_date": datetime.fromtimestamp(row["bid_date"] / 1000.0, tz=eastern),
-                    "asksize": row["asksize"],
-                    "askexch": row["askexch"],
-                    "ask_date":  datetime.fromtimestamp(row["ask_date"] / 1000.0, tz=eastern),
-                    "open_interest": row["open_interest"],
-                    "change": row["change"],
-                    "open": row["open"],
-                    "high": row["high"],
-                    "low": row["low"],
-                    "close": row["close"],
-                })
-
-        option_quotes_df = pd.DataFrame(option_quotes_data)
-        # print(option_quotes_df.columns, "optionsquote columsn")
-        option_quotes_df.set_index(['contract_id', 'fetch_timestamp'], inplace=True)
-        # Using pangres for OptionQuote table
-        upsert(
-            con=engine,
-            df=option_quotes_df,
-            table_name="option_quotes",
-            schema="public",
-            if_row_exists='update',
-            create_table=False
-        )
+        # Use SQLAlchemy's Core API for bulk insert
+        with engine.begin() as conn:
+            conn.execute(
+                insert(OptionQuote),
+                option_quotes_data
+            )
 
         # Get technical analysis data
         ta_df = await technical_analysis.get_ta(session, ticker)
@@ -703,21 +697,15 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
             for data in ta_data_list:
                 data["symbol_name"] = symbol_name
 
-            # Batch insertion for TechnicalAnalysis
-            TA_BATCH_SIZE = 5000
-            for i in range(0, len(ta_data_list), TA_BATCH_SIZE):
-                batch = ta_data_list[i:i + TA_BATCH_SIZE]
-                try:
-                    db_session.execute(
-                        insert(TechnicalAnalysis).values(batch).on_conflict_do_nothing(
-                            constraint='uq_symbol_interval_timestamps'
-                        )
-                    )
-                except SQLAlchemyError as e:
-                    print(f"SQLAlchemy error during insertion: {e}")
-                    await db_session.rollback()
-                    print(f"Unexpected error during insertion: {e}")
-                    await db_session.rollback()
+            # Create DataFrame for bulk insert
+            ta_data_df = pd.DataFrame(ta_data_list)
+
+            # Use bulk_insert_mappings for faster inserts
+            with engine.begin() as conn:
+                conn.execute(
+                    insert(TechnicalAnalysis),
+                    ta_data_df.to_dict(orient="records")
+                )
         else:
             print("TA DataFrame is empty")
 
