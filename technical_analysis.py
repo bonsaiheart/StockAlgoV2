@@ -1,14 +1,13 @@
 import asyncio
 from datetime import datetime, timedelta
-
 import numpy as np
 import pandas as pd
 import ta
-
+from concurrent.futures import ThreadPoolExecutor
+import pytz
 from TradierAPI import real_auth
 from UTILITIES.logger_config import logger
 import tradierAPI_marketdata
-
 
 async def get_ta(session, ticker):
     days_to_fetch = {
@@ -17,22 +16,12 @@ async def get_ta(session, ticker):
         "15min": 40,
     }
 
-    def safe_calculation(df, column_name, calculation_function, *args, **kwargs):
-        try:
-           df[column_name] = calculation_function(*args, **kwargs)
-        except Exception as e:
-            logger.warning(
-                f"{ticker} - Problem with: column_name={column_name}, function={calculation_function.__name__}, error={e}. This is usually caused by missing data from yfinance."
-            )
-            df[column_name] = np.nan
-
-    async def fetch_and_process_data(interval):
+    async def fetch_data(interval):
         start = (datetime.today() - timedelta(days=days_to_fetch[interval])).strftime("%Y-%m-%d %H:%M")
         end = datetime.today().strftime("%Y-%m-%d %H:%M")
 
         headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
-        time_sale_response = await (tradierAPI_marketdata.fetch
-            (
+        time_sale_response = await tradierAPI_marketdata.fetch(
             session,
             "https://api.tradier.com/v1/markets/timesales",
             params={
@@ -43,7 +32,7 @@ async def get_ta(session, ticker):
                 "session_filter": "all",
             },
             headers=headers,
-        ))
+        )
 
         if not time_sale_response or "series" not in time_sale_response or "data" not in time_sale_response["series"]:
             logger.warning(f"Failed to retrieve TA data for ticker {ticker} and interval {interval}")
@@ -51,154 +40,156 @@ async def get_ta(session, ticker):
 
         df = pd.DataFrame(time_sale_response["series"]["data"]).set_index("time")
         df.index = pd.to_datetime(df.index)
+        # print(df.columns)
+        return df
+
+    def process_data(df, interval):
+        if df.empty:
+            logger.warning(f"Empty DataFrame for {ticker} at interval {interval}")
+            return pd.DataFrame()
+
         latest_minute_data = df.tail(1).copy()
 
-        # Define the calculations
-        def perform_calculations():
-            ema_windows = [5, 14, 20, 50, 200]
-            rsi_windows = [2, 7, 14, 21]
-            macd_windows = [(12, 26, 9)]
-            cci_window = 20
-            adx_window = 7
-            williams_r_params = 14
-            cmf_window = 20
-            eom_window = 14
-            mfi_window = 14
-            keltner_window = 20
-            keltner_atr_window = 10
-            for window in ema_windows:
-                safe_calculation(df, f"EMA_{window}_{interval}", ta.trend.ema_indicator, close=df["close"], window=window)
-                latest_minute_data[f"EMA_{window}"] = df[f"EMA_{window}_{interval}"].iloc[-1]
-            for window in rsi_windows:
-                safe_calculation(df, f"RSI_{window}_{interval}", ta.momentum.rsi, close=df["close"], window=window)
-                latest_minute_data[f"RSI_{window}"] = df[f"RSI_{window}_{interval}"].iloc[-1]
+        # Ensure timestamp is in datetime format
+        if 'timestamp' in latest_minute_data.columns:
+            latest_minute_data['timestamp'] = pd.to_datetime(latest_minute_data['timestamp'])
 
+        # Rename OHLCV and VWAP columns to include interval
+        for col in ['timestamp', 'price', 'open', 'high', 'low', 'close', 'volume', 'vwap']:
+            if col in latest_minute_data.columns:
+                new_col_name = f"{col}_{interval}"
+                latest_minute_data[new_col_name] = latest_minute_data[col]
+                if col == 'timestamp':
+                    latest_minute_data[new_col_name] = latest_minute_data[new_col_name].dt.tz_localize(None)
+                latest_minute_data.drop(columns=[col], inplace=True)
 
-            for fast_window, slow_window, signal_window in macd_windows:
-                macd_object = ta.trend.MACD(
-                    close=df["close"],
-                    window_slow=slow_window,
-                    window_fast=fast_window,
-                    window_sign=signal_window,
-                    fillna=False
+        # Ensure non-negative values for calculations
+        df_non_negative = df.clip(lower=0)
+        def calculate_indicator(indicator_name, indicator_function, **kwargs):
+            try:
+                result = indicator_function(**kwargs)
+                if isinstance(result, pd.Series):
+                    return result.iloc[-1]
+                elif hasattr(result, indicator_name.lower()):
+                    return getattr(result, indicator_name.lower())().iloc[-1]
+                else:
+                    return result
+            except Exception as e:
+                logger.warning(f"Error calculating {indicator_name} for {ticker} at interval {interval}: {str(e)}")
+                return np.nan
+
+        with ThreadPoolExecutor() as executor:
+            # EMA calculations
+            ema_tasks = {f"EMA_{window}_{interval}": executor.submit(
+                calculate_indicator, f"EMA_{window}", ta.trend.ema_indicator,
+                close=df_non_negative["close"], window=window
+            ) for window in [5, 14, 20, 50, 200]}
+
+            # RSI calculations
+            rsi_tasks = {f"RSI_{window}_{interval}": executor.submit(
+                calculate_indicator, f"RSI_{window}", ta.momentum.rsi,
+                close=df_non_negative["close"], window=window
+            ) for window in [2, 7, 14, 21]}
+
+            # Other indicator calculations
+            other_tasks = {
+                f"AwesomeOsc_{interval}": executor.submit(
+                    calculate_indicator, "AwesomeOsc", ta.momentum.awesome_oscillator,
+                    high=df_non_negative["high"], low=df_non_negative["low"], window1=5, window2=34
+                ),
+                f"SMA_20_{interval}": executor.submit(
+                    calculate_indicator, "SMA_20", ta.trend.sma_indicator,
+                    close=df_non_negative["close"], window=20
+                ),
+                f"ADX_{interval}": executor.submit(
+                    calculate_indicator, "ADX", ta.trend.adx,
+                    high=df_non_negative["high"], low=df_non_negative["low"], close=df_non_negative["close"], window=7
+                ),
+                f"CCI_{interval}": executor.submit(
+                    calculate_indicator, "CCI", ta.trend.cci,
+                    high=df_non_negative["high"], low=df_non_negative["low"], close=df_non_negative["close"], window=20
+                ),
+                f"CMF_{interval}": executor.submit(
+                    calculate_indicator, "CMF", ta.volume.chaikin_money_flow,
+                    high=df_non_negative["high"], low=df_non_negative["low"], close=df_non_negative["close"], volume=df_non_negative["volume"], window=20
+                ),
+                f"EoM_{interval}": executor.submit(
+                    calculate_indicator, "EoM", ta.volume.ease_of_movement,
+                    high=df_non_negative["high"], low=df_non_negative["low"], volume=df_non_negative["volume"], window=14
+                ),
+                f"OBV_{interval}": executor.submit(
+                    calculate_indicator, "OBV", ta.volume.on_balance_volume,
+                    close=df_non_negative["close"], volume=df_non_negative["volume"]
+                ),
+                f"MFI_{interval}": executor.submit(
+                    calculate_indicator, "MFI", ta.volume.money_flow_index,
+                    high=df_non_negative["high"], low=df_non_negative["low"], close=df_non_negative["close"], volume=df_non_negative["volume"], window=14
                 )
-                latest_minute_data[f"MACD_{fast_window}_{slow_window}"] = macd_object.macd().iloc[-1]
-                latest_minute_data[f"Signal_Line_{fast_window}_{slow_window}"] = macd_object.macd_signal().iloc[-1]
-                latest_minute_data[f"MACD_diff_{fast_window}_{slow_window}"] = macd_object.macd_diff().iloc[-1]
-                latest_minute_data[f"MACD_diff_prev_{fast_window}_{slow_window}"] = macd_object.macd_diff().shift(1).iloc[-1]
+            }
 
-                bullish_cross = (
-                    (latest_minute_data[f"MACD_diff_{fast_window}_{slow_window}"] > 0) &
-                    (latest_minute_data[f"MACD_diff_prev_{fast_window}_{slow_window}"] <= 0)
-                )
+            # Combine all tasks
+            all_tasks = {**ema_tasks, **rsi_tasks, **other_tasks}
 
-                bearish_cross = (
-                    (latest_minute_data[f"MACD_diff_{fast_window}_{slow_window}"] < 0) &
-                    (latest_minute_data[f"MACD_diff_prev_{fast_window}_{slow_window}"] >= 0)
-                )
+            # Wait for all tasks to complete and add results to latest_minute_data
+            for name, future in all_tasks.items():
+                latest_minute_data[name] = future.result()
 
-                latest_minute_data[f"MACD_signal_{fast_window}_{slow_window}"] = np.where(
-                    bullish_cross, "buy", np.where(bearish_cross, "sell", "hold")
-                )
+        # MACD calculation
+        macd_object = ta.trend.MACD(close=df_non_negative["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False)
+        latest_minute_data[f"MACD_12_26_{interval}"] = macd_object.macd().iloc[-1]
+        latest_minute_data[f"Signal_Line_12_26_{interval}"] = macd_object.macd_signal().iloc[-1]
+        latest_minute_data[f"MACD_diff_12_26_{interval}"] = macd_object.macd_diff().iloc[-1]
+        latest_minute_data[f"MACD_diff_prev_12_26_{interval}"] = macd_object.macd_diff().shift(1).iloc[-1]
+        #TODO missing the bullish/bearish macd cross signal
+        # Other indicators
+        latest_minute_data[f"Williams_R_{interval}"] = calculate_indicator(
+            "Williams_R", ta.momentum.WilliamsRIndicator,
+            high=df_non_negative["high"], low=df_non_negative["low"], close=df_non_negative["close"], lbp=14
+        )
+        latest_minute_data[f"PVO_{interval}"] = calculate_indicator(
+            "PVO", ta.momentum.PercentageVolumeOscillator,
+            volume=df_non_negative["volume"], window_slow=26, window_fast=12, window_sign=9
+        )
+        latest_minute_data[f"PPO_{interval}"] = calculate_indicator(
+            "PPO", ta.momentum.PercentagePriceOscillator,
+            close=df_non_negative["close"], window_slow=26, window_fast=12, window_sign=9
+        )
+        keltner = ta.volatility.KeltnerChannel(
+            high=df_non_negative["high"], low=df_non_negative["low"],
+            close=df_non_negative["close"], window=20, window_atr=10
+        )
+        latest_minute_data[f"Keltner_Upper_{interval}"] = keltner.keltner_channel_hband().iloc[-1]
+        latest_minute_data[f"Keltner_Lower_{interval}"] = keltner.keltner_channel_lband().iloc[-1]
 
-            safe_calculation(df, f"AwesomeOsc", ta.momentum.awesome_oscillator, high=df["high"], low=df["low"], window1=5, window2=34)
-            latest_minute_data[f"AwesomeOsc"] = df[f"AwesomeOsc"].iloc[-1]
-            safe_calculation(df, f"SMA_20", ta.trend.sma_indicator, close=df["close"], window=20)
-            latest_minute_data[f"SMA_20"] = df[f"SMA_20"].iloc[-1]
+        bb_object = ta.volatility.BollingerBands(close=df_non_negative["close"], window=20, window_dev=2)
+        latest_minute_data[f"BB_high_20_{interval}"] = bb_object.bollinger_hband().iloc[-1]
+        latest_minute_data[f"BB_mid_20_{interval}"] = bb_object.bollinger_mavg().iloc[-1]
+        latest_minute_data[f"BB_low_20_{interval}"] = bb_object.bollinger_lband().iloc[-1]
 
-            # ADX Calculation (handle potential insufficient data)
-            if len(df) >= adx_window:
-                safe_calculation(df, f"ADX", ta.trend.adx, high=df["high"], low=df["low"], close=df["close"], window=adx_window, fillna=False)
-                latest_minute_data[f"ADX"] = df[f"ADX"].iloc[-1]
-            else:
-                print("Insufficient data for ADX calculation.")
-                latest_minute_data[f"ADX"] = pd.NA  # or any other default value
+        # VPT calculation
+        vpt_indicator = ta.volume.VolumePriceTrendIndicator(
+            close=df_non_negative["close"], volume=df_non_negative["volume"]
+        )
+        latest_minute_data[f"VPT_{interval}"] = vpt_indicator.volume_price_trend().iloc[-1]
 
-            safe_calculation(df, f"CCI", ta.trend.cci, high=df["high"], low=df["low"], close=df["close"], window=cci_window)
-            latest_minute_data[f"CCI"] = df[f"CCI"].iloc[-1]
-
-            williams_r_object = ta.momentum.WilliamsRIndicator(high=df["high"], low=df["low"], close=df["close"], lbp=williams_r_params,fillna=False)
-            # print(williams_r_object.williams_r()) NEED TO ALLIGN THE TIMESTAMP FOR EACH
-            latest_minute_data[f"Williams_R"] = williams_r_object.williams_r().iloc[-1]
-
-
-            # PVO Calculation (using the Williams %R-like approach)
-            pvo_object = ta.momentum.PercentageVolumeOscillator(
-                volume=df["volume"], window_slow=26, window_fast=12, window_sign=9, fillna=False
-            )
-            latest_minute_data[f"PVO"] = pvo_object.pvo().iloc[-1]
-
-            # PPO Calculation (using the Williams %R-like approach)
-            ppo_object = ta.momentum.PercentagePriceOscillator(
-                close=df["close"], window_slow=26, window_fast=12, window_sign=9, fillna=False
-            )
-            latest_minute_data[f"PPO"] = ppo_object.ppo().iloc[-1]
-
-
-            safe_calculation(df, f"CMF", ta.volume.chaikin_money_flow, high=df["high"], low=df["low"], close=df["close"], volume=df["volume"], window=cmf_window)
-            latest_minute_data[f"CMF"] = df[f"CMF"].iloc[-1]
-
-            safe_calculation(df, f"EoM", ta.volume.ease_of_movement, high=df["high"], low=df["low"], volume=df["volume"], window=eom_window)
-            latest_minute_data[f"EoM"] = df[f"EoM"].mean()  # Use mean to get single value
-
-            safe_calculation(df, f"OBV", ta.volume.on_balance_volume, close=df["close"], volume=df["volume"])
-            latest_minute_data[f"OBV"] = df[f"OBV"].iloc[-1]
-
-            safe_calculation(df, f"MFI", ta.volume.money_flow_index, high=df["high"], low=df["low"], close=df["close"], volume=df["volume"], window=mfi_window)
-            latest_minute_data[f"MFI"] = df[f"MFI"].iloc[-1]
-
-
-            keltner_channel = ta.volatility.KeltnerChannel(
-                high=df["high"],
-                low=df["low"],
-                close=df["close"],
-                window=keltner_window,
-                window_atr=keltner_atr_window
-            )
-            safe_calculation(df, f"Keltner_Upper", keltner_channel.keltner_channel_hband_indicator)
-            safe_calculation(df, f"Keltner_Lower", keltner_channel.keltner_channel_lband_indicator)
-            latest_minute_data['Keltner_Upper'] = df[f"Keltner_Upper"].iloc[-1]
-            latest_minute_data['Keltner_Lower'] = df[f"Keltner_Lower"].iloc[-1]
-
-            # safe_calculation(latest_minute_data, f"VPT", ta.volume.volume_price_trend, close=latest_minute_data["close"], volume=latest_minute_data["volume"])
-            # Bollinger Bands Calculation (with enough historical data)
-            bb_windows = [20]  # Standard BB window, add more if needed
-            for window in bb_windows:
-                bb_object = ta.volatility.BollingerBands(close=df["close"], window=window, window_dev=2)
-                latest_minute_data[f"BB_high_{window}"] = bb_object.bollinger_hband().iloc[-1]
-                latest_minute_data[f"BB_mid_{window}"] = bb_object.bollinger_mavg().iloc[-1]
-                latest_minute_data[f"BB_low_{window}"] = bb_object.bollinger_lband().iloc[-1]
-                # VPT Calculation (using the Williams %R-like approach)
-            vpt_object = ta.volume.VolumePriceTrendIndicator(close=df["close"], volume=df["volume"])
-            latest_minute_data[f"VPT"] = vpt_object.volume_price_trend().iloc[-1]
-
-
-
-        perform_calculations()
-
-        latest_minute_data[f"timestamp"] = latest_minute_data.index
-        # print("latestdata",latest_minute_data)
+        # latest_minute_data[f"timestamp_{interval}"] = latest_minute_data.index
         return latest_minute_data.reset_index(drop=True)
-
     intervals = ["1min", "5min", "15min"]
-    results = await asyncio.gather(*[fetch_and_process_data(interval) for interval in intervals])
+    df_results = await asyncio.gather(*[fetch_data(interval) for interval in intervals])
 
-    processed_results = []
-    for i, result in enumerate(results):
-        result.columns = [f"{intervals[i]}_{col}" for col in result.columns]
-        # result = result.dropna(axis=0, how='all')
+    processed_results = [process_data(df, interval) for df, interval in zip(df_results, intervals)]
 
-        processed_results.append(result)
-    # Concatenate the DataFrames horizontally (side by side)
+    final_df = pd.concat(processed_results, axis=1)
+    # Get your local timezone
+    # Get the Eastern timezone (handles DST automatically)
 
-    final_df = pd.concat(processed_results, axis=1,join='outer')
-    final_df['fetch_timestamp'] = datetime.utcnow() # Add fetch_timestamp here
-    # print(final_df)
-#TODO need to change the open hoigh low close from quotes to daily.  the timesales has ohlc for the time period. i guess jst store tail1 since im retieving timesals anyway for now.  eventually i will only need curent?
-    # Drop columns with all NaN values after concatenation
-    # final_df.dropna(axis=0, how='all', inplace=True)
+    eastern = pytz.timezone('US/Eastern')
 
-    # print("final df = ", final_df)
+    # Get the current time in your local timezone
+    local_time = datetime.now(eastern)
+    final_df['fetch_timestamp'] = local_time
+
+    # for x in final_df.columns:
+    #     print(x)
+
     return final_df
-
-

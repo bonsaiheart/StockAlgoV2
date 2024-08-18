@@ -116,7 +116,7 @@ async def calculate_operations(
 
 
 async def trade_algos(
-    optionchain, dailyminutes, processeddata, ticker, current_price, current_time
+    optionchain, processeddata, ticker, current_price, current_time
 ):
     if ticker not in trade_algos_queues:
         trade_algos_queues[ticker] = asyncio.Queue()
@@ -126,7 +126,6 @@ async def trade_algos(
         await trade_algos_queues[ticker].put(
             (
                 optionchain,
-                dailyminutes,
                 processeddata,
                 ticker,
                 current_price,
@@ -145,7 +144,7 @@ async def process_ticker_queue(ticker):
         # print(f"Worker for {ticker} waiting for task")
         (
             optionchain,
-            dailyminutes,
+
             processeddata,
             ticker,
             current_price,
@@ -153,10 +152,10 @@ async def process_ticker_queue(ticker):
         ) = await trade_algos_queues[ticker].get()
         # print(f"Processing task for {ticker}")
         try:
-
+#TODO need to change the algo stuff to use new formatted dfs.
             await trade_algos2.actions(
                 optionchain,
-                dailyminutes,
+
                 processeddata,
                 ticker,
                 current_price,
@@ -265,23 +264,22 @@ async def handle_ticker_cycle(client_session, ticker):
 
                                     # print(calculated_data_insert_success)
                             #
-                            #     if (
-                            #         ticker in TICKERS_FOR_TRADE_ALGOS
-                            #         and optionchain is not None
-                            #         and not optionchain.empty
-                            #         and order_manager.ib.isConnected()
-                            #     ):
-                            #         print("ordermanager connected. doing trade algos")
-                            #         asyncio.create_task(
-                            #             trade_algos(
-                            #                 optionchain,
-                            #                 dailyminutes,
-                            #                 processeddata,
-                            #                 ticker,
-                            #                 CurrentPrice,
-                            #                 current_time,
-                            #             )
-                            #         )
+                        if (
+                            ticker in TICKERS_FOR_TRADE_ALGOS
+                            and optionchain_df is not None
+                            and not optionchain_df.empty
+                            and order_manager.ib.isConnected()
+                        ):
+                            print("ordermanager connected. ubt not doing trade algos")
+                                    # asyncio.create_task(
+                                    #     trade_algos(
+                                    #         optionchain_df,
+                                    #         processed_data_df,
+                                    #         ticker,
+                                    #         CurrentPrice,
+                                    #         current_time,
+                                    #     )
+                                    # )
                             # await trade_algos(
                             #         optionchain,
                             #         dailyminutes,
@@ -305,7 +303,7 @@ async def handle_ticker_cycle(client_session, ticker):
         record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
-
+            exit()
         await asyncio.sleep(max(0, 60 - elapsed_time))
         start_time = datetime.now(pytz.utc)
 
@@ -333,7 +331,7 @@ async def main():
         # Create worker tasks for each ticker
         worker_tasks = []
         # for ticker in TICKERS_FOR_TRADE_ALGOS:
-        for ticker in TICKERS_FOR_TRADE_ALGOS:
+        for ticker in tickerlist:
             if ticker not in trade_algos_queues:
                 trade_algos_queues[ticker] = asyncio.Queue()
             worker_task = asyncio.create_task(process_ticker_queue(ticker))
@@ -345,6 +343,7 @@ async def main():
         for ticker in tickerlist:
             task = asyncio.create_task(handle_ticker_cycle(session, ticker))
             ticker_tasks.append(task)
+            #TODO delay or nay?
             await asyncio.sleep(
                 delay
             )  # Wait for the specified delay before starting next task

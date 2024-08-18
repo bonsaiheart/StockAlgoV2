@@ -210,7 +210,6 @@ signal_sums = {pair: 0 for pair in model_pairs}
 # Main function to handle model actions
 async def actions(
     optionchain_df,
-    dailyminutes_df,
     processeddata_df,
     ticker,
     current_price,

@@ -465,7 +465,7 @@ def perform_operations(
                     "itm_pcroi_down4": strike_ITMPCRoi_dict[closest_lower_strike4],
                     "itm_oi": ITM_OI,
                     "total_oi": all_OI,
-                    "itm_contracts_percent": ITM_OI / all_OI,
+                    "itm_contracts_percent": ITM_OI / all_OI if all_OI != 0 else np.nan,
                     "net_iv": round(Net_IV, 3),
                     "net_itm_iv": round(ITM_Avg_Net_IV, 3),
                     "net_iv_mp": round(Net_IV_at_MP, 3),
@@ -540,8 +540,8 @@ def perform_operations(
                                            )
                                            * 100,
                     ##TODO swap (/) with result = np.divide(x, y)
-                    "niv_dividedby_oi": Net_IV / all_OI,
-                    "itm_avg_niv_dividedby_itm_oi": ITM_Avg_Net_IV / ITM_OI,
+                    "niv_dividedby_oi": Net_IV / all_OI if all_OI != 0 else np.nan,
+                    "itm_avg_niv_dividedby_itm_oi": ITM_Avg_Net_IV / ITM_OI if ITM_OI != 0 else np.nan,
                     "closest_strike_to_cp": closest_strike_currentprice,
                 }
             )

@@ -8,8 +8,11 @@ import asyncio
 from datetime import datetime, timedelta
 import aiohttp
 from sqlalchemy.exc import OperationalError
-
-
+import pandas as pd
+from sqlalchemy.dialects.postgresql import insert
+from pangres import upsert
+from datetime import datetime
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import technical_analysis
 from UTILITIES.logger_config import logger
 from sqlalchemy import func,Column, Integer, String, Float, DateTime, Date, ForeignKey, JSON
@@ -32,16 +35,16 @@ sem = asyncio.Semaphore(1000000)
 
 
 Base = declarative_base()
-def calculate_batch_size(data_list, total_elements_limit=32680):
-    """
-    Calculates the maximum batch size based on the number of fields per element and a total limit. 32680 WORKS, 42690 DOESNT WORK WITH THIS
-    """
-    if data_list:
-        fields_per_element = len(data_list[0])
-        max_elements_per_batch = total_elements_limit // fields_per_element
-        return max_elements_per_batch
-    else:
-        return 0  # Handle empty list
+# def calculate_batch_size(data_list, total_elements_limit=32680):
+#     """
+#     Calculates the maximum batch size based on the number of fields per element and a total limit. 32680 WORKS, 42690 DOESNT WORK WITH THIS
+#     """
+#     if data_list:
+#         fields_per_element = len(data_list[0])
+#         max_elements_per_batch = total_elements_limit // fields_per_element
+#         return max_elements_per_batch
+#     else:
+#         return 0  # Handle empty list
 
 
 
@@ -220,7 +223,7 @@ class TechnicalAnalysis(Base):
             ("BB_low_20", Float),
             ("VPT", Float),
         ]:
-            column_name = f"{interval}_{indicator}"
+            column_name = f"{indicator}_{interval}"
             locals()[column_name] = Column(data_type, nullable=True)
         # Explicitly define an interval column after the loops2
     fetch_timestamp = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True, nullable=False)
@@ -359,52 +362,53 @@ async def post_market_quotes(session, ticker, real_auth):
     url = "https://api.tradier.com/v1/markets/quotes"
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
     all_contracts = await lookup_all_option_contracts(session, ticker, real_auth)
-    # Batching logic
+
+    # Optimized batching: Use list comprehension for faster symbol string creation
     BATCH_SIZE = 8000
-    num_batches = math.ceil(len(all_contracts) / BATCH_SIZE)
-    results = []
-    timeout = aiohttp.ClientTimeout(total=45)
-    for batch_num in range(num_batches):
-        start_idx = batch_num * BATCH_SIZE
-        end_idx = (batch_num + 1) * BATCH_SIZE
-        batch_contracts = all_contracts[start_idx:end_idx]
+    results = [
+        await fetch_quote_batch(
+            session,
+            url,
+            headers,
+            ",".join(all_contracts[i : i + BATCH_SIZE]),
+        )
+        for i in range(0, len(all_contracts), BATCH_SIZE)
+    ]
 
-
-        symbols_str = ",".join(batch_contracts)
-
-        payload = {"symbols": symbols_str, "greeks": "true"}
-
-        try:
-            async with sem:
-                async with session.post(url, data=payload, headers=headers, timeout=timeout) as response:
-                    response.raise_for_status()  # Raise an exception for HTTP errors
-                    data = await response.json()
-                    rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
-                    rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
-
-                    if rate_limit_used >= (rate_limit_allowed * 0.99):
-                        logger.error(
-                            f"POST_{url},----Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
-                        )
-
-                    if "quotes" in data and "quote" in data["quotes"]:
-                        quotes = data["quotes"]["quote"]
-                        results.append(pd.DataFrame(quotes))
-                    else:
-                        logger.error(f"Error: No market quote data found for {ticker} (batch {batch_num}).")
-                        raise OptionChainError(f"No market quote data found for {ticker} (batch {batch_num})")
-            # await asyncio.sleep(0.1)  # Short delay to avoid overwhelming API (adjust as needed)
-
-        # Catch and log the exception with more information
-        except (aiohttp.ClientError, OptionChainError) as e:  # Add OptionChainError to the except clause
-            logger.exception(f"Error fetching market quotes (batch {batch_num}): {e}")
-            raise  # Re-raise the exception
-
-    # Combine results and handle potential empty results
-    combined_df = pd.concat(results, ignore_index=True) if results else None
-
+    # Combine results and handle potential empty results using a single expression
+    combined_df = pd.concat(results, ignore_index=True) if results and not all(df.empty for df in results) else None
     return combined_df
 
+async def fetch_quote_batch(session, url, headers, symbols_str):
+    payload = {"symbols": symbols_str, "greeks": "true"}
+    timeout = aiohttp.ClientTimeout(total=45)
+
+    try:
+        async with sem:
+            async with session.post(url, data=payload, headers=headers, timeout=timeout) as response:
+                response.raise_for_status()
+                data = await response.json()
+                handle_rate_limit(response)
+
+                if "quotes" in data and "quote" in data["quotes"]:
+                    quotes = data["quotes"]["quote"]
+                    return pd.DataFrame(quotes)
+                else:
+                    logger.error(f"Error: No market quote data found for symbols {symbols_str}.")
+                    raise OptionChainError(f"No market quote data found for symbols {symbols_str}")
+
+    except (aiohttp.ClientError, OptionChainError) as e:
+        logger.exception(f"Error fetching market quotes for symbols {symbols_str}: {e}")
+        raise
+
+def handle_rate_limit(response):
+    rate_limit_allowed = int(response.headers.get("X-Ratelimit-Allowed", "0"))
+    rate_limit_used = int(response.headers.get("X-Ratelimit-Used", "0"))
+
+    if rate_limit_used >= (rate_limit_allowed * 0.99):
+        logger.error(
+            f"Rate limit exceeded: Used {rate_limit_used} out of {rate_limit_allowed}"
+        )
 
 async def fetch(session, url, params, headers):
     rate_limit_allowed, rate_limit_used = None, None
@@ -477,29 +481,6 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price):
 
 def convert_unix_to_datetime(unix_timestamp):
     return datetime.fromtimestamp(unix_timestamp / 1000.0)
-
-
-import pandas as pd
-from sqlalchemy.dialects.postgresql import insert
-from pangres import upsert
-from datetime import datetime
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.future import select
-
-import pandas as pd
-from sqlalchemy.dialects.postgresql import insert
-from pangres import upsert
-from datetime import datetime
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.future import select
-
-import pandas as pd
-from sqlalchemy.dialects.postgresql import insert
-from pangres import upsert
-from datetime import datetime
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
 
 
 async def get_options_data(db_session, session, ticker, loop_start_time):
@@ -706,6 +687,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                     insert(TechnicalAnalysis),
                     ta_data_df.to_dict(orient="records")
                 )
+
         else:
             print("TA DataFrame is empty")
 

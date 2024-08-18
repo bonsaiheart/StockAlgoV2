@@ -24,7 +24,7 @@ async def reset_all():
     # ib.ib.connect(
     #     "192.168.1.109", 7497, clientId=1, timeout=45
     # )
-    await ib.ib.connectAsync("localhost", 4002, clientId=0, timeout=45)
+    await ib.ib.connectAsync("localhost", 7497, clientId=0, timeout=45)
 
     print("Connected.")
 

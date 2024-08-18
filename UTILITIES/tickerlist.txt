@@ -16,3 +16,15 @@ WMT
 JPM
 AMZN
 NVDA
+aapl
+mara
+bynd
+ups
+amd
+mmm
+serv
+ko
+xom
+intc
+rivn
+gold
