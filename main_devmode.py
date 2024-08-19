@@ -10,25 +10,22 @@ import calculations
 import trade_algos2
 import tradierAPI_marketdata
 from UTILITIES.logger_config import logger
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.ext.asyncio import AsyncSession
+from PrivateData import sql_db
 from sqlalchemy.orm import Session  # Import Session
-
-from sqlalchemy.orm import  sessionmaker
+from sqlalchemy import create_engine
+import analysis_functions
 
 client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
 order_manager = IB.ibAPI.IBOrderManager()
 semaphore = asyncio.Semaphore(500)
-trade_algos_queues = {}  # Dictionary to hold a queue for each ticker
-ticker_cycle_running = asyncio.Event()
-from sqlalchemy import create_engine
 
-DATABASE_URI = "postgresql://postgres:Homebro89@localhost/postgres"
-
+DATABASE_URI = sql_db.DATABASE_URI
 # Create a synchronous engine using create_engine
 engine = create_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
+ticker_cycle_running = asyncio.Event()
+trade_algos_queues = {}  # Dictionary to hold a queue for each ticker
 
 
 async def wait_until_time(target_time_utc):
@@ -102,17 +99,6 @@ async def calculate_operations(
         logger.exception(f"Error in calculate_operations for {ticker}: {e}")
 
         raise
-#
-# async def calculate_operations(*args):
-#     """Performs calculations asynchronously within the asyncio event loop."""
-#
-#     try:
-#         # Perform the operations directly in the event loop
-#         return await calculations.perform_operations(*args)
-#
-#     except Exception as e:
-#         logger.exception(f"Error in calculate_operations {args}: {e}")
-#         raise
 
 
 async def trade_algos(
@@ -174,60 +160,6 @@ async def process_ticker_queue(ticker):
 
 
 
-
-# # tasks = []
-TICKERS_FOR_TRADE_ALGOS = [
-    "SPY",
-    "TSLA",
-"GOOGL"
-]
-
-TICKERS_FOR_CALCULATIONS = [
-    "SPY",
-    "TSLA",
-    "GOOGL",
-    "ROKU",
-    "MSFT",
-    "CHWY",
-    "BA",
-
-    "SPY",
-"TSLA"
-         ,
-"ROKU"
-         ,
-"CHWY"
-         ,
-"BA"
-         ,
-"CMPS"
-         ,
-"MNMD"
-         ,
-"GOEV"
-         ,
-"W"
-         ,
-"MSFT"
-         ,
-"GOOGL"
-         ,
-"IWM"
-         ,
-"META"
-         ,
-"V"
-         ,
-"WMT"
-         ,
-"JPM"
-         ,
-"AMZN"
-         ,
-"NVDA"
-    ,
-]
-
 async def handle_ticker_cycle(client_session, ticker):
 
     start_time = datetime.now(pytz.utc)
@@ -246,31 +178,40 @@ async def handle_ticker_cycle(client_session, ticker):
                 option_data_success = await tradierAPI_marketdata.get_options_data(
                     session, client_session, ticker, current_time
                 )
+                # After data insertion, calculate the ratio
+                in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(session, ticker, current_time)
+                net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
+                max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
+                # If ratio is above 1, return the ticker
+                print(ticker,net_iv, max_pain)
+                if in_the_money_ratio > 1:
+                    print(ticker,in_the_money_ratio)
+                    # return ticker  # Or you can return more data as needed
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
-                if option_data_success:
-                    LAC, CurrentPrice, optionchaindf, symbol_name = option_data_success
-
-                    calculate_operations_success = await calculate_operations(
-                        ticker, LAC, CurrentPrice, current_time, optionchaindf, symbol_name
-                    )
-            # #     # print(calculate_operations_success)
-                    if calculate_operations_success:
-                        optionchain_df, processed_data_df, ticker, data_to_insert =  calculate_operations_success
-                                    # # Insert data into the database
-
-                        calculated_data_insert_success =  tradierAPI_marketdata.insert_calculated_data(ticker,engine,data_to_insert)
-
-
-                                    # print(calculated_data_insert_success)
-                            #
-                        if (
-                            ticker in TICKERS_FOR_TRADE_ALGOS
-                            and optionchain_df is not None
-                            and not optionchain_df.empty
-                            and order_manager.ib.isConnected()
-                        ):
-                            print("ordermanager connected. ubt not doing trade algos")
+            #     if option_data_success:
+            #         LAC, CurrentPrice, optionchaindf, symbol_name = option_data_success
+            #
+            #         calculate_operations_success = await calculate_operations(
+            #             ticker, LAC, CurrentPrice, current_time, optionchaindf, symbol_name
+            #         )
+            # # #     # print(calculate_operations_success)
+            #         if calculate_operations_success:
+            #             optionchain_df, processed_data_df, ticker, data_to_insert =  calculate_operations_success
+            #                         # # Insert data into the database
+            #
+            #             calculated_data_insert_success =  tradierAPI_marketdata.insert_calculated_data(ticker,engine,data_to_insert)
+            #
+            #
+            #                         # print(calculated_data_insert_success)
+            #                 #
+            #             if (
+            #                 ticker in TICKERS_FOR_TRADE_ALGOS
+            #                 and optionchain_df is not None
+            #                 and not optionchain_df.empty
+            #                 and order_manager.ib.isConnected()
+            #             ):
+            #                 print("ordermanager connected. ubt not doing trade algos")
                                     # asyncio.create_task(
                                     #     trade_algos(
                                     #         optionchain_df,
@@ -344,9 +285,9 @@ async def main():
             task = asyncio.create_task(handle_ticker_cycle(session, ticker))
             ticker_tasks.append(task)
             #TODO delay or nay?
-            await asyncio.sleep(
-                delay
-            )  # Wait for the specified delay before starting next task
+            # await asyncio.sleep(
+            #     delay
+            # )  # Wait for the specified delay before starting next task
 
         # Wait for all ticker tasks to complete
         await asyncio.gather(*ticker_tasks)
