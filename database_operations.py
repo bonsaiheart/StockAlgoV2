@@ -26,7 +26,7 @@ def create_database_tables(engine):
         except OperationalError as e:  # Catch OperationalError specifically
             logger.error(f"Error creating tables: {e}")
 # Name of the new schema
-NEW_SCHEMA = "your_new_schema_name"
+NEW_SCHEMA = "public"
 
 def drop_schema_if_exists(engine):
     Session = sessionmaker(bind=engine)
