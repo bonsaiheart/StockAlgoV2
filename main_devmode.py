@@ -7,6 +7,7 @@ import aiohttp
 import pytz  # Make sure to install pytz if you haven't already
 import IB.ibAPI
 import calculations
+import database_operations
 import trade_algos2
 import tradierAPI_marketdata
 from UTILITIES.logger_config import logger
@@ -265,7 +266,7 @@ async def main():
     try:
         await create_client_session()
         session = client_session
-        tradierAPI_marketdata.create_database_tables(engine)
+        database_operations.drop_create_schema_and_tables(engine)
         with open("UTILITIES/tickerlist.txt", "r") as f:
             tickerlist = [line.strip().upper() for line in f.readlines()]
 

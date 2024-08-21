@@ -99,25 +99,6 @@ def convert_unix_to_datetime(unix_timestamp):
     return datetime.fromtimestamp(unix_timestamp / 1000.0)
 
 
-def create_database_tables(engine):
-    with engine.connect() as conn:  # Use a synchronous context manager
-        inspector = inspect(conn)
-        existing_tables = inspector.get_table_names()
-        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, TechnicalAnalysis, ProcessedOptionData]
-
-        try:  # Wrap table creation in a try-except block
-            # Create Symbol table first
-            if Symbol.__table__.name not in existing_tables:
-                Symbol.__table__.create(bind=engine)  # Use bind=engine to specify the engine
-
-            # Then create the other tables
-            for table in tables_to_create:
-                if table.__table__.name != Symbol.__table__.name and table.__table__.name not in existing_tables:
-                    table.__table__.create(bind=engine)
-
-            logger.info("Database tables created or already exist.")
-        except OperationalError as e:  # Catch OperationalError specifically
-            logger.error(f"Error creating tables: {e}")
 
 
 # Ensure tables are created before querying
