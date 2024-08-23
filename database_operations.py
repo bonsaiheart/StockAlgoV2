@@ -26,8 +26,8 @@ def create_database_tables(engine):
         except OperationalError as e:  # Catch OperationalError specifically
             logger.error(f"Error creating tables: {e}")
 # Name of the new schema
-NEW_SCHEMA = "public"
 
+NEW_SCHEMA = "csvimport"
 def drop_schema_if_exists(engine):
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -48,9 +48,9 @@ def drop_schema_if_exists(engine):
     finally:
         session.close()
 
-def drop_create_schema_and_tables(engine):
+def create_schema_and_tables(engine):
     # First, drop the schema if it exists
-    drop_schema_if_exists(engine)
+    # drop_schema_if_exists(engine)
 
     # Create a session
     Session = sessionmaker(bind=engine)

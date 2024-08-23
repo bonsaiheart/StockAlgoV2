@@ -31,7 +31,7 @@ class OptionChainError(Exception):
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
-sem = asyncio.Semaphore(1000000)
+sem = asyncio.Semaphore(100)
 
 
 # def calculate_batch_size(data_list, total_elements_limit=32680):
@@ -93,10 +93,6 @@ from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, ProcessedO
 
 
 
-
-def convert_unix_to_datetime(unix_timestamp):
-    # Convert Unix timestamp (milliseconds) to datetime
-    return datetime.fromtimestamp(unix_timestamp / 1000.0)
 
 
 
@@ -225,7 +221,66 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price):
 
 
 def convert_unix_to_datetime(unix_timestamp):
-    return datetime.fromtimestamp(unix_timestamp / 1000.0)
+    if unix_timestamp is None or pd.isna(unix_timestamp):
+        return None
+    try:
+        timestamp = int(float(unix_timestamp))
+        if len(str(timestamp)) == 13:
+            return datetime.fromtimestamp(timestamp / 1000, tz=eastern)
+        elif len(str(timestamp)) == 10:
+            return datetime.fromtimestamp(timestamp, tz=eastern)
+        else:
+            logger.error(f"Unexpected timestamp format: {timestamp}")
+            return None
+    except ValueError:
+        logger.error(f"Invalid timestamp: {timestamp}")
+        return None
+async def get_timesales(session, ticker, lookback_minutes):
+    eastern = pytz.timezone('US/Eastern')
+    end = datetime.now(eastern)
+    start = end - timedelta(minutes=lookback_minutes)
+
+    start_str = start.strftime("%Y-%m-%d %H:%M")
+    end_str = end.strftime("%Y-%m-%d %H:%M")
+
+    # logger.info(f"Fetching timesales data for {ticker} from {start_str} to {end_str}")
+
+    headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+
+    try:
+        time_sale_response = await fetch(
+            session,
+            "https://api.tradier.com/v1/markets/timesales",
+            params={
+                "symbol": ticker,
+                "interval": "1min",
+                "start": start_str,
+                "end": end_str,
+                "session_filter": "all",
+            },
+            headers=headers,
+        )
+
+        if (time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]):
+            df = pd.DataFrame(time_sale_response["series"]["data"])
+            df['time'] = pd.to_datetime(df['time'], unit='ms', utc=True).dt.tz_convert('US/Eastern')
+            df.set_index('time', inplace=True)
+
+            # Ensure we only return the latest minute of data
+            latest_minute = df.index.max().floor('T')
+            latest_data = df.loc[latest_minute:latest_minute]
+
+            if not latest_data.empty:
+                return latest_data.iloc[-1].to_dict()
+            else:
+                logger.warning(f"No timesales data found for {ticker} in the last minute")
+                return None
+        else:
+            logger.error(f"Failed to retrieve timesales data for {ticker}: Invalid response structure")
+            return None
+    except Exception as e:
+        logger.error(f"Error fetching timesales data for {ticker}: {str(e)}")
+        return None
 
 
 async def get_options_data(db_session, session, ticker, loop_start_time):
@@ -266,7 +321,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
         if not symbol_name_result:  # Check if the result is None
             raise Exception(f"Failed to insert or update symbol {ticker}. Check for database constraints or errors.")
 
-
+        print("close?",quote_df.at[0, "close"])
     except Exception as e:
         db_session.rollback()
         print(f"Error handling symbol for {ticker}: {e}")
@@ -274,39 +329,52 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     # print(symbol_id)
 #TODO quotes will take multiple tickers/options as args. maybe be faster ?
     stock_price_data = {
-        'symbol_name': symbol_name,  # Assuming symbol_id is already defined
-        'fetch_timestamp': loop_start_time,
-        'trade_date': datetime.fromtimestamp(quote_df.at[0, "trade_date"] / 1000.0, tz=eastern),  # Same as timestamp
-
-        'last_price': quote_df.at[0, "last"],
-        'bid': quote_df.at[0, "bid"],
-        'bidsize': quote_df.at[0, "bidsize"],
-        'bidexch': quote_df.at[0, "bidexch"],  # New field
-        'bid_date' : datetime.fromtimestamp(quote_df.at[0, "bid_date"] / 1000.0, tz=eastern) if not pd.isnull(quote_df.at[0, "bid_date"]) else None,
-        'ask': quote_df.at[0, "ask"],
-        'asksize': quote_df.at[0, "asksize"],
-        'askexch': quote_df.at[0, "askexch"],  # New field
-        'ask_date' : datetime.fromtimestamp(quote_df.at[0, "ask_date"] / 1000.0, tz=eastern) if not pd.isnull(quote_df.at[0, "ask_date"]) else None,
-        'open_price': quote_df.at[0, "open"],
-        'high_price': quote_df.at[0, "high"],
-        'low_price': quote_df.at[0, "low"],
-        'last_volume': quote_df.at[0, "last_volume"],
-        'volume': quote_df.at[0, "volume"],
-        'average_volume': quote_df.at[0, "average_volume"],
-        'week_52_high': quote_df.at[0, "week_52_high"],  # New field
-        'week_52_low': quote_df.at[0, "week_52_low"],  # New field
-        'exch': quote_df.at[0, "exch"],  # New field
-        'prevclose': quote_df.at[0, "prevclose"],  # New field
-        'change': quote_df.at[0, "change"],  # New field
-        'change_percentage': quote_df.at[0, "change_percentage"]  # New field
+        'symbol_name': symbol_name,
+        'fetch_timestamp': loop_start_time.astimezone(eastern),
+        'last_trade_timestamp': convert_unix_to_datetime(quote_df.at[0, "trade_date"]),
+        'last_trade_price': quote_df.at[0, "last"],
+        'current_bid': quote_df.at[0, "bid"],
+        'current_ask': quote_df.at[0, "ask"],
+        'daily_open': quote_df.at[0, "open"],
+        'daily_high': quote_df.at[0, "high"],
+        'daily_low': quote_df.at[0, "low"],
+        'previous_close': quote_df.at[0, "prevclose"],
+        'last_trade_volume': quote_df.at[0, "last_volume"],
+        'daily_volume': quote_df.at[0, "volume"],
+        'average_daily_volume': quote_df.at[0, "average_volume"],
+        'week_52_high': quote_df.at[0, "week_52_high"],
+        'week_52_low': quote_df.at[0, "week_52_low"],
+        'daily_change': quote_df.at[0, "change"],
+        'daily_change_percentage': quote_df.at[0, "change_percentage"],
+        'current_bidsize': quote_df.at[0, "bidsize"],
+        'bidexch': quote_df.at[0, "bidexch"],
+        'current_bid_date': convert_unix_to_datetime(quote_df.at[0, "bid_date"]),
+        'current_asksize': quote_df.at[0, "asksize"],
+        'askexch': quote_df.at[0, "askexch"],
+        'current_ask_date': convert_unix_to_datetime(quote_df.at[0, "ask_date"]),
+        'exch': quote_df.at[0, "exch"],
     }
+    # Fetch timesales data
+    timesales_data = await get_timesales(session, ticker, lookback_minutes=1)
+
+    if timesales_data:
+        stock_price_data.update({
+            'last_1min_open': timesales_data['open'],
+            'last_1min_high': timesales_data['high'],
+            'last_1min_low': timesales_data['low'],
+            'last_1min_close': timesales_data['close'],
+            'last_1min_volume': timesales_data['volume'],
+            'last_1min_vwap': timesales_data['vwap']
+        })
 
     db_session.execute(
         insert(SymbolQuote)
         .values(stock_price_data)
-        .on_conflict_do_nothing(
-            constraint='symbol_quote_unique_constraint'
-        ))
+        .on_conflict_do_update(
+            constraint='symbol_quote_unique_constraint',
+            set_=stock_price_data
+        )
+    )
     db_session.commit()
 
 
@@ -380,7 +448,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
             {
                 "contract_id": row['contract_id'],
                 "root_symbol": row['root_symbol'],
-                "fetch_timestamp": loop_start_time,
+                "fetch_timestamp": loop_start_time.astimezone(eastern),
                 "last": row["last"],
                 "bid": row["bid"],
                 "ask": row["ask"],
@@ -389,16 +457,16 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "change_percentage": row["change_percentage"],
                 "average_volume": row["average_volume"],
                 "last_volume": row["last_volume"],
-                "trade_date": datetime.fromtimestamp(row["trade_date"] / 1000.0, tz=eastern),
+                "trade_date": convert_unix_to_datetime(row["trade_date"]),
                 "prevclose": row["prevclose"],
                 "week_52_high": row["week_52_high"],
                 "week_52_low": row["week_52_low"],
                 "bidsize": row["bidsize"],
                 "bidexch": row["bidexch"],
-                "bid_date": datetime.fromtimestamp(row["bid_date"] / 1000.0, tz=eastern),
+                "bid_date": convert_unix_to_datetime(row["bid_date"]),
                 "asksize": row["asksize"],
                 "askexch": row["askexch"],
-                "ask_date": datetime.fromtimestamp(row["ask_date"] / 1000.0, tz=eastern),
+                "ask_date": convert_unix_to_datetime(row["ask_date"]),
                 "open_interest": row["open_interest"],
                 "change": row["change"],
                 "open": row["open"],
@@ -417,24 +485,24 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
             )
 
         # Get technical analysis data
-        ta_df = await technical_analysis.get_ta(session, ticker)
-        if not ta_df.empty:
-            ta_data_list = ta_df.to_dict(orient='records')
-            for data in ta_data_list:
-                data["symbol_name"] = symbol_name
-
-            # Create DataFrame for bulk insert
-            ta_data_df = pd.DataFrame(ta_data_list)
-
-            # Use bulk_insert_mappings for faster inserts
-            with engine.begin() as conn:
-                conn.execute(
-                    insert(TechnicalAnalysis),
-                    ta_data_df.to_dict(orient="records")
-                )
-
-        else:
-            print("TA DataFrame is empty")
+        # ta_df = await technical_analysis.get_ta(session, ticker)
+        # if not ta_df.empty:
+        #     ta_data_list = ta_df.to_dict(orient='records')
+        #     for data in ta_data_list:
+        #         data["symbol_name"] = symbol_name
+        #
+        #     # Create DataFrame for bulk insert
+        #     ta_data_df = pd.DataFrame(ta_data_list)
+        #
+        #     # Use bulk_insert_mappings for faster inserts
+        #     with engine.begin() as conn:
+        #         conn.execute(
+        #             insert(TechnicalAnalysis),
+        #             ta_data_df.to_dict(orient="records")
+        #         )
+        #
+        # else:
+        #     print("TA DataFrame is empty")
 
         db_session.commit()
 

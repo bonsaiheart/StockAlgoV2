@@ -180,14 +180,14 @@ async def handle_ticker_cycle(client_session, ticker):
                     session, client_session, ticker, current_time
                 )
                 # After data insertion, calculate the ratio
-                in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(session, ticker, current_time)
-                net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
-                max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
-                # If ratio is above 1, return the ticker
-                print(ticker,net_iv, max_pain)
-                if in_the_money_ratio > 1:
-                    print(ticker,in_the_money_ratio)
-                    # return ticker  # Or you can return more data as needed
+                # in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(session, ticker, current_time)
+                # net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
+                # max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
+                # # If ratio is above 1, return the ticker
+                # print(ticker,net_iv, max_pain)
+                # if in_the_money_ratio > 1:
+                #     print(ticker,in_the_money_ratio)
+                #     # return ticker  # Or you can return more data as needed
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
             #     if option_data_success:
@@ -266,7 +266,7 @@ async def main():
     try:
         await create_client_session()
         session = client_session
-        database_operations.drop_create_schema_and_tables(engine)
+        database_operations.create_database_tables(engine)
         with open("UTILITIES/tickerlist.txt", "r") as f:
             tickerlist = [line.strip().upper() for line in f.readlines()]
 

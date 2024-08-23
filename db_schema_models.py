@@ -30,76 +30,76 @@ class Option(Base):
     description = Column(String)
     expiration_type = Column(String)
     exch = Column(String)
+
+
 class OptionQuote(Base):
     __tablename__ = 'option_quotes'
-    __table_args__ = (
-        UniqueConstraint('contract_id', 'fetch_timestamp', name='uq_option_quote_constraint'),
-    )
 
-    quote_id = Column(Integer, primary_key=True, autoincrement=True)  # Auto-increment quote_id
-    contract_id = Column(String, ForeignKey('options.contract_id'))  # Updated
+    contract_id = Column(String, ForeignKey('options.contract_id'), primary_key=True)
+    fetch_timestamp = Column(TIMESTAMP(timezone=True), primary_key=True, server_default=func.now())
+
     option = relationship("Option", backref="quotes")
     root_symbol = Column(String)
-    fetch_timestamp = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True, nullable=False)
     last = Column(Float)
     change = Column(Float)
     volume = Column(Integer)
     open = Column(Float)
     high = Column(Float)
     low = Column(Float)
-    close = Column(Float)
     bid = Column(Float)
     ask = Column(Float)
     greeks = Column(JSON)
     change_percentage = Column(Float)
     average_volume = Column(Integer)
     last_volume = Column(Integer)
-    trade_date = Column(DateTime)
+    trade_date = Column(TIMESTAMP(timezone=True))
     prevclose = Column(Float)
     week_52_high = Column(Float)
     week_52_low = Column(Float)
     bidsize = Column(Integer)
     bidexch = Column(String)
-    bid_date = Column(DateTime)
+    bid_date = Column(TIMESTAMP(timezone=True))
     asksize = Column(Integer)
     askexch = Column(String)
-    ask_date = Column(DateTime)
+    ask_date = Column(TIMESTAMP(timezone=True))
     open_interest = Column(Integer)
 
 
 class SymbolQuote(Base):
     __tablename__ = 'symbol_quotes'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)  # Add a primary key column
-    symbol_name = Column(String, ForeignKey('symbols.symbol_name'))  # Changed to reference symbol_name
-    symbol = relationship("Symbol", backref="symbol_quotes")  # Relationship with Symbol
-    fetch_timestamp = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True, nullable=False)
-    last_trade = Column(DateTime)
-    last_price = Column(Float)
-    bid = Column(Float)
-    ask = Column(Float)
-    open_price = Column(Float)
-    high_price = Column(Float)
-    low_price = Column(Float)
-    last_volume = Column(Integer)
-    volume = Column(Integer)
-    average_volume = Column(Integer)
-    week_52_high = Column(Float)  # Added field for 52-week high
-    week_52_low = Column(Float)   # Added field for 52-week low
-    bidsize = Column(Integer)
+    symbol_name = Column(String, ForeignKey('symbols.symbol_name'), primary_key=True)
+    fetch_timestamp = Column(TIMESTAMP(timezone=True), primary_key=True, server_default=func.now())
+
+    symbol = relationship("Symbol", backref="symbol_quotes")
+    last_trade_price = Column(Float)
+    current_bid = Column(Float)
+    current_ask = Column(Float)
+    daily_open = Column(Float)
+    daily_high = Column(Float)
+    daily_low = Column(Float)
+    previous_close = Column(Float)
+    last_trade_volume = Column(Integer)
+    daily_volume = Column(Integer)
+    average_daily_volume = Column(Integer)
+    last_trade_timestamp = Column(TIMESTAMP(timezone=True))
+    week_52_high = Column(Float)
+    week_52_low = Column(Float)
+    daily_change = Column(Float)
+    daily_change_percentage = Column(Float)
+    current_bidsize = Column(Integer)
     bidexch = Column(String)
-    bid_date = Column(DateTime)
-    asksize = Column(Integer)
+    current_bid_date = Column(TIMESTAMP(timezone=True))
+    current_asksize = Column(Integer)
     askexch = Column(String)
-    ask_date = Column(DateTime)
-    exch = Column(String(1))  # Added field for exchange
-    trade_date = Column(DateTime)  # Changed to DateTime for consistency
-    prevclose = Column(Float)  # Added field for previous close
-    change = Column(Float)  # Added field for change
-    change_percentage = Column(Float)  # Added field for change percentage
-    __table_args__ = (
-        UniqueConstraint('symbol_name', 'fetch_timestamp', name='symbol_quote_unique_constraint'),
-    )
+    current_ask_date = Column(TIMESTAMP(timezone=True))
+    exch = Column(String(3))
+    last_1min_open = Column(Float)
+    last_1min_high = Column(Float)
+    last_1min_low = Column(Float)
+    last_1min_close = Column(Float)
+    last_1min_volume = Column(Integer)
+    last_1min_vwap = Column(Float)
 class TechnicalAnalysis(Base):
     __tablename__ = 'technical_analysis'
     ta_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -243,4 +243,21 @@ class ProcessedOptionData(Base):
 
     __table_args__ = (
         UniqueConstraint('symbol_name', 'fetch_timestamp', name='uq_symbol_current_time_constraint'),
+    )
+
+class TimeSales(Base):
+    __tablename__ = 'timesales'
+
+    symbol = Column(String, primary_key=True)
+    timestamp = Column(DateTime, primary_key=True)
+    price = Column(Float)
+    open = Column(Float)
+    high = Column(Float)
+    low = Column(Float)
+    close = Column(Float)
+    volume = Column(Integer)
+    vwap = Column(Float)
+
+    __table_args__ = (
+        UniqueConstraint('symbol', 'timestamp', name='timesales_pkey'),
     )
