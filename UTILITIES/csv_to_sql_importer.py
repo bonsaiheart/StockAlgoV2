@@ -394,8 +394,8 @@ def process_ticker_directory(base_path, ticker):
 def process_ticker(args):
 
     base_path, ticker = args
-    if ticker == 'MNMD':
-        return process_ticker_directory(base_path, ticker)
+    # if ticker == 'MNMD':
+    return process_ticker_directory(base_path, ticker)
 
 
 def main():

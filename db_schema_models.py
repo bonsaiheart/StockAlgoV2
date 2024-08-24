@@ -35,7 +35,7 @@ class Option(Base):
     contract_size = Column(Integer)
     description = Column(String)
     expiration_type = Column(String)
-    exch = Column(String)
+    # exch = Column(String)
 
 
 class OptionQuote(Base):
@@ -59,12 +59,12 @@ class OptionQuote(Base):
     ask = Column(Float)
     greeks = Column(JSON)
     change_percentage = Column(Float)
-    average_volume = Column(Integer)
+    # average_volume = Column(Integer)
     last_volume = Column(Integer)
     trade_date = Column(TIMESTAMP(timezone=True))
     prevclose = Column(Float)
-    week_52_high = Column(Float)
-    week_52_low = Column(Float)
+    # week_52_high = Column(Float)
+    # week_52_low = Column(Float)
     bidsize = Column(Integer)
     bidexch = Column(String)
     bid_date = Column(TIMESTAMP(timezone=True))
