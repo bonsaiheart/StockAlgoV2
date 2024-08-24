@@ -219,10 +219,10 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price):
 
 
 
-
 def convert_unix_to_datetime(unix_timestamp):
-    if unix_timestamp is None or pd.isna(unix_timestamp):
-        return None
+    if unix_timestamp is None or pd.isna(unix_timestamp) or unix_timestamp == 0:
+        return None  # Handle None, NaN, and 0 explicitly
+
     try:
         timestamp = int(float(unix_timestamp))
         if len(str(timestamp)) == 13:
@@ -243,8 +243,6 @@ async def get_timesales(session, ticker, lookback_minutes):
     start_str = start.strftime("%Y-%m-%d %H:%M")
     end_str = end.strftime("%Y-%m-%d %H:%M")
 
-    # logger.info(f"Fetching timesales data for {ticker} from {start_str} to {end_str}")
-
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
 
     try:
@@ -261,13 +259,20 @@ async def get_timesales(session, ticker, lookback_minutes):
             headers=headers,
         )
 
-        if (time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]):
-            df = pd.DataFrame(time_sale_response["series"]["data"])
-            df['time'] = pd.to_datetime(df['time'], unit='ms', utc=True).dt.tz_convert('US/Eastern')
-            df.set_index('time', inplace=True)
+        if time_sale_response and "series" in time_sale_response and "data" in time_sale_response["series"]:
+            data = time_sale_response["series"]["data"]
+
+            # Check if the data is already a list
+            if isinstance(data, list):
+                df = pd.DataFrame(data)
+            else:
+                df = pd.DataFrame([data])  # Convert scalar values to a DataFrame with a single row
+
+            # df['time'] = pd.to_datetime(df['time']).dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+            # df.set_index('time', inplace=True)
 
             # Ensure we only return the latest minute of data
-            latest_minute = df.index.max().floor('T')
+            latest_minute = df.index.min()
             latest_data = df.loc[latest_minute:latest_minute]
 
             if not latest_data.empty:
@@ -281,7 +286,6 @@ async def get_timesales(session, ticker, lookback_minutes):
     except Exception as e:
         logger.error(f"Error fetching timesales data for {ticker}: {str(e)}")
         return None
-
 
 async def get_options_data(db_session, session, ticker, loop_start_time):
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
@@ -321,7 +325,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
         if not symbol_name_result:  # Check if the result is None
             raise Exception(f"Failed to insert or update symbol {ticker}. Check for database constraints or errors.")
 
-        print("close?",quote_df.at[0, "close"])
+        # print("close?",quote_df.at[0, "close"])
     except Exception as e:
         db_session.rollback()
         print(f"Error handling symbol for {ticker}: {e}")
@@ -356,9 +360,12 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     }
     # Fetch timesales data
     timesales_data = await get_timesales(session, ticker, lookback_minutes=1)
-
+    print(timesales_data)
     if timesales_data:
         stock_price_data.update({
+            'last_1min_timesale': timesales_data['time'],
+            'last_1min_timestamp': convert_unix_to_datetime(timesales_data["timestamp"]),
+
             'last_1min_open': timesales_data['open'],
             'last_1min_high': timesales_data['high'],
             'last_1min_low': timesales_data['low'],

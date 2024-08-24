@@ -286,9 +286,9 @@ async def main():
             task = asyncio.create_task(handle_ticker_cycle(session, ticker))
             ticker_tasks.append(task)
             #TODO delay or nay?
-            # await asyncio.sleep(
-            #     delay
-            # )  # Wait for the specified delay before starting next task
+            await asyncio.sleep(
+                delay
+            )  # Wait for the specified delay before starting next task
 
         # Wait for all ticker tasks to complete
         await asyncio.gather(*ticker_tasks)

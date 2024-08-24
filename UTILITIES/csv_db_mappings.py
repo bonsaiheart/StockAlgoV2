@@ -12,12 +12,49 @@ option_mapping = {
     'expiration_type': ['expiration_type_x', 'expiration_type_y'],
     'exch': ['exch_x', 'exch_y'],
 }
-
-# Mapping for OptionQuote table
+#
+# # Mapping for OptionQuote table
+# option_quote_mapping = {
+#     'contract_id': ['c_contractSymbol', 'p_contractSymbol'],
+#     'root_symbol': ['root_symbol_x', 'root_symbol_y'],
+#     'fetch_timestamp': ['timestamp'],  # Assuming this is the fetch timestamp
+#     'last': ['Call_LastPrice', 'Put_LastPrice'],
+#     'change': ['c_change', 'p_change'],
+#     'volume': ['Call_Volume', 'Put_Volume'],
+#     'open': ['open_x', 'open_y'],
+#     'high': ['high_x', 'high_y'],
+#     'low': ['low_x', 'low_y'],
+#     'close': ['close_x', 'close_y'],
+#     'bid': ['c_bid', 'p_bid'],
+#     'ask': ['c_ask', 'p_ask'],
+#     # 'greeks': lambda row: json.dumps({
+#     #     'delta': float(row.get('c_delta', row.get('p_delta', 0))),
+#     #     'gamma': float(row.get('c_gamma', row.get('p_gamma', 0))),
+#     #     'theta': float(row.get('c_theta', row.get('p_theta', 0))),
+#     #     'vega': float(row.get('c_vega', row.get('p_vega', 0))),
+#     #     'rho': float(row.get('c_rho', row.get('p_rho', 0))),
+#     #     'implied_volatility': float(row.get('Call_IV', row.get('Put_IV', 0)))
+#     # }),
+#     'greeks': ['p_greeks', 'c_greeks'],
+#     'change_percentage': ['Call_PercentChange', 'p_percentChange'],
+#     'average_volume': ['average_volume_x', 'average_volume_y'],
+#     'last_volume': ['last_volume_x', 'last_volume_y'],
+#     'trade_date': ['c_lastTrade', 'p_lastTrade'],
+#     'prevclose': ['prevclose_x', 'prevclose_y'],
+#     'week_52_high': ['week_52_high_x', 'week_52_high_y'],
+#     'week_52_low': ['week_52_low_x', 'week_52_low_y'],
+#     'bidsize': ['bidsize_x', 'bidsize_y'],
+#     'bidexch': ['bidexch_x', 'bidexch_y'],
+#     'bid_date': ['bid_date_x', 'bid_date_y'],
+#     'asksize': ['asksize_x', 'asksize_y'],
+#     'askexch': ['askexch_x', 'askexch_y'],
+#     'ask_date': ['ask_date_x', 'ask_date_y'],
+#     'open_interest': ['Call_OI', 'Put_OI'],
+# }
 option_quote_mapping = {
     'contract_id': ['c_contractSymbol', 'p_contractSymbol'],
     'root_symbol': ['root_symbol_x', 'root_symbol_y'],
-    'fetch_timestamp': ['timestamp'],  # Assuming this is the fetch timestamp
+    'fetch_timestamp': ['timestamp'],
     'last': ['Call_LastPrice', 'Put_LastPrice'],
     'change': ['c_change', 'p_change'],
     'volume': ['Call_Volume', 'Put_Volume'],
@@ -27,14 +64,6 @@ option_quote_mapping = {
     'close': ['close_x', 'close_y'],
     'bid': ['c_bid', 'p_bid'],
     'ask': ['c_ask', 'p_ask'],
-    # 'greeks': lambda row: json.dumps({
-    #     'delta': float(row.get('c_delta', row.get('p_delta', 0))),
-    #     'gamma': float(row.get('c_gamma', row.get('p_gamma', 0))),
-    #     'theta': float(row.get('c_theta', row.get('p_theta', 0))),
-    #     'vega': float(row.get('c_vega', row.get('p_vega', 0))),
-    #     'rho': float(row.get('c_rho', row.get('p_rho', 0))),
-    #     'implied_volatility': float(row.get('Call_IV', row.get('Put_IV', 0)))
-    # }),
     'greeks': ['p_greeks', 'c_greeks'],
     'change_percentage': ['Call_PercentChange', 'p_percentChange'],
     'average_volume': ['average_volume_x', 'average_volume_y'],
@@ -51,7 +80,6 @@ option_quote_mapping = {
     'ask_date': ['ask_date_x', 'ask_date_y'],
     'open_interest': ['Call_OI', 'Put_OI'],
 }
-
 # Updated SymbolQuote mapping
 # Updated SymbolQuote mapping
 symbol_quote_mapping = {
@@ -65,7 +93,7 @@ symbol_quote_mapping = {
     'daily_low': ['low', 'Low'],
     'previous_close': ['LAC', 'prevclose'],
     'last_trade_volume': ['last_volume'],
-    'daily_volume': ['volume', 'Volume'],
+    # 'daily_volume': ['volume', 'Volume'],
     'average_daily_volume': ['average_volume'],
     'last_trade_timestamp': ['trade_date', 'timestamp'],
     'week_52_high': ['week_52_high'],
@@ -80,6 +108,9 @@ symbol_quote_mapping = {
     'current_ask_date': ['ask_date'],
     'exch': ['exch'],
     # Timesales data
+    'last_1min_timestamp': ['timestamp'],
+
+    'last_1min_timesale': ['time'],
     'last_1min_open': ['open'],
     'last_1min_high': ['high'],
     'last_1min_low': ['low'],

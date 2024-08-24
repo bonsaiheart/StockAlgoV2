@@ -5,19 +5,25 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Uni
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+# Base = declarative_base()
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.schema import MetaData
 
+metadata = MetaData(schema='csvimport')
+Base = declarative_base(metadata=metadata)
 
 class Symbol(Base):
     __tablename__ = 'symbols'
+    __table_args__ = ({'schema': 'csvimport'})
     symbol_name = Column(String,primary_key=True)
     description = Column(String(100))
     type = Column(String(10))  # Added field for type
 class Option(Base):
     __tablename__ = 'options'
-    __table_args__ = (
-        UniqueConstraint('underlying', 'expiration_date', 'strike', 'option_type'),
-    )
+    # __table_args__ = (
+    #     UniqueConstraint('underlying', 'expiration_date', 'strike', 'option_type'),
+    # )
+    __table_args__ = ({'schema': 'csvimport'})
     contract_id = Column(String,  primary_key=True)
     underlying = Column(String, ForeignKey('symbols.symbol_name', ondelete='CASCADE'))
     expiration_date = Column(Date)
@@ -34,6 +40,9 @@ class Option(Base):
 
 class OptionQuote(Base):
     __tablename__ = 'option_quotes'
+    __table_args__ = (
+        UniqueConstraint('contract_id', 'fetch_timestamp', name='uq_option_quote_constraint'),{'schema': 'csvimport'}
+    )
 
     contract_id = Column(String, ForeignKey('options.contract_id'), primary_key=True)
     fetch_timestamp = Column(TIMESTAMP(timezone=True), primary_key=True, server_default=func.now())
@@ -67,7 +76,9 @@ class OptionQuote(Base):
 
 class SymbolQuote(Base):
     __tablename__ = 'symbol_quotes'
-
+    __table_args__ = (
+        UniqueConstraint('symbol_name', 'fetch_timestamp', name='symbol_quote_unique_constraint'),{'schema': 'csvimport'}
+    )
     symbol_name = Column(String, ForeignKey('symbols.symbol_name'), primary_key=True)
     fetch_timestamp = Column(TIMESTAMP(timezone=True), primary_key=True, server_default=func.now())
 
@@ -94,12 +105,15 @@ class SymbolQuote(Base):
     askexch = Column(String)
     current_ask_date = Column(TIMESTAMP(timezone=True))
     exch = Column(String(3))
+    last_1min_timesale = Column(TIMESTAMP(timezone=True))
+    last_1min_timestamp = Column(TIMESTAMP(timezone=True))
     last_1min_open = Column(Float)
     last_1min_high = Column(Float)
     last_1min_low = Column(Float)
     last_1min_close = Column(Float)
     last_1min_volume = Column(Integer)
     last_1min_vwap = Column(Float)
+
 class TechnicalAnalysis(Base):
     __tablename__ = 'technical_analysis'
     ta_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -159,7 +173,7 @@ class TechnicalAnalysis(Base):
     # interval = Column(String, index=True)
     __table_args__ = (
         PrimaryKeyConstraint('ta_id'),
-        UniqueConstraint('symbol_name', 'fetch_timestamp', name='uq_symbol_interval_timestamps'),
+        UniqueConstraint('symbol_name', 'fetch_timestamp', name='uq_symbol_interval_timestamps'),{'schema': 'csvimport'}
     )
 
 
@@ -242,14 +256,17 @@ class ProcessedOptionData(Base):
 
 
     __table_args__ = (
-        UniqueConstraint('symbol_name', 'fetch_timestamp', name='uq_symbol_current_time_constraint'),
+        UniqueConstraint('symbol_name', 'fetch_timestamp', name='uq_symbol_current_time_constraint'),  {'schema': 'csvimport'}
+
     )
 
 class TimeSales(Base):
     __tablename__ = 'timesales'
+    __table_args__ = {'schema': 'csvimport'}
 
     symbol = Column(String, primary_key=True)
-    timestamp = Column(DateTime, primary_key=True)
+    time = Column(DateTime, primary_key=True)
+    timestamp = Column(DateTime)
     price = Column(Float)
     open = Column(Float)
     high = Column(Float)
@@ -259,5 +276,5 @@ class TimeSales(Base):
     vwap = Column(Float)
 
     __table_args__ = (
-        UniqueConstraint('symbol', 'timestamp', name='timesales_pkey'),
+        UniqueConstraint('symbol', 'time', name='timesales_pkey'),
     )

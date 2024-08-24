@@ -4,7 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.ddl import DropSchema, CreateSchema
 
 from UTILITIES.logger_config import logger
-from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis
+from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis, TimeSales, Base
+
 
 def create_database_tables(engine):
     with engine.connect() as conn:  # Use a synchronous context manager
@@ -49,10 +50,6 @@ def drop_schema_if_exists(engine):
         session.close()
 
 def create_schema_and_tables(engine):
-    # First, drop the schema if it exists
-    # drop_schema_if_exists(engine)
-
-    # Create a session
     Session = sessionmaker(bind=engine)
     session = Session()
 
@@ -66,25 +63,12 @@ def create_schema_and_tables(engine):
         session.rollback()
 
     # Modify the tables to use the new schema
-    tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, TechnicalAnalysis, ProcessedOptionData]
+    tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, TechnicalAnalysis, ProcessedOptionData, TimeSales]
     for table in tables_to_create:
         table.__table__.schema = NEW_SCHEMA
 
     # Create tables in the new schema
-    with engine.connect() as conn:
-        inspector = inspect(conn)
-        existing_tables = inspector.get_table_names(schema=NEW_SCHEMA)
-
-        try:
-            for table in tables_to_create:
-                if table.__table__.name not in existing_tables:
-                    table.__table__.create(bind=engine)
-                    logger.info(f"Table '{table.__table__.name}' created in schema '{NEW_SCHEMA}'.")
-                else:
-                    logger.info(f"Table '{table.__table__.name}' already exists in schema '{NEW_SCHEMA}'.")
-
-            logger.info("All tables created or already exist in the new schema.")
-        except OperationalError as e:
-            logger.error(f"Error creating tables: {e}")
+    Base.metadata.create_all(engine)
+    logger.info("All tables created or already exist in the new schema.")
 
     session.close()
