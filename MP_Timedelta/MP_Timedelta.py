@@ -13,7 +13,7 @@ def convert_date_format(date_str):
     return f"20{year}-{month}-{day}"
 
 
-def generate_and_save_max_pain_for_ticker(ticker, base_dir="data/ProcessedData"):
+def generate_and_save_max_pain_for_ticker(ticker, base_dir):
     ticker_path = os.path.join(base_dir, ticker)
     ticker_data = {}  # Will contain data for the current ticker
 
@@ -94,9 +94,9 @@ def generate_and_save_max_pain_for_ticker(ticker, base_dir="data/ProcessedData")
     combined_frame.to_csv(f"MP_EXP_{ticker}.csv", index=False)
 
 
-def process_all_tickers(base_dir="data/ProcessedData"):
+def process_all_tickers(base_dir=r"\\BONSAI-SERVER\stockalgo_data\data\ProcessedData"):
     for ticker in os.listdir(base_dir):
-        if ticker in ["SPY", "TSLA"]:
+        if ticker in ["SPY", "CHWY"]:
             print(ticker)
             generate_and_save_max_pain_for_ticker(ticker, base_dir)
 

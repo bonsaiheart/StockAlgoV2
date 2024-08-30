@@ -72,7 +72,8 @@ class OptionQuote(Base):
     askexch = Column(String)
     ask_date = Column(TIMESTAMP(timezone=True))
     open_interest = Column(Integer)
-
+    realtime_calculated_greeks = Column(JSON)  # Added this line
+    risk_free_rate = Column(Float)  # Added this line
 
 class SymbolQuote(Base):
     __tablename__ = 'symbol_quotes'

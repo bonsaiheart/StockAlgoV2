@@ -1,5 +1,6 @@
 import json
 import os
+from logging.handlers import RotatingFileHandler
 
 import numpy as np
 import pandas as pd
@@ -19,9 +20,51 @@ from collections import defaultdict
 
 DATABASE_URI = sql_db.DATABASE_URI
 engine = create_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
+from pathlib import Path
 
-logging.basicConfig(filename='import_log.txt', level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+PROGRESS_DIR = Path("progress")
+# logging.basicConfig(filename='import_log.txt', level=logging.ERROR,
+#                     format='%(asctime)s - %(levelname)s - %(message)s')
+def setup_logging():
+    # Create a rotating file handler
+    log_file = 'import_log.txt'
+    max_log_size = 10 * 1024 * 1024  # 10 MB
+    backup_count = 5
+    handler = RotatingFileHandler(log_file, maxBytes=max_log_size, backupCount=backup_count)
+
+    # Create a formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    # Get the root logger and set its level
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Remove any existing handlers and add the new handler
+    for h in logger.handlers[:]:
+        logger.removeHandler(h)
+    logger.addHandler(handler)
+
+    return logger
+
+
+logger = setup_logging()
+
+
+def ensure_progress_dir():
+    PROGRESS_DIR.mkdir(exist_ok=True)
+
+def load_ticker_progress(ticker, data_type):
+    progress_file = PROGRESS_DIR / f"{ticker}_{data_type}_progress.json"
+    if progress_file.exists():
+        with open(progress_file, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_ticker_progress(ticker, progress, data_type):
+    progress_file = PROGRESS_DIR / f"{ticker}_{data_type}_progress.json"
+    with open(progress_file, 'w') as f:
+        json.dump(progress, f)
 
 SCHEMA_NAME = 'csvimport'
 
@@ -45,7 +88,7 @@ def parse_timestamp_from_filename(filename):
         naive_timestamp = datetime(year, month, day, hour, minute)
         return pytz.timezone('US/Eastern').localize(naive_timestamp)
     except (IndexError, ValueError) as e:
-        logging.error(f"Error parsing timestamp from filename {filename}: {str(e)}")
+        logger.error(f"Error parsing timestamp from filename {filename}: {str(e)}")
         return None
 
 
@@ -64,10 +107,10 @@ def convert_unix_to_datetime(timestamp):
         elif len(str(timestamp)) == 10:
             return datetime.fromtimestamp(timestamp, tz=pytz.timezone('US/Eastern'))
         else:
-            logging.error(f"Unexpected timestamp format: {timestamp}")
+            # logging.error(f"Unexpected timestamp format: {timestamp}")
             return None
     except ValueError as e:
-        logging.error(f"Invalid timestamp: {timestamp}. Error: {str(e)}")
+        # logging.error(f"Invalid timestamp: {timestamp}. Error: {str(e)}")
         return None
 
 def parse_date(date_value):
@@ -78,7 +121,7 @@ def parse_date(date_value):
             day = date_value % 100
             return date(year, month, day)
         except ValueError:
-            logging.error(f"Unable to parse date from integer: {date_value}")
+            # logging.error(f"Unable to parse date from integer: {date_value}")
             return None
     elif isinstance(date_value, str):
         for format in ['%Y-%m-%d', '%m/%d/%Y']:
@@ -86,10 +129,10 @@ def parse_date(date_value):
                 return datetime.strptime(date_value, format).date()
             except ValueError:
                 pass
-        logging.error(f"Unable to parse date string: {date_value}")
+        # logging.error(f"Unable to parse date string: {date_value}")
         return None
     else:
-        logging.error(f"Unexpected date format: {date_value}")
+        # logging.error(f"Unexpected date format: {date_value}")
         return None
 
 def ensure_symbol_exists(session, ticker):
@@ -99,10 +142,10 @@ def ensure_symbol_exists(session, ticker):
         session.add(symbol)
         try:
             session.commit()
-            logging.info(f"Added new symbol: {ticker}")
+            logger.info(f"Added new symbol: {ticker}")
         except IntegrityError:
             session.rollback()
-            logging.warning(f"Symbol {ticker} already exists")
+            logger.warning(f"Symbol {ticker} already exists")
     return symbol
 
 def get_value(row, prefix, field):
@@ -122,7 +165,7 @@ def parse_greeks(greeks_str):
         try:
             return {'implied_volatility': float(greeks_str)}
         except ValueError:
-            logging.warning(f"Failed to parse Greeks: {greeks_str}")
+            logger.warning(f"Failed to parse Greeks: {greeks_str}")
             return None
 
 def process_option_csv(csv_path, ticker):
@@ -189,86 +232,34 @@ from collections import defaultdict
 
 
 def import_option_data(session, csv_path, ticker):
-    options_inserted = 0
-    options_updated = 0
-    options_skipped = 0
-    quotes_inserted = 0
-    quotes_skipped = 0
-    error_summary = defaultdict(int)
+    batch_size = 4000  # Adjust this value based on your system's capabilities
+    options_to_insert, option_quotes_to_insert = process_option_csv(csv_path, ticker)
 
     try:
-        # Insert all options first
-        options_to_insert, option_quotes_to_insert = process_option_csv(csv_path, ticker)
-        if options_to_insert:
-            for option in options_to_insert:
-                try:
-                    stmt = insert(Option).values(**option)
-                    stmt = stmt.on_conflict_do_nothing(
-                        index_elements=['contract_id']
-                    )
-                    result = session.execute(stmt)
-                    if result.rowcount == 1:
-                        options_inserted += 1
-                    else:
-                        options_skipped += 1
-                except Exception as e:
-                    session.rollback()
-                    options_skipped += 1
-                    logging.warning(f"Error inserting option {option['contract_id']}: {str(e)}")
+        # Batch insert options
+        for i in range(0, len(options_to_insert), batch_size):
+            batch = options_to_insert[i:i + batch_size]
+            stmt = insert(Option).values(batch)
+            stmt = stmt.on_conflict_do_nothing(index_elements=['contract_id'])
+            session.execute(stmt)
 
-            session.commit()
+        session.commit()
 
-            # Now, insert option quotes
-            cleaned_quotes = [clean_option_quote(quote) for quote in option_quotes_to_insert if
-                              clean_option_quote(quote)]
+        # Batch insert option quotes
+        cleaned_quotes = [clean_option_quote(quote) for quote in option_quotes_to_insert if clean_option_quote(quote)]
+        for i in range(0, len(cleaned_quotes), batch_size):
+            batch = cleaned_quotes[i:i + batch_size]
+            stmt = insert(OptionQuote).values(batch)
+            stmt = stmt.on_conflict_do_nothing(index_elements=['contract_id', 'fetch_timestamp'])
+            session.execute(stmt)
 
-            for quote in cleaned_quotes:
-                try:
-                    stmt = insert(OptionQuote).values(**quote)
-                    stmt = stmt.on_conflict_do_nothing(
-                        index_elements=['contract_id', 'fetch_timestamp']
-                    )
-                    result = session.execute(stmt)
-                    if result.rowcount == 1:
-                        quotes_inserted += 1
-                    else:
-                        quotes_skipped += 1
-                except IntegrityError as e:
-                    print(e)
-                    session.rollback()
-                    if "already exists" in str(e.orig).lower():
-                        quotes_skipped += 1
-                        error_summary["Duplicate option quote"] += 1
-                    elif "violates foreign key constraint" in str(e.orig).lower():
-                        quotes_skipped += 1
-                        error_summary["Missing option for quote"] += 1
-                    else:
-                        raise
-                except SQLAlchemyError:
-                    print(SQLAlchemyError)
-                    session.rollback()
-                    raise
-
-            session.commit()
+        session.commit()
 
     except Exception as e:
         session.rollback()
-        logging.error(f"Error importing option data for {ticker} from {csv_path}: {str(e)}", exc_info=True)
+        print(f"Error importing option data for {ticker} from {csv_path}: {str(e)}")
     finally:
         session.close()
-
-    logging.info(f"Import summary for {ticker} from {os.path.basename(csv_path)}:")
-    logging.info(f"Options inserted: {options_inserted}")
-    logging.info(f"Options updated: {options_updated}")
-    logging.info(f"Options skipped (already exist): {options_skipped}")
-    logging.info(f"Option Quotes inserted: {quotes_inserted}")
-    logging.info(f"Option Quotes skipped (already exist or missing option): {quotes_skipped}")
-
-    if error_summary:
-        logging.info("Error summary:")
-        for error, count in error_summary.items():
-            logging.info(f"  {error}: occurred {count} times")
-
 
 def clean_option_quote(quote):
     try:
@@ -290,7 +281,7 @@ def clean_option_quote(quote):
 
         return quote
     except Exception as e:
-        logging.error(f"Error cleaning option quote: {str(e)}", exc_info=True)
+        logger.error(f"Error cleaning option quote: {str(e)}", exc_info=True)
         return None
 
 
@@ -298,13 +289,13 @@ def import_stock_data(session, csv_path, ticker):
     try:
         df = pd.read_csv(csv_path)
         if df.empty:
-            logging.warning(f"CSV file is empty: {csv_path}")
+            logger.warning(f"CSV file is empty: {csv_path}")
             return
 
         filename = os.path.basename(csv_path)
         fetch_timestamp = parse_timestamp_from_filename(filename)
         if fetch_timestamp is None:
-            logging.error(f"Failed to parse timestamp from filename: {filename}")
+            logger.error(f"Failed to parse timestamp from filename: {filename}")
             return
 
         # Process only the first row
@@ -355,77 +346,147 @@ def import_stock_data(session, csv_path, ticker):
         try:
             session.execute(stmt)
             session.commit()
-            logging.info(f"Successfully imported/updated stock data for {ticker} from {filename}")
+            logger.info(f"Successfully imported/updated stock data for {ticker} from {filename}")
         except Exception as e:
             session.rollback()
-            logging.error(f"Error inserting/updating quote for {ticker} at {fetch_timestamp}: {str(e)}")
+            logger.error(f"Error inserting/updating quote for {ticker} at {fetch_timestamp}: {str(e)}")
 
     except Exception as e:
         session.rollback()
-        logging.error(f"Error importing stock data for {ticker} from {csv_path}: {str(e)}", exc_info=True)
+        logger.error(f"Error importing stock data for {ticker} from {csv_path}: {str(e)}", exc_info=True)
     finally:
         session.close()
 
+
+import os
+import logging
+from sqlalchemy.orm import sessionmaker
+import json
+
+
+
+
+
 def process_ticker_directory(base_path, ticker):
+    ensure_progress_dir()
+    options_progress = load_ticker_progress(ticker, 'options')
+    stocks_progress = load_ticker_progress(ticker, 'stocks')
+
     Session = sessionmaker(bind=engine)
     session = Session(bind=engine.connect().execution_options(
         schema_translate_map={None: SCHEMA_NAME}
     ))
 
-    ensure_symbol_exists(session, ticker)
-    option_data_path = os.path.join(base_path, "optionchain", ticker)
-    stock_data_path = os.path.join(base_path, "ProcessedData", ticker)
+    try:
+        ensure_symbol_exists(session, ticker)
+        option_data_path = os.path.join(base_path, "optionchain", ticker)
+        stock_data_path = os.path.join(base_path, "ProcessedData", ticker)
 
-    if os.path.exists(stock_data_path):
-        for root, _, files in os.walk(stock_data_path):
-            for file in files:
-                if file.endswith('.csv'):
-                    import_stock_data(session, os.path.join(root, file), ticker)
-    # if os.path.exists(option_data_path):
-    #     for root, _, files in os.walk(option_data_path):
-    #         for file in files:
-    #             if file.endswith('.csv'):
-    #                 import_option_data(session, os.path.join(root, file), ticker)
+        # Process option data
+        if os.path.exists(option_data_path):
+
+            date_dirs = [d for d in os.listdir(option_data_path) if
+                         os.path.isdir(os.path.join(option_data_path, d))]
+            for date_dir in date_dirs:
+                if date_dir not in options_progress:
+                    date_path = os.path.join(option_data_path, date_dir)
+                    for file in os.listdir(date_path):
+                        if file.endswith('.csv'):
+                            import_option_data(session, os.path.join(date_path, file), ticker)
+
+                    options_progress.append(date_dir)
+                    save_ticker_progress(ticker, options_progress, 'options')
+                    logger.info(f"Processed option data for {ticker} on {date_dir}")
+                    print(f"Finished processing option date directory {date_dir} for ticker: {ticker}")
+
+        # Process stock data
+        if os.path.exists(stock_data_path):
+            date_dirs = [d for d in os.listdir(stock_data_path) if os.path.isdir(os.path.join(stock_data_path, d))]
+            for date_dir in date_dirs:
+                if date_dir not in stocks_progress:
+                    date_path = os.path.join(stock_data_path, date_dir)
+                    for file in os.listdir(date_path):
+                        if file.endswith('.csv'):
+                            import_stock_data(session, os.path.join(date_path, file), ticker)
+
+                    stocks_progress.append(date_dir)
+                    save_ticker_progress(ticker, stocks_progress, 'stocks')
+                    logger.info(f"Processed stock data for {ticker} on {date_dir}")
+                    print(f"Finished processing stock date directory {date_dir} for ticker: {ticker}")
 
 
-    session.close()
+    except Exception as e:
 
+        logger.error(f"Error processing directory for ticker {ticker}: {str(e)}")
+
+    finally:
+
+        session.close()
 
 def process_ticker(args):
-
+    
     base_path, ticker = args
-    # if ticker == 'MNMD':
     return process_ticker_directory(base_path, ticker)
 
 
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+
 def main():
+    logger.info("Starting data import process")
     create_schema_if_not_exists(engine, SCHEMA_NAME)
 
-    logging.info("Starting main function")
-    base_path = r"H:\stockalgo_data\data"
+    base_path = r"\\BONSAI-SERVER\stockalgo_data\data"
     option_chain_path = os.path.join(base_path, "optionchain")
-
-    logging.info(f"Base path: {base_path}")
-    logging.info(f"Option chain path: {option_chain_path}")
 
     tickers = [ticker for ticker in os.listdir(option_chain_path) if
                os.path.isdir(os.path.join(option_chain_path, ticker))]
 
-    logging.info(f"Found {len(tickers)} tickers to process")
-    logging.info(f"Tickers: {tickers}")
+    # num_processes = multiprocessing.cpu_count() - became unresponsive before.
+    num_processes = max(1, multiprocessing.cpu_count() // 2)
 
-    num_processes = multiprocessing.cpu_count()
-    logging.info(f"Using {num_processes} processes for parallel processing")
+    logger.info(f"Starting to process {len(tickers)} tickers using {num_processes} processes")
+
+    start_time = time.time()
+    processed_tickers = 0
+    processed_date_dirs = 0
 
     with ProcessPoolExecutor(max_workers=num_processes) as executor:
-        args_list = [(base_path, ticker) for ticker in tickers]
-        list(executor.map(process_ticker, args_list))
+        futures = [executor.submit(process_ticker_directory, base_path, ticker) for ticker in tickers]
 
-    logging.info("Finished processing all tickers")
+        for future in as_completed(futures):
+            processed_tickers += 1
+            processed_date_dirs = sum(len(load_ticker_progress(ticker, 'options')) +
+                                      len(load_ticker_progress(ticker, 'stocks'))
+                                      for ticker in tickers)
+            elapsed_time = time.time() - start_time
+            avg_time_per_ticker = elapsed_time / processed_tickers
+            estimated_time_remaining = avg_time_per_ticker * (len(tickers) - processed_tickers)
 
+            logger.info(f"Processed {processed_tickers}/{len(tickers)} tickers, "
+                        f"{processed_date_dirs} date directories. "
+                        f"Estimated time remaining: {estimated_time_remaining:.2f} seconds")
 
+    total_time = time.time() - start_time
+    logger.info(f"Finished processing all {len(tickers)} tickers, "
+                f"{processed_date_dirs} date directories in {total_time:.2f} seconds")
+    logger.info(f"Average time per ticker: {total_time / len(tickers):.2f} seconds")
+    logger.info(f"Average time per date directory: {total_time / processed_date_dirs:.2f} seconds")
+    logger.info("Data import process completed")
+    # total_time = time.time() - start_time
+    # print(f"Finished processing all {len(tickers)} tickers, "
+    #       f"{processed_date_dirs} date directories in {total_time:.2f} seconds")
+    # print(f"Average time per ticker: {total_time / len(tickers):.2f} seconds")
+    # print(f"Average time per date directory: {total_time / processed_date_dirs:.2f} seconds")
+
+def get_all_processed_tickers():
+    return [file.stem.split('_')[0] for file in PROGRESS_DIR.glob('*_progress.json')]
+def print_progress_summary():
+    for ticker in get_all_processed_tickers():
+        options = load_ticker_progress(ticker, 'options')
+        stocks = load_ticker_progress(ticker, 'stocks')
+        print(f"{ticker}: {len(options)} option dates, {len(stocks)} stock dates processed")
 if __name__ == "__main__":
-    logging.info("Script started")
     create_schema_and_tables(engine)
     main()
-    logging.info("Script completed")

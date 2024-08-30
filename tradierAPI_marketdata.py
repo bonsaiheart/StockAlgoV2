@@ -1,5 +1,9 @@
+from functools import lru_cache
+
 import PrivateData.tradier_info
 import math
+import time
+import fredapi
 import numpy as np
 import ta
 from sqlalchemy import inspect, UniqueConstraint, PrimaryKeyConstraint, TIMESTAMP
@@ -20,6 +24,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from main_devmode import engine
 import pytz
+from scipy.stats import norm
 
 eastern = pytz.timezone('US/Eastern')
 
@@ -27,6 +32,9 @@ eastern = pytz.timezone('US/Eastern')
 class OptionChainError(Exception):
     pass
 
+# Global cache for Treasury yields
+treasury_yield_cache = {}
+CACHE_EXPIRY = 3600  # 1 hour in seconds
 
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
@@ -49,7 +57,7 @@ sem = asyncio.Semaphore(100)
 
 def insert_calculated_data(ticker, engine, calculated_data_df):
     """
-    Inserts calculated option data using a dedicated database session.
+    Inserts calculated option data using a deffffffffffffdicated database session.
 
     Args:
         ticker: The ticker symbol of the stock.
@@ -79,22 +87,104 @@ def insert_calculated_data(ticker, engine, calculated_data_df):
 from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis
 
 
+# Initialize FRED API
+fred = fredapi.Fred(api_key='0fd2a19c651aa21bbab822b3b20a7352 ')  # Replace with your FRED API key
+#TODO add mid/bid/ask iv/greeks?
 
-#Add this index to ensure uniqueness.
-# Index('uq_processed_option_data_index', ProcessedOptionData.symbol_id, ProcessedOptionData.current_time, unique=True)
-# async def get_option_data(db_session, symbol_id):
-#     stmt = (
-#         select(Option.root_symbol, Option.expiration_date, Option.strike, Option.option_type, Option.option_id)
-#         .filter(Option.root_symbol == symbol_id)
-#         .order_by(Option.expiration_date, Option.strike)
-#     )
-#     result = db_session.execute(stmt)
-#     return {(o.root_symbol, o.expiration_date, o.strike, o.option_type): o.option_id for o in result}
+# Define series IDs and their corresponding max days
+series_config = [
+    ('DGS1MO', 30),
+    ('DGS3MO', 90),
+    ('DGS6MO', 180),
+    ('DGS1', 365),
+    ('DGS2', 365 * 2),
+    ('DGS5', 365 * 5),
+    ('DGS10', 365 * 10),
+    ('DGS30', float('inf'))
+]
 
 
+@lru_cache(maxsize=None)
+def get_treasury_yield(days_to_expiration):
+    current_time = time.time()
 
+    # Check if we need to refresh the cache
+    if not treasury_yield_cache or current_time - treasury_yield_cache.get('last_update', 0) > CACHE_EXPIRY:
+        # Fetch each series
+        for series_id, _ in series_config:
+            try:
+                data = fred.get_series(series_id, observation_start=datetime.now() - timedelta(days=30),
+                                       observation_end=datetime.now())
+                treasury_yield_cache[series_id] = data.dropna().iloc[-1] / 100 if not data.empty else None
+            except Exception as e:
+                logger.error(f"Error fetching Treasury yield for {series_id}: {e}")
+                treasury_yield_cache[series_id] = None
 
+        treasury_yield_cache['last_update'] = current_time
 
+    # Determine which series to use based on days_to_expiration
+    for series_id, max_days in series_config:
+        if days_to_expiration <= max_days:
+            yield_value = treasury_yield_cache.get(series_id, 0.02)
+            print(f"Using yield for {series_id}: {yield_value} (days to expiration: {days_to_expiration})")
+            return yield_value
+
+    # If we get here, use the 30-year rate
+    yield_value = treasury_yield_cache.get('DGS30', 0.02)
+    print(f"Using 30-year yield: {yield_value} (days to expiration: {days_to_expiration})")
+    return yield_value
+def calculate_option_greeks(S, K, T, r, sigma, option_type):
+    """
+    Calculate option Greeks using the Black-Scholes model.
+
+    :param S: Current stock price
+    :param K: Option strike price
+    :param T: Time to expiration (in years)
+    :param r: Risk-free interest rate
+    :param sigma: Volatility of the underlying stock
+    :param option_type: 'call' or 'put'
+    :return: Dictionary of Greeks
+    """
+    # Print debugging information
+    # print(f"Inputs for {row['contract_id']}:")
+    print(f"S: {S}, K: {K}, T: {T}, r: {r}, sigma: {sigma}, type: {option_type}")
+    N = norm.cdf
+    N_prime = norm.pdf
+
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+
+    if option_type == 'call':
+        delta = N(d1)
+        gamma = N_prime(d1) / (S * sigma * np.sqrt(T))
+        theta = -(S * sigma * N_prime(d1)) / (2 * np.sqrt(T)) - r * K * np.exp(-r * T) * N(d2)
+        vega = S * np.sqrt(T) * N_prime(d1) / 100
+        rho = K * T * np.exp(-r * T) * N(d2) / 100
+    else:  # put option
+        delta = N(d1) - 1
+        gamma = N_prime(d1) / (S * sigma * np.sqrt(T))
+        theta = -(S * sigma * N_prime(d1)) / (2 * np.sqrt(T)) + r * K * np.exp(-r * T) * N(-d2)
+        vega = S * np.sqrt(T) * N_prime(d1) / 100
+        rho = -K * T * np.exp(-r * T) * N(-d2) / 100
+
+    # Convert theta to daily
+    theta = theta / 365  # or use 252 for trading days
+    result = {
+        'delta': delta,
+        'gamma': gamma,
+        'theta': theta,
+        'vega': vega,
+        'rho': rho
+    }
+
+    # Replace NaN values with None
+    for key, value in result.items():
+        if np.isnan(value):
+            result[key] = None
+    print("Calculated Greeks:")
+    for greek, value in result.items():
+        print(f"  {greek}: {value}")
+    return result
 
 
 # Ensure tables are created before querying
@@ -192,33 +282,49 @@ async def lookup_all_option_contracts(session, underlying, real_auth):
             logger.error(f"Error fetching option contracts: {e}")
             return None
 
-def process_option_quotes(all_contract_quotes, current_price, last_close_price):  # Add last_close_price
+
+def process_option_quotes(all_contract_quotes, current_price, last_close_price):
     df = all_contract_quotes
-    # df = all_contract_quotes.groupby("option_type")
-    # calls_df = grouped.get_group("call").copy()
-    # puts_df = grouped.get_group("put").copy()
-    # for df in grouped:
-    # print(df.columns)
     df['contract_id'] = df['symbol']
-    # df['Moneyness'] = np.where(df['option_type'] == 'call', df['strike'] - current_price,
-    #                           current_price - df['strike']) #shape was off by 1?
-    df["dollarsFromStrike"] = abs(df["strike"] - last_close_price)  # Use last_close_price here
+    df["dollarsFromStrike"] = abs(df["strike"] - last_close_price)
     df["expiration_date"] = pd.to_datetime(df["expiration_date"]).dt.strftime('%Y-%m-%d')
 
     df["dollarsFromStrikeXoi"] = df["dollarsFromStrike"] * df["open_interest"]
-    # df["MoneynessXoi"] = df["Moneyness"] * df["open_interest"]
     df["lastPriceXoi"] = df["last"] * df["open_interest"]
 
-    # columns_to_drop = ["description", "type", "exch", "underlying", "bidexch", "askexch",
-    #                    "expiration_date", "root_symbol"]
-    #TODO wait why not use underlying and root symbol etc?
-    # calls_df = calls_df.drop(columns_to_drop, axis=1)
-    # puts_df = puts_df.drop(columns_to_drop, axis=1)
+    # Calculate time to expiration in years and days
+    now = pd.Timestamp.now(tz='UTC')
+    df['expiration_date'] = pd.to_datetime(df['expiration_date'], utc=True)
+    df['time_to_expiration'] = (df['expiration_date'] - now).dt.total_seconds() / (365.25 * 24 * 60 * 60)
+    df['days_to_expiration'] = (df['expiration_date'] - now).dt.days
+
+    # Calculate implied volatility (this is a simplification, you might want to use a more sophisticated method)
+    df['implied_volatility'] = df['greeks'].apply(lambda x: x.get('mid_iv', 0.3) if isinstance(x, dict) else 0.3)
+    # df['implied_volatility'] = .2
+    # Get appropriate Treasury yield for each option
+    df['risk_free_rate'] = df['days_to_expiration'].apply(get_treasury_yield)
+    # print( current_price,
+    #         row['strike'],
+    #         row['time_to_expiration'],
+    #         row['risk_free_rate'],
+    #         row['implied_volatility'],
+    #         row['option_type'])
+    # Calculate realtime Greeks
+    df['realtime_calculated_greeks'] = df.apply(
+        lambda row: calculate_option_greeks(
+            current_price,
+
+            row['strike'],
+            row['time_to_expiration'],
+            row['risk_free_rate'],
+            row['implied_volatility'],
+            row['option_type']
+        ),
+        axis=1
+    )
+    print("Implied Volatility Sample:")
+    print(df['implied_volatility'].head())
     return df
-
-
-
-
 def convert_unix_to_datetime(unix_timestamp):
     if unix_timestamp is None or pd.isna(unix_timestamp) or unix_timestamp == 0:
         return None  # Handle None, NaN, and 0 explicitly
@@ -388,36 +494,22 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     all_contract_quotes = await post_market_quotes(session, ticker, real_auth)
 
     if all_contract_quotes is not None:
+        # # Fetch risk-free rate (you need to implement this function)
+        # risk_free_rate = await get_risk_free_rate(session)
+
         options_df = process_option_quotes(all_contract_quotes, current_price, prevclose)
         options_df['fetch_timestamp'] = loop_start_time
 
-        # Convert datetime columns directly in the DataFrame
-        # datetime_cols = ['trade_date', 'ask_date', 'bid_date']
-        # for col in datetime_cols:
-        #     options_df[col] = pd.to_datetime(options_df[col], unit='ms')
-
-        # options_df['fetch_timestamp'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-
         # Select and rename columns for the Option table
         option_columns = ['contract_id','expiration_date', 'strike', 'option_type', 'underlying',
-                          'contract_size', 'description', 'expiration_type', 'exch']
+                          'contract_size', 'description', 'expiration_type']#Got rid of exch
         option_data_df = options_df[option_columns].copy()
 
-        # Rename columns to match database schema
 
-        # option_data_df['symbol_name'] = symbol_name
-        # print(option_data_df.columns)
         # Reset the index to ensure it does not interfere with the upsert operation
         option_data_df.reset_index(drop=True, inplace=True)
-        # print(option_data_df['root_symbol'])
-        # if ticker == 'GOEV':
-        #     option_data_df.to_csv('goev.csv')
-        # if options_df['root_symbol'] is type(list):
-        #     logger.warning(f"{option_data_df['root_symbol']}")
-        #     option_data_df['root_symbol'] = option_data_df['root_symbol'].iloc[0]
-        #     print(option_data_df['root_symbol'])
-        # Set the index for the upsert operation
-        option_data_df.set_index(['underlying', 'expiration_date', 'strike', 'option_type'], inplace=True)
+
+        option_data_df.set_index(['contract_id'], inplace=True)
         # option_data_df.to_csv("options_data.csv")
 
 
@@ -426,7 +518,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
             con=engine,
             df=option_data_df,
             table_name="options",
-            schema="public",
+            schema="csvimport",
             if_row_exists='update',
             create_table=False,
         )
@@ -434,21 +526,15 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
         # Fetch the inserted options to create a mapping of (symbol_id, expiration_date, strike, option_type) to option_id
         db_session.commit()
 
-        # query = (
-        #     select(Option)
-        #     .filter(Option.underlying == symbol_name)
-        # )
-        # options_in_db =  db_session.execute(query)
-        # options = {
-        #     (row.underlying, row.expiration_date, row.strike, row.option_type): row.contract_id
-        #     for row in options_in_db.scalars().all()
-        # }
-        # print( options)  TODO no
-        # ... (rest of the code)
+        # First, ensure the column is datetime type
+        options_df['expiration_date'] = pd.to_datetime(options_df['expiration_date'])
 
-        # Convert 'expiration_date' to datetime with timezone directly in options_df
-        options_df['expiration_date'] = pd.to_datetime(options_df['expiration_date']).dt.tz_localize(
-            'UTC').dt.tz_convert('US/Eastern')
+        # If it's not tz-aware, localize it to UTC
+        if options_df['expiration_date'].dt.tz is None:
+            options_df['expiration_date'] = options_df['expiration_date'].dt.tz_localize('UTC')
+
+        # Now convert to US/Eastern
+        options_df['expiration_date'] = options_df['expiration_date'].dt.tz_convert('US/Eastern')
 
         # Create a list of dictionaries representing option quotes data
         option_quotes_data = [
@@ -480,9 +566,14 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "high": row["high"],
                 "low": row["low"],
                 "close": row["close"],
+                "realtime_calculated_greeks": row["realtime_calculated_greeks"],
+                "risk_free_rate": row["risk_free_rate"]
+
             }
             for _, row in options_df.iterrows() if row['contract_id']
         ]
+        # for item in option_quotes_data:
+        #     print(item.get('realtime_calculated_greeks', 'Not found'))
 
         # Use SQLAlchemy's Core API for bulk insert
         with engine.begin() as conn:

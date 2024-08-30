@@ -22,7 +22,7 @@ market_close_time_utc = None
 order_manager = IB.ibAPI.IBOrderManager()
 semaphore = asyncio.Semaphore(500)
 
-DATABASE_URI = sql_db.DATABASE_URI
+DATABASE_URI = sql_db.LOCAL_DATABASE_URI
 # Create a synchronous engine using create_engine
 engine = create_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
 ticker_cycle_running = asyncio.Event()
@@ -266,7 +266,7 @@ async def main():
     try:
         await create_client_session()
         session = client_session
-        database_operations.create_database_tables(engine)
+        database_operations.create_schema_and_tables(engine)
         with open("UTILITIES/tickerlist.txt", "r") as f:
             tickerlist = [line.strip().upper() for line in f.readlines()]
 
