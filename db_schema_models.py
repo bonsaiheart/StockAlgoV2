@@ -72,6 +72,7 @@ class OptionQuote(Base):
     askexch = Column(String)
     ask_date = Column(TIMESTAMP(timezone=True))
     open_interest = Column(Integer)
+    implied_volatility = Column(Float) #added this line
     realtime_calculated_greeks = Column(JSON)  # Added this line
     risk_free_rate = Column(Float)  # Added this line
 

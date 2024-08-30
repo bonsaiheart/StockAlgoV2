@@ -490,7 +490,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     )
     db_session.commit()
 
-
+    #TODO ADD IV to the table for optionquotes?
     all_contract_quotes = await post_market_quotes(session, ticker, real_auth)
 
     if all_contract_quotes is not None:
@@ -566,6 +566,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "high": row["high"],
                 "low": row["low"],
                 "close": row["close"],
+                "implied_volatility": row["implied_volatility"],
                 "realtime_calculated_greeks": row["realtime_calculated_greeks"],
                 "risk_free_rate": row["risk_free_rate"]
 
