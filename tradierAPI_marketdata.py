@@ -575,7 +575,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     if timesales_data:
         stock_price_data.update({
             'last_1min_timesale': timesales_data['time'],
-            'last_1min_timestamp':  convert_unix_to_datetime(timesales_data["timestamp"]),
+            'last_1min_timestamp': convert_unix_to_datetime(timesales_data["timestamp"]),
 
             'last_1min_open': timesales_data['open'],
             'last_1min_high': timesales_data['high'],
@@ -679,7 +679,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "high": row["high"],
                 "low": row["low"],
                 "close": row["close"],
-                "implied_volatility": row["implied_volatility"],\
+                "implied_volatility": row["implied_volatility"],
                 "realtime_calculated_greeks": row["realtime_calculated_greeks"],
                 "risk_free_rate": row["risk_free_rate"]
 
