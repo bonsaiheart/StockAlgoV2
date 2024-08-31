@@ -1,5 +1,5 @@
 from functools import lru_cache
-
+from sqlalchemy import and_
 import PrivateData.tradier_info
 import math
 import time
@@ -25,12 +25,89 @@ from sqlalchemy.ext.declarative import declarative_base
 from main_devmode import engine
 import pytz
 from scipy.stats import norm
-
+from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis, Dividend
 eastern = pytz.timezone('US/Eastern')
 
 
 class OptionChainError(Exception):
     pass
+
+
+from datetime import datetime, timedelta
+import asyncio
+
+
+class DividendYieldCache:
+    def __init__(self):
+        self.cache = {}
+        self.lock = asyncio.Lock()
+
+    async def get_dividend_yield(self, db_session, session, ticker, real_auth, current_price):
+        async with self.lock:
+            current_time = datetime.now()
+
+            # Check if we have cached data and if it's still valid
+            if ticker in self.cache:
+                last_fetch_time, yield_value = self.cache[ticker]
+                if current_time - last_fetch_time < timedelta(hours=24):
+                    return yield_value
+
+            # If no valid cached data, calculate new yield
+            dividend_yield = await self._calculate_dividend_yield(db_session, session, ticker, real_auth, current_price)
+
+            # Update cache
+            self.cache[ticker] = (current_time, dividend_yield)
+
+            return dividend_yield
+
+    async def _calculate_dividend_yield(self, db_session, session, ticker, real_auth, current_price):
+        # Check if we have recent dividend data in the database
+        one_year_ago = datetime.now() - timedelta(days=365)
+        db_dividends = db_session.query(Dividend).filter(
+            and_(
+                Dividend.symbol_name == ticker,
+                Dividend.ex_date >= one_year_ago
+            )
+        ).order_by(Dividend.ex_date.desc()).all()
+
+        if not db_dividends:
+            # If no recent data in database, fetch from API
+            api_dividends = await fetch_dividend_data(session, ticker, real_auth)
+            if api_dividends:
+                # Convert API data to Dividend objects and store in DB
+                dividend_objects = []
+                for div in api_dividends:
+                    dividend_obj = Dividend(
+                        symbol_name=ticker,
+                        ex_date=datetime.strptime(div['ex_date'], '%Y-%m-%d').date(),
+                        cash_amount=div['cash_amount'],
+                        currency_id=div['currency_i_d'],
+                        declaration_date=datetime.strptime(div['declaration_date'], '%Y-%m-%d').date(),
+                        frequency=div['frequency'],
+                        pay_date=datetime.strptime(div['pay_date'], '%Y-%m-%d').date(),
+                        record_date=datetime.strptime(div['record_date'], '%Y-%m-%d').date()
+                    )
+                    dividend_objects.append(dividend_obj)
+
+                db_session.add_all(dividend_objects)
+                db_session.commit()
+                db_dividends = dividend_objects
+
+        # Calculate dividend yield
+        if db_dividends:
+            # Sum all dividends paid in the last year
+            annual_dividend = sum(div.cash_amount for div in db_dividends)
+
+            # Calculate dividend yield
+            dividend_yield = annual_dividend / current_price
+        else:
+            dividend_yield = 0
+
+        return dividend_yield
+
+
+# Initialize the cache
+dividend_yield_cache = DividendYieldCache()
 
 # Global cache for Treasury yields
 treasury_yield_cache = {}
@@ -84,7 +161,7 @@ def insert_calculated_data(ticker, engine, calculated_data_df):
     except SQLAlchemyError as e:
         print(f"Error inserting processed option data for {ticker}: {e}")
 
-from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis
+
 
 
 # Initialize FRED API
@@ -133,9 +210,11 @@ def get_treasury_yield(days_to_expiration):
     yield_value = treasury_yield_cache.get('DGS30', 0.02)
     print(f"Using 30-year yield: {yield_value} (days to expiration: {days_to_expiration})")
     return yield_value
-def calculate_option_greeks(S, K, T, r, sigma, option_type):
+
+
+def calculate_option_greeks(S, K, T, r, sigma, option_type, q=0):
     """
-    Calculate option Greeks using the Black-Scholes model.
+    Calculate option Greeks using the Black-Scholes-Merton model (with dividends).
 
     :param S: Current stock price
     :param K: Option strike price
@@ -143,32 +222,35 @@ def calculate_option_greeks(S, K, T, r, sigma, option_type):
     :param r: Risk-free interest rate
     :param sigma: Volatility of the underlying stock
     :param option_type: 'call' or 'put'
+    :param q: Dividend yield (annualized)
     :return: Dictionary of Greeks
     """
-    # Print debugging information
-    # print(f"Inputs for {row['contract_id']}:")
-    print(f"S: {S}, K: {K}, T: {T}, r: {r}, sigma: {sigma}, type: {option_type}")
+    # print(f"Inputs: S: {S}, K: {K}, T: {T}, r: {r}, sigma: {sigma}, type: {option_type}, q: {q}")
+
     N = norm.cdf
     N_prime = norm.pdf
 
-    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d1 = (np.log(S / K) + (r - q + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
 
     if option_type == 'call':
-        delta = N(d1)
-        gamma = N_prime(d1) / (S * sigma * np.sqrt(T))
-        theta = -(S * sigma * N_prime(d1)) / (2 * np.sqrt(T)) - r * K * np.exp(-r * T) * N(d2)
-        vega = S * np.sqrt(T) * N_prime(d1) / 100
+        delta = np.exp(-q * T) * N(d1)
+        gamma = np.exp(-q * T) * N_prime(d1) / (S * sigma * np.sqrt(T))
+        theta = -((S * sigma * np.exp(-q * T) * N_prime(d1)) / (2 * np.sqrt(T))) - r * K * np.exp(-r * T) * N(
+            d2) + q * S * np.exp(-q * T) * N(d1)
+        vega = S * np.exp(-q * T) * np.sqrt(T) * N_prime(d1) / 100
         rho = K * T * np.exp(-r * T) * N(d2) / 100
     else:  # put option
-        delta = N(d1) - 1
-        gamma = N_prime(d1) / (S * sigma * np.sqrt(T))
-        theta = -(S * sigma * N_prime(d1)) / (2 * np.sqrt(T)) + r * K * np.exp(-r * T) * N(-d2)
-        vega = S * np.sqrt(T) * N_prime(d1) / 100
+        delta = -np.exp(-q * T) * N(-d1)
+        gamma = np.exp(-q * T) * N_prime(d1) / (S * sigma * np.sqrt(T))
+        theta = -((S * sigma * np.exp(-q * T) * N_prime(d1)) / (2 * np.sqrt(T))) + r * K * np.exp(-r * T) * N(
+            -d2) - q * S * np.exp(-q * T) * N(-d1)
+        vega = S * np.exp(-q * T) * np.sqrt(T) * N_prime(d1) / 100
         rho = -K * T * np.exp(-r * T) * N(-d2) / 100
 
     # Convert theta to daily
     theta = theta / 365  # or use 252 for trading days
+
     result = {
         'delta': delta,
         'gamma': gamma,
@@ -181,11 +263,32 @@ def calculate_option_greeks(S, K, T, r, sigma, option_type):
     for key, value in result.items():
         if np.isnan(value):
             result[key] = None
-    print("Calculated Greeks:")
-    for greek, value in result.items():
-        print(f"  {greek}: {value}")
+
+    # print("Calculated Greeks:")
+    # for greek, value in result.items():
+    #     print(f"  {greek}: {value}")
+
     return result
 
+async def fetch_dividend_data(session, ticker, real_auth):
+    url = "https://api.tradier.com/beta/markets/fundamentals/dividends"
+    headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
+    params = {"symbols": ticker}
+
+    try:
+        async with session.get(url, params=params, headers=headers) as response:
+            response.raise_for_status()
+            data = await response.json()
+
+        if data and isinstance(data, list) and data[0].get("results"):
+            dividends = data[0]["results"][0]["tables"]["cash_dividends"]
+            return dividends
+        else:
+            logger.warning(f"No dividend data found for {ticker}")
+            return None
+    except Exception as e:
+        logger.error(f"Error fetching dividend data for {ticker}: {e}")
+        return None
 
 # Ensure tables are created before querying
 #TODO DO SYNCHRONOUS BULK INSERT
@@ -283,7 +386,7 @@ async def lookup_all_option_contracts(session, underlying, real_auth):
             return None
 
 
-def process_option_quotes(all_contract_quotes, current_price, last_close_price):
+def process_option_quotes(all_contract_quotes, current_price, last_close_price, dividend_yield):
     df = all_contract_quotes
     df['contract_id'] = df['symbol']
     df["dollarsFromStrike"] = abs(df["strike"] - last_close_price)
@@ -309,6 +412,7 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price):
     #         row['risk_free_rate'],
     #         row['implied_volatility'],
     #         row['option_type'])
+
     # Calculate realtime Greeks
     df['realtime_calculated_greeks'] = df.apply(
         lambda row: calculate_option_greeks(
@@ -318,12 +422,13 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price):
             row['time_to_expiration'],
             row['risk_free_rate'],
             row['implied_volatility'],
-            row['option_type']
+            row['option_type'],
+            q=dividend_yield
         ),
         axis=1
     )
-    print("Implied Volatility Sample:")
-    print(df['implied_volatility'].head())
+    # print("Implied Volatility Sample:")
+    # print(df['implied_volatility'].head())
     return df
 def convert_unix_to_datetime(unix_timestamp):
     if unix_timestamp is None or pd.isna(unix_timestamp) or unix_timestamp == 0:
@@ -466,11 +571,11 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     }
     # Fetch timesales data
     timesales_data = await get_timesales(session, ticker, lookback_minutes=1)
-    print(timesales_data)
+    # print(timesales_data)
     if timesales_data:
         stock_price_data.update({
             'last_1min_timesale': timesales_data['time'],
-            'last_1min_timestamp': convert_unix_to_datetime(timesales_data["timestamp"]),
+            'last_1min_timestamp':  convert_unix_to_datetime(timesales_data["timestamp"]),
 
             'last_1min_open': timesales_data['open'],
             'last_1min_high': timesales_data['high'],
@@ -496,8 +601,16 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     if all_contract_quotes is not None:
         # # Fetch risk-free rate (you need to implement this function)
         # risk_free_rate = await get_risk_free_rate(session)
+        # Fetch dividend yield using the cache
 
-        options_df = process_option_quotes(all_contract_quotes, current_price, prevclose)
+        dividend_yield = await dividend_yield_cache.get_dividend_yield(db_session, session, ticker, real_auth,
+                                                                       current_price)
+
+        if dividend_yield > 0:
+            logger.info(f"Dividend yield for {ticker}: {dividend_yield:.4f} ({dividend_yield * 100:.2f}%)")
+        else:
+            logger.info(f"No dividend yield found for {ticker}")
+        options_df = process_option_quotes(all_contract_quotes, current_price, prevclose, dividend_yield)
         options_df['fetch_timestamp'] = loop_start_time
 
         # Select and rename columns for the Option table
@@ -566,7 +679,7 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "high": row["high"],
                 "low": row["low"],
                 "close": row["close"],
-                "implied_volatility": row["implied_volatility"],
+                "implied_volatility": row["implied_volatility"],\
                 "realtime_calculated_greeks": row["realtime_calculated_greeks"],
                 "risk_free_rate": row["risk_free_rate"]
 
