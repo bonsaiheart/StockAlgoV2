@@ -18,6 +18,8 @@ class Symbol(Base):
     symbol_name = Column(String,primary_key=True)
     description = Column(String(100))
     type = Column(String(10))  # Added field for type
+    # Add this line to establish the relationship with Dividend
+    dividends = relationship("Dividend", back_populates="symbol")
 class Option(Base):
     __tablename__ = 'options'
     # __table_args__ = (
@@ -280,3 +282,20 @@ class TimeSales(Base):
     __table_args__ = (
         UniqueConstraint('symbol', 'time', name='timesales_pkey'),
     )
+
+class Dividend(Base):
+    __tablename__ = 'dividends'
+    __table_args__ = ({'schema': 'csvimport'})  # Add this line to specify the schema
+
+    id = Column(Integer, primary_key=True)
+    symbol_name = Column(String, ForeignKey('symbols.symbol_name'))
+    dividend_type = Column(String)
+    ex_date = Column(Date)
+    cash_amount = Column(Float)
+    currency_id = Column(String)
+    declaration_date = Column(Date)
+    frequency = Column(Integer)
+    pay_date = Column(Date)
+    record_date = Column(Date)
+
+    symbol = relationship("Symbol", back_populates="dividends")
