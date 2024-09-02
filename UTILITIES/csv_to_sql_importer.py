@@ -1,6 +1,7 @@
 import json
 import os
-from logging.handlers import RotatingFileHandler
+from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
+from queue import Queue
 
 import numpy as np
 import pandas as pd
@@ -25,41 +26,51 @@ from pathlib import Path
 PROGRESS_DIR = Path("progress")
 # logging.basicConfig(filename='import_log.txt', level=logging.ERROR,
 #                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+from logging.handlers import RotatingFileHandler
+import multiprocessing
+import os
+
+
+os
+import logging
+from logging.handlers import RotatingFileHandler
+import multiprocessing
+
+
+import logging
+from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
+from queue import Queue
+
 def setup_logging():
-    # Create a rotating file handler
-    log_file = 'import_log.txt'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    log_file = os.path.join(script_dir, 'import_log.txt')
     max_log_size = 10 * 1024 * 1024  # 10 MB
     backup_count = 5
-    handler = RotatingFileHandler(log_file, maxBytes=max_log_size, backupCount=backup_count)
 
-    # Create a formatter
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # Create the RotatingFileHandler
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)  # Ensure log directory exists
+    handler = RotatingFileHandler(log_file, 'a', maxBytes=max_log_size, backupCount=backup_count, encoding='utf-8', delay=0)
+    formatter = logging.Formatter('%(asctime)s - %(processName)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
 
-    # Get the root logger and set its level
-    logger = logging.getLogger()
+    # Create the queue and QueueHandler
+    log_queue = Queue()
+    queue_handler = QueueHandler(log_queue)
+
+    # Create the logger and add the QueueHandler
+    logger = logging.getLogger("multiprocessing_logger")
     logger.setLevel(logging.INFO)
+    logger.addHandler(queue_handler)
 
-    # Remove any existing handlers and add the new handler
-    for h in logger.handlers[:]:
-        logger.removeHandler(h)
-    logger.addHandler(handler)
+    # Create and start the QueueListener
+    listener = QueueListener(log_queue, handler)
+    listener.start()
 
-    return logger
+    return logger, listener
+# Global variable for logger
+# logger = setup_logging()
 
-
-logger = setup_logging()
-
-
-def ensure_progress_dir():
-    PROGRESS_DIR.mkdir(exist_ok=True)
-
-def load_ticker_progress(ticker, data_type):
-    progress_file = PROGRESS_DIR / f"{ticker}_{data_type}_progress.json"
-    if progress_file.exists():
-        with open(progress_file, 'r') as f:
-            return json.load(f)
-    return []
 
 def save_ticker_progress(ticker, progress, data_type):
     progress_file = PROGRESS_DIR / f"{ticker}_{data_type}_progress.json"
@@ -78,7 +89,7 @@ def get_session():
     return Session(bind=engine.connect().execution_options(
         schema_translate_map={None: SCHEMA_NAME}
     ))
-def parse_timestamp_from_filename(filename):
+def parse_timestamp_from_filename(filename,logger):
     try:
         parts = filename.split('_')
         date_str, time_str = parts[1], parts[2].split('.')[0]
@@ -92,13 +103,20 @@ def parse_timestamp_from_filename(filename):
         return None
 
 
-def convert_unix_to_datetime(timestamp):
+def convert_unix_to_datetime(timestamp,logger):
     if timestamp is None or pd.isna(timestamp):
         return None
     try:
-        # If it's already a datetime string, parse it
+        # If it's already a datetime object, return it
+        if isinstance(timestamp, datetime):
+            return timestamp.replace(tzinfo=pytz.timezone('US/Eastern'))
+
+        # If it's a datetime string, parse it
         if isinstance(timestamp, str):
-            return pytz.timezone('US/Eastern').localize(datetime.fromisoformat(timestamp.replace('+00:00', '')))
+            try:
+                return pytz.timezone('US/Eastern').localize(datetime.fromisoformat(timestamp.replace('+00:00', '')))
+            except ValueError:
+                pass  # If it's not a valid datetime string, continue to treat it as a unix timestamp
 
         # If it's a Unix timestamp
         timestamp = int(float(timestamp))
@@ -107,10 +125,10 @@ def convert_unix_to_datetime(timestamp):
         elif len(str(timestamp)) == 10:
             return datetime.fromtimestamp(timestamp, tz=pytz.timezone('US/Eastern'))
         else:
-            # logging.error(f"Unexpected timestamp format: {timestamp}")
+            logger.warning(f"Unexpected timestamp format: {timestamp}")
             return None
     except ValueError as e:
-        # logging.error(f"Invalid timestamp: {timestamp}. Error: {str(e)}")
+        logger.warning(f"Invalid timestamp: {timestamp}. Error: {str(e)}")
         return None
 
 def parse_date(date_value):
@@ -135,7 +153,7 @@ def parse_date(date_value):
         # logging.error(f"Unexpected date format: {date_value}")
         return None
 
-def ensure_symbol_exists(session, ticker):
+def ensure_symbol_exists(session, ticker,logger):
     symbol = session.query(Symbol).filter_by(symbol_name=ticker).first()
     if not symbol:
         symbol = Symbol(symbol_name=ticker)
@@ -147,7 +165,18 @@ def ensure_symbol_exists(session, ticker):
             session.rollback()
             logger.warning(f"Symbol {ticker} already exists")
     return symbol
+def ensure_progress_dir():
+    PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
 
+def load_ticker_progress(ticker, data_type,logger):
+    ensure_progress_dir()  # Ensure the directory exists
+    progress_file = PROGRESS_DIR / f"{ticker}_{data_type}_progress.json"
+    if progress_file.exists():
+        with open(progress_file, 'r') as f:
+            return json.load(f)
+    else:
+        logger.info(f"{ticker} had no progress file for {data_type}")
+        return []
 def get_value(row, prefix, field):
     call_prefix = 'Call_' if prefix == 'c_' else 'c_'
     put_prefix = 'Put_' if prefix == 'p_' else 'p_'
@@ -156,7 +185,7 @@ def get_value(row, prefix, field):
     else:
         return row.get(f'{prefix}{field}') or row.get(f'{put_prefix}{field}')
 
-def parse_greeks(greeks_str):
+def parse_greeks(greeks_str,logger):
     if not greeks_str or pd.isna(greeks_str):
         return None
     try:
@@ -168,10 +197,10 @@ def parse_greeks(greeks_str):
             logger.warning(f"Failed to parse Greeks: {greeks_str}")
             return None
 
-def process_option_csv(csv_path, ticker):
+def process_option_csv(csv_path, ticker,logger):
     df = pd.read_csv(csv_path)
     filename = os.path.basename(csv_path)
-    fetch_timestamp = parse_timestamp_from_filename(filename)
+    fetch_timestamp = parse_timestamp_from_filename(filename,logger)
     if fetch_timestamp is None:
         return None, None
 
@@ -207,8 +236,8 @@ def process_option_csv(csv_path, ticker):
                     'bid': get_value(row, prefix, 'bid'),
                     'ask': get_value(row, prefix, 'ask'),
                     'change_percentage': get_value(row, prefix, 'PercentChange'),
-                    'trade_date': convert_unix_to_datetime(get_value(row, prefix, 'lastTrade')),
-                    'greeks': parse_greeks(row.get(f'{prefix}greeks')),
+                    'trade_date': convert_unix_to_datetime(get_value(row, prefix, 'lastTrade'),logger),
+                    'greeks': parse_greeks(row.get(f'{prefix}greeks'),logger),
                     'open': row.get(f'open{suffix}'),
                     'high': row.get(f'high{suffix}'),
                     'low': row.get(f'low{suffix}'),
@@ -216,9 +245,9 @@ def process_option_csv(csv_path, ticker):
                     'last_volume': row.get(f'last_volume{suffix}'),
                     'prevclose': row.get(f'prevclose{suffix}'),
                     'bidsize': row.get(f'bidsize{suffix}'),
-                    'bid_date': convert_unix_to_datetime(row.get(f'bid_date{suffix}')),
+                    'bid_date': convert_unix_to_datetime(row.get(f'bid_date{suffix}'),logger),
                     'asksize': row.get(f'asksize{suffix}'),
-                    'ask_date': convert_unix_to_datetime(row.get(f'ask_date{suffix}')),
+                    'ask_date': convert_unix_to_datetime(row.get(f'ask_date{suffix}'),logger),
                 }
                 option_quotes_to_insert.append(quote_data)
 
@@ -231,9 +260,9 @@ from sqlalchemy.exc import IntegrityError
 from collections import defaultdict
 
 
-def import_option_data(session, csv_path, ticker):
+def import_option_data(session, csv_path, ticker,logger):
     batch_size = 4000  # Adjust this value based on your system's capabilities
-    options_to_insert, option_quotes_to_insert = process_option_csv(csv_path, ticker)
+    options_to_insert, option_quotes_to_insert = process_option_csv(csv_path, ticker,logger)
 
     try:
         # Batch insert options
@@ -244,9 +273,18 @@ def import_option_data(session, csv_path, ticker):
             session.execute(stmt)
 
         session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Error importing option data for {ticker} from {csv_path}: {str(e)}")
+    try:
+        # Clean option quotes
+        cleaned_quotes = []
+        for quote in option_quotes_to_insert:
+            cleaned_quote = clean_option_quote(quote, ticker, csv_path,logger)
+            if cleaned_quote is not None:
+                cleaned_quotes.append(cleaned_quote)
 
         # Batch insert option quotes
-        cleaned_quotes = [clean_option_quote(quote) for quote in option_quotes_to_insert if clean_option_quote(quote)]
         for i in range(0, len(cleaned_quotes), batch_size):
             batch = cleaned_quotes[i:i + batch_size]
             stmt = insert(OptionQuote).values(batch)
@@ -257,35 +295,62 @@ def import_option_data(session, csv_path, ticker):
 
     except Exception as e:
         session.rollback()
-        print(f"Error importing option data for {ticker} from {csv_path}: {str(e)}")
+        print(f"Error importing optionquote data for {ticker} from {csv_path}: {str(e)}")
     finally:
         session.close()
-
-def clean_option_quote(quote):
+def is_nan(value):
+    if isinstance(value, (int, float)):
+        return math.isnan(value)
+    if isinstance(value, str):
+        try:
+            return math.isnan(float(value))
+        except ValueError:
+            return True  # Consider non-numeric strings as NaN
+    return True  # Consider None and other types as NaN
+def clean_option_quote(quote, ticker, file_path,logger):
     try:
-        # Handle NaN values
-        for key in ['volume', 'open_interest']:
-            if key in quote and (quote[key] is None or math.isnan(quote[key])):
-                quote[key] = 0
+        for key, value in quote.items():
+            if isinstance(value, (float, np.float64)) and (math.isnan(value) or np.isnan(value)):
+                quote[key] = None
+            elif value == 'null':
+                quote[key] = None
+            elif isinstance(value, str) and value.lower() == 'nan':
+                quote[key] = None
 
-        # Ensure numeric values are within range
-        for key in ['last', 'bid', 'ask']:
+        # Ensure volume, open_interest, last_volume, bidsize, and asksize are integers or None
+        for key in ['volume', 'open_interest', 'last_volume', 'bidsize', 'asksize']:
+            if key in quote:
+                if quote[key] is None or (isinstance(quote[key], (float, np.float64)) and (math.isnan(quote[key]) or np.isnan(quote[key]))):
+                    quote[key] = None
+                else:
+                    try:
+                        quote[key] = int(float(quote[key]))
+                    except ValueError:
+                        quote[key] = None
+
+        # Convert timestamp fields to datetime objects if they're not None
+        for key in ['trade_date', 'bid_date', 'ask_date']:
             if key in quote and quote[key] is not None:
-                quote[key] = min(max(float(quote[key]), -9999999999), 9999999999)
+                quote[key] = convert_unix_to_datetime(quote[key],logger)
 
-        # Ensure volume and open_interest are integers
-        for key in ['volume', 'open_interest']:
-            if key in quote and quote[key] is not None:
-                quote[key] = int(quote[key])
-
+        # Ensure greeks is a valid JSON or None
+        if 'greeks' in quote:
+            if quote['greeks'] == 'null' or quote['greeks'] is None:
+                quote['greeks'] = None
+            elif isinstance(quote['greeks'], str):
+                try:
+                    quote['greeks'] = json.loads(quote['greeks'])
+                except json.JSONDecodeError:
+                    quote['greeks'] = None
+            elif not isinstance(quote['greeks'], dict):
+                quote['greeks'] = None
 
         return quote
     except Exception as e:
-        logger.error(f"Error cleaning option quote: {str(e)}", exc_info=True)
+        logger.error(f"Error cleaning option quote for ticker {ticker} from file {file_path}: {str(e)}", exc_info=True)
         return None
 
-
-def import_stock_data(session, csv_path, ticker):
+def import_stock_data(session, csv_path, ticker,logger):
     try:
         df = pd.read_csv(csv_path)
         if df.empty:
@@ -293,7 +358,7 @@ def import_stock_data(session, csv_path, ticker):
             return
 
         filename = os.path.basename(csv_path)
-        fetch_timestamp = parse_timestamp_from_filename(filename)
+        fetch_timestamp = parse_timestamp_from_filename(filename,logger)
         if fetch_timestamp is None:
             logger.error(f"Failed to parse timestamp from filename: {filename}")
             return
@@ -332,7 +397,7 @@ def import_stock_data(session, csv_path, ticker):
         # Convert timestamp fields
         for field in ['last_trade_timestamp','last_1min_timestamp','last_1min_timesale', 'current_bid_date', 'current_ask_date']:
             if field in symbol_quote_data and symbol_quote_data[field] is not None:
-                symbol_quote_data[field] = convert_unix_to_datetime(symbol_quote_data[field])
+                symbol_quote_data[field] = convert_unix_to_datetime(symbol_quote_data[field],logger)
 
         symbol_quote_data = {k: v for k, v in symbol_quote_data.items() if v is not None}
 
@@ -367,10 +432,11 @@ import json
 
 
 
-def process_ticker_directory(base_path, ticker):
+def process_ticker_directory(base_path, ticker, logger):  # Pass the logger as an argument
+    # logger = setup_logging(lock)
     ensure_progress_dir()
-    options_progress = load_ticker_progress(ticker, 'options')
-    stocks_progress = load_ticker_progress(ticker, 'stocks')
+    options_progress = load_ticker_progress(ticker, 'options',logger)
+    stocks_progress = load_ticker_progress(ticker, 'stocks',logger)
 
     Session = sessionmaker(bind=engine)
     session = Session(bind=engine.connect().execution_options(
@@ -378,7 +444,7 @@ def process_ticker_directory(base_path, ticker):
     ))
 
     try:
-        ensure_symbol_exists(session, ticker)
+        ensure_symbol_exists(session, ticker,logger)
         option_data_path = os.path.join(base_path, "optionchain", ticker)
         stock_data_path = os.path.join(base_path, "ProcessedData", ticker)
 
@@ -392,12 +458,12 @@ def process_ticker_directory(base_path, ticker):
                     date_path = os.path.join(option_data_path, date_dir)
                     for file in os.listdir(date_path):
                         if file.endswith('.csv'):
-                            import_option_data(session, os.path.join(date_path, file), ticker)
+                            import_option_data(session, os.path.join(date_path, file), ticker,logger)
 
                     options_progress.append(date_dir)
                     save_ticker_progress(ticker, options_progress, 'options')
                     logger.info(f"Processed option data for {ticker} on {date_dir}")
-                    print(f"Finished processing option date directory {date_dir} for ticker: {ticker}")
+                    print(f"{datetime.now()} Finished processing option date directory {date_dir} for ticker: {ticker}")
 
         # Process stock data
         if os.path.exists(stock_data_path):
@@ -407,12 +473,12 @@ def process_ticker_directory(base_path, ticker):
                     date_path = os.path.join(stock_data_path, date_dir)
                     for file in os.listdir(date_path):
                         if file.endswith('.csv'):
-                            import_stock_data(session, os.path.join(date_path, file), ticker)
+                            import_stock_data(session, os.path.join(date_path, file), ticker,logger)
 
                     stocks_progress.append(date_dir)
                     save_ticker_progress(ticker, stocks_progress, 'stocks')
                     logger.info(f"Processed stock data for {ticker} on {date_dir}")
-                    print(f"Finished processing stock date directory {date_dir} for ticker: {ticker}")
+                    print(f"{datetime.now()} Finished processing stock date directory {date_dir} for ticker: {ticker}")
 
 
     except Exception as e:
@@ -423,10 +489,6 @@ def process_ticker_directory(base_path, ticker):
 
         session.close()
 
-def process_ticker(args):
-    
-    base_path, ticker = args
-    return process_ticker_directory(base_path, ticker)
 
 
 import time
@@ -434,59 +496,53 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 def main():
-    logger.info("Starting data import process")
-    create_schema_if_not_exists(engine, SCHEMA_NAME)
+    lock = multiprocessing.Lock()
+    logger, listener = setup_logging()
+    try:
+        logger.info("Starting data import process")
+        create_schema_if_not_exists(engine, SCHEMA_NAME)
 
-    base_path = r"\\BONSAI-SERVER\stockalgo_data\data"
-    option_chain_path = os.path.join(base_path, "optionchain")
+        base_path = r"\\BONSAI-SERVER\stockalgo_data\data"
+        option_chain_path = os.path.join(base_path, "optionchain")
 
-    tickers = [ticker for ticker in os.listdir(option_chain_path) if
-               os.path.isdir(os.path.join(option_chain_path, ticker))]
+        tickers = ['SPY','WMT','CHWY','ROKU','TSLA','GOOGL','AMZN','BA']
+        num_processes = max(1, multiprocessing.cpu_count() // 2)
 
-    # num_processes = multiprocessing.cpu_count() - became unresponsive before.
-    num_processes = max(1, multiprocessing.cpu_count() // 2)
+        logger.info(f"Starting to process {len(tickers)} tickers using {num_processes} processes")
 
-    logger.info(f"Starting to process {len(tickers)} tickers using {num_processes} processes")
+        start_time = time.time()
+        processed_tickers = 0
+        processed_date_dirs = 0
 
-    start_time = time.time()
-    processed_tickers = 0
-    processed_date_dirs = 0
+        with ProcessPoolExecutor(max_workers=num_processes) as executor:
+            futures = [executor.submit(process_ticker_directory, base_path, ticker, logger) for ticker in tickers]
+            for future in as_completed(futures):
+                processed_tickers += 1
+                processed_date_dirs = sum(len(load_ticker_progress(ticker, 'options',logger)) +
+                                          len(load_ticker_progress(ticker, 'stocks',logger))
 
-    with ProcessPoolExecutor(max_workers=num_processes) as executor:
-        futures = [executor.submit(process_ticker_directory, base_path, ticker) for ticker in tickers]
+                                          for ticker in tickers)
+                elapsed_time = time.time() - start_time
+                avg_time_per_ticker = elapsed_time / processed_tickers
+                estimated_time_remaining = avg_time_per_ticker * (len(tickers) - processed_tickers)
 
-        for future in as_completed(futures):
-            processed_tickers += 1
-            processed_date_dirs = sum(len(load_ticker_progress(ticker, 'options')) +
-                                      len(load_ticker_progress(ticker, 'stocks'))
-                                      for ticker in tickers)
-            elapsed_time = time.time() - start_time
-            avg_time_per_ticker = elapsed_time / processed_tickers
-            estimated_time_remaining = avg_time_per_ticker * (len(tickers) - processed_tickers)
+                logger.info(f"Processed {processed_tickers}/{len(tickers)} tickers, "
+                            f"{processed_date_dirs} date directories. "
+                            f"Estimated time remaining: {estimated_time_remaining:.2f} seconds")
 
-            logger.info(f"Processed {processed_tickers}/{len(tickers)} tickers, "
-                        f"{processed_date_dirs} date directories. "
-                        f"Estimated time remaining: {estimated_time_remaining:.2f} seconds")
-
-    total_time = time.time() - start_time
-    logger.info(f"Finished processing all {len(tickers)} tickers, "
-                f"{processed_date_dirs} date directories in {total_time:.2f} seconds")
-    logger.info(f"Average time per ticker: {total_time / len(tickers):.2f} seconds")
-    logger.info(f"Average time per date directory: {total_time / processed_date_dirs:.2f} seconds")
-    logger.info("Data import process completed")
-    # total_time = time.time() - start_time
-    # print(f"Finished processing all {len(tickers)} tickers, "
-    #       f"{processed_date_dirs} date directories in {total_time:.2f} seconds")
-    # print(f"Average time per ticker: {total_time / len(tickers):.2f} seconds")
-    # print(f"Average time per date directory: {total_time / processed_date_dirs:.2f} seconds")
-
-def get_all_processed_tickers():
-    return [file.stem.split('_')[0] for file in PROGRESS_DIR.glob('*_progress.json')]
-def print_progress_summary():
-    for ticker in get_all_processed_tickers():
-        options = load_ticker_progress(ticker, 'options')
-        stocks = load_ticker_progress(ticker, 'stocks')
-        print(f"{ticker}: {len(options)} option dates, {len(stocks)} stock dates processed")
+        total_time = time.time() - start_time
+        logger.info(f"{datetime.now()}Finished processing all {len(tickers)} tickers, "
+                    f"{processed_date_dirs} date directories in {total_time:.2f} seconds")
+        logger.info(f"Average time per ticker: {total_time / len(tickers):.2f} seconds")
+        logger.info(f"Average time per date directory: {total_time / processed_date_dirs:.2f} seconds")
+        logger.info("Data import process completed")
+    except Exception as e:
+        logger.error(f"An error occurred in the main process: {str(e)}", exc_info=True)
+    finally:
+        listener.stop()  # Stop the listener when done
 if __name__ == "__main__":
+    # multiprocessing.freeze_support()  # This helps with multiprocessing on Windows
+    # lock = multiprocessing.Lock()
+    # logger = setup_logging(lock)
     create_schema_and_tables(engine)
     main()

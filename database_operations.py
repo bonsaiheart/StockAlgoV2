@@ -4,14 +4,14 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.ddl import DropSchema, CreateSchema
 
 from UTILITIES.logger_config import logger
-from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis, TimeSales, Base
+from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote, Dividend, Base
 
 
 def create_database_tables(engine):
     with engine.connect() as conn:  # Use a synchronous context manager
         inspector = inspect(conn)
         existing_tables = inspector.get_table_names()
-        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, TechnicalAnalysis, ProcessedOptionData]
+        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, ]
 
         try:  # Wrap table creation in a try-except block
             # Create Symbol table first
@@ -63,7 +63,7 @@ def create_schema_and_tables(engine):
         session.rollback()
 
     # Modify the tables to use the new schema
-    tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, TechnicalAnalysis, ProcessedOptionData, TimeSales]
+    tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote,  Dividend]
     for table in tables_to_create:
         table.__table__.schema = NEW_SCHEMA
 
