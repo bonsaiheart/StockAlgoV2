@@ -12,7 +12,7 @@ import ta
 from sqlalchemy import inspect, UniqueConstraint, PrimaryKeyConstraint, TIMESTAMP
 import PrivateData.tradier_info
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import aiohttp
 from sqlalchemy.exc import OperationalError
 import pandas as pd
@@ -25,7 +25,7 @@ from UTILITIES.logger_config import logger
 from sqlalchemy import func,Column, Integer, String, Float, DateTime, Date, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-from main_devmode import engine
+
 import pytz
 from scipy.stats import norm
 from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, Dividend
@@ -124,13 +124,14 @@ async def bulk_insert_option_quotes(conn: Connection, option_quotes_data):
             print(f"Error during execute_batch: {str(e)}")
             raise
 
+
 class DividendYieldCache:
     def __init__(self):
         self.cache = {}
         self.lock = asyncio.Lock()
         self.last_update_date = {}
 
-    async def get_dividend_yield(self, db_session, session, ticker, real_auth, current_price):
+    async def get_dividend_yield(self, conn, session, ticker, real_auth, current_price):
         async with self.lock:
             current_date = datetime.now().date()
 
@@ -139,7 +140,7 @@ class DividendYieldCache:
                 return self.cache[ticker]
 
             # If no valid cached data, calculate new yield
-            dividend_yield = await self._calculate_dividend_yield(db_session, session, ticker, real_auth, current_price)
+            dividend_yield = await self._calculate_dividend_yield(conn, session, ticker, real_auth, current_price)
 
             # Update cache and last update date
             self.cache[ticker] = dividend_yield
@@ -147,45 +148,49 @@ class DividendYieldCache:
 
             return dividend_yield
 
-    async def _calculate_dividend_yield(self, db_session, session, ticker, real_auth, current_price):
+    async def _calculate_dividend_yield(self, conn, session, ticker, real_auth, current_price):
         # Check if we have recent dividend data in the database
         one_year_ago = datetime.now() - timedelta(days=365)
-        db_dividends = db_session.query(Dividend).filter(
-            and_(
-                Dividend.symbol_name == ticker,
-                Dividend.ex_date >= one_year_ago
-            )
-        ).order_by(Dividend.ex_date.desc()).all()
+        db_dividends = await conn.fetch('''
+            SELECT * FROM csvimport.dividends
+            WHERE symbol_name = $1 AND ex_date >= $2
+            ORDER BY ex_date DESC
+        ''', ticker, one_year_ago)
 
         if not db_dividends:
             # If no recent data in database, fetch from API
             api_dividends = await fetch_dividend_data(session, ticker, real_auth)
             if api_dividends:
                 # Convert API data to Dividend objects and store in DB
-                dividend_objects = []
-                for div in api_dividends:
-                    dividend_obj = Dividend(
-                        symbol_name=ticker,
-                        dividend_type=div['dividend_type'],
-                        ex_date=datetime.strptime(div['ex_date'], '%Y-%m-%d').date(),
-                        cash_amount=div['cash_amount'],
-                        currency_id=div['currency_i_d'],
-                        declaration_date=datetime.strptime(div['declaration_date'], '%Y-%m-%d').date(),
-                        frequency=div['frequency'],
-                        pay_date=datetime.strptime(div['pay_date'], '%Y-%m-%d').date(),
-                        record_date=datetime.strptime(div['record_date'], '%Y-%m-%d').date()
-                    )
-                    dividend_objects.append(dividend_obj)
+                await conn.executemany('''
+                    INSERT INTO csvimport.dividends (
+                        symbol_name, dividend_type, ex_date, cash_amount, currency_id,
+                        declaration_date, frequency, pay_date, record_date
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ''', [(
+                    ticker,
+                    div['dividend_type'],
+                    datetime.strptime(div['ex_date'], '%Y-%m-%d').date(),
+                    div['cash_amount'],
+                    div['currency_i_d'],
+                    datetime.strptime(div['declaration_date'], '%Y-%m-%d').date(),
+                    div['frequency'],
+                    datetime.strptime(div['pay_date'], '%Y-%m-%d').date(),
+                    datetime.strptime(div['record_date'], '%Y-%m-%d').date()
+                ) for div in api_dividends])
 
-                db_session.add_all(dividend_objects)
-                db_session.commit()
-                db_dividends = dividend_objects
+                db_dividends = await conn.fetch('''
+                    SELECT * FROM csvimport.dividends
+                    WHERE symbol_name = $1 AND ex_date >= $2
+                    ORDER BY ex_date DESC
+                ''', ticker, one_year_ago)
 
         # Calculate dividend yield
         if db_dividends:
             # Sum all dividends paid in the last year if certain types
-            annual_dividend = sum(div.cash_amount for div in db_dividends
-                                  if div.dividend_type in ['CD', 'SC', 'CG', 'RC', 'LQ'] or div.dividend_type is None)
+            annual_dividend = sum(div['cash_amount'] for div in db_dividends
+                                  if div['dividend_type'] in ['CD', 'SC', 'CG', 'RC', 'LQ'] or div[
+                                      'dividend_type'] is None)
             dividend_yield = annual_dividend / current_price if current_price > 0 else 0
         else:
             dividend_yield = 0
@@ -297,7 +302,14 @@ def get_treasury_yield(days_to_expiration):
     yield_value = treasury_yield_cache.get('DGS30', 0.02)
     print(f"Using 30-year yield: {yield_value} (days to expiration: {days_to_expiration})")
     return yield_value
-
+def parse_timestamp(timestamp_str):
+    if timestamp_str is None:
+        return None
+    try:
+        return datetime.fromisoformat(timestamp_str.replace('Z', '+00:00')).replace(tzinfo=timezone.utc)
+    except ValueError:
+        logger.error(f"Failed to parse timestamp: {timestamp_str}")
+        return None
 
 
 def calculate_option_greeks(S, K, T, r, sigma, option_type, q=0):
@@ -593,7 +605,7 @@ async def get_timesales(session, ticker, lookback_minutes):
         logger.error(f"Error fetching timesales data for {ticker}: {str(e)}")
         return None
 
-async def get_options_data(db_session, session, ticker, loop_start_time):
+async def get_options_data(conn, session, ticker, loop_start_time):
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
     ticker_quote = await fetch(
         session,
@@ -611,207 +623,373 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
     prevclose = quote_df.at[0, "prevclose"]
     symbol_name = ticker
 
+ # Insert symbol data
+    await conn.execute('''
+        INSERT INTO csvimport.symbols (symbol_name, description, type)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (symbol_name) DO UPDATE SET
+        description = EXCLUDED.description,
+        type = EXCLUDED.type
+    ''', ticker, quote_df.at[0, "description"], quote_df.at[0, "type"])
 
-    try:
-        # Upsert Symbol
-        insert_stmt = insert(Symbol).values(
-            symbol_name=ticker,
-            description=quote_df.at[0, "description"],
-            type=quote_df.at[0, "type"]
-        )
-        update_dict = {c.name: c for c in insert_stmt.excluded}
-        upsert_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=[Symbol.symbol_name],
-            set_=update_dict
-        ).returning(Symbol.symbol_name)  # Return the symbol_name
 
-        result = db_session.execute(upsert_stmt)
-        symbol_name_result = result.one_or_none()  # Use one_or_none() to fetch 0 or 1 row
 
-        if not symbol_name_result:  # Check if the result is None
-            raise Exception(f"Failed to insert or update symbol {ticker}. Check for database constraints or errors.")
-
-        # print("close?",quote_df.at[0, "close"])
-    except Exception as e:
-        db_session.rollback()
-        print(f"Error handling symbol for {ticker}: {e}")
-        raise
-    # print(symbol_id)
-#TODO quotes will take multiple tickers/options as args. maybe be faster ?
-    stock_price_data = {
-        'symbol_name': symbol_name,
-        'fetch_timestamp': loop_start_time.astimezone(eastern),
-        'last_trade_timestamp': convert_unix_to_datetime(quote_df.at[0, "trade_date"]),
-        'last_trade_price': quote_df.at[0, "last"],
-        'current_bid': quote_df.at[0, "bid"],
-        'current_ask': quote_df.at[0, "ask"],
-        'daily_open': quote_df.at[0, "open"],
-        'daily_high': quote_df.at[0, "high"],
-        'daily_low': quote_df.at[0, "low"],
-        'previous_close': quote_df.at[0, "prevclose"],
-        'last_trade_volume': quote_df.at[0, "last_volume"],
-        'daily_volume': quote_df.at[0, "volume"],
-        'average_daily_volume': quote_df.at[0, "average_volume"],
-        'week_52_high': quote_df.at[0, "week_52_high"],
-        'week_52_low': quote_df.at[0, "week_52_low"],
-        'daily_change': quote_df.at[0, "change"],
-        'daily_change_percentage': quote_df.at[0, "change_percentage"],
-        'current_bidsize': quote_df.at[0, "bidsize"],
-        'bidexch': quote_df.at[0, "bidexch"],
-        'current_bid_date': convert_unix_to_datetime(quote_df.at[0, "bid_date"]),
-        'current_asksize': quote_df.at[0, "asksize"],
-        'askexch': quote_df.at[0, "askexch"],
-        'current_ask_date': convert_unix_to_datetime(quote_df.at[0, "ask_date"]),
-        'exch': quote_df.at[0, "exch"],
-    }
     # Fetch timesales data
-
     timesales_data = await get_timesales(session, ticker, lookback_minutes=1)
-    # print(timesales_data)
+
+    # Prepare the query
+    query = '''
+          INSERT INTO csvimport.symbol_quotes (
+              symbol_name, fetch_timestamp, last_trade_price, current_bid, current_ask,
+              daily_open, daily_high, daily_low, previous_close, last_trade_volume,
+              daily_volume, average_daily_volume, last_trade_timestamp, week_52_high,
+              week_52_low, daily_change, daily_change_percentage, current_bidsize,
+              bidexch, current_bid_date, current_asksize, askexch, current_ask_date,
+              exch, last_1min_timesale, last_1min_timestamp, last_1min_open,
+              last_1min_high, last_1min_low, last_1min_close, last_1min_volume,
+              last_1min_vwap
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                    $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
+                    $29, $30, $31, $32)
+          ON CONFLICT (symbol_name, fetch_timestamp) DO UPDATE SET
+              last_trade_price = EXCLUDED.last_trade_price,
+              current_bid = EXCLUDED.current_bid,
+              current_ask = EXCLUDED.current_ask,
+              daily_open = EXCLUDED.daily_open,
+              daily_high = EXCLUDED.daily_high,
+              daily_low = EXCLUDED.daily_low,
+              previous_close = EXCLUDED.previous_close,
+              last_trade_volume = EXCLUDED.last_trade_volume,
+              daily_volume = EXCLUDED.daily_volume,
+              average_daily_volume = EXCLUDED.average_daily_volume,
+              last_trade_timestamp = EXCLUDED.last_trade_timestamp,
+              week_52_high = EXCLUDED.week_52_high,
+              week_52_low = EXCLUDED.week_52_low,
+              daily_change = EXCLUDED.daily_change,
+              daily_change_percentage = EXCLUDED.daily_change_percentage,
+              current_bidsize = EXCLUDED.current_bidsize,
+              bidexch = EXCLUDED.bidexch,
+              current_bid_date = EXCLUDED.current_bid_date,
+              current_asksize = EXCLUDED.current_asksize,
+              askexch = EXCLUDED.askexch,
+              current_ask_date = EXCLUDED.current_ask_date,
+              exch = EXCLUDED.exch,
+              last_1min_timesale = EXCLUDED.last_1min_timesale,
+              last_1min_timestamp = EXCLUDED.last_1min_timestamp,
+              last_1min_open = EXCLUDED.last_1min_open,
+              last_1min_high = EXCLUDED.last_1min_high,
+              last_1min_low = EXCLUDED.last_1min_low,
+              last_1min_close = EXCLUDED.last_1min_close,
+              last_1min_volume = EXCLUDED.last_1min_volume,
+              last_1min_vwap = EXCLUDED.last_1min_vwap
+      '''
+
+    # Prepare the values
+    values = [
+        ticker, loop_start_time.astimezone(eastern), quote_df.at[0, "last"],
+        quote_df.at[0, "bid"], quote_df.at[0, "ask"], quote_df.at[0, "open"],
+        quote_df.at[0, "high"], quote_df.at[0, "low"], quote_df.at[0, "prevclose"],
+        quote_df.at[0, "last_volume"], quote_df.at[0, "volume"],
+        quote_df.at[0, "average_volume"], convert_unix_to_datetime(quote_df.at[0, "trade_date"]),
+        quote_df.at[0, "week_52_high"], quote_df.at[0, "week_52_low"],
+        quote_df.at[0, "change"], quote_df.at[0, "change_percentage"],
+        quote_df.at[0, "bidsize"], quote_df.at[0, "bidexch"],
+        convert_unix_to_datetime(quote_df.at[0, "bid_date"]), quote_df.at[0, "asksize"],
+        quote_df.at[0, "askexch"], convert_unix_to_datetime(quote_df.at[0, "ask_date"]),
+        quote_df.at[0, "exch"]
+    ]
+
+    # Add timesales data if available
     if timesales_data:
-        stock_price_data.update({
-            'last_1min_timesale': timesales_data['time'],
-            'last_1min_timestamp': convert_unix_to_datetime(timesales_data["timestamp"]),
+        values.extend([
+            parse_timestamp(timesales_data['time']),
+            convert_unix_to_datetime(timesales_data["timestamp"]),
+            timesales_data['open'],
+            timesales_data['high'],
+            timesales_data['low'],
+            timesales_data['close'],
+            timesales_data['volume'],
+            timesales_data['vwap']
+        ])
+    else:
+        values.extend([None] * 8)  # Add None for all timesales fields if data is not available
 
-            'last_1min_open': timesales_data['open'],
-            'last_1min_high': timesales_data['high'],
-            'last_1min_low': timesales_data['low'],
-            'last_1min_close': timesales_data['close'],
-            'last_1min_volume': timesales_data['volume'],
-            'last_1min_vwap': timesales_data['vwap']
-        })
+    # Execute the query
+    await conn.execute(query, *values)
 
-    db_session.execute(
-        insert(SymbolQuote)
-        .values(stock_price_data)
-        .on_conflict_do_update(
-            constraint='symbol_quote_unique_constraint',
-            set_=stock_price_data
-        )
-    )
-    # db_session.commit()
-
-    #TODO ADD IV to the table for optionquotes?
     all_contract_quotes = await post_market_quotes(session, ticker, real_auth)
 
     if all_contract_quotes is not None:
-        # # Fetch risk-free rate (you need to implement this function)
-        # risk_free_rate = await get_risk_free_rate(session)
-        # Fetch dividend yield using the cache
-
-        dividend_yield = await dividend_yield_cache.get_dividend_yield(db_session, session, ticker, real_auth,
+        dividend_yield = await dividend_yield_cache.get_dividend_yield(conn, session, ticker, real_auth,
                                                                        current_price)
-
-        # if dividend_yield > 0:
-        #     logger.info(f"Dividend yield for {ticker}: {dividend_yield:.4f} ({dividend_yield * 100:.2f}%)")
-        # else:
-        #     logger.info(f"No dividend yield found for {ticker}")
-        options_df = process_option_quotes(all_contract_quotes, current_price, prevclose, dividend_yield)
+        options_df = process_option_quotes(all_contract_quotes, current_price, prevclose,dividend_yield)
         options_df['fetch_timestamp'] = loop_start_time
 
-        # Select and rename columns for the Option table
-        option_columns = ['contract_id','expiration_date', 'strike', 'option_type', 'underlying',
-                          'contract_size', 'description', 'expiration_type']#Got rid of exch
-        option_data_df = options_df[option_columns].copy()
+        # Insert option data
+        await conn.executemany('''
+            INSERT INTO csvimport.options (
+                contract_id, underlying, expiration_date, strike, option_type,
+                contract_size, description, expiration_type
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (contract_id) DO UPDATE SET
+                underlying = EXCLUDED.underlying,
+                expiration_date = EXCLUDED.expiration_date,
+                strike = EXCLUDED.strike,
+                option_type = EXCLUDED.option_type,
+                contract_size = EXCLUDED.contract_size,
+                description = EXCLUDED.description,
+                expiration_type = EXCLUDED.expiration_type
+        ''', [(row['contract_id'], row['underlying'], row['expiration_date'],
+               row['strike'], row['option_type'], row['contract_size'],
+               row['description'], row['expiration_type'])
+              for _, row in options_df.iterrows()])
 
+        # Insert option quotes data
+        await conn.executemany('''
+            INSERT INTO csvimport.option_quotes (
+                contract_id, fetch_timestamp, root_symbol, last, change, volume,
+                open, high, low, bid, ask, greeks, change_percentage, last_volume,
+                trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch,
+                ask_date, open_interest, implied_volatility, realtime_calculated_greeks,
+                risk_free_rate
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                      $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+            ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
+                root_symbol = EXCLUDED.root_symbol,
+                last = EXCLUDED.last,
+                change = EXCLUDED.change,
+                volume = EXCLUDED.volume,
+                open = EXCLUDED.open,
+                high = EXCLUDED.high,
+                low = EXCLUDED.low,
+                bid = EXCLUDED.bid,
+                ask = EXCLUDED.ask,
+                greeks = EXCLUDED.greeks,
+                change_percentage = EXCLUDED.change_percentage,
+                last_volume = EXCLUDED.last_volume,
+                trade_date = EXCLUDED.trade_date,
+                prevclose = EXCLUDED.prevclose,
+                bidsize = EXCLUDED.bidsize,
+                bidexch = EXCLUDED.bidexch,
+                bid_date = EXCLUDED.bid_date,
+                asksize = EXCLUDED.asksize,
+                askexch = EXCLUDED.askexch,
+                ask_date = EXCLUDED.ask_date,
+                open_interest = EXCLUDED.open_interest,
+                implied_volatility = EXCLUDED.implied_volatility,
+                realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
+                risk_free_rate = EXCLUDED.risk_free_rate
+        ''', [(row['contract_id'], loop_start_time.astimezone(eastern),
+               row['root_symbol'], row['last'], row['change'], row['volume'],
+               row['open'], row['high'], row['low'], row['bid'], row['ask'],
+               json.dumps(row['greeks']), row['change_percentage'], row['last_volume'],
+               convert_unix_to_datetime(row['trade_date']), row['prevclose'], row['bidsize'], row['bidexch'],
+               convert_unix_to_datetime(row['bid_date']), row['asksize'], row['askexch'], convert_unix_to_datetime(row['ask_date']),
+               row['open_interest'], row['implied_volatility'],
+               json.dumps(row['realtime_calculated_greeks']), row['risk_free_rate'])
+              for _, row in options_df.iterrows()])
 
-        # Reset the index to ensure it does not interfere with the upsert operation
-        option_data_df.reset_index(drop=True, inplace=True)
-
-        option_data_df.set_index(['contract_id'], inplace=True)
-        # option_data_df.to_csv("options_data.csv")
-
-
-        # Using pangres for Option table (without index_col)
-        upsert(
-            con=engine,
-            df=option_data_df,
-            table_name="options",
-            schema="csvimport",
-            if_row_exists='update',
-            create_table=False,
-        )
-
-        # Fetch the inserted options to create a mapping of (symbol_id, expiration_date, strike, option_type) to option_id
-        db_session.commit()
-
-        # First, ensure the column is datetime type
-        options_df['expiration_date'] = pd.to_datetime(options_df['expiration_date'])
-
-        # If it's not tz-aware, localize it to UTC
-        if options_df['expiration_date'].dt.tz is None:
-            options_df['expiration_date'] = options_df['expiration_date'].dt.tz_localize('UTC')
-
-        # Now convert to US/Eastern
-        options_df['expiration_date'] = options_df['expiration_date'].dt.tz_convert('US/Eastern')
-
-        # Create a list of dictionaries representing option quotes data
-        option_quotes_data = [
-            {
-                "contract_id": row['contract_id'],
-                "root_symbol": row['root_symbol'],
-                "fetch_timestamp": loop_start_time.astimezone(eastern),
-                "last": row["last"],
-                "bid": row["bid"],
-                "ask": row["ask"],
-                "volume": row["volume"],
-                "greeks": row["greeks"],
-                "change_percentage": row["change_percentage"],
-                "last_volume": row["last_volume"],
-                "trade_date": convert_unix_to_datetime(row["trade_date"]),
-                "prevclose": row["prevclose"],
-                "bidsize": row["bidsize"],
-                "bidexch": row["bidexch"],
-                "bid_date": convert_unix_to_datetime(row["bid_date"]),
-                "asksize": row["asksize"],
-                "askexch": row["askexch"],
-                "ask_date": convert_unix_to_datetime(row["ask_date"]),
-                "open_interest": row["open_interest"],
-                "change": row["change"],
-                "open": row["open"],
-                "high": row["high"],
-                "low": row["low"],
-                "implied_volatility": row["implied_volatility"],
-                "realtime_calculated_greeks": row["realtime_calculated_greeks"],
-                "risk_free_rate": row["risk_free_rate"]
-
-            }
-            for _, row in options_df.iterrows() if row['contract_id']
-        ]
-        # for item in option_quotes_data:
-        #     print(item.get('realtime_calculated_greeks', 'Not found'))
-
-        # # Use SQLAlchemy's Core API for bulk insert
-        # with engine.begin() as conn:
-        #     conn.execute(
-        #         insert(OptionQuote),
-        #         option_quotes_data
-        #     )
-        # Use execute_batch for bulk insert
-        with engine.begin() as conn:
-            await bulk_insert_option_quotes(conn, option_quotes_data)
-            conn.commit()
-        # Get technical analysis data
-        # ta_df = await technical_analysis.get_ta(session, ticker)
-        # if not ta_df.empty:
-        #     ta_data_list = ta_df.to_dict(orient='records')
-        #     for data in ta_data_list:
-        #         data["symbol_name"] = symbol_name
-        #
-        #     # Create DataFrame for bulk insert
-        #     ta_data_df = pd.DataFrame(ta_data_list)
-        #
-        #     # Use bulk_insert_mappings for faster inserts
-        #     with engine.begin() as conn:
-        #         conn.execute(
-        #             insert(TechnicalAnalysis),
-        #             ta_data_df.to_dict(orient="records")
-        #         )
-        #
-        # else:
-        #     print("TA DataFrame is empty")
-
-        db_session.commit()
-
-    # options_df.to_csv("options_df_test.csv")
     return prevclose, current_price, options_df, symbol_name
+#     try:
+#         # Upsert Symbol
+#         insert_stmt = insert(Symbol).values(
+#             symbol_name=ticker,
+#             description=quote_df.at[0, "description"],
+#             type=quote_df.at[0, "type"]
+#         )
+#         update_dict = {c.name: c for c in insert_stmt.excluded}
+#         upsert_stmt = insert_stmt.on_conflict_do_update(
+#             index_elements=[Symbol.symbol_name],
+#             set_=update_dict
+#         ).returning(Symbol.symbol_name)  # Return the symbol_name
+#
+#         result = db_session.execute(upsert_stmt)
+#         symbol_name_result = result.one_or_none()  # Use one_or_none() to fetch 0 or 1 row
+#
+#         if not symbol_name_result:  # Check if the result is None
+#             raise Exception(f"Failed to insert or update symbol {ticker}. Check for database constraints or errors.")
+#
+#         # print("close?",quote_df.at[0, "close"])
+#     except Exception as e:
+#         db_session.rollback()
+#         print(f"Error handling symbol for {ticker}: {e}")
+#         raise
+#     # print(symbol_id)
+# #TODO quotes will take multiple tickers/options as args. maybe be faster ?
+#     stock_price_data = {
+#         'symbol_name': symbol_name,
+#         'fetch_timestamp': loop_start_time.astimezone(eastern),
+#         'last_trade_timestamp': convert_unix_to_datetime(quote_df.at[0, "trade_date"]),
+#         'last_trade_price': quote_df.at[0, "last"],
+#         'current_bid': quote_df.at[0, "bid"],
+#         'current_ask': quote_df.at[0, "ask"],
+#         'daily_open': quote_df.at[0, "open"],
+#         'daily_high': quote_df.at[0, "high"],
+#         'daily_low': quote_df.at[0, "low"],
+#         'previous_close': quote_df.at[0, "prevclose"],
+#         'last_trade_volume': quote_df.at[0, "last_volume"],
+#         'daily_volume': quote_df.at[0, "volume"],
+#         'average_daily_volume': quote_df.at[0, "average_volume"],
+#         'week_52_high': quote_df.at[0, "week_52_high"],
+#         'week_52_low': quote_df.at[0, "week_52_low"],
+#         'daily_change': quote_df.at[0, "change"],
+#         'daily_change_percentage': quote_df.at[0, "change_percentage"],
+#         'current_bidsize': quote_df.at[0, "bidsize"],
+#         'bidexch': quote_df.at[0, "bidexch"],
+#         'current_bid_date': convert_unix_to_datetime(quote_df.at[0, "bid_date"]),
+#         'current_asksize': quote_df.at[0, "asksize"],
+#         'askexch': quote_df.at[0, "askexch"],
+#         'current_ask_date': convert_unix_to_datetime(quote_df.at[0, "ask_date"]),
+#         'exch': quote_df.at[0, "exch"],
+#     }
+#     # Fetch timesales data
+#
+#     timesales_data = await get_timesales(session, ticker, lookback_minutes=1)
+#     # print(timesales_data)
+#     if timesales_data:
+#         stock_price_data.update({
+#             'last_1min_timesale': timesales_data['time'],
+#             'last_1min_timestamp': convert_unix_to_datetime(timesales_data["timestamp"]),
+#
+#             'last_1min_open': timesales_data['open'],
+#             'last_1min_high': timesales_data['high'],
+#             'last_1min_low': timesales_data['low'],
+#             'last_1min_close': timesales_data['close'],
+#             'last_1min_volume': timesales_data['volume'],
+#             'last_1min_vwap': timesales_data['vwap']
+#         })
+#
+#     db_session.execute(
+#         insert(SymbolQuote)
+#         .values(stock_price_data)
+#         .on_conflict_do_update(
+#             constraint='symbol_quote_unique_constraint',
+#             set_=stock_price_data
+#         )
+#     )
+#     # db_session.commit()
+#
+#     #TODO ADD IV to the table for optionquotes?
+#     all_contract_quotes = await post_market_quotes(session, ticker, real_auth)
+#
+#     if all_contract_quotes is not None:
+#         # # Fetch risk-free rate (you need to implement this function)
+#         # risk_free_rate = await get_risk_free_rate(session)
+#         # Fetch dividend yield using the cache
+#
+#         dividend_yield = await dividend_yield_cache.get_dividend_yield(db_session, session, ticker, real_auth,
+#                                                                        current_price)
+#
+#         # if dividend_yield > 0:
+#         #     logger.info(f"Dividend yield for {ticker}: {dividend_yield:.4f} ({dividend_yield * 100:.2f}%)")
+#         # else:
+#         #     logger.info(f"No dividend yield found for {ticker}")
+#         options_df = process_option_quotes(all_contract_quotes, current_price, prevclose, dividend_yield)
+#         options_df['fetch_timestamp'] = loop_start_time
+#
+#         # Select and rename columns for the Option table
+#         option_columns = ['contract_id','expiration_date', 'strike', 'option_type', 'underlying',
+#                           'contract_size', 'description', 'expiration_type']#Got rid of exch
+#         option_data_df = options_df[option_columns].copy()
+#
+#
+#         # Reset the index to ensure it does not interfere with the upsert operation
+#         option_data_df.reset_index(drop=True, inplace=True)
+#
+#         option_data_df.set_index(['contract_id'], inplace=True)
+#         # option_data_df.to_csv("options_data.csv")
+#
+#
+#         # Using pangres for Option table (without index_col)
+#         upsert(
+#             con=engine,
+#             df=option_data_df,
+#             table_name="options",
+#             schema="csvimport",
+#             if_row_exists='update',
+#             create_table=False,
+#         )
+#
+#         # Fetch the inserted options to create a mapping of (symbol_id, expiration_date, strike, option_type) to option_id
+#         db_session.commit()
+#
+#         # First, ensure the column is datetime type
+#         options_df['expiration_date'] = pd.to_datetime(options_df['expiration_date'])
+#
+#         # If it's not tz-aware, localize it to UTC
+#         if options_df['expiration_date'].dt.tz is None:
+#             options_df['expiration_date'] = options_df['expiration_date'].dt.tz_localize('UTC')
+#
+#         # Now convert to US/Eastern
+#         options_df['expiration_date'] = options_df['expiration_date'].dt.tz_convert('US/Eastern')
+#
+#         # Create a list of dictionaries representing option quotes data
+#         option_quotes_data = [
+#             {
+#                 "contract_id": row['contract_id'],
+#                 "root_symbol": row['root_symbol'],
+#                 "fetch_timestamp": loop_start_time.astimezone(eastern),
+#                 "last": row["last"],
+#                 "bid": row["bid"],
+#                 "ask": row["ask"],
+#                 "volume": row["volume"],
+#                 "greeks": row["greeks"],
+#                 "change_percentage": row["change_percentage"],
+#                 "last_volume": row["last_volume"],
+#                 "trade_date": convert_unix_to_datetime(row["trade_date"]),
+#                 "prevclose": row["prevclose"],
+#                 "bidsize": row["bidsize"],
+#                 "bidexch": row["bidexch"],
+#                 "bid_date": convert_unix_to_datetime(row["bid_date"]),
+#                 "asksize": row["asksize"],
+#                 "askexch": row["askexch"],
+#                 "ask_date": convert_unix_to_datetime(row["ask_date"]),
+#                 "open_interest": row["open_interest"],
+#                 "change": row["change"],
+#                 "open": row["open"],
+#                 "high": row["high"],
+#                 "low": row["low"],
+#                 "implied_volatility": row["implied_volatility"],
+#                 "realtime_calculated_greeks": row["realtime_calculated_greeks"],
+#                 "risk_free_rate": row["risk_free_rate"]
+#
+#             }
+#             for _, row in options_df.iterrows() if row['contract_id']
+#         ]
+#         # for item in option_quotes_data:
+#         #     print(item.get('realtime_calculated_greeks', 'Not found'))
+#
+#         # # Use SQLAlchemy's Core API for bulk insert
+#         # with engine.begin() as conn:
+#         #     conn.execute(
+#         #         insert(OptionQuote),
+#         #         option_quotes_data
+#         #     )
+#         # Use execute_batch for bulk insert
+#         with engine.begin() as conn:
+#             await bulk_insert_option_quotes(conn, option_quotes_data)
+#             conn.commit()
+#         # Get technical analysis data
+#         # ta_df = await technical_analysis.get_ta(session, ticker)
+#         # if not ta_df.empty:
+#         #     ta_data_list = ta_df.to_dict(orient='records')
+#         #     for data in ta_data_list:
+#         #         data["symbol_name"] = symbol_name
+#         #
+#         #     # Create DataFrame for bulk insert
+#         #     ta_data_df = pd.DataFrame(ta_data_list)
+#         #
+#         #     # Use bulk_insert_mappings for faster inserts
+#         #     with engine.begin() as conn:
+#         #         conn.execute(
+#         #             insert(TechnicalAnalysis),
+#         #             ta_data_df.to_dict(orient="records")
+#         #         )
+#         #
+#         # else:
+#         #     print("TA DataFrame is empty")
+#
+#         db_session.commit()
+#
+#     # options_df.to_csv("options_df_test.csv")
+#     return prevclose, current_price, options_df, symbol_name

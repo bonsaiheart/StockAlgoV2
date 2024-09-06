@@ -3,8 +3,12 @@ import traceback
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 from functools import partial
+
+import aiofiles
 import aiohttp
 import pytz  # Make sure to install pytz if you haven't already
+from sqlalchemy.dialects.postgresql import asyncpg
+
 import IB.ibAPI
 import calculations
 import database_operations
@@ -24,10 +28,13 @@ semaphore = asyncio.Semaphore(500)
 
 DATABASE_URI = sql_db.LOCAL_DATABASE_URI
 # Create a synchronous engine using create_engine
-engine = create_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
+# engine = create_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
 ticker_cycle_running = asyncio.Event()
 trade_algos_queues = {}  # Dictionary to hold a queue for each ticker
+from asyncpg.pool import create_pool
 
+async def create_db_pool():
+    return await create_pool(DATABASE_URI, min_size=10, max_size=50)
 
 async def wait_until_time(target_time_utc):
     utc_now = datetime.now(pytz.utc)  # Make utc_now timezone-aware
@@ -161,7 +168,7 @@ async def process_ticker_queue(ticker):
 
 
 
-async def handle_ticker_cycle(client_session, ticker):
+async def handle_ticker_cycle(db_pool, session, ticker):
 
     start_time = datetime.now(pytz.utc)
     global market_close_time_utc, db_session
@@ -174,10 +181,9 @@ async def handle_ticker_cycle(client_session, ticker):
 
         try:
             # Create a new database session for each ticker
-            with Session(engine) as session:  # Use the Session object directly to create a session
-
+            async with db_pool.acquire() as conn:
                 option_data_success = await tradierAPI_marketdata.get_options_data(
-                    session, client_session, ticker, current_time
+                    conn, session, ticker, current_time
                 )
                 # After data insertion, calculate the ratio
                 # in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(session, ticker, current_time)
@@ -242,7 +248,7 @@ async def handle_ticker_cycle(client_session, ticker):
         print(
             f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_w_seconds_est}"
         )
-        record_elapsed_time(ticker, elapsed_time)
+        await record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
             exit()
@@ -254,10 +260,9 @@ async def handle_ticker_cycle(client_session, ticker):
 # These functions will contain the respective logic and error handling for each operation
 
 
-def record_elapsed_time(ticker, elapsed_time):
-    with open("elapsed_times.txt", "a") as file:
-        file.write(f"{ticker} ,{datetime.now().isoformat()},{elapsed_time}\n")
-
+async def record_elapsed_time(ticker, elapsed_time):
+    async with aiofiles.open("elapsed_times.txt", "a") as file:
+        await file.write(f"{ticker},{datetime.now().isoformat()},{elapsed_time}\n")
 
 # TODO work out the while loops between main and handle ticker cycle...  i think its redundant ins ome ways..
 
@@ -266,7 +271,6 @@ async def main():
     try:
         await create_client_session()
         session = client_session
-        database_operations.create_schema_and_tables(engine)
         with open("UTILITIES/tickerlist.txt", "r") as f:
             tickerlist = [line.strip().upper() for line in f.readlines()]
 
@@ -279,11 +283,14 @@ async def main():
             worker_task = asyncio.create_task(process_ticker_queue(ticker))
             worker_tasks.append(worker_task)
 
-        ticker_tasks = []
+        db_pool = await create_db_pool()
+        await database_operations.create_schema_and_tables(db_pool)
+
 
         delay = 60/len(tickerlist)   # Set your desired delay in seconds
+        ticker_tasks = []
         for ticker in tickerlist:
-            task = asyncio.create_task(handle_ticker_cycle(session, ticker))
+            task = asyncio.create_task(handle_ticker_cycle(db_pool, session, ticker))
             ticker_tasks.append(task)
             #TODO delay or nay?
             await asyncio.sleep(

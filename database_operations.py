@@ -2,6 +2,7 @@ from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.ddl import DropSchema, CreateSchema
+from sqlalchemy.dialects import postgresql
 
 from UTILITIES.logger_config import logger
 from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote, Dividend, Base
@@ -49,26 +50,35 @@ def drop_schema_if_exists(engine):
     finally:
         session.close()
 
-def create_schema_and_tables(engine):
-    Session = sessionmaker(bind=engine)
-    session = Session()
+import asyncpg
+from UTILITIES.logger_config import logger
+from sqlalchemy import MetaData
+from sqlalchemy.schema import CreateTable
+from db_schema_models import Symbol, Option, OptionQuote, SymbolQuote, Dividend, Base
 
-    try:
-        # Create the new schema
-        session.execute(CreateSchema(NEW_SCHEMA))
-        session.commit()
-        logger.info(f"Schema '{NEW_SCHEMA}' created successfully.")
-    except ProgrammingError:
-        logger.info(f"Schema '{NEW_SCHEMA}' already exists.")
-        session.rollback()
+NEW_SCHEMA = "csvimport"
 
-    # Modify the tables to use the new schema
-    tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote,  Dividend]
-    for table in tables_to_create:
-        table.__table__.schema = NEW_SCHEMA
+async def create_schema_and_tables(pool):
+    async with pool.acquire() as conn:
+        try:
+            # Create the new schema
+            await conn.execute(f'CREATE SCHEMA IF NOT EXISTS {NEW_SCHEMA}')
+            logger.info(f"Schema '{NEW_SCHEMA}' created successfully.")
+        except asyncpg.exceptions.DuplicateSchemaError:
+            logger.info(f"Schema '{NEW_SCHEMA}' already exists.")
 
-    # Create tables in the new schema
-    Base.metadata.create_all(engine)
-    logger.info("All tables created or already exist in the new schema.")
+        # Modify the tables to use the new schema
+        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, Dividend]
+        for table in tables_to_create:
+            table.__table__.schema = NEW_SCHEMA
 
-    session.close()
+        # Create tables in the new schema
+        for table in tables_to_create:
+            create_table_sql = str(CreateTable(table.__table__).compile(dialect=postgresql.dialect()))
+            try:
+                await conn.execute(create_table_sql)
+                logger.info(f"Table '{table.__tablename__}' created successfully.")
+            except asyncpg.exceptions.DuplicateTableError:
+                logger.info(f"Table '{table.__tablename__}' already exists.")
+
+        logger.info("All tables created or already exist in the new schema.")
