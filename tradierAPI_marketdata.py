@@ -1,4 +1,7 @@
 from functools import lru_cache
+import psycopg2.extras
+
+from psycopg2.extras import execute_batch
 from sqlalchemy import and_
 import PrivateData.tradier_info
 import math
@@ -35,7 +38,91 @@ class OptionChainError(Exception):
 
 from datetime import datetime, timedelta
 import asyncio
+from sqlalchemy.engine import Connection
 
+import json
+from database_operations import create_schema_and_tables
+from db_schema_models import Base, OptionQuote
+
+#
+# def ensure_tables_exist(engine):
+#     inspector = inspect(engine)
+#     if 'csvimport' not in inspector.get_schema_names():
+#         create_schema_and_tables(engine)
+#     else:
+#         if 'option_quotes' not in inspector.get_table_names(schema='csvimport'):
+#             Base.metadata.create_all(engine)
+#
+# # Call this function before any database operations
+# ensure_tables_exist(engine)
+async def bulk_insert_option_quotes(conn: Connection, option_quotes_data):
+    insert_query = """
+    INSERT INTO csvimport.option_quotes (
+        contract_id, fetch_timestamp, root_symbol, last, change, volume, 
+        open, high, low, bid, ask, greeks, change_percentage, last_volume, 
+        trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch, 
+        ask_date, open_interest, implied_volatility, realtime_calculated_greeks, 
+        risk_free_rate
+    ) VALUES (
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+        %s, %s, %s, %s, %s, %s, %s
+    )
+    ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
+        root_symbol = EXCLUDED.root_symbol,
+        last = EXCLUDED.last,
+        change = EXCLUDED.change,
+        volume = EXCLUDED.volume,
+        open = EXCLUDED.open,
+        high = EXCLUDED.high,
+        low = EXCLUDED.low,
+        bid = EXCLUDED.bid,
+        ask = EXCLUDED.ask,
+        greeks = EXCLUDED.greeks,
+        change_percentage = EXCLUDED.change_percentage,
+        last_volume = EXCLUDED.last_volume,
+        trade_date = EXCLUDED.trade_date,
+        prevclose = EXCLUDED.prevclose,
+        bidsize = EXCLUDED.bidsize,
+        bidexch = EXCLUDED.bidexch,
+        bid_date = EXCLUDED.bid_date,
+        asksize = EXCLUDED.asksize,
+        askexch = EXCLUDED.askexch,
+        ask_date = EXCLUDED.ask_date,
+        open_interest = EXCLUDED.open_interest,
+        implied_volatility = EXCLUDED.implied_volatility,
+        realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
+        risk_free_rate = EXCLUDED.risk_free_rate
+    """
+
+    # Convert dict data to tuple format
+    option_quotes_tuples = [
+        (
+            d['contract_id'], d['fetch_timestamp'], d['root_symbol'], d['last'],
+            d['change'], d['volume'], d['open'], d['high'], d['low'], d['bid'],
+            d['ask'], json.dumps(d['greeks']), d['change_percentage'],
+            d['last_volume'], d['trade_date'], d['prevclose'], d['bidsize'],
+            d['bidexch'], d['bid_date'], d['asksize'], d['askexch'], d['ask_date'],
+            d['open_interest'], d['implied_volatility'],
+            json.dumps(d['realtime_calculated_greeks']), d['risk_free_rate']
+        )
+        for d in option_quotes_data
+    ]
+
+    total_rows = len(option_quotes_tuples)
+    print(f"Total rows to insert: {total_rows}")
+
+    with conn.connection.cursor() as cur:
+        start_time = time.time()
+        try:
+            execute_batch(cur, insert_query, option_quotes_tuples, page_size=1000)
+            conn.commit()
+            end_time = time.time()
+            print(f"Bulk insert completed. Time taken: {end_time - start_time:.2f} seconds")
+            print(f"Insertion rate: {total_rows / (end_time - start_time):.2f} rows/second")
+        except Exception as e:
+            conn.rollback()
+            print(f"Error during execute_batch: {str(e)}")
+            raise
 
 class DividendYieldCache:
     def __init__(self):
@@ -116,7 +203,7 @@ CACHE_EXPIRY = 3600  # 1 hour in seconds
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
-sem = asyncio.Semaphore(1000)
+sem = asyncio.Semaphore(100000)
 
 
 # def calculate_batch_size(data_list, total_elements_limit=32680):
@@ -670,12 +757,9 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "volume": row["volume"],
                 "greeks": row["greeks"],
                 "change_percentage": row["change_percentage"],
-                "average_volume": row["average_volume"],
                 "last_volume": row["last_volume"],
                 "trade_date": convert_unix_to_datetime(row["trade_date"]),
                 "prevclose": row["prevclose"],
-                "week_52_high": row["week_52_high"],
-                "week_52_low": row["week_52_low"],
                 "bidsize": row["bidsize"],
                 "bidexch": row["bidexch"],
                 "bid_date": convert_unix_to_datetime(row["bid_date"]),
@@ -687,7 +771,6 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
                 "open": row["open"],
                 "high": row["high"],
                 "low": row["low"],
-                "close": row["close"],
                 "implied_volatility": row["implied_volatility"],
                 "realtime_calculated_greeks": row["realtime_calculated_greeks"],
                 "risk_free_rate": row["risk_free_rate"]
@@ -698,13 +781,16 @@ async def get_options_data(db_session, session, ticker, loop_start_time):
         # for item in option_quotes_data:
         #     print(item.get('realtime_calculated_greeks', 'Not found'))
 
-        # Use SQLAlchemy's Core API for bulk insert
+        # # Use SQLAlchemy's Core API for bulk insert
+        # with engine.begin() as conn:
+        #     conn.execute(
+        #         insert(OptionQuote),
+        #         option_quotes_data
+        #     )
+        # Use execute_batch for bulk insert
         with engine.begin() as conn:
-            conn.execute(
-                insert(OptionQuote),
-                option_quotes_data
-            )
-
+            await bulk_insert_option_quotes(conn, option_quotes_data)
+            conn.commit()
         # Get technical analysis data
         # ta_df = await technical_analysis.get_ta(session, ticker)
         # if not ta_df.empty:
