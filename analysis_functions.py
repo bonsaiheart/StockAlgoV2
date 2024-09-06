@@ -1,10 +1,10 @@
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis
+from db_schema_models import Symbol,SymbolQuote, Option, OptionQuote
 import numpy as np
 from sqlalchemy import func, select
-from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote, ProcessedOptionData, TechnicalAnalysis
+from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote
 from collections import defaultdict
 
 async def calculate_in_the_money_pcr(session, ticker, current_time):

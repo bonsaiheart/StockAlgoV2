@@ -15,7 +15,7 @@ from PrivateData import sql_db
 from sqlalchemy.orm import Session  # Import Session
 from sqlalchemy import create_engine
 import analysis_functions
-
+import UTILITIES.check_Market_Conditions
 client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
@@ -310,15 +310,15 @@ if __name__ == "__main__":
     try:
         # logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
         # market_open_time_utc, market_close_time_utc = asyncio.run(
-        #     check_Market_Conditions.get_market_open_close_times()
+        #     UTILITIES.check_Market_Conditions.get_market_open_close_times()
         # )
         # if market_open_time_utc == None and market_close_time_utc == None:
         #     logger.info(f"Market is not open today.")
         #     exit()
         # asyncio.run(wait_until_time(market_open_time_utc))
-        # logger.info(
-        #     f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
-        # )
+        logger.info(
+            f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
+        )
 
         asyncio.run(run_program())
     except KeyboardInterrupt:

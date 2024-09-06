@@ -102,9 +102,9 @@ def parse_timestamp_from_filename(filename,logger):
         logger.error(f"Error parsing timestamp from filename {filename}: {str(e)}")
         return None
 
-
+# note 23 5-30 was last spy  roku 230725
 def convert_unix_to_datetime(timestamp,logger):
-    if timestamp is None or pd.isna(timestamp):
+    if timestamp is None or pd.isna(timestamp) or timestamp == 0:
         return None
     try:
         # If it's already a datetime object, return it
@@ -432,11 +432,10 @@ import json
 
 
 
-def process_ticker_directory(base_path, ticker, logger):  # Pass the logger as an argument
-    # logger = setup_logging(lock)
+def process_ticker_directory(base_path, ticker, logger):
     ensure_progress_dir()
-    options_progress = load_ticker_progress(ticker, 'options',logger)
-    stocks_progress = load_ticker_progress(ticker, 'stocks',logger)
+    options_progress = load_ticker_progress(ticker, 'options', logger)
+    stocks_progress = load_ticker_progress(ticker, 'stocks', logger)
 
     Session = sessionmaker(bind=engine)
     session = Session(bind=engine.connect().execution_options(
@@ -444,52 +443,56 @@ def process_ticker_directory(base_path, ticker, logger):  # Pass the logger as a
     ))
 
     try:
-        ensure_symbol_exists(session, ticker,logger)
+        ensure_symbol_exists(session, ticker, logger)
         option_data_path = os.path.join(base_path, "optionchain", ticker)
         stock_data_path = os.path.join(base_path, "ProcessedData", ticker)
 
         # Process option data
         if os.path.exists(option_data_path):
-
-            date_dirs = [d for d in os.listdir(option_data_path) if
-                         os.path.isdir(os.path.join(option_data_path, d))]
+            date_dirs = [d for d in os.listdir(option_data_path) if os.path.isdir(os.path.join(option_data_path, d))]
+            logger.info(f"Found {len(date_dirs)} option date directories for {ticker}")
             for date_dir in date_dirs:
                 if date_dir not in options_progress:
+                    logger.info(f"Processing option data for {ticker} on {date_dir}")
                     date_path = os.path.join(option_data_path, date_dir)
                     for file in os.listdir(date_path):
                         if file.endswith('.csv'):
-                            import_option_data(session, os.path.join(date_path, file), ticker,logger)
-
+                            try:
+                                import_option_data(session, os.path.join(date_path, file), ticker, logger)
+                            except Exception as e:
+                                logger.error(f"Error processing option file {file} for {ticker}: {str(e)}")
                     options_progress.append(date_dir)
                     save_ticker_progress(ticker, options_progress, 'options')
                     logger.info(f"Processed option data for {ticker} on {date_dir}")
-                    print(f"{datetime.now()} Finished processing option date directory {date_dir} for ticker: {ticker}")
+                else:
+                    logger.info(f"Skipping already processed option data for {ticker} on {date_dir}")
 
         # Process stock data
         if os.path.exists(stock_data_path):
             date_dirs = [d for d in os.listdir(stock_data_path) if os.path.isdir(os.path.join(stock_data_path, d))]
+            logger.info(f"Found {len(date_dirs)} stock date directories for {ticker}")
             for date_dir in date_dirs:
                 if date_dir not in stocks_progress:
+                    logger.info(f"Processing stock data for {ticker} on {date_dir}")
                     date_path = os.path.join(stock_data_path, date_dir)
                     for file in os.listdir(date_path):
                         if file.endswith('.csv'):
-                            import_stock_data(session, os.path.join(date_path, file), ticker,logger)
-
+                            try:
+                                import_stock_data(session, os.path.join(date_path, file), ticker, logger)
+                            except Exception as e:
+                                logger.error(f"Error processing stock file {file} for {ticker}: {str(e)}")
                     stocks_progress.append(date_dir)
                     save_ticker_progress(ticker, stocks_progress, 'stocks')
                     logger.info(f"Processed stock data for {ticker} on {date_dir}")
-                    print(f"{datetime.now()} Finished processing stock date directory {date_dir} for ticker: {ticker}")
-
+                else:
+                    logger.info(f"Skipping already processed stock data for {ticker} on {date_dir}")
+        else:
+            logger.warning(f"Stock data path does not exist for {ticker}: {stock_data_path}")
 
     except Exception as e:
-
-        logger.error(f"Error processing directory for ticker {ticker}: {str(e)}")
-
+        logger.error(f"Error processing directory for ticker {ticker}: {str(e)}", exc_info=True)
     finally:
-
         session.close()
-
-
 
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
