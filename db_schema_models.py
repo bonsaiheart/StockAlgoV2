@@ -207,7 +207,71 @@ class Dividend(Base):
 #         UniqueConstraint('symbol_name', 'fetch_timestamp', name='uq_symbol_interval_timestamps'),{'schema': 'csvimport'}
 #     )
 
+class TechnicalAnalysis(Base):
+    __tablename__ = 'technical_analysis'
+    __table_args__ = (
+        UniqueConstraint('symbol_name', 'interval', 'timestamp', name='uq_ta_symbol_interval_timestamp'),
+        Index('idx_ta_symbol_name', 'symbol_name'),
+        Index('idx_ta_timestamp', 'timestamp'),
+        Index('idx_ta_fetch_timestamp', 'fetch_timestamp'),
+        {'schema': 'csvimport'}
+    )
 
+    id = Column(Integer, primary_key=True)
+    symbol_name = Column(String, ForeignKey('csvimport.symbols.symbol_name'), nullable=False)
+    interval = Column(String, nullable=False)  # '1min', '5min', '15min'
+    timestamp = Column(DateTime(timezone=True), nullable=False)
+    fetch_timestamp = Column(DateTime(timezone=True), nullable=False)
+
+    # OHLCV data
+    open = Column(Float)
+    high = Column(Float)
+    low = Column(Float)
+    close = Column(Float)
+    volume = Column(Float)
+    vwap = Column(Float)
+
+    # Technical indicators
+    ema_5 = Column(Float)
+    ema_14 = Column(Float)
+    ema_20 = Column(Float)
+    ema_50 = Column(Float)
+    ema_200 = Column(Float)
+
+    rsi_2 = Column(Float)
+    rsi_7 = Column(Float)
+    rsi_14 = Column(Float)
+    rsi_21 = Column(Float)
+
+    awesome_oscillator = Column(Float)
+    sma_20 = Column(Float)
+    adx = Column(Float)
+    cci = Column(Float)
+    cmf = Column(Float)
+    eom = Column(Float)
+    obv = Column(Float)
+    mfi = Column(Float)
+
+    macd = Column(Float)
+    macd_signal = Column(Float)
+    macd_diff = Column(Float)
+    macd_diff_prev = Column(Float)
+
+    williams_r = Column(Float)
+    pvo = Column(Float)
+    ppo = Column(Float)
+    keltner_upper = Column(Float)
+    keltner_lower = Column(Float)
+    bb_high = Column(Float)
+    bb_mid = Column(Float)
+    bb_low = Column(Float)
+    vpt = Column(Float)
+
+    symbol = relationship("Symbol", back_populates="technical_analysis")
+
+
+# Add this line to the Symbol class
+Symbol.technical_analysis = relationship("TechnicalAnalysis", back_populates="symbol")
 
 # class ProcessedOptionData(Base):
 #     __tablename__ = 'processed_option_data'

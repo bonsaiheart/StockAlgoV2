@@ -55,6 +55,59 @@ from db_schema_models import Base, OptionQuote
 #
 # # Call this function before any database operations
 # ensure_tables_exist(engine)
+import numpy as np
+from scipy.stats import norm
+
+import numpy as np
+from scipy.stats import norm
+import pandas as pd
+import warnings
+
+
+def black_scholes_call(S, K, T, r, sigma):
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
+
+def black_scholes_put(S, K, T, r, sigma):
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
+
+def calculate_implied_volatility(option_price, S, K, T, r, option_type='call', precision=1e-2, max_iterations=50):
+    if option_price <= 0 or S <= 0 or K <= 0 or T <= 0:
+        print(option_price, S, K, T)
+        return None
+
+    sigma = 0.5  # Initial guess
+    for i in range(max_iterations):
+        try:
+            if option_type == 'call':
+                price = black_scholes_call(S, K, T, r, sigma)
+            else:
+                price = black_scholes_put(S, K, T, r, sigma)
+
+            d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+            vega = S * np.sqrt(T) * norm.pdf(d1)
+
+            if abs(vega) < 1e-10:  # Avoid division by zero
+                return None
+
+            diff = option_price - price
+
+            if abs(diff) < precision:
+                return sigma
+
+            sigma = sigma + diff / vega
+
+            if sigma <= 0:
+                return None
+        except (OverflowError, ZeroDivisionError, ValueError):
+            return None
+
+    return None  # Failed to converge
 async def bulk_insert_option_quotes(conn: Connection, option_quotes_data):
     insert_query = """
     INSERT INTO csvimport.option_quotes (
@@ -208,7 +261,7 @@ CACHE_EXPIRY = 3600  # 1 hour in seconds
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
-sem = asyncio.Semaphore(100000)
+sem = asyncio.Semaphore(1000000)
 
 
 # def calculate_batch_size(data_list, total_elements_limit=32680):
@@ -273,12 +326,14 @@ series_config = [
 ]
 
 
-@lru_cache(maxsize=None)
+last_used_series = None
+
 def get_treasury_yield(days_to_expiration):
+    global last_used_series
     current_time = time.time()
 
-    # Check if we need to refresh the cache
     if not treasury_yield_cache or current_time - treasury_yield_cache.get('last_update', 0) > CACHE_EXPIRY:
+        logger.info("Refreshing Treasury yield cache")
         # Fetch each series
         for series_id, _ in series_config:
             try:
@@ -295,12 +350,16 @@ def get_treasury_yield(days_to_expiration):
     for series_id, max_days in series_config:
         if days_to_expiration <= max_days:
             yield_value = treasury_yield_cache.get(series_id, 0.02)
-            print(f"Using yield for {series_id}: {yield_value} (days to expiration: {days_to_expiration})")
+            if series_id != last_used_series:
+                # logger.info(
+                #     f"Switching to yield for {series_id}: {yield_value} (days to expiration: {days_to_expiration})")
+                last_used_series = series_id
             return yield_value
 
-    # If we get here, use the 30-year rate
     yield_value = treasury_yield_cache.get('DGS30', 0.02)
-    print(f"Using 30-year yield: {yield_value} (days to expiration: {days_to_expiration})")
+    if last_used_series != 'DGS30':
+        logger.info(f"Using 30-year yield: {yield_value} (days to expiration: {days_to_expiration})")
+        last_used_series = 'DGS30'
     return yield_value
 def parse_timestamp(timestamp_str):
     if timestamp_str is None:
@@ -493,8 +552,40 @@ async def lookup_all_option_contracts(session, underlying, real_auth):
             return None
 
 
+def calculate_time_to_expiration(df):
+    # Use New York time as it's the primary US stock market timezone
+    ny_tz = pytz.timezone('America/New_York')
+    now = pd.Timestamp.now(tz=ny_tz)
+
+    # Function to get the end of day for expiration
+    def get_expiration_datetime(date):
+        # Convert to datetime if it's not already
+        if not isinstance(date, pd.Timestamp):
+            date = pd.Timestamp(date)
+
+        # Set to 4:00 PM NY time on the expiration date
+        expiry = date.tz_localize(ny_tz).replace(hour=16, minute=0, second=0, microsecond=0)
+
+        # If it's a weekend, move to the previous business day
+        while expiry.dayofweek > 4:  # 5 = Saturday, 6 = Sunday
+            expiry -= pd.Timedelta(days=1)
+
+        return expiry
+
+    # Apply the function to get proper expiration datetimes
+    df['expiration_datetime'] = df['expiration_date'].apply(get_expiration_datetime)
+
+    # Calculate time to expiration
+    df['time_to_expiration'] = (df['expiration_datetime'] - now).dt.total_seconds() / (365.25 * 24 * 60 * 60)
+    df['days_to_expiration'] = (df['expiration_datetime'] - now).dt.total_seconds() / (24 * 60 * 60)
+
+    # Handle cases where time to expiration is negative (option has expired)
+    # df.loc[df['time_to_expiration'] < 0, 'time_to_expiration'] = 0
+    # df.loc[df['days_to_expiration'] < 0, 'days_to_expiration'] = 0
+
+    return df
 def process_option_quotes(all_contract_quotes, current_price, last_close_price, dividend_yield):
-    df = all_contract_quotes
+    df = all_contract_quotes.copy()
     df['contract_id'] = df['symbol']
     df["dollarsFromStrike"] = abs(df["strike"] - last_close_price)
     df["expiration_date"] = pd.to_datetime(df["expiration_date"]).dt.strftime('%Y-%m-%d')
@@ -503,16 +594,68 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price, 
     df["lastPriceXoi"] = df["last"] * df["open_interest"]
 
     # Calculate time to expiration in years and days
-    now = pd.Timestamp.now(tz='UTC')
-    df['expiration_date'] = pd.to_datetime(df['expiration_date'], utc=True)
-    df['time_to_expiration'] = (df['expiration_date'] - now).dt.total_seconds() / (365.25 * 24 * 60 * 60)
-    df['days_to_expiration'] = (df['expiration_date'] - now).dt.days
+    # now = pd.Timestamp.now(tz='UTC')
+    #now fasctors in hours left of exp date
+    df['expiration_date'] = pd.to_datetime(df['expiration_date']).dt.date
+
+    df = calculate_time_to_expiration(df)
 
     # Calculate implied volatility (this is a simplification, you might want to use a more sophisticated method)
-    df['implied_volatility'] = df['greeks'].apply(lambda x: x.get('mid_iv', 0.3) if isinstance(x, dict) else 0.3)
-    # df['implied_volatility'] = .2
+    # df['implied_volatility'] = df['greeks'].apply(lambda x: x.get('mid_iv', 0.3) if isinstance(x, dict) else 0.3)
+    # Calculate implied volatility
     # Get appropriate Treasury yield for each option
     df['risk_free_rate'] = df['days_to_expiration'].apply(get_treasury_yield)
+    df['implied_volatility'] = df.apply(
+        lambda row: calculate_implied_volatility(
+            row['last'],  # Use the last price as the option price
+            current_price,
+            row['strike'],
+            row['time_to_expiration'],
+            row['risk_free_rate'],
+            row['option_type']
+        ),
+        axis=1
+    )
+
+    # def calc_iv(row):
+    #     option_price = row['last']
+    #     logger.debug(f"Processing {row['symbol']}: last price = {option_price}")
+    #
+    #     iv = calculate_implied_volatility(
+    #         option_price,
+    #         current_price,
+    #         row['strike'],
+    #         row['time_to_expiration'],
+    #         row['risk_free_rate'],
+    #         'call' if row['option_type'] == 'call' else 'put'
+    #     )
+    #
+    #     if iv is None:
+    #         logger.warning(f"IV calculation failed for {row['symbol']}")
+    #     return iv
+    #
+    # df['implied_volatility'] = df.apply(calc_iv, axis=1)
+    #
+    # return df
+    # Fill NaN values with a default or interpolated value
+    # with warnings.catch_warnings():
+    #     warnings.simplefilter("ignore")
+    #     df['implied_volatility'] = df.apply(
+    #         lambda row: calculate_implied_volatility(
+    #             row['last'],  # Use the last price as the option price
+    #             current_price,
+    #             row['strike'],
+    #             row['time_to_expiration'],
+    #             row['risk_free_rate'],
+    #             'call' if row['option_type'] == 'call' else 'put'
+    #         ),
+    #         axis=1
+    #     )
+
+    # Handle NaN values without inplace operations
+    # df['implied_volatility'] = df['implied_volatility'].ffill().fillna(0.3)
+    # df['implied_volatility'] = .2
+
     # print( current_price,
     #         row['strike'],
     #         row['time_to_expiration'],
@@ -556,7 +699,7 @@ def convert_unix_to_datetime(unix_timestamp):
 async def get_timesales(session, ticker, lookback_minutes):
     eastern = pytz.timezone('US/Eastern')
     end = datetime.now(eastern)
-    start = end - timedelta(minutes=600)
+    start = end - timedelta(minutes=lookback_minutes)
 
     start_str = start.strftime("%Y-%m-%d %H:%M")
     end_str = end.strftime("%Y-%m-%d %H:%M")
@@ -590,7 +733,7 @@ async def get_timesales(session, ticker, lookback_minutes):
             # df.set_index('time', inplace=True)
 
             # Ensure we only return the latest minute of data
-            latest_minute = df.index.min()
+            latest_minute = df.index.max() #LMAO this was set to .min, so it would have all been wrong! glad we checked.
             latest_data = df.loc[latest_minute:latest_minute]
 
             if not latest_data.empty:
@@ -618,7 +761,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
 
     # Process Stock Quote Data
     quote_df = pd.DataFrame.from_dict(ticker_quote["quotes"]["quote"], orient="index").T
-
+    quote_df.to_csv('quotedftest.csv')
     current_price = quote_df.at[0, "last"]
     prevclose = quote_df.at[0, "prevclose"]
     symbol_name = ticker
@@ -635,7 +778,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
 
 
     # Fetch timesales data
-    timesales_data = await get_timesales(session, ticker, lookback_minutes=1)
+    timesales_data = await get_timesales(session, ticker, lookback_minutes=1200)
 
     # Prepare the query
     query = '''

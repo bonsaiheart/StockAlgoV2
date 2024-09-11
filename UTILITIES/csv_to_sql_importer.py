@@ -508,7 +508,7 @@ def main():
         base_path = r"\\BONSAI-SERVER\stockalgo_data\data"
         option_chain_path = os.path.join(base_path, "optionchain")
 
-        tickers = ['SPY','WMT','CHWY','ROKU','TSLA','GOOGL','AMZN','BA']
+        tickers = ['SPY','WMT','CHWY','ROKU','TSLA','GOOGL','AMZN','BA']#+['CMPS','GOEV','IWM','JPM','META','MNMD','MSFT','NVDA','V','W']
         num_processes = max(1, multiprocessing.cpu_count() // 2)
 
         logger.info(f"Starting to process {len(tickers)} tickers using {num_processes} processes")

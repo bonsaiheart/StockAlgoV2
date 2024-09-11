@@ -54,7 +54,7 @@ import asyncpg
 from UTILITIES.logger_config import logger
 from sqlalchemy import MetaData
 from sqlalchemy.schema import CreateTable
-from db_schema_models import Symbol, Option, OptionQuote, SymbolQuote, Dividend, Base
+from db_schema_models import Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis,Base
 
 NEW_SCHEMA = "csvimport"
 
@@ -68,7 +68,7 @@ async def create_schema_and_tables(pool):
             logger.info(f"Schema '{NEW_SCHEMA}' already exists.")
 
         # Modify the tables to use the new schema
-        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, Dividend]
+        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis]
         for table in tables_to_create:
             table.__table__.schema = NEW_SCHEMA
 

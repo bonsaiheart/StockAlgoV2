@@ -300,10 +300,10 @@ if __name__ == "__main__":
         market_open_time_utc, market_close_time_utc = asyncio.run(
             check_Market_Conditions.get_market_open_close_times()
         )
-        asyncio.run(wait_until_time(market_open_time_utc))
-        logger.info(
-            f"Main.py started data collection with market open, at utc time: {datetime.utcnow()}"
-        )
+        # asyncio.run(wait_until_time(market_open_time_utc))
+        # logger.info(
+        #     f"Main.py started data collection with market open, at utc time: {datetime.utcnow()}"
+        # )
 
         asyncio.run(run_program())
     except KeyboardInterrupt:

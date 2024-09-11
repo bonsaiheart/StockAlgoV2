@@ -1,7 +1,7 @@
 import asyncio
 import traceback
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
 
 import aiofiles
@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import asyncpg
 import IB.ibAPI
 import calculations
 import database_operations
+import technical_analysis
 import trade_algos2
 import tradierAPI_marketdata
 from UTILITIES.logger_config import logger
@@ -24,7 +25,6 @@ client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
 order_manager = IB.ibAPI.IBOrderManager()
-semaphore = asyncio.Semaphore(500)
 
 DATABASE_URI = sql_db.LOCAL_DATABASE_URI
 # Create a synchronous engine using create_engine
@@ -43,6 +43,7 @@ async def wait_until_time(target_time_utc):
     # Sleep until 0 seconds before target time
     sleep_duration_seconds = max(0, time_difference.total_seconds() - 0)
     await asyncio.sleep(sleep_duration_seconds)
+# GO BAC KTO BEFORE REVERSIONS, ONLY porblem was dumbass hdd?
 
 
 async def create_client_session():
@@ -132,6 +133,7 @@ async def trade_algos(
 
 async def process_ticker_queue(ticker):
     print(f"Worker for {ticker} started")
+
     while True:
         # trade_algos_queues[ticker].task_done()
 
@@ -169,12 +171,17 @@ async def process_ticker_queue(ticker):
 
 
 async def handle_ticker_cycle(db_pool, session, ticker):
+    global market_close_time_utc, db_session
+    # extended_market_close_time = market_close_time_utc + timedelta(minutes=1)
+
 
     start_time = datetime.now(pytz.utc)
-    global market_close_time_utc, db_session
     max_retries = 1
     while True:
-    # while start_time <= market_close_time_utc:
+    # print(market_close_time_utc)
+    # print(extended_market_close_time)
+    # while start_time <= extended_market_close_time:
+
         current_time = datetime.now()
         # loop_start_time_est = current_time.strftime("%y%m%d_%H%M")
         loop_start_time_w_seconds_est = current_time.strftime("%y%m%d_%H:%M:%S")
@@ -185,15 +192,38 @@ async def handle_ticker_cycle(db_pool, session, ticker):
                 option_data_success = await tradierAPI_marketdata.get_options_data(
                     conn, session, ticker, current_time
                 )
-                # After data insertion, calculate the ratio
-                # in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(session, ticker, current_time)
-                # net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
-                # max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
-                # # If ratio is above 1, return the ticker
-                # print(ticker,net_iv, max_pain)
-                # if in_the_money_ratio > 1:
-                #     print(ticker,in_the_money_ratio)
-                #     # return ticker  # Or you can return more data as needed
+                #TA aquiring own conn from dbpool
+            await technical_analysis.get_ta(db_pool, ticker)
+            TICKERS_FOR_TRADE_ALGOS=['SPY','TSLA']
+            if (ticker in TICKERS_FOR_TRADE_ALGOS and order_manager.ib.isConnected()):
+            #     # for signal_name in signal_names:
+            #     #     await trade_algos2.handle_model_result(
+            #     #         model_name=signal_name,
+            #     #         ticker=ticker,
+            #     #         current_price=0,
+            #     #         db_pool=db_pool,
+            #     #         option_take_profit_percent=10,
+            #     #         option_trail_stop_percent=20,
+            #     #         current_time=current_time,
+            #     #     )
+            #     # After data insertion, calculate the ratio
+                in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(db_pool, ticker, current_time)
+            #     # net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
+            #     # max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
+            #     # # If ratio is above 1, return the ticker
+            #     # print(ticker,net_iv, max_pain)
+            #     # if in_the_money_ratio > 1:
+            #     #     await trade_algos2.handle_model_result(
+            #     #         model_name='itm_ratio',
+            #     #         ticker=ticker,
+            #     #         current_price=0,
+            #     #         db_pool=db_pool,
+            #     #         option_take_profit_percent=10,
+            #     #         option_trail_stop_percent=20,
+            #     #         current_time=current_time,
+            #     #     )
+                print(ticker,in_the_money_ratio)
+            #         # return ticker  # Or you can return more data as needed
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
             #     if option_data_success:
@@ -219,15 +249,15 @@ async def handle_ticker_cycle(db_pool, session, ticker):
             #                 and order_manager.ib.isConnected()
             #             ):
             #                 print("ordermanager connected. ubt not doing trade algos")
-                                    # asyncio.create_task(
-                                    #     trade_algos(
-                                    #         optionchain_df,
-                                    #         processed_data_df,
-                                    #         ticker,
-                                    #         CurrentPrice,
-                                    #         current_time,
-                                    #     )
-                                    # )
+            #                         asyncio.create_task(
+            #                             trade_algos(
+            #                                 optionchain_df,
+            #                                 processed_data_df,
+            #                                 ticker,
+            #                                 CurrentPrice,
+            #                                 current_time,
+            #                             )
+            #                         )
                             # await trade_algos(
                             #         optionchain,
                             #         dailyminutes,
@@ -251,8 +281,8 @@ async def handle_ticker_cycle(db_pool, session, ticker):
         await record_elapsed_time(ticker, elapsed_time)
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
-            exit()
-        await asyncio.sleep(max(0, 60 - elapsed_time))
+            # exit()
+        await asyncio.sleep(max(0, 60 - elapsed_time)) #TODO change back to 60!
         start_time = datetime.now(pytz.utc)
 
 
@@ -290,9 +320,11 @@ async def main():
         delay = 60/len(tickerlist)   # Set your desired delay in seconds
         ticker_tasks = []
         for ticker in tickerlist:
+           # if ticker == 'TSLA':
             task = asyncio.create_task(handle_ticker_cycle(db_pool, session, ticker))
             ticker_tasks.append(task)
             #TODO delay or nay?
+
             await asyncio.sleep(
                 delay
             )  # Wait for the specified delay before starting next task
@@ -301,6 +333,7 @@ async def main():
         await asyncio.gather(*ticker_tasks)
 
         # Wait for all tasks in trade_algos_queues to be processed
+
         await asyncio.gather(*(queue.join() for queue in trade_algos_queues.values()))
 
         # Cancel worker tasks
@@ -323,9 +356,9 @@ if __name__ == "__main__":
         #     logger.info(f"Market is not open today.")
         #     exit()
         # asyncio.run(wait_until_time(market_open_time_utc))
-        logger.info(
-            f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
-        )
+        # logger.info(
+        #     f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
+        # )
 
         asyncio.run(run_program())
     except KeyboardInterrupt:
@@ -333,12 +366,13 @@ if __name__ == "__main__":
     finally:
         if market_open_time_utc == None and market_close_time_utc == None:
             logger.info(f"Market is not open today.")
-            exit()
+            # exit()
         ticker_cycle_running.clear()
         logger.info("Shutting down, waiting for ib_)connect. <5min")
         if client_session is not None:
             asyncio.run(client_session.close())
         if order_manager.ib.isConnected():
             order_manager.ib_disconnect()
+
 
 
