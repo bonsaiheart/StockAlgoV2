@@ -227,13 +227,13 @@ def calculate_indicators(df_non_negative, interval):
     # latest_minute_data = latest_minute_data.tail(1).reset_index(drop=False)
     # print(latest_minute_data.columns)
     return latest_minute_data
-async def get_ta(db_pool, ticker):
+async def get_ta(conn, ticker):
     days_to_fetch = 40  # Fetch enough data for the longest interval
     eastern = pytz.timezone('US/Eastern')
     current_time = datetime.now(eastern)
     start_date = current_time - timedelta(days=days_to_fetch)
 
-    async def fetch_data_from_db():
+    async def fetch_data_from_db(conn):
         query = """
         SELECT 
             fetch_timestamp,
@@ -252,8 +252,8 @@ async def get_ta(db_pool, ticker):
         ORDER BY 
             last_1min_timestamp ASC
         """
-        async with db_pool.acquire() as conn:
-            rows = await conn.fetch(query, ticker, start_date, current_time)
+
+        rows = await conn.fetch(query, ticker, start_date, current_time)
 
         df = pd.DataFrame(rows, columns=['fetch_timestamp', 'last_1min_timestamp', 'open', 'high', 'low', 'close', 'volume', 'vwap'])
         df.set_index('last_1min_timestamp', inplace=True)  #Sets 1st instance, discard recurrences
@@ -371,7 +371,7 @@ for interval in intervals:
 
     try:
         # Fetch data once
-        df = await fetch_data_from_db()
+        df = await fetch_data_from_db(conn)
 
         if df.empty:
             logger.warning(f"No data fetched from database for {ticker}")
@@ -415,12 +415,12 @@ for interval in intervals:
         #     logger.error(f"Error saving CSV for {ticker}: {str(csv_error)}")
 
         # Insert TA data into the database
-        async with db_pool.acquire() as conn:
-            for interval, data in zip(intervals, processed_results):
-                if not data.empty:
-                    await insert_ta_data(conn, data, interval,ticker)
-                else:
-                    logger.warning(f"Skipping database insertion for {ticker} at interval {interval} due to empty data")
+
+        for interval, data in zip(intervals, processed_results):
+            if not data.empty:
+                await insert_ta_data(conn, data, interval,ticker)
+            else:
+                logger.warning(f"Skipping database insertion for {ticker} at interval {interval} due to empty data")
 
         logger.info(f"Successfully processed and inserted TA data for {ticker}")
 

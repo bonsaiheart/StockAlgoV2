@@ -25,7 +25,7 @@ client_session = None
 market_open_time_utc = None
 market_close_time_utc = None
 order_manager = IB.ibAPI.IBOrderManager()
-
+TICKERS_FOR_TRADE_ALGOS = ['SPY', 'TSLA']
 DATABASE_URI = sql_db.LOCAL_DATABASE_URI
 # Create a synchronous engine using create_engine
 # engine = create_engine(DATABASE_URI, echo=False, pool_size=50, max_overflow=100)
@@ -34,7 +34,7 @@ trade_algos_queues = {}  # Dictionary to hold a queue for each ticker
 from asyncpg.pool import create_pool
 
 async def create_db_pool():
-    return await create_pool(DATABASE_URI, min_size=10, max_size=50)
+    return await create_pool(DATABASE_URI, min_size=10, max_size=100)
 
 async def wait_until_time(target_time_utc):
     utc_now = datetime.now(pytz.utc)  # Make utc_now timezone-aware
@@ -189,13 +189,17 @@ async def handle_ticker_cycle(db_pool, session, ticker):
         try:
             # Create a new database session for each ticker
             async with db_pool.acquire() as conn:
+
+
                 option_data_success = await tradierAPI_marketdata.get_options_data(
                     conn, session, ticker, current_time
                 )
-                #TA aquiring own conn from dbpool
-            await technical_analysis.get_ta(db_pool, ticker)
-            TICKERS_FOR_TRADE_ALGOS=['SPY','TSLA']
-            if (ticker in TICKERS_FOR_TRADE_ALGOS and order_manager.ib.isConnected()):
+
+            #TA aquiring own conn from dbpool
+
+
+                if ticker in TICKERS_FOR_TRADE_ALGOS:
+                    await technical_analysis.get_ta(conn, ticker)
             #     # for signal_name in signal_names:
             #     #     await trade_algos2.handle_model_result(
             #     #         model_name=signal_name,
@@ -207,7 +211,7 @@ async def handle_ticker_cycle(db_pool, session, ticker):
             #     #         current_time=current_time,
             #     #     )
             #     # After data insertion, calculate the ratio
-                in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(db_pool, ticker, current_time)
+                    in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(conn, ticker, current_time)
             #     # net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
             #     # max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
             #     # # If ratio is above 1, return the ticker
@@ -222,7 +226,7 @@ async def handle_ticker_cycle(db_pool, session, ticker):
             #     #         option_trail_stop_percent=20,
             #     #         current_time=current_time,
             #     #     )
-                print(ticker,in_the_money_ratio)
+                    print(ticker,in_the_money_ratio)
             #         # return ticker  # Or you can return more data as needed
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
@@ -307,7 +311,7 @@ async def main():
         # Create worker tasks for each ticker
         worker_tasks = []
         # for ticker in TICKERS_FOR_TRADE_ALGOS:
-        for ticker in tickerlist:
+        for ticker in TICKERS_FOR_TRADE_ALGOS:
             if ticker not in trade_algos_queues:
                 trade_algos_queues[ticker] = asyncio.Queue()
             worker_task = asyncio.create_task(process_ticker_queue(ticker))
@@ -315,12 +319,14 @@ async def main():
 
         db_pool = await create_db_pool()
         await database_operations.create_schema_and_tables(db_pool)
-
-
+        try:
+            await database_operations.create_missing_indexes(db_pool)
+        except Exception as e:
+            pass
         delay = 60/len(tickerlist)   # Set your desired delay in seconds
         ticker_tasks = []
         for ticker in tickerlist:
-           # if ticker == 'TSLA':
+
             task = asyncio.create_task(handle_ticker_cycle(db_pool, session, ticker))
             ticker_tasks.append(task)
             #TODO delay or nay?
@@ -328,6 +334,8 @@ async def main():
             await asyncio.sleep(
                 delay
             )  # Wait for the specified delay before starting next task
+
+
 
         # Wait for all ticker tasks to complete
         await asyncio.gather(*ticker_tasks)

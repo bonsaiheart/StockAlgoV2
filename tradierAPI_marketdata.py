@@ -20,6 +20,7 @@ from sqlalchemy.dialects.postgresql import insert
 from pangres import upsert
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from main_devmode import TICKERS_FOR_TRADE_ALGOS
 import technical_analysis
 from UTILITIES.logger_config import logger
 from sqlalchemy import func,Column, Integer, String, Float, DateTime, Date, ForeignKey, JSON
@@ -63,51 +64,224 @@ from scipy.stats import norm
 import pandas as pd
 import warnings
 
+#
+# def black_scholes_call(S, K, T, r, sigma):
+#     d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+#     d2 = d1 - sigma * np.sqrt(T)
+#     return S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+#
+#
+# def black_scholes_put(S, K, T, r, sigma):
+#     d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+#     d2 = d1 - sigma * np.sqrt(T)
+#     return K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+# def calculate_implied_volatility_and_greeks(option_price, S, K, T, r, option_type, q=0, precision=1e-4, max_iterations=120):
+#     """
+#     Calculates implied volatility and option Greeks in a single function.
+#     """
+#
+#     if option_price <= 0 or S <= 0 or K <= 0 or T <= 0:
+#         return None, None
+#
+#     sigma = 0.4  # Initial guess
+#     for i in range(max_iterations):
+#         try:
+#             if option_type == 'call':
+#                 price = black_scholes_call(S, K, T, r, sigma)
+#             else:
+#                 price = black_scholes_put(S, K, T, r, sigma)
+#
+#             d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+#             vega = S * np.sqrt(T) * norm.pdf(d1)
+#
+#             if abs(vega) < 1e-10:
+#                 return None, None
+#
+#             diff = option_price - price
+#
+#             if abs(diff) < precision:
+#                 # Calculate Greeks directly here using the converged sigma
+#                 greeks = calculate_option_greeks(S, K, T, r, sigma, option_type, q)
+#                 return sigma, greeks
+#
+#             sigma = sigma + diff / vega
+#
+#             if sigma <= 0:
+#                 return None, None
+#
+#         except (OverflowError, ZeroDivisionError, ValueError):
+#             return None, None
+#
+#     return None, None
+# # def calculate_implied_volatility(option_price, S, K, T, r, option_type, precision=1e-2, max_iterations=100):
+# #     if option_price <= 0 or S <= 0 or K <= 0 or T <= 0:
+# #         print(f"Invalid input values: option_price={option_price}, S={S}, K={K}, T={T}")
+# #         return None
+# #
+# #     # Initial guess and boundaries
+# #     lower_bound = 0.01  # Minimum realistic volatility
+# #     upper_bound = 3.0  # Maximum realistic volatility (300%)
+# #     sigma = 0.5  # Initial guess within the bounds
+# #
+# #     previous_sigma = None  # Track the previous sigma for oscillation detection
+# #
+# #     for i in range(max_iterations):
+# #         try:
+# #             if option_type == 'call':
+# #                 price = black_scholes_call(S, K, T, r, sigma)
+# #             else:
+# #                 price = black_scholes_put(S, K, T, r, sigma)
+# #             # Calculate d1 here
+# #             d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+# #
+# #             vega = S * np.sqrt(T) * norm.pdf(d1)
+# #
+# #             if abs(vega) < 1e-10:
+# #                 print("Vega is too small, potential convergence issue")
+# #                 return None
+# #
+# #             diff = option_price - price
+# #
+# #             if abs(diff) < precision:
+# #                 return sigma
+# #
+# #             # Bisection method if Newton-Raphson leads to out-of-bounds sigma
+# #             new_sigma = sigma + diff / vega
+# #             if new_sigma <= lower_bound or new_sigma >= upper_bound:
+# #                 if option_price > price:  # Option is overpriced, increase volatility
+# #                     lower_bound = sigma
+# #                 else:  # Option is underpriced, decrease volatility
+# #                     upper_bound = sigma
+# #                 sigma = (lower_bound + upper_bound) / 2
+# #             else:
+# #                 sigma = new_sigma
+# #
+# #             # Oscillation detection
+# #             if previous_sigma is not None and abs(sigma - previous_sigma) < 1e-4:
+# #                 print("Oscillation detected, potential convergence issue")
+# #                 return None
+# #             previous_sigma = sigma
+# #
+# #         except (OverflowError, ZeroDivisionError, ValueError) as e:
+# #             print(f"Exception during calculation: {e}")
+# #             return None
+# #
+# #     print("Failed to converge within max iterations")
+# #     return None
+# def calculate_implied_volatility(option_price, S, K, T, r, option_type, precision=1e-4, max_iterations=120):
+#     if option_price <= 0 or S <= 0 or K <= 0 or T <= 0:
+#         # print(option_price, S, K, T)
+#         return None
+#
+#     sigma = 0.4  # Initial guess
+#     for i in range(max_iterations):
+#         try:
+#             if option_type == 'call':
+#                 price = black_scholes_call(S, K, T, r, sigma)
+#             else:
+#                 price = black_scholes_put(S, K, T, r, sigma)
+#
+#             d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+#             vega = S * np.sqrt(T) * norm.pdf(d1)
+#
+#             if abs(vega) < 1e-10:  # Avoid division by zero
+#                 return None
+#
+#             diff = option_price - price
+#
+#             if abs(diff) < precision:
+#                 return sigma
+#
+#             sigma = sigma + diff / vega
+#
+#             if sigma <= 0:
+#
+#                 return None
+#         except (OverflowError, ZeroDivisionError, ValueError):
+#             return None
+#
+#     return None  # Failed to converge
 
-def black_scholes_call(S, K, T, r, sigma):
-    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+def vectorized_black_scholes(S, K, T, r, sigma, option_types):
+    valid_mask = (S > 0) & (K > 0) & (T > 0) & (sigma > 0)
+    d1 = np.full_like(S, np.nan)
+    d2 = np.full_like(S, np.nan)
+
+    np.divide(np.log(S / K) + (r + 0.5 * sigma ** 2) * T, sigma * np.sqrt(T), out=d1, where=valid_mask)
     d2 = d1 - sigma * np.sqrt(T)
-    return S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
+    call_prices = np.where(valid_mask,
+                           S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2),
+                           np.nan)
+    put_prices = np.where(valid_mask,
+                          K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1),
+                          np.nan)
+
+    return np.where(option_types == 'call', call_prices, put_prices)
 
 
-def black_scholes_put(S, K, T, r, sigma):
-    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+def vectorized_implied_volatility(option_prices, S, K, T, r, option_types, precision=1e-5, max_iterations=100):
+    sigma = np.full_like(option_prices, 0.5)  # Initial guess
+    valid_mask = (S > 0) & (K > 0) & (T > 0) & (option_prices > 0)
+
+    for _ in range(max_iterations):
+        prices = vectorized_black_scholes(S, K, T, r, sigma, option_types)
+        vega = np.where(valid_mask,
+                        S * np.sqrt(T) * norm.pdf((np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))),
+                        np.nan)
+        diff = option_prices - prices
+
+        sigma = np.where(valid_mask, sigma + diff / (vega + 1e-8), sigma)
+        sigma = np.clip(sigma, 0.0001, 10, where=valid_mask)
+
+        if np.all(np.abs(diff[valid_mask]) < precision):
+            break
+
+    return np.where(valid_mask, sigma, np.nan)
+
+
+def vectorized_greeks(S, K, T, r, sigma, option_types, q=0):
+    valid_mask = (S > 0) & (K > 0) & (T > 0) & (sigma > 0)
+    d1 = np.full_like(S, np.nan)
+    d2 = np.full_like(S, np.nan)
+
+    np.divide(np.log(S / K) + (r - q + 0.5 * sigma ** 2) * T, sigma * np.sqrt(T), out=d1, where=valid_mask)
     d2 = d1 - sigma * np.sqrt(T)
-    return K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
+    delta = np.where(valid_mask,
+                     np.where(option_types == 'call',
+                              np.exp(-q * T) * norm.cdf(d1),
+                              -np.exp(-q * T) * norm.cdf(-d1)),
+                     np.nan)
+
+    gamma = np.where(valid_mask,
+                     np.exp(-q * T) * norm.pdf(d1) / (S * sigma * np.sqrt(T)),
+                     np.nan)
+
+    theta = np.where(valid_mask,
+                     np.where(option_types == 'call',
+                              -(S * sigma * np.exp(-q * T) * norm.pdf(d1)) / (2 * np.sqrt(T)) -
+                              r * K * np.exp(-r * T) * norm.cdf(d2) + q * S * np.exp(-q * T) * norm.cdf(d1),
+                              -(S * sigma * np.exp(-q * T) * norm.pdf(d1)) / (2 * np.sqrt(T)) +
+                              r * K * np.exp(-r * T) * norm.cdf(-d2) - q * S * np.exp(-q * T) * norm.cdf(-d1)),
+                     np.nan)
+
+    vega = np.where(valid_mask,
+                    S * np.exp(-q * T) * np.sqrt(T) * norm.pdf(d1) / 100,
+                    np.nan)
+
+    rho = np.where(valid_mask,
+                   np.where(option_types == 'call',
+                            K * T * np.exp(-r * T) * norm.cdf(d2) / 100,
+                            -K * T * np.exp(-r * T) * norm.cdf(-d2) / 100),
+                   np.nan)
+
+    # Convert theta to daily
+    theta = np.where(valid_mask, theta / 365, np.nan)  # or use 252 for trading days
+
+    return {'delta': delta, 'gamma': gamma, 'theta': theta, 'vega': vega, 'rho': rho}
 
 
-def calculate_implied_volatility(option_price, S, K, T, r, option_type='call', precision=1e-2, max_iterations=50):
-    if option_price <= 0 or S <= 0 or K <= 0 or T <= 0:
-        print(option_price, S, K, T)
-        return None
-
-    sigma = 0.5  # Initial guess
-    for i in range(max_iterations):
-        try:
-            if option_type == 'call':
-                price = black_scholes_call(S, K, T, r, sigma)
-            else:
-                price = black_scholes_put(S, K, T, r, sigma)
-
-            d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
-            vega = S * np.sqrt(T) * norm.pdf(d1)
-
-            if abs(vega) < 1e-10:  # Avoid division by zero
-                return None
-
-            diff = option_price - price
-
-            if abs(diff) < precision:
-                return sigma
-
-            sigma = sigma + diff / vega
-
-            if sigma <= 0:
-                return None
-        except (OverflowError, ZeroDivisionError, ValueError):
-            return None
-
-    return None  # Failed to converge
 async def bulk_insert_option_quotes(conn: Connection, option_quotes_data):
     insert_query = """
     INSERT INTO csvimport.option_quotes (
@@ -261,7 +435,7 @@ CACHE_EXPIRY = 3600  # 1 hour in seconds
 paper_auth = PrivateData.tradier_info.paper_auth
 real_acc = PrivateData.tradier_info.real_acc
 real_auth = PrivateData.tradier_info.real_auth
-sem = asyncio.Semaphore(1000000)
+sem = asyncio.Semaphore(50)
 
 
 # def calculate_batch_size(data_list, total_elements_limit=32680):
@@ -390,9 +564,7 @@ def calculate_option_greeks(S, K, T, r, sigma, option_type, q=0):
 
         # Avoid division by zero
         if sigma <= 0 or T <= 0:
-            return {
-                'delta': None, 'gamma': None, 'theta': None, 'vega': None, 'rho': None
-            }
+            return None
 
         d1 = (np.log(S / K) + (r - q + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
         d2 = d1 - sigma * np.sqrt(T)
@@ -422,7 +594,7 @@ def calculate_option_greeks(S, K, T, r, sigma, option_type, q=0):
             'vega': vega,
             'rho': rho
         }
-
+#TODO should i use a differne representation of inf?
         # Replace inf and -inf with None
         for key, value in result.items():
             if np.isinf(value) or np.isnan(value):
@@ -432,9 +604,7 @@ def calculate_option_greeks(S, K, T, r, sigma, option_type, q=0):
 
     except Exception as e:
         logger.error(f"Error in calculate_option_greeks: {e}")
-        return {
-            'delta': None, 'gamma': None, 'theta': None, 'vega': None, 'rho': None
-        }
+        return None
 
 async def fetch_dividend_data(session, ticker, real_auth):
     url = "https://api.tradier.com/beta/markets/fundamentals/dividends"
@@ -464,7 +634,7 @@ async def post_market_quotes(session, ticker, real_auth):
     all_contracts = await lookup_all_option_contracts(session, ticker, real_auth)
 
     # Optimized batching: Use list comprehension for faster symbol string creation
-    BATCH_SIZE = 8000
+    BATCH_SIZE = 2000 #was 8000
     results = [
         await fetch_quote_batch(
             session,
@@ -486,9 +656,9 @@ async def fetch_quote_batch(session, url, headers, symbols_str):
     try:
         async with sem:
             async with session.post(url, data=payload, headers=headers, timeout=timeout) as response:
-                response.raise_for_status()
+                # response.raise_for_status()
                 data = await response.json()
-                handle_rate_limit(response)
+                # handle_rate_limit(response)
 
                 if "quotes" in data and "quote" in data["quotes"]:
                     quotes = data["quotes"]["quote"]
@@ -584,7 +754,7 @@ def calculate_time_to_expiration(df):
     # df.loc[df['days_to_expiration'] < 0, 'days_to_expiration'] = 0
 
     return df
-def process_option_quotes(all_contract_quotes, current_price, last_close_price, dividend_yield):
+def process_option_quotes(all_contract_quotes, current_price, last_close_price, dividend_yield,ticker):
     df = all_contract_quotes.copy()
     df['contract_id'] = df['symbol']
     df["dollarsFromStrike"] = abs(df["strike"] - last_close_price)
@@ -605,41 +775,7 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price, 
     # Calculate implied volatility
     # Get appropriate Treasury yield for each option
     df['risk_free_rate'] = df['days_to_expiration'].apply(get_treasury_yield)
-    df['implied_volatility'] = df.apply(
-        lambda row: calculate_implied_volatility(
-            row['last'],  # Use the last price as the option price
-            current_price,
-            row['strike'],
-            row['time_to_expiration'],
-            row['risk_free_rate'],
-            row['option_type']
-        ),
-        axis=1
-    )
-
-    # def calc_iv(row):
-    #     option_price = row['last']
-    #     logger.debug(f"Processing {row['symbol']}: last price = {option_price}")
-    #
-    #     iv = calculate_implied_volatility(
-    #         option_price,
-    #         current_price,
-    #         row['strike'],
-    #         row['time_to_expiration'],
-    #         row['risk_free_rate'],
-    #         'call' if row['option_type'] == 'call' else 'put'
-    #     )
-    #
-    #     if iv is None:
-    #         logger.warning(f"IV calculation failed for {row['symbol']}")
-    #     return iv
-    #
-    # df['implied_volatility'] = df.apply(calc_iv, axis=1)
-    #
-    # return df
-    # Fill NaN values with a default or interpolated value
-    # with warnings.catch_warnings():
-    #     warnings.simplefilter("ignore")
+    # if ticker in TICKERS_FOR_TRADE_ALGOS:
     #     df['implied_volatility'] = df.apply(
     #         lambda row: calculate_implied_volatility(
     #             row['last'],  # Use the last price as the option price
@@ -647,38 +783,114 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price, 
     #             row['strike'],
     #             row['time_to_expiration'],
     #             row['risk_free_rate'],
-    #             'call' if row['option_type'] == 'call' else 'put'
+    #             row['option_type']
+    #         ),
+    #         axis=1)
+    #         # Calculate realtime Greeks
+    #     df['realtime_calculated_greeks'] = df.apply(
+    #         lambda row: calculate_option_greeks(
+    #             current_price,
+    #
+    #             row['strike'],
+    #             row['time_to_expiration'],
+    #             row['risk_free_rate'],
+    #             row['implied_volatility'],
+    #             row['option_type'],
+    #             q=dividend_yield
     #         ),
     #         axis=1
     #     )
+    # else:
+    #     df['implied_volatility'] = None
+    #     df['realtime_calculated_greeks'] = None
+    #Using new IV + Greeks function:
+    # if ticker in TICKERS_FOR_TRADE_ALGOS:
+    #     df[['implied_volatility', 'realtime_calculated_greeks']] = df.apply(
+    #         lambda row: calculate_implied_volatility_and_greeks(
+    #             row['last'],
+    #             current_price,
+    #             row['strike'],
+    #             row['time_to_expiration'],
+    #             row['risk_free_rate'],
+    #             row['option_type'],
+    #             q=dividend_yield
+    #         ),
+    #         axis=1,
+    #         result_type='expand'  # This is important to unpack the tuple into two columns
+    #     )
+    # else:
+    #     df['implied_volatility'] = None
+    #     df['realtime_calculated_greeks'] = None
+    #
+    # # print("Implied Volatility Sample:")
+    # # print(df['implied_volatility'].head())
+    # return df
+    #TODO use mid?
+    """def calculate_mid_price(df):
+    
+    return (df['bid'] + df['ask']) / 2
 
-    # Handle NaN values without inplace operations
-    # df['implied_volatility'] = df['implied_volatility'].ffill().fillna(0.3)
-    # df['implied_volatility'] = .2
+def check_price_quality(df):
+    df['bid_ask_spread'] = df['ask'] - df['bid']
+    df['spread_percentage'] = df['bid_ask_spread'] / df['mid_price']
+    
+    # Flag wide spreads (e.g., more than 10%)
+    wide_spreads = df[df['spread_percentage'] > 0.1]
+    if not wide_spreads.empty:
+        logger.warning(f"Wide bid-ask spreads detected for {len(wide_spreads)} options")
 
-    # print( current_price,
-    #         row['strike'],
-    #         row['time_to_expiration'],
-    #         row['risk_free_rate'],
-    #         row['implied_volatility'],
-    #         row['option_type'])
+def process_option_quotes(df, current_price, last_close_price, dividend_yield, ticker):
+    # ... (other code)
 
-    # Calculate realtime Greeks
-    df['realtime_calculated_greeks'] = df.apply(
-        lambda row: calculate_option_greeks(
-            current_price,
+    if ticker in TICKERS_FOR_TRADE_ALGOS:
+        df['mid_price'] = calculate_mid_price(df)
+        check_price_quality(df)
 
-            row['strike'],
-            row['time_to_expiration'],
-            row['risk_free_rate'],
-            row['implied_volatility'],
-            row['option_type'],
-            q=dividend_yield
-        ),
-        axis=1
-    )
-    # print("Implied Volatility Sample:")
-    # print(df['implied_volatility'].head())
+        # Use mid-price for calculations
+        option_prices = df['mid_price'].values
+
+        # Calculate implied volatility and Greeks using mid-price
+        implied_volatilities = vectorized_implied_volatility(option_prices, S, K, T, r, option_types)
+        # ... (rest of the calculations)"""
+    if ticker in TICKERS_FOR_TRADE_ALGOS:
+        # Prepare arrays for vectorized calculations
+        S = np.full(len(df), current_price)
+        K = df['strike'].values
+        T = df['time_to_expiration'].values
+        r = df['risk_free_rate'].values
+        option_prices = df['last'].values
+        option_types = df['option_type'].values
+        # Calculate implied volatility
+        implied_volatilities = vectorized_implied_volatility(option_prices, S, K, T, r, option_types)
+        df['implied_volatility'] = implied_volatilities
+
+        # Calculate Greeks
+        greeks = vectorized_greeks(S, K, T, r, implied_volatilities, option_types, q=dividend_yield)
+
+        # Assign Greeks to DataFrame
+        for greek, values in greeks.items():
+            df[f'calculated_{greek}'] = values
+
+        # Combine Greeks into a single column
+        df['realtime_calculated_greeks'] = df.apply(lambda row: {
+            greek: row[f'calculated_{greek}'] for greek in ['delta', 'gamma', 'theta', 'vega', 'rho']
+            if not np.isnan(row[f'calculated_{greek}'])
+        }, axis=1)
+
+        # Handle cases where all Greeks are NaN
+        df['realtime_calculated_greeks'] = df['realtime_calculated_greeks'].apply(
+            lambda x: x if x else None
+        )
+
+        # Replace NaN with None for individual Greeks and implied volatility
+        for col in ['implied_volatility'] + [f'calculated_{greek}' for greek in
+                                             ['delta', 'gamma', 'theta', 'vega', 'rho']]:
+            df[col] = df[col].where(df[col].notna(), None)
+
+    else:
+        df['implied_volatility'] = None
+        df['realtime_calculated_greeks'] = None
+
     return df
 def convert_unix_to_datetime(unix_timestamp):
     if unix_timestamp is None or pd.isna(unix_timestamp) or unix_timestamp == 0:
@@ -747,6 +959,9 @@ async def get_timesales(session, ticker, lookback_minutes):
     except Exception as e:
         logger.error(f"Error fetching timesales data for {ticker}: {str(e)}")
         return None
+
+
+
 
 async def get_options_data(conn, session, ticker, loop_start_time):
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
@@ -865,7 +1080,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
     if all_contract_quotes is not None:
         dividend_yield = await dividend_yield_cache.get_dividend_yield(conn, session, ticker, real_auth,
                                                                        current_price)
-        options_df = process_option_quotes(all_contract_quotes, current_price, prevclose,dividend_yield)
+        options_df = process_option_quotes(all_contract_quotes, current_price, prevclose,dividend_yield,ticker)
         options_df['fetch_timestamp'] = loop_start_time
 
         # Insert option data
@@ -929,7 +1144,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
                convert_unix_to_datetime(row['trade_date']), row['prevclose'], row['bidsize'], row['bidexch'],
                convert_unix_to_datetime(row['bid_date']), row['asksize'], row['askexch'], convert_unix_to_datetime(row['ask_date']),
                row['open_interest'], row['implied_volatility'],
-               json.dumps(row['realtime_calculated_greeks']), row['risk_free_rate'])
+               json.dumps(row['realtime_calculated_greeks']) if row['realtime_calculated_greeks'] else None, row['risk_free_rate'])
               for _, row in options_df.iterrows()])
 
     return prevclose, current_price, options_df, symbol_name

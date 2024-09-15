@@ -5,66 +5,66 @@ from UTILITIES.logger_config import logger
 
 from db_schema_models import Symbol, SymbolQuote, Option, OptionQuote
 from collections import defaultdict
-async def calculate_in_the_money_pcr(db_pool, ticker, current_time):
-    async with db_pool.acquire() as conn:
-        try:
-            # Fetch the latest stock quote
-            stock_query = """
-            SELECT last_trade_price
-            FROM csvimport.symbol_quotes
-            WHERE symbol_name = $1
-            ORDER BY fetch_timestamp DESC
-            LIMIT 1
-            """
-            stock_quote = await conn.fetchrow(stock_query, ticker)
+async def calculate_in_the_money_pcr(conn, ticker, current_time):
 
-            if not stock_quote:
-                logger.warning(f"No stock quote found for {ticker}")
-                return 0  # Or handle the case where there's no stock quote
+    try:
+        # Fetch the latest stock quote
+        stock_query = """
+        SELECT last_trade_price
+        FROM csvimport.symbol_quotes
+        WHERE symbol_name = $1
+        ORDER BY fetch_timestamp DESC
+        LIMIT 1
+        """
+        stock_quote = await conn.fetchrow(stock_query, ticker)
 
-            current_price = stock_quote['last_trade_price']
+        if not stock_quote:
+            logger.warning(f"No stock quote found for {ticker}")
+            return 0  # Or handle the case where there's no stock quote
 
-            # Fetch option contracts and their quotes
-            option_query = """
-            SELECT 
-                o.option_type, o.strike, oq.volume
-            FROM 
-                csvimport.options o
-            JOIN 
-                csvimport.option_quotes oq ON o.contract_id = oq.contract_id
-            WHERE 
-                o.underlying = $1
-                AND oq.fetch_timestamp = $2
-            """
-            option_data = await conn.fetch(option_query, ticker, current_time)
-            # print(option_data)
-            if not option_data:
-                logger.warning(f"No option data found for {ticker} at {current_time}")
-                return 0  # Or handle the case where there's no option data
+        current_price = stock_quote['last_trade_price']
 
-            # Calculate in-the-money puts and calls
-            in_the_money_puts = [
-                option for option in option_data
-                if option['option_type'] == 'put' and option['strike'] > current_price
-            ]
-            in_the_money_calls = [
-                option for option in option_data
-                if option['option_type'] == 'call' and option['strike'] < current_price
-            ]
+        # Fetch option contracts and their quotes
+        option_query = """
+        SELECT 
+            o.option_type, o.strike, oq.volume
+        FROM 
+            csvimport.options o
+        JOIN 
+            csvimport.option_quotes oq ON o.contract_id = oq.contract_id
+        WHERE 
+            o.underlying = $1
+            AND oq.fetch_timestamp = $2
+        """
+        option_data = await conn.fetch(option_query, ticker, current_time)
+        # print(option_data)
+        if not option_data:
+            logger.warning(f"No option data found for {ticker} at {current_time}")
+            return 0  # Or handle the case where there's no option data
 
-            # Calculate the ratio
-            if not in_the_money_calls:
-                logger.warning(f"No in-the-money calls found for {ticker}")
-                return float('inf')  # Or handle the case where there are no in-the-money calls
+        # Calculate in-the-money puts and calls
+        in_the_money_puts = [
+            option for option in option_data
+            if option['option_type'] == 'put' and option['strike'] > current_price
+        ]
+        in_the_money_calls = [
+            option for option in option_data
+            if option['option_type'] == 'call' and option['strike'] < current_price
+        ]
 
-            put_call_ratio = len(in_the_money_puts) / len(in_the_money_calls)
+        # Calculate the ratio
+        if not in_the_money_calls:
+            logger.warning(f"No in-the-money calls found for {ticker}")
+            return float('inf')  # Or handle the case where there are no in-the-money calls
 
-            logger.info(f"In-the-money PCR for {ticker}: {put_call_ratio}")
-            return put_call_ratio
+        put_call_ratio = len(in_the_money_puts) / len(in_the_money_calls)
 
-        except Exception as e:
-            logger.error(f"Error calculating in-the-money PCR for {ticker}: {str(e)}", exc_info=True)
-            return 0  # Or handle the error case as appropriate
+        logger.info(f"In-the-money PCR for {ticker}: {put_call_ratio}")
+        return put_call_ratio
+
+    except Exception as e:
+        logger.error(f"Error calculating in-the-money PCR for {ticker}: {str(e)}", exc_info=True)
+        return 0  # Or handle the error case as appropriate
 
 async def calculate_bonsai_ratios(session, ticker, current_time):
     # Fetch option contracts and their quotes for the given ticker and timestamp
