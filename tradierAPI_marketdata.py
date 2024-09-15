@@ -220,25 +220,38 @@ def vectorized_black_scholes(S, K, T, r, sigma, option_types):
     return np.where(option_types == 'call', call_prices, put_prices)
 
 
-def vectorized_implied_volatility(option_prices, S, K, T, r, option_types, precision=1e-5, max_iterations=100):
-    sigma = np.full_like(option_prices, 0.5)  # Initial guess
-    valid_mask = (S > 0) & (K > 0) & (T > 0) & (option_prices > 0)
+def adaptive_initial_guess(S, K, T):
+    moneyness = np.log(S / K)
+    atm_vol = 0.3  # At-the-money volatility estimate
+    return np.where(T < 30 / 365, atm_vol * (1 + 0.1 * np.abs(moneyness)),
+                    atm_vol * (1 + 0.05 * np.abs(moneyness)))
 
-    for _ in range(max_iterations):
+
+def vectorized_implied_volatility_improved(option_prices, S, K, T, r, option_types, precision=1e-5, max_iterations=100):
+    sigma = adaptive_initial_guess(S, K, T)
+
+    for i in range(max_iterations):
         prices = vectorized_black_scholes(S, K, T, r, sigma, option_types)
-        vega = np.where(valid_mask,
-                        S * np.sqrt(T) * norm.pdf((np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))),
-                        np.nan)
+        vega = S * np.sqrt(T) * norm.pdf((np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T)))
         diff = option_prices - prices
 
-        sigma = np.where(valid_mask, sigma + diff / (vega + 1e-8), sigma)
-        sigma = np.clip(sigma, 0.0001, 10, where=valid_mask)
+        update = diff / (vega + 1e-8)
+        sigma_new = sigma + update
 
-        if np.all(np.abs(diff[valid_mask]) < precision):
-            break
+        # Bisection-like adjustment for stability
+        sigma_new = np.where(sigma_new < 0.0001, (sigma + 0.0001) / 2, sigma_new)
+        sigma_new = np.where(sigma_new > 10, (sigma + 10) / 2, sigma_new)
 
-    return np.where(valid_mask, sigma, np.nan)
+        if np.all(np.abs(diff) < precision):
+            return sigma_new, i  # Return iterations taken for convergence analysis
 
+        sigma = sigma_new
+
+    # Flag non-converged options
+    non_converged = np.abs(diff) >= precision
+    sigma[non_converged] = np.nan
+
+    return sigma #,max_iterations
 
 def vectorized_greeks(S, K, T, r, sigma, option_types, q=0):
     valid_mask = (S > 0) & (K > 0) & (T > 0) & (sigma > 0)
@@ -861,7 +874,7 @@ def process_option_quotes(df, current_price, last_close_price, dividend_yield, t
         option_prices = df['last'].values
         option_types = df['option_type'].values
         # Calculate implied volatility
-        implied_volatilities = vectorized_implied_volatility(option_prices, S, K, T, r, option_types)
+        implied_volatilities = vectorized_implied_volatility_improved(option_prices, S, K, T, r, option_types)
         df['implied_volatility'] = implied_volatilities
 
         # Calculate Greeks
