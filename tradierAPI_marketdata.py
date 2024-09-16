@@ -1,6 +1,6 @@
 from functools import lru_cache
 import psycopg2.extras
-
+#TODO make the db populate null instead of NaN
 from psycopg2.extras import execute_batch
 from sqlalchemy import and_
 import PrivateData.tradier_info
@@ -15,6 +15,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 import aiohttp
 from sqlalchemy.exc import OperationalError
+
 import pandas as pd
 from sqlalchemy.dialects.postgresql import insert
 from pangres import upsert
@@ -243,13 +244,13 @@ def vectorized_implied_volatility_improved(option_prices, S, K, T, r, option_typ
         sigma_new = np.where(sigma_new > 10, (sigma + 10) / 2, sigma_new)
 
         if np.all(np.abs(diff) < precision):
-            return sigma_new, i  # Return iterations taken for convergence analysis
+            return sigma_new#, i  # Return iterations taken for convergence analysis
 
         sigma = sigma_new
 
     # Flag non-converged options
     non_converged = np.abs(diff) >= precision
-    sigma[non_converged] = np.nan
+    sigma[non_converged] = None
 
     return sigma #,max_iterations
 
