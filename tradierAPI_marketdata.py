@@ -295,75 +295,75 @@ def vectorized_greeks(S, K, T, r, sigma, option_types, q=0):
 
     return {'delta': delta, 'gamma': gamma, 'theta': theta, 'vega': vega, 'rho': rho}
 
-
-async def bulk_insert_option_quotes(conn: Connection, option_quotes_data):
-    insert_query = """
-    INSERT INTO csvimport.option_quotes (
-        contract_id, fetch_timestamp, root_symbol, last, change, volume, 
-        open, high, low, bid, ask, greeks, change_percentage, last_volume, 
-        trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch, 
-        ask_date, open_interest, implied_volatility, realtime_calculated_greeks, 
-        risk_free_rate
-    ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-        %s, %s, %s, %s, %s, %s, %s
-    )
-    ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
-        root_symbol = EXCLUDED.root_symbol,
-        last = EXCLUDED.last,
-        change = EXCLUDED.change,
-        volume = EXCLUDED.volume,
-        open = EXCLUDED.open,
-        high = EXCLUDED.high,
-        low = EXCLUDED.low,
-        bid = EXCLUDED.bid,
-        ask = EXCLUDED.ask,
-        greeks = EXCLUDED.greeks,
-        change_percentage = EXCLUDED.change_percentage,
-        last_volume = EXCLUDED.last_volume,
-        trade_date = EXCLUDED.trade_date,
-        prevclose = EXCLUDED.prevclose,
-        bidsize = EXCLUDED.bidsize,
-        bidexch = EXCLUDED.bidexch,
-        bid_date = EXCLUDED.bid_date,
-        asksize = EXCLUDED.asksize,
-        askexch = EXCLUDED.askexch,
-        ask_date = EXCLUDED.ask_date,
-        open_interest = EXCLUDED.open_interest,
-        implied_volatility = EXCLUDED.implied_volatility,
-        realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
-        risk_free_rate = EXCLUDED.risk_free_rate
-    """
-
-    # Convert dict data to tuple format
-    option_quotes_tuples = [
-        (
-            d['contract_id'], d['fetch_timestamp'], d['root_symbol'], d['last'],
-            d['change'], d['volume'], d['open'], d['high'], d['low'], d['bid'],
-            d['ask'], json.dumps(d['greeks']), d['change_percentage'],
-            d['last_volume'], d['trade_date'], d['prevclose'], d['bidsize'],
-            d['bidexch'], d['bid_date'], d['asksize'], d['askexch'], d['ask_date'],
-            d['open_interest'], d['implied_volatility'],
-            json.dumps(d['realtime_calculated_greeks']), d['risk_free_rate']
-        )
-        for d in option_quotes_data
-    ]
-
-    total_rows = len(option_quotes_tuples)
-    print(f"Total rows to insert: {total_rows}")
-
-    with conn.connection.cursor() as cur:
-        start_time = time.time()
-        try:
-            execute_batch(cur, insert_query, option_quotes_tuples, page_size=1000)
-            conn.commit()
-            end_time = time.time()
-            print(f"Bulk insert completed. Time taken: {end_time - start_time:.2f} seconds")
-            print(f"Insertion rate: {total_rows / (end_time - start_time):.2f} rows/second")
-        except Exception as e:
-            conn.rollback()
-            print(f"Error during execute_batch: {str(e)}")
-            raise
+#
+# async def bulk_insert_option_quotes(conn: Connection, option_quotes_data):
+#     insert_query = """
+#     INSERT INTO csvimport.option_quotes (
+#         contract_id, fetch_timestamp, root_symbol, last, change, volume,
+#         open, high, low, bid, ask, greeks, change_percentage, last_volume,
+#         trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch,
+#         ask_date, open_interest, implied_volatility, realtime_calculated_greeks,
+#         risk_free_rate
+#     ) VALUES (
+#         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+#         %s, %s, %s, %s, %s, %s, %s
+#     )
+#     ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
+#         root_symbol = EXCLUDED.root_symbol,
+#         last = EXCLUDED.last,
+#         change = EXCLUDED.change,
+#         volume = EXCLUDED.volume,
+#         open = EXCLUDED.open,
+#         high = EXCLUDED.high,
+#         low = EXCLUDED.low,
+#         bid = EXCLUDED.bid,
+#         ask = EXCLUDED.ask,
+#         greeks = EXCLUDED.greeks,
+#         change_percentage = EXCLUDED.change_percentage,
+#         last_volume = EXCLUDED.last_volume,
+#         trade_date = EXCLUDED.trade_date,
+#         prevclose = EXCLUDED.prevclose,
+#         bidsize = EXCLUDED.bidsize,
+#         bidexch = EXCLUDED.bidexch,
+#         bid_date = EXCLUDED.bid_date,
+#         asksize = EXCLUDED.asksize,
+#         askexch = EXCLUDED.askexch,
+#         ask_date = EXCLUDED.ask_date,
+#         open_interest = EXCLUDED.open_interest,
+#         implied_volatility = EXCLUDED.implied_volatility,
+#         realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
+#         risk_free_rate = EXCLUDED.risk_free_rate
+#     """
+#
+#     # Convert dict data to tuple format
+#     option_quotes_tuples = [
+#         (
+#             d['contract_id'], d['fetch_timestamp'], d['root_symbol'], d['last'],
+#             d['change'], d['volume'], d['open'], d['high'], d['low'], d['bid'],
+#             d['ask'], json.dumps(d['greeks']), d['change_percentage'],
+#             d['last_volume'], d['trade_date'], d['prevclose'], d['bidsize'],
+#             d['bidexch'], d['bid_date'], d['asksize'], d['askexch'], d['ask_date'],
+#             d['open_interest'], d['implied_volatility'],
+#             json.dumps(d['realtime_calculated_greeks']), d['risk_free_rate']
+#         )
+#         for d in option_quotes_data
+#     ]
+#
+#     total_rows = len(option_quotes_tuples)
+#     print(f"Total rows to insert: {total_rows}")
+#
+#     with conn.connection.cursor() as cur:
+#         start_time = time.time()
+#         try:
+#             execute_batch(cur, insert_query, option_quotes_tuples, page_size=1000)
+#             conn.commit()
+#             end_time = time.time()
+#             print(f"Bulk insert completed. Time taken: {end_time - start_time:.2f} seconds")
+#             print(f"Insertion rate: {total_rows / (end_time - start_time):.2f} rows/second")
+#         except Exception as e:
+#             conn.rollback()
+#             print(f"Error during execute_batch: {str(e)}")
+#             raise
 
 
 class DividendYieldCache:
@@ -780,7 +780,7 @@ def process_option_quotes(all_contract_quotes, current_price, last_close_price, 
     # Calculate time to expiration in years and days
     # now = pd.Timestamp.now(tz='UTC')
     #now fasctors in hours left of exp date
-    df['expiration_date'] = pd.to_datetime(df['expiration_date']).dt.date
+    df['expiration_date'] = pd.to_datetime(df['expiration_date']).dt.date #already done?
 
     df = calculate_time_to_expiration(df)
 
@@ -905,7 +905,164 @@ def process_option_quotes(df, current_price, last_close_price, dividend_yield, t
         df['implied_volatility'] = None
         df['realtime_calculated_greeks'] = None
 
+    # Calculate ITM flag for each contract
+    df['itm'] = ((df['option_type'] == 'call') & (df['strike'] <= current_price)) | \
+                ((df['option_type'] == 'put') & (df['strike'] >= current_price))
+
     return df
+
+
+def calculate_pcr(puts, calls, current_price, offset, column):
+    put_value = puts[(puts['strike'] >= current_price + offset)][column].sum()
+    call_value = calls[(calls['strike'] <= current_price - offset)][column].sum()
+    return put_value / call_value if call_value != 0 else np.inf
+def calculate_aggregated_metrics(df, current_price, last_close_price):
+    # Group by expiration date
+    grouped_df = df.groupby('expiration_date')
+
+    # Initialize a list to store aggregated metrics for each expiration date
+    all_agg_metrics = []
+
+    # Calculate metrics for each group
+    for exp_date, group in grouped_df:
+        agg_metrics = {}  # Dictionary to store metrics for this expiration date
+        # Calculate PCR for volume and open interest (within the group)
+        total_put_vol = group[group['option_type'] == 'put']['volume'].sum()
+        total_call_vol = group[group['option_type'] == 'call']['volume'].sum()
+        total_put_oi = group[group['option_type'] == 'put']['open_interest'].sum()
+        total_call_oi = group[group['option_type'] == 'call']['open_interest'].sum()
+        agg_metrics['closest_strike_to_cp'] = group.loc[abs(group['strike'] - current_price).idxmin(), 'strike']
+
+        # Check for zero or NaN in denominator before division
+        agg_metrics['pcr_vol'] = total_put_vol / total_call_vol if total_call_vol != 0 and not np.isnan(
+            total_call_vol) else np.nan
+        agg_metrics['pcr_oi'] = total_put_oi / total_call_oi if total_call_oi != 0 and not np.isnan(
+            total_call_oi) else np.nan
+
+        # Calculate ITM PCR for volume and open interest (within the group)
+        itm_puts = group[(group['option_type'] == 'put') & group['itm']]
+        itm_calls = group[(group['option_type'] == 'call') & group['itm']]
+        itm_put_vol = itm_puts['volume'].sum()
+        itm_call_vol = itm_calls['volume'].sum()
+        itm_put_oi = itm_puts['open_interest'].sum()
+        itm_call_oi = itm_calls['open_interest'].sum()
+
+        # Check for zero or NaN in denominator before division
+        agg_metrics['itm_pcr_vol'] = itm_put_vol / itm_call_vol if itm_call_vol != 0 and not np.isnan(
+            itm_call_vol) else np.nan
+        agg_metrics['itm_pcr_oi'] = itm_put_oi / itm_call_oi if itm_call_oi != 0 and not np.isnan(
+            itm_call_oi) else np.nan
+
+        # Calculate OI metrics (within the group)
+        agg_metrics['itm_oi'] = itm_calls['open_interest'].sum() + itm_puts['open_interest'].sum()
+        agg_metrics['total_oi'] = group['open_interest'].sum()  # Use 'group' here
+        # Check for zero or NaN in denominator before division
+        if agg_metrics['total_oi'] != 0 and not np.isnan(agg_metrics['total_oi']):
+            agg_metrics['itm_contracts_percent'] = agg_metrics['itm_oi'] / agg_metrics['total_oi']
+        else:
+            agg_metrics['itm_contracts_percent'] = np.nan  # Or handle it differently based on your needs
+
+        # Calculate net IV (within the group)
+        agg_metrics['net_iv'] = group[group['option_type'] == 'call']['implied_volatility'].sum() - \
+                            group[group['option_type'] == 'put']['implied_volatility'].sum()
+        agg_metrics['net_itm_iv'] = itm_calls['implied_volatility'].sum() - itm_puts['implied_volatility'].sum()
+
+        # Calculate Bonsai Ratio
+        itm_call_vol, itm_put_vol = itm_calls['volume'].sum(), itm_puts['volume'].sum()
+        itm_call_oi, itm_put_oi = itm_calls['open_interest'].sum(), itm_puts['open_interest'].sum()
+
+        calls_in_group = group[group['option_type'] == 'call']
+        puts_in_group = group[group['option_type'] == 'put']
+
+        total_call_vol, total_put_vol = calls_in_group['volume'].sum(), puts_in_group['volume'].sum()
+        total_call_oi, total_put_oi = calls_in_group['open_interest'].sum(), puts_in_group['open_interest'].sum()
+
+        # Check for zero or NaN in denominators before division
+        ratio_put_vol = np.divide(itm_put_vol, total_put_vol, where=total_put_vol != 0 and not np.isnan(total_put_vol))
+        ratio_put_oi = np.divide(itm_put_oi, total_put_oi, where=total_put_oi != 0 and not np.isnan(total_put_oi))
+        ratio_call_vol = np.divide(itm_call_vol, total_call_vol,
+                                   where=total_call_vol != 0 and not np.isnan(total_call_vol))
+        ratio_call_oi = np.divide(itm_call_oi, total_call_oi, where=total_call_oi != 0 and not np.isnan(total_call_oi))
+
+        numerator = np.multiply(ratio_put_vol, ratio_put_oi)
+        denominator = np.multiply(ratio_call_vol, ratio_call_oi)
+
+        # Check for zero or NaN in denominator before final division
+        agg_metrics['bonsai_ratio'] = np.divide(numerator, denominator,
+                                                where=denominator != 0 and not np.isnan(denominator))
+
+        # Calculate at-the-money IV (within the group)
+        atm_option = group.loc[abs(group['strike'] - current_price).idxmin()]
+        agg_metrics['atm_iv'] = atm_option['implied_volatility']
+
+        # Calculate max pain
+        # Calculate max pain
+        def pain(strike):
+            # Use 'group' instead of 'df' here
+            call_pain = (strike - current_price) * \
+                        group[(group['option_type'] == 'call') & (group['strike'] <= strike)]['open_interest'].sum()
+            put_pain = (current_price - strike) * group[(group['option_type'] == 'put') & (group['strike'] >= strike)][
+                'open_interest'].sum()
+            return call_pain + put_pain
+
+        unique_strikes = group['strike'].unique()
+        agg_metrics['max_pain'] = min(unique_strikes, key=pain)
+        # Add calculations from `calculations.py`
+        calls = group[group['option_type'] == 'call']
+        puts = group[group['option_type'] == 'put']
+
+        agg_metrics['avg_call_iv'] = calls['implied_volatility'].mean()
+        agg_metrics['avg_put_iv'] = puts['implied_volatility'].mean()
+        # Extract Greeks from JSON and calculate averages
+        greeks_df = group['realtime_calculated_greeks'].apply(pd.Series)  # Convert JSON to DataFrame
+        # print(greeks_df)
+        for greek in ['delta', 'gamma', 'theta', 'vega']:
+            agg_metrics[f'avg_{greek}'] = greeks_df[greek].mean()  # Calculate mean for each Greek
+            if agg_metrics[f'avg_{greek}'] == np.inf:
+                agg_metrics[f'avg_{greek}'] = None
+            # print(agg_metrics[f'avg_{greek}'])
+
+        agg_metrics['total_volume'] = group['volume'].sum()
+
+        # print(f"Group DataFrame for expiration date {exp_date}:")
+        # print(group)
+        #
+        # print(f"Aggregated metrics for expiration date {exp_date}:")
+        # print(agg_metrics)
+
+        # Additional metrics (similar to your existing code)
+        additional_metrics = {
+            'pcrv_up1': calculate_pcr(puts, calls, current_price, 1, 'volume'),
+            'pcrv_up2': calculate_pcr(puts, calls, current_price, 2, 'volume'),
+            'pcrv_down1': calculate_pcr(puts, calls, current_price, -1, 'volume'),
+            'pcrv_down2': calculate_pcr(puts, calls, current_price, -2, 'volume'),
+            'pcroi_up1': calculate_pcr(puts, calls, current_price, 1, 'open_interest'),
+            'pcroi_up2': calculate_pcr(puts, calls, current_price, 2, 'open_interest'),
+            'pcroi_down1': calculate_pcr(puts, calls, current_price, -1, 'open_interest'),
+            'pcroi_down2': calculate_pcr(puts, calls, current_price, -2, 'open_interest'),
+            # Add more metrics as needed
+        }
+
+        # Replace np.inf with None before converting to JSON
+        for key, value in additional_metrics.items():
+            if value == np.inf:
+                additional_metrics[key] = None
+
+        agg_metrics['additional_metrics'] = json.dumps(additional_metrics)
+
+        # Add current price and price change
+        agg_metrics['current_stock_price'] = current_price
+        agg_metrics['current_sp_change_lac'] = (current_price - last_close_price) / last_close_price * 100
+
+        # Add expiration date to the metrics
+        agg_metrics['expiration_date'] = exp_date
+
+        # Append metrics for this expiration date to the list
+        all_agg_metrics.append(agg_metrics)
+
+    return all_agg_metrics  # Return
+
+
 def convert_unix_to_datetime(unix_timestamp):
     if unix_timestamp is None or pd.isna(unix_timestamp) or unix_timestamp == 0:
         return None  # Handle None, NaN, and 0 explicitly
@@ -977,6 +1134,116 @@ async def get_timesales(session, ticker, lookback_minutes):
 
 
 
+async def insert_option_data(conn, options_df):
+    # Convert expiration_date to datetime.date object
+    options_df['expiration_date'] = pd.to_datetime(options_df['expiration_date']).dt.date
+
+    # Insert option data (similar to your existing code)
+    await conn.executemany('''
+        INSERT INTO csvimport.options (
+            contract_id, underlying, expiration_date, strike, option_type,
+            contract_size, description, expiration_type
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (contract_id) DO UPDATE SET
+            underlying = EXCLUDED.underlying,
+            expiration_date = EXCLUDED.expiration_date,
+            strike = EXCLUDED.strike,
+            option_type = EXCLUDED.option_type,
+            contract_size = EXCLUDED.contract_size,
+            description = EXCLUDED.description,
+            expiration_type = EXCLUDED.expiration_type
+    ''', [(row['contract_id'], row['underlying'], row['expiration_date'],
+           row['strike'], row['option_type'], row['contract_size'],
+           row['description'], row['expiration_type'])
+          for _, row in options_df.iterrows()])
+
+    # Insert option quotes data (similar to your existing code)
+    await conn.executemany('''
+        INSERT INTO csvimport.option_quotes (
+            contract_id, fetch_timestamp, root_symbol, last, change, volume,
+            open, high, low, bid, ask, greeks, change_percentage, last_volume,
+            trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch,
+            ask_date, open_interest, implied_volatility, realtime_calculated_greeks,
+            risk_free_rate
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                  $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+        ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
+            root_symbol = EXCLUDED.root_symbol,
+            last = EXCLUDED.last,
+            change = EXCLUDED.change,
+            volume = EXCLUDED.volume,
+            open = EXCLUDED.open,
+            high = EXCLUDED.high,
+            low = EXCLUDED.low,
+            bid = EXCLUDED.bid,
+            ask = EXCLUDED.ask,
+            greeks = EXCLUDED.greeks,
+            change_percentage = EXCLUDED.change_percentage,
+            last_volume = EXCLUDED.last_volume,
+            trade_date = EXCLUDED.trade_date,
+            prevclose = EXCLUDED.prevclose,
+            bidsize = EXCLUDED.bidsize,
+            bidexch = EXCLUDED.bidexch,
+            bid_date = EXCLUDED.bid_date,
+            asksize = EXCLUDED.asksize,
+            askexch = EXCLUDED.askexch,
+            ask_date = EXCLUDED.ask_date,
+            open_interest = EXCLUDED.open_interest,
+            implied_volatility = EXCLUDED.implied_volatility,
+            realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
+            risk_free_rate = EXCLUDED.risk_free_rate
+    ''', [(row['contract_id'], row['fetch_timestamp'],
+           row['root_symbol'], row['last'], row['change'], row['volume'],
+           row['open'], row['high'], row['low'], row['bid'], row['ask'],
+           json.dumps(row['greeks']), row['change_percentage'], row['last_volume'],
+           convert_unix_to_datetime(row['trade_date']), row['prevclose'], row['bidsize'], row['bidexch'],
+           convert_unix_to_datetime(row['bid_date']), row['asksize'], row['askexch'], convert_unix_to_datetime(row['ask_date']),
+           row['open_interest'], row['implied_volatility'],
+           json.dumps(row['realtime_calculated_greeks']) if row['realtime_calculated_greeks'] else None, row['risk_free_rate'])
+          for _, row in options_df.iterrows()])
+
+async def insert_aggregated_metrics(conn, agg_metrics, ticker, fetch_timestamp, exp_date):
+    await conn.execute('''
+        INSERT INTO csvimport.optimized_processed_option_data (
+            symbol_name, fetch_timestamp, exp_date, current_stock_price, current_sp_change_lac,
+            max_pain, bonsai_ratio, pcr_vol, pcr_oi, itm_pcr_vol, itm_pcr_oi,
+            itm_oi, total_oi, itm_contracts_percent, net_iv, net_itm_iv,
+            closest_strike_to_cp, atm_iv,
+            avg_call_iv, avg_put_iv, avg_delta, avg_gamma, avg_theta, avg_vega, total_volume, additional_metrics
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 
+                  $18, $19, $20, $21, $22, $23, $24, $25, $26)
+        ON CONFLICT (symbol_name, fetch_timestamp, exp_date) DO UPDATE SET
+            current_stock_price = EXCLUDED.current_stock_price,
+            current_sp_change_lac = EXCLUDED.current_sp_change_lac,
+            max_pain = EXCLUDED.max_pain,
+            bonsai_ratio = EXCLUDED.bonsai_ratio,
+            pcr_vol = EXCLUDED.pcr_vol,
+            pcr_oi = EXCLUDED.pcr_oi,
+            itm_pcr_vol = EXCLUDED.itm_pcr_vol,
+            itm_pcr_oi = EXCLUDED.itm_pcr_oi,
+            itm_oi = EXCLUDED.itm_oi,
+            total_oi = EXCLUDED.total_oi,
+            itm_contracts_percent = EXCLUDED.itm_contracts_percent,
+            net_iv = EXCLUDED.net_iv,
+            net_itm_iv = EXCLUDED.net_itm_iv,
+            closest_strike_to_cp = EXCLUDED.closest_strike_to_cp,
+            atm_iv = EXCLUDED.atm_iv,
+            avg_call_iv = EXCLUDED.avg_call_iv,
+            avg_put_iv = EXCLUDED.avg_put_iv,
+            avg_delta = EXCLUDED.avg_delta,
+            avg_gamma = EXCLUDED.avg_gamma,
+            avg_theta = EXCLUDED.avg_theta,
+            avg_vega = EXCLUDED.avg_vega,
+            total_volume = EXCLUDED.total_volume,
+            additional_metrics = EXCLUDED.additional_metrics
+    ''', ticker, fetch_timestamp, exp_date, agg_metrics['current_stock_price'], agg_metrics['current_sp_change_lac'],
+        agg_metrics['max_pain'], agg_metrics['bonsai_ratio'], agg_metrics['pcr_vol'], agg_metrics['pcr_oi'],
+        agg_metrics['itm_pcr_vol'], agg_metrics['itm_pcr_oi'], agg_metrics['itm_oi'], agg_metrics['total_oi'],
+        agg_metrics['itm_contracts_percent'], agg_metrics['net_iv'], agg_metrics['net_itm_iv'],
+        agg_metrics['closest_strike_to_cp'], agg_metrics['atm_iv'],
+        agg_metrics['avg_call_iv'], agg_metrics['avg_put_iv'], agg_metrics['avg_delta'],
+        agg_metrics['avg_gamma'], agg_metrics['avg_theta'], agg_metrics['avg_vega'],
+        agg_metrics['total_volume'], agg_metrics['additional_metrics'])
 async def get_options_data(conn, session, ticker, loop_start_time):
     headers = {"Authorization": f"Bearer {real_auth}", "Accept": "application/json"}
     ticker_quote = await fetch(
@@ -1095,73 +1362,189 @@ async def get_options_data(conn, session, ticker, loop_start_time):
         dividend_yield = await dividend_yield_cache.get_dividend_yield(conn, session, ticker, real_auth,
                                                                        current_price)
         options_df = process_option_quotes(all_contract_quotes, current_price, prevclose,dividend_yield,ticker)
-        options_df['fetch_timestamp'] = loop_start_time
+        loop_start_time_eastern = loop_start_time.astimezone(eastern)
 
-        # Insert option data
-        await conn.executemany('''
-            INSERT INTO csvimport.options (
-                contract_id, underlying, expiration_date, strike, option_type,
-                contract_size, description, expiration_type
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (contract_id) DO UPDATE SET
-                underlying = EXCLUDED.underlying,
-                expiration_date = EXCLUDED.expiration_date,
-                strike = EXCLUDED.strike,
-                option_type = EXCLUDED.option_type,
-                contract_size = EXCLUDED.contract_size,
-                description = EXCLUDED.description,
-                expiration_type = EXCLUDED.expiration_type
-        ''', [(row['contract_id'], row['underlying'], row['expiration_date'],
-               row['strike'], row['option_type'], row['contract_size'],
-               row['description'], row['expiration_type'])
-              for _, row in options_df.iterrows()])
+        options_df['fetch_timestamp'] = loop_start_time_eastern
+        # print(options_df.columns)
 
-        # Insert option quotes data
-        await conn.executemany('''
-            INSERT INTO csvimport.option_quotes (
-                contract_id, fetch_timestamp, root_symbol, last, change, volume,
-                open, high, low, bid, ask, greeks, change_percentage, last_volume,
-                trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch,
-                ask_date, open_interest, implied_volatility, realtime_calculated_greeks,
-                risk_free_rate
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-                      $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
-            ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
-                root_symbol = EXCLUDED.root_symbol,
-                last = EXCLUDED.last,
-                change = EXCLUDED.change,
-                volume = EXCLUDED.volume,
-                open = EXCLUDED.open,
-                high = EXCLUDED.high,
-                low = EXCLUDED.low,
-                bid = EXCLUDED.bid,
-                ask = EXCLUDED.ask,
-                greeks = EXCLUDED.greeks,
-                change_percentage = EXCLUDED.change_percentage,
-                last_volume = EXCLUDED.last_volume,
-                trade_date = EXCLUDED.trade_date,
-                prevclose = EXCLUDED.prevclose,
-                bidsize = EXCLUDED.bidsize,
-                bidexch = EXCLUDED.bidexch,
-                bid_date = EXCLUDED.bid_date,
-                asksize = EXCLUDED.asksize,
-                askexch = EXCLUDED.askexch,
-                ask_date = EXCLUDED.ask_date,
-                open_interest = EXCLUDED.open_interest,
-                implied_volatility = EXCLUDED.implied_volatility,
-                realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
-                risk_free_rate = EXCLUDED.risk_free_rate
-        ''', [(row['contract_id'], loop_start_time.astimezone(eastern),
-               row['root_symbol'], row['last'], row['change'], row['volume'],
-               row['open'], row['high'], row['low'], row['bid'], row['ask'],
-               json.dumps(row['greeks']), row['change_percentage'], row['last_volume'],
-               convert_unix_to_datetime(row['trade_date']), row['prevclose'], row['bidsize'], row['bidexch'],
-               convert_unix_to_datetime(row['bid_date']), row['asksize'], row['askexch'], convert_unix_to_datetime(row['ask_date']),
-               row['open_interest'], row['implied_volatility'],
-               json.dumps(row['realtime_calculated_greeks']) if row['realtime_calculated_greeks'] else None, row['risk_free_rate'])
-              for _, row in options_df.iterrows()])
+        # Insert individual option data
+        await insert_option_data(conn, options_df)
+        # Calculate aggregated metrics
+        if ticker in TICKERS_FOR_TRADE_ALGOS:
+            all_agg_metrics = calculate_aggregated_metrics(options_df, current_price, prevclose)
+
+        # Insert aggregated metrics
+        # Iterate over aggregated metrics and insert each one
+        # Insert aggregated metrics
+            for agg_metrics in all_agg_metrics:
+                exp_date = agg_metrics['expiration_date']  # Get the expiration date from the dictionary
+                await insert_aggregated_metrics(conn, agg_metrics, ticker, loop_start_time, exp_date)  # Pass exp_date
 
     return prevclose, current_price, options_df, symbol_name
+
+    # async def insert_option_data(conn, options_df):
+    #     # Insert option data (similar to your existing code)
+    #     await conn.executemany('''
+    #         INSERT INTO csvimport.options (
+    #             contract_id, underlying, expiration_date, strike, option_type,
+    #             contract_size, description, expiration_type
+    #         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    #         ON CONFLICT (contract_id) DO UPDATE SET
+    #             underlying = EXCLUDED.underlying,
+    #             expiration_date = EXCLUDED.expiration_date,
+    #             strike = EXCLUDED.strike,
+    #             option_type = EXCLUDED.option_type,
+    #             contract_size = EXCLUDED.contract_size,
+    #             description = EXCLUDED.description,
+    #             expiration_type = EXCLUDED.expiration_type
+    #     ''', [(row['contract_id'], row['underlying'], row['expiration_date'],
+    #            row['strike'], row['option_type'], row['contract_size'],
+    #            row['description'], row['expiration_type'])
+    #           for _, row in options_df.iterrows()])
+    #
+    #     # Insert option quotes data (similar to your existing code)
+    #     await conn.executemany('''
+    #         INSERT INTO csvimport.option_quotes (
+    #             contract_id, fetch_timestamp, root_symbol, last, change, volume,
+    #             open, high, low, bid, ask, greeks, change_percentage, last_volume,
+    #             trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch,
+    #             ask_date, open_interest, implied_volatility, realtime_calculated_greeks,
+    #             risk_free_rate
+    #         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+    #                   $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+    #         ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
+    #             root_symbol = EXCLUDED.root_symbol,
+    #             last = EXCLUDED.last,
+    #             change = EXCLUDED.change,
+    #             volume = EXCLUDED.volume,
+    #             open = EXCLUDED.open,
+    #             high = EXCLUDED.high,
+    #             low = EXCLUDED.low,
+    #             bid = EXCLUDED.bid,
+    #             ask = EXCLUDED.ask,
+    #             greeks = EXCLUDED.greeks,
+    #             change_percentage = EXCLUDED.change_percentage,
+    #             last_volume = EXCLUDED.last_volume,
+    #             trade_date = EXCLUDED.trade_date,
+    #             prevclose = EXCLUDED.prevclose,
+    #             bidsize = EXCLUDED.bidsize,
+    #             bidexch = EXCLUDED.bidexch,
+    #             bid_date = EXCLUDED.bid_date,
+    #             asksize = EXCLUDED.asksize,
+    #             askexch = EXCLUDED.askexch,
+    #             ask_date = EXCLUDED.ask_date,
+    #             open_interest = EXCLUDED.open_interest,
+    #             implied_volatility = EXCLUDED.implied_volatility,
+    #             realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
+    #             risk_free_rate = EXCLUDED.risk_free_rate
+    #     ''', [(row['contract_id'], row['fetch_timestamp'],
+    #            row['root_symbol'], row['last'], row['change'], row['volume'],
+    #            row['open'], row['high'], row['low'], row['bid'], row['ask'],
+    #            json.dumps(row['greeks']), row['change_percentage'], row['last_volume'],
+    #            convert_unix_to_datetime(row['trade_date']), row['prevclose'], row['bidsize'], row['bidexch'],
+    #            convert_unix_to_datetime(row['bid_date']), row['asksize'], row['askexch'],
+    #            convert_unix_to_datetime(row['ask_date']),
+    #            row['open_interest'], row['implied_volatility'],
+    #            json.dumps(row['realtime_calculated_greeks']) if row['realtime_calculated_greeks'] else None,
+    #            row['risk_free_rate'])
+    #           for _, row in options_df.iterrows()])
+    #
+    # async def insert_aggregated_metrics(conn, agg_metrics, ticker, fetch_timestamp):
+    #     await conn.execute('''
+    #         INSERT INTO csvimport.optimized_processed_option_data (
+    #             symbol_name, fetch_timestamp, current_stock_price, current_sp_change_lac,
+    #             max_pain, bonsai_ratio, pcr_vol, pcr_oi, itm_pcr_vol, itm_pcr_oi,
+    #             itm_oi, total_oi, itm_contracts_percent, net_iv, net_itm_iv,
+    #             closest_strike_to_cp, atm_iv
+    #         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+    #         ON CONFLICT (symbol_name, fetch_timestamp) DO UPDATE SET
+    #             current_stock_price = EXCLUDED.current_stock_price,
+    #             current_sp_change_lac = EXCLUDED.current_sp_change_lac,
+    #             max_pain = EXCLUDED.max_pain,
+    #             bonsai_ratio = EXCLUDED.bonsai_ratio,
+    #             pcr_vol = EXCLUDED.pcr_vol,
+    #             pcr_oi = EXCLUDED.pcr_oi,
+    #             itm_pcr_vol = EXCLUDED.itm_pcr_vol,
+    #             itm_pcr_oi = EXCLUDED.itm_pcr_oi,
+    #             itm_oi = EXCLUDED.itm_oi,
+    #             total_oi = EXCLUDED.total_oi,
+    #             itm_contracts_percent = EXCLUDED.itm_contracts_percent,
+    #             net_iv = EXCLUDED.net_iv,
+    #             net_itm_iv = EXCLUDED.net_itm_iv,
+    #             closest_strike_to_cp = EXCLUDED.closest_strike_to_cp,
+    #             atm_iv = EXCLUDED.atm_iv
+    #     ''', ticker, fetch_timestamp, agg_metrics['current_stock_price'], agg_metrics['current_sp_change_lac'],
+    #                        agg_metrics['max_pain'], agg_metrics['bonsai_ratio'], agg_metrics['pcr_vol'],
+    #                        agg_metrics['pcr_oi'],
+    #                        agg_metrics['itm_pcr_vol'], agg_metrics['itm_pcr_oi'], agg_metrics['itm_oi'],
+    #                        agg_metrics['total_oi'],
+    #                        agg_metrics['itm_contracts_percent'], agg_metrics['net_iv'], agg_metrics['net_itm_iv'],
+    #                        agg_metrics['closest_strike_to_cp'], agg_metrics['atm_iv'])
+    # # Insert option data
+    #     await conn.executemany('''
+    #         INSERT INTO csvimport.options (
+    #             contract_id, underlying, expiration_date, strike, option_type,
+    #             contract_size, description, expiration_type
+    #         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    #         ON CONFLICT (contract_id) DO UPDATE SET
+    #             underlying = EXCLUDED.underlying,
+    #             expiration_date = EXCLUDED.expiration_date,
+    #             strike = EXCLUDED.strike,
+    #             option_type = EXCLUDED.option_type,
+    #             contract_size = EXCLUDED.contract_size,
+    #             description = EXCLUDED.description,
+    #             expiration_type = EXCLUDED.expiration_type
+    #     ''', [(row['contract_id'], row['underlying'], row['expiration_date'],
+    #            row['strike'], row['option_type'], row['contract_size'],
+    #            row['description'], row['expiration_type'])
+    #           for _, row in options_df.iterrows()])
+    #
+    #     # Insert option quotes data
+    #     await conn.executemany('''
+    #         INSERT INTO csvimport.option_quotes (
+    #             contract_id, fetch_timestamp, root_symbol, last, change, volume,
+    #             open, high, low, bid, ask, greeks, change_percentage, last_volume,
+    #             trade_date, prevclose, bidsize, bidexch, bid_date, asksize, askexch,
+    #             ask_date, open_interest, implied_volatility, realtime_calculated_greeks,
+    #             risk_free_rate
+    #         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+    #                   $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+    #         ON CONFLICT (contract_id, fetch_timestamp) DO UPDATE SET
+    #             root_symbol = EXCLUDED.root_symbol,
+    #             last = EXCLUDED.last,
+    #             change = EXCLUDED.change,
+    #             volume = EXCLUDED.volume,
+    #             open = EXCLUDED.open,
+    #             high = EXCLUDED.high,
+    #             low = EXCLUDED.low,
+    #             bid = EXCLUDED.bid,
+    #             ask = EXCLUDED.ask,
+    #             greeks = EXCLUDED.greeks,
+    #             change_percentage = EXCLUDED.change_percentage,
+    #             last_volume = EXCLUDED.last_volume,
+    #             trade_date = EXCLUDED.trade_date,
+    #             prevclose = EXCLUDED.prevclose,
+    #             bidsize = EXCLUDED.bidsize,
+    #             bidexch = EXCLUDED.bidexch,
+    #             bid_date = EXCLUDED.bid_date,
+    #             asksize = EXCLUDED.asksize,
+    #             askexch = EXCLUDED.askexch,
+    #             ask_date = EXCLUDED.ask_date,
+    #             open_interest = EXCLUDED.open_interest,
+    #             implied_volatility = EXCLUDED.implied_volatility,
+    #             realtime_calculated_greeks = EXCLUDED.realtime_calculated_greeks,
+    #             risk_free_rate = EXCLUDED.risk_free_rate
+    #     ''', [(row['contract_id'], loop_start_time.astimezone(eastern),
+    #            row['root_symbol'], row['last'], row['change'], row['volume'],
+    #            row['open'], row['high'], row['low'], row['bid'], row['ask'],
+    #            json.dumps(row['greeks']), row['change_percentage'], row['last_volume'],
+    #            convert_unix_to_datetime(row['trade_date']), row['prevclose'], row['bidsize'], row['bidexch'],
+    #            convert_unix_to_datetime(row['bid_date']), row['asksize'], row['askexch'], convert_unix_to_datetime(row['ask_date']),
+    #            row['open_interest'], row['implied_volatility'],
+    #            json.dumps(row['realtime_calculated_greeks']) if row['realtime_calculated_greeks'] else None, row['risk_free_rate'])
+    #           for _, row in options_df.iterrows()])
+    #
+    # return prevclose, current_price, options_df, symbol_name
 #     try:
 #         # Upsert Symbol
 #         insert_stmt = insert(Symbol).values(

@@ -547,5 +547,5 @@ if __name__ == "__main__":
     # multiprocessing.freeze_support()  # This helps with multiprocessing on Windows
     # lock = multiprocessing.Lock()
     # logger = setup_logging(lock)
-    create_schema_and_tables(engine)
+    create_schema_and_tables(engine) #TODO this should be async awwaited
     main()

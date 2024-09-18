@@ -54,7 +54,7 @@ import asyncpg
 from UTILITIES.logger_config import logger
 from sqlalchemy import MetaData
 from sqlalchemy.schema import CreateTable
-from db_schema_models import Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis,Base
+from db_schema_models import Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis,OptimizedProcessedOptionData
 
 NEW_SCHEMA = "csvimport"
 
@@ -67,28 +67,26 @@ async def create_schema_and_tables(pool):
         except asyncpg.exceptions.DuplicateSchemaError:
             logger.info(f"Schema '{NEW_SCHEMA}' already exists.")
 
-        # Modify the tables to use the new schema
-        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis]
+        # Modify the tables to use the new schema and create them
+        tables_to_create = [Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis, OptimizedProcessedOptionData]
         for table in tables_to_create:
             table.__table__.schema = NEW_SCHEMA
 
-            # Create tables and indexes in the new schema
-            for table in tables_to_create:
-                create_table_sql = str(CreateTable(table.__table__).compile(dialect=postgresql.dialect()))
-                try:
-                    await conn.execute(create_table_sql)
-                    logger.info(f"Table '{table.__tablename__}' created successfully.")
+            create_table_sql = str(CreateTable(table.__table__).compile(dialect=postgresql.dialect()))
+            try:
+                await conn.execute(create_table_sql)
+                logger.info(f"Table '{table.__tablename__}' created successfully.")
 
-                    # Create indexes
-                    for index in table.__table__.indexes:
-                        create_index_sql = str(CreateIndex(index).compile(dialect=postgresql.dialect()))
-                        await conn.execute(create_index_sql)
-                        logger.info(f"Index '{index.name}' created successfully for table '{table.__tablename__}'.")
+                # Create indexes only if the table was created successfully
+                for index in table.__table__.indexes:
+                    create_index_sql = str(CreateIndex(index).compile(dialect=postgresql.dialect()))
+                    await conn.execute(create_index_sql)
+                    logger.info(f"Index '{index.name}' created successfully for table '{table.__tablename__}'.")
 
-                except asyncpg.exceptions.DuplicateTableError:
-                    logger.info(f"Table '{table.__tablename__}' already exists.")
+            except asyncpg.exceptions.DuplicateTableError:
+                logger.info(f"Table '{table.__tablename__}' already exists.")
 
-            logger.info("All tables and indexes created or already exist in the new schema.")
+        logger.info("All tables and indexes created or already exist in the new schema.")
 async def create_missing_indexes(pool):
     async with pool.acquire() as conn:
         tables_to_check = [Symbol, Option, OptionQuote, SymbolQuote, Dividend, TechnicalAnalysis]

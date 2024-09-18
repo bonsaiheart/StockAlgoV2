@@ -73,6 +73,7 @@ async def calculate_bonsai_ratios(session, ticker, current_time):
         OptionQuote.fetch_timestamp == current_time
     ).all()
 
+
     # Fetch the latest stock quote
     stock_quote = session.query(SymbolQuote).filter_by(symbol_name=ticker).order_by(SymbolQuote.fetch_timestamp.desc()).first()
 

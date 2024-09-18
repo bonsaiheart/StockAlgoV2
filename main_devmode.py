@@ -77,38 +77,45 @@ async def run_program():
         except asyncio.CancelledError:
             pass  # Handle CancelledError if necessary
 
+
+# Move this function outside of calculate_operations
+def sync_calculations(ticker, LAC, current_price, current_time, optionchain_df, symbol_name):
+    return calculations.calculate_option_metrics(
+        optionchain_df,
+        current_price,
+        LAC,current_time,symbol_name
+        )
+
+
 async def calculate_operations(
-    ticker,
-    LAC,
-    current_price,
-    current_time,
-    optionchain_df,
-  symbol_name
+        ticker,
+        LAC,
+        current_price,
+        current_time,
+        optionchain_df,
+        symbol_name,
+        db_pool
 ):
     try:
         loop = asyncio.get_running_loop()
-        args = (
-            ticker,
-            LAC,
-            current_price,
-            current_time,
-            optionchain_df,
-            symbol_name
-        )
 
+        # Use ProcessPoolExecutor for the CPU-bound work
         with ProcessPoolExecutor() as pool:
-            func = partial(calculations.perform_operations, *args)
-            optionchain, dailyminutes, processeddata, ticker = (
-                await loop.run_in_executor(pool, func)
+            processed_data = await loop.run_in_executor(
+                pool,
+                partial(sync_calculations, ticker, LAC, current_price, current_time, optionchain_df, symbol_name)
             )
 
-        return optionchain, dailyminutes, processeddata, ticker
+        # Now perform the database insertion (this remains asynchronous)
+        # Use the db_pool that's passed to handle_ticker_cycle
+        async with db_pool.acquire() as conn:
+            await calculations.insert_processed_data(conn, processed_data)
+
+        return processed_data, ticker
 
     except Exception as e:
         logger.exception(f"Error in calculate_operations for {ticker}: {e}")
-
         raise
-
 
 async def trade_algos(
     optionchain, processeddata, ticker, current_price, current_time
@@ -171,15 +178,15 @@ async def process_ticker_queue(ticker):
 
 
 async def handle_ticker_cycle(db_pool, session, ticker):
+    # print(market_close_time_utc)
+    # print(extended_market_close_time)
     global market_close_time_utc, db_session
-    # extended_market_close_time = market_close_time_utc + timedelta(minutes=1)
 
 
     start_time = datetime.now(pytz.utc)
     max_retries = 1
     while True:
-    # print(market_close_time_utc)
-    # print(extended_market_close_time)
+    # extended_market_close_time = market_close_time_utc + timedelta(minutes=1)
     # while start_time <= extended_market_close_time:
 
         current_time = datetime.now()
@@ -220,26 +227,30 @@ async def handle_ticker_cycle(db_pool, session, ticker):
             #     #     await trade_algos2.handle_model_result(
             #     #         model_name='itm_ratio',
             #     #         ticker=ticker,
+
             #     #         current_price=0,
             #     #         db_pool=db_pool,
             #     #         option_take_profit_percent=10,
             #     #         option_trail_stop_percent=20,
             #     #         current_time=current_time,
             #     #     )
+
                     print(ticker,in_the_money_ratio)
             #         # return ticker  # Or you can return more data as needed
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
-            #     if option_data_success:
-            #         LAC, CurrentPrice, optionchaindf, symbol_name = option_data_success
+                if option_data_success:
+
+                    prevclose, current_price, options_df, symbol_name = option_data_success
+
+                    # calculate_operations_success = await calculate_operations(
+                    #     ticker, prevclose, current_price, current_time, options_df, symbol_name , db_pool
+                    # )
             #
-            #         calculate_operations_success = await calculate_operations(
-            #             ticker, LAC, CurrentPrice, current_time, optionchaindf, symbol_name
-            #         )
             # # #     # print(calculate_operations_success)
             #         if calculate_operations_success:
-            #             optionchain_df, processed_data_df, ticker, data_to_insert =  calculate_operations_success
-            #                         # # Insert data into the database
+            #         optionchain_df, processed_data_df, ticker, data_to_insert =  calculate_operations_success
+                                # # Insert data into the database
             #
             #             calculated_data_insert_success =  tradierAPI_marketdata.insert_calculated_data(ticker,engine,data_to_insert)
             #
