@@ -70,6 +70,22 @@ def calculate_option_metrics(df, current_price, last_adj_close, current_time, sy
         max_pain = min(unique_strikes, key=pain)
         agg.loc[agg['expiration_date'] == exp_date, 'max_pain'] = max_pain
 
+        # Max Pain calculation based on dollarsFromStrikeXoi
+        def pain_dollar_weighted(strike):
+            # Filter ITM options for this specific strike
+            itm_calls_at_strike = calls[(calls['strike'] <= strike) & calls['itm']]
+            itm_puts_at_strike = puts[(puts['strike'] >= strike) & puts['itm']]
+
+            # Calculate pain components using ITM options and their OI
+            call_pain = (strike - current_price) * itm_calls_at_strike['open_interest'].sum()
+            put_pain = (current_price - strike) * itm_puts_at_strike['open_interest'].sum()
+
+            return call_pain + put_pain
+
+        unique_strikes = group['strike'].unique()
+        max_pain_dollar_weighted = min(unique_strikes, key=pain_dollar_weighted)
+        agg.loc[agg['expiration_date'] == exp_date, 'max_pain_dollar_weighted'] = max_pain_dollar_weighted
+
         # Bonsai Ratio calculation
         bonsai_ratio = np.divide(
             np.multiply(np.divide(itm_put_vol, total_put_vol, where=total_put_vol!=0),

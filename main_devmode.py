@@ -185,9 +185,9 @@ async def handle_ticker_cycle(db_pool, session, ticker):
 
     start_time = datetime.now(pytz.utc)
     max_retries = 1
-    while True:
-    # extended_market_close_time = market_close_time_utc + timedelta(minutes=1)
-    # while start_time <= extended_market_close_time:
+    # while True:
+    extended_market_close_time = market_close_time_utc + timedelta(minutes=1)
+    while start_time <= extended_market_close_time:
 
         current_time = datetime.now()
         # loop_start_time_est = current_time.strftime("%y%m%d_%H%M")
@@ -196,6 +196,8 @@ async def handle_ticker_cycle(db_pool, session, ticker):
         try:
             # Create a new database session for each ticker
             async with db_pool.acquire() as conn:
+
+
 
 
                 option_data_success = await tradierAPI_marketdata.get_options_data(
@@ -218,7 +220,7 @@ async def handle_ticker_cycle(db_pool, session, ticker):
             #     #         current_time=current_time,
             #     #     )
             #     # After data insertion, calculate the ratio
-                    in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(conn, ticker, current_time)
+            #         in_the_money_ratio = await analysis_functions.calculate_in_the_money_pcr(conn, ticker, current_time)
             #     # net_iv = await analysis_functions.calculate_net_iv(session, ticker, current_time)
             #     # max_pain = await analysis_functions.calculate_maximum_pain(session, ticker, current_time)
             #     # # If ratio is above 1, return the ticker
@@ -235,7 +237,7 @@ async def handle_ticker_cycle(db_pool, session, ticker):
             #     #         current_time=current_time,
             #     #     )
 
-                    print(ticker,in_the_money_ratio)
+                    # print(ticker,in_the_money_ratio)
             #         # return ticker  # Or you can return more data as needed
 
                 # if ticker in TICKERS_FOR_CALCULATIONS:
@@ -367,17 +369,18 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        # logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
-        # market_open_time_utc, market_close_time_utc = asyncio.run(
-        #     UTILITIES.check_Market_Conditions.get_market_open_close_times()
-        # )
-        # if market_open_time_utc == None and market_close_time_utc == None:
-        #     logger.info(f"Market is not open today.")
-        #     exit()
-        # asyncio.run(wait_until_time(market_open_time_utc))
-        # logger.info(
-        #     f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
-        # )
+        logger.info(f"Main.py began at utc time: {datetime.utcnow()}")
+        market_open_time_utc, market_close_time_utc = asyncio.run(
+            UTILITIES.check_Market_Conditions.get_market_open_close_times()
+        )
+        if market_open_time_utc == None and market_close_time_utc == None:
+            logger.info(f"Market is not open today.")
+            exit()
+        asyncio.run(wait_until_time(market_open_time_utc))
+
+        logger.info(
+            f"Main_devmode.py started data collection with market open, at utc time: {datetime.utcnow()}"
+        )
 
         asyncio.run(run_program())
     except KeyboardInterrupt:

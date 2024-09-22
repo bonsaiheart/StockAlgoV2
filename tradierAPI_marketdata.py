@@ -768,6 +768,60 @@ def calculate_time_to_expiration(df):
     # df.loc[df['days_to_expiration'] < 0, 'days_to_expiration'] = 0
 
     return df
+import numpy as np
+import pandas as pd
+
+def calculate_multiple_max_pain(group, current_price):
+    calls = group[group['option_type'] == 'call']
+    puts = group[group['option_type'] == 'put']
+    unique_strikes = group['strike'].unique()
+
+    # Vectorized calculations for all strikes at once
+    call_pain = np.maximum(0, unique_strikes[:, np.newaxis] - current_price) * calls['open_interest'].values
+    put_pain = np.maximum(0, current_price - unique_strikes[:, np.newaxis]) * puts['open_interest'].values
+
+    total_pain = call_pain.sum(axis=1) + put_pain.sum(axis=1)
+    traditional_max_pain = unique_strikes[np.argmin(total_pain)]
+
+    # ITM Dollar-Weighted Max Pain
+    call_dollar_pain = calls['dollarsFromStrikeXoi'].values
+    put_dollar_pain = puts['dollarsFromStrikeXoi'].values
+
+    itm_dollar_pain = np.where(unique_strikes[:, np.newaxis] > current_price,
+                               call_dollar_pain, 0).sum(axis=1) + \
+                      np.where(unique_strikes[:, np.newaxis] < current_price,
+                               put_dollar_pain, 0).sum(axis=1)
+    itm_dollar_weighted_max_pain = unique_strikes[np.argmin(itm_dollar_pain)]
+
+    # Dollar-Weighted Max Pain
+    dollar_weighted_pain = np.where(unique_strikes[:, np.newaxis] > current_price,
+                                    call_dollar_pain, 0).sum(axis=1) + \
+                           np.where(unique_strikes[:, np.newaxis] < current_price,
+                                    put_dollar_pain, 0).sum(axis=1)
+    dollar_weighted_max_pain = unique_strikes[np.argmin(dollar_weighted_pain)]
+
+    # Volume-Weighted Max Pain
+    call_volume_pain = np.maximum(0, unique_strikes[:, np.newaxis] - current_price) * calls['volume'].values
+    put_volume_pain = np.maximum(0, current_price - unique_strikes[:, np.newaxis]) * puts['volume'].values
+    volume_weighted_pain = call_volume_pain.sum(axis=1) + put_volume_pain.sum(axis=1)
+    volume_weighted_max_pain = unique_strikes[np.argmin(volume_weighted_pain)]
+
+    # Last Price * OI Max Pain
+    call_lastprice_oi_pain = calls['last'].values * calls['open_interest'].values
+    put_lastprice_oi_pain = puts['last'].values * puts['open_interest'].values
+    lastprice_oi_pain = np.where(unique_strikes[:, np.newaxis] > current_price,
+                                 call_lastprice_oi_pain, 0).sum(axis=1) + \
+                        np.where(unique_strikes[:, np.newaxis] < current_price,
+                                 put_lastprice_oi_pain, 0).sum(axis=1)
+    lastprice_oi_max_pain = unique_strikes[np.argmin(lastprice_oi_pain)]
+
+    return {
+        'itm_dollar_weighted_max_pain': itm_dollar_weighted_max_pain,
+        'traditional_max_pain': traditional_max_pain,
+        'dollar_weighted_max_pain': dollar_weighted_max_pain,
+        'volume_weighted_max_pain': volume_weighted_max_pain,
+        'lastprice_oi_max_pain': lastprice_oi_max_pain,
+    }
 def process_option_quotes(all_contract_quotes, current_price, last_close_price, dividend_yield,ticker):
     df = all_contract_quotes.copy()
     df['contract_id'] = df['symbol']
@@ -996,17 +1050,85 @@ def calculate_aggregated_metrics(df, current_price, last_close_price):
         agg_metrics['atm_iv'] = atm_option['implied_volatility']
 
         # Calculate max pain
-        # Calculate max pain
-        def pain(strike):
-            # Use 'group' instead of 'df' here
-            call_pain = (strike - current_price) * \
-                        group[(group['option_type'] == 'call') & (group['strike'] <= strike)]['open_interest'].sum()
-            put_pain = (current_price - strike) * group[(group['option_type'] == 'put') & (group['strike'] >= strike)][
-                'open_interest'].sum()
-            return call_pain + put_pain
+        def calculate_multiple_max_pain(group, current_price):
+            calls = group[group['option_type'] == 'call']
+            puts = group[group['option_type'] == 'put']
+            unique_strikes = group['strike'].unique()
 
-        unique_strikes = group['strike'].unique()
-        agg_metrics['max_pain'] = min(unique_strikes, key=pain)
+            # 1. ITM Dollar-Weighted Max Pain (Original)
+            pain_list = []
+            for strike in unique_strikes:
+                itmCalls_dollarsFromStrikeXoiSum = calls.loc[
+                    (calls["strike"] < strike), "dollarsFromStrikeXoi"
+                ].sum()
+                itmPuts_dollarsFromStrikeXoiSum = puts.loc[
+                    (puts["strike"] > strike), "dollarsFromStrikeXoi"
+                ].sum()
+                pain_value = itmPuts_dollarsFromStrikeXoiSum + itmCalls_dollarsFromStrikeXoiSum
+                pain_list.append((strike, pain_value))
+
+            itm_dollar_weighted_max_pain = min(pain_list, key=lambda x: x[1])[0]
+
+            # 2. Traditional Max Pain (existing code)
+            def traditional_pain(strike):
+                call_pain = (strike - current_price) * calls[calls['strike'] <= strike]['open_interest'].sum()
+                put_pain = (current_price - strike) * puts[puts['strike'] >= strike]['open_interest'].sum()
+                return call_pain + put_pain
+
+            # 3. Dollar-Weighted Max Pain (existing code)
+            def dollar_weighted_pain(strike):
+                itm_calls = calls[(calls['strike'] <= strike) & calls['itm']]
+                itm_puts = puts[(puts['strike'] >= strike) & puts['itm']]
+                call_pain = (strike - current_price) * itm_calls['open_interest'].sum()
+                put_pain = (current_price - strike) * itm_puts['open_interest'].sum()
+                return call_pain + put_pain
+
+            # 4. Volume-Weighted Max Pain (existing code)
+            def volume_weighted_pain(strike):
+                call_pain = (strike - current_price) * calls[calls['strike'] <= strike]['volume'].sum()
+                put_pain = (current_price - strike) * puts[puts['strike'] >= strike]['volume'].sum()
+                return call_pain + put_pain
+
+            # 5. Last Price * OI Max Pain (New)
+            def lastprice_oi_pain(strike):
+                call_pain = calls[calls['strike'] <= strike].apply(
+                    lambda x: x['last'] * x['open_interest'], axis=1).sum()
+                put_pain = puts[puts['strike'] >= strike].apply(
+                    lambda x: x['last'] * x['open_interest'], axis=1).sum()
+                return call_pain + put_pain
+
+            # # Or, if you want to keep the price difference factor:
+            # def price_diff_lastprice_oi_pain(strike):
+            #     call_pain = calls[calls['strike'] <= strike].apply(
+            #         lambda x: max(0, strike - current_price) * x['last'] * x['open_interest'], axis=1).sum()
+            #     put_pain = puts[puts['strike'] >= strike].apply(
+            #         lambda x: max(0, current_price - strike) * x['last'] * x['open_interest'], axis=1).sum()
+            #     return call_pain + put_pain
+            traditional_max_pain = min(unique_strikes, key=traditional_pain)
+            dollar_weighted_max_pain = min(unique_strikes, key=dollar_weighted_pain)
+            volume_weighted_max_pain = min(unique_strikes, key=volume_weighted_pain)
+            lastprice_oi_max_pain = min(unique_strikes, key=lastprice_oi_pain)
+            # price_diff_lastprice_oi_pain = min(unique_strikes, key=price_diff_lastprice_oi_pain)
+            return {
+                'itm_dollar_weighted_max_pain': itm_dollar_weighted_max_pain,
+                'traditional_max_pain': traditional_max_pain,
+                'dollar_weighted_max_pain': dollar_weighted_max_pain,
+                'volume_weighted_max_pain': volume_weighted_max_pain,
+                'lastprice_oi_max_pain': lastprice_oi_max_pain,
+                # 'price_diff_lastprice_oi_pain': price_diff_lastprice_oi_pain
+
+            }
+
+            # In your main calculation loop:
+
+
+        max_pain_results = calculate_multiple_max_pain(group, current_price)
+
+        agg_metrics['max_pain'] = max_pain_results['itm_dollar_weighted_max_pain']
+
+
+        # Calculate max pain
+
         # Add calculations from `calculations.py`
         calls = group[group['option_type'] == 'call']
         puts = group[group['option_type'] == 'put']
@@ -1032,6 +1154,12 @@ def calculate_aggregated_metrics(df, current_price, last_close_price):
 
         # Additional metrics (similar to your existing code)
         additional_metrics = {
+            'traditional_max_pain': max_pain_results['traditional_max_pain'],
+            'dollar_weighted_max_pain': max_pain_results['dollar_weighted_max_pain'],
+            'volume_weighted_max_pain': max_pain_results['volume_weighted_max_pain'],
+            'lastprice_oi_pain': max_pain_results['lastprice_oi_max_pain'],
+            # 'price_diff_lastprice_oi
+            # _pain': max_pain_results['price_diff_lastprice_oi_pain'],
             'pcrv_up1': calculate_pcr(puts, calls, current_price, 1, 'volume'),
             'pcrv_up2': calculate_pcr(puts, calls, current_price, 2, 'volume'),
             'pcrv_down1': calculate_pcr(puts, calls, current_price, -1, 'volume'),
@@ -1381,7 +1509,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
                 await insert_aggregated_metrics(conn, agg_metrics, ticker, loop_start_time, exp_date)  # Pass exp_date
 
     return prevclose, current_price, options_df, symbol_name
-
+#TODO  expdates should maybe use date instead of datetime? or at least set datetime to EOD instead of midnight..
     # async def insert_option_data(conn, options_df):
     #     # Insert option data (similar to your existing code)
     #     await conn.executemany('''
