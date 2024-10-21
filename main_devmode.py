@@ -295,7 +295,12 @@ async def handle_ticker_cycle(db_pool, session, ticker):
         print(
             f"Ticker: {ticker}| Elapsed_time: {elapsed_time}| Loop Start: {loop_start_time_w_seconds_est}"
         )
-        await record_elapsed_time(ticker, elapsed_time)
+        try:
+            await record_elapsed_time(ticker, elapsed_time)
+        except Exception as e:
+
+
+            logger.exception(f"Error recording elapsed time for {ticker}: {e}")
         if elapsed_time > 60:
             logger.warning(f"{ticker} took {elapsed_time} to complete cycle.")
             # exit()

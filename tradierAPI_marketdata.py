@@ -498,7 +498,8 @@ def insert_calculated_data(ticker, engine, calculated_data_df):
 
 
 # Initialize FRED API
-fred = fredapi.Fred(api_key='0fd2a19c651aa21bbab822b3b20a7352 ')  # Replace with your FRED API key
+# fred = fredapi.Fred(api_key='0fd2a19c651aa21bbab822b3b20a7352 ')  # Replace with your FRED API key
+fred = fredapi.Fred(api_key='478440604776a63771b1412064785d37')  # Replace with your FRED API key
 #TODO add mid/bid/ask iv/greeks?
 
 # Define series IDs and their corresponding max days
@@ -1479,6 +1480,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
             timesales_data['vwap']
         ])
     else:
+        
         values.extend([None] * 8)  # Add None for all timesales fields if data is not available
 
     # Execute the query
@@ -1490,6 +1492,7 @@ async def get_options_data(conn, session, ticker, loop_start_time):
         dividend_yield = await dividend_yield_cache.get_dividend_yield(conn, session, ticker, real_auth,
                                                                        current_price)
         options_df = process_option_quotes(all_contract_quotes, current_price, prevclose,dividend_yield,ticker)
+        
         loop_start_time_eastern = loop_start_time.astimezone(eastern)
 
         options_df['fetch_timestamp'] = loop_start_time_eastern
